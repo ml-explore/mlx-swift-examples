@@ -2,7 +2,7 @@
 
 See various READMEs:
 
-- [Llama](../../Libraries/Llama/README.md)
+- [LLM](../../Libraries/LLM/README.md)
 
 ### Building
 
@@ -21,7 +21,14 @@ To run this in Xcode simply press cmd-opt-r to set the scheme arguments.  For ex
 Then cmd-r to run.
 
 > Note: you may be prompted for access to your Documents directory -- this is where
-the huggingface HubApi stores the downloaded files.
+the Hugging Face HubApi stores the downloaded files.
+
+The model should be a path in the Hugging Face repository, e.g.:
+
+- `mlx-community/Mistral-7B-v0.1-hf-4bit-mlx`
+- `mlx-community/phi-2-hf-4bit-mlx`
+
+See [LLM](../../Libraries/LLM/README.md) for more info.
 
 ### Running (Command Line)
 

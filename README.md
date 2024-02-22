@@ -1,6 +1,6 @@
 # MLX Swift Examples
 
-Example (mlx-swift)[https://github.com/ml-explore/mlx-swift] programs.
+Example [mlx-swift](https://github.com/ml-explore/mlx-swift) programs.
 
 ## LinearModelTraining
 
@@ -10,7 +10,7 @@ A simple linear model and a training loop.
 
 ## llm-tool
 
-A command line tool for generating text using a Llama / Mistral model:
+A command line tool for generating text using a variety of Hugging Face models:
 
 - [README](Tools/llm-tool/README.md)
 
