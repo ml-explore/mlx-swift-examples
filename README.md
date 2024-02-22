@@ -1,6 +1,6 @@
-# mlx-examples-swift
+# MLX Swift Examples
 
-Example mlx-swift programs.
+Example (mlx-swift)[https://github.com/ml-explore/mlx-swift] programs.
 
 ## LinearModelTraining
 
