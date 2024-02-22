@@ -1,0 +1,63 @@
+version: 2.1
+
+orbs:
+  apple: ml-explore/pr-approval@0.1.0
+  
+parameters:
+  nightly_build:
+    type: boolean
+    default: false
+  weekly_build:
+    type: boolean
+    default: false
+
+jobs:
+
+  mac_build_and_test:
+    macos:
+      xcode: 15.2.0
+    resource_class: macos.m1.medium.gen1
+    steps:
+      - checkout
+      - run: git submodule sync
+      - run: git submodule update --init
+      - run:
+          name: Run style checks
+          command: |
+            pip install pre-commit
+            brew install swift-format
+            pre-commit run --all
+            if ! git diff --quiet; then echo 'Style checks failed, please install pre-commit and run pre-commit run --all and push the change'; exit 1; fi
+      - run:
+          name: Build Examples
+          command: |
+            xcodebuild -version
+            xcrun --show-sdk-build-version
+            swift --version
+            xcodebuild -scheme llm-tool
+            xcodebuild -scheme mnist-tool
+
+workflows:
+  build_and_test:
+    when:
+      and:
+        - matches:
+            pattern: "^(?!pull/)[-\\w]+$"
+            value: << pipeline.git.branch >>
+        - not: << pipeline.parameters.nightly_build >>
+        - not: << pipeline.parameters.weekly_build >>
+    jobs:
+      - mac_build_and_test
+
+  prb:
+    when:
+      matches:
+        pattern: "^pull/\\d+(/head)?$"
+        value: << pipeline.git.branch >>
+    jobs:
+      - hold:
+          type: approval
+      - apple/authenticate:
+          context: pr-approval
+      - mac_build_and_test:
+          requires: [ hold ]
