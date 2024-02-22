@@ -34,8 +34,8 @@ jobs:
             xcodebuild -version
             xcrun --show-sdk-build-version
             swift --version
-            xcodebuild -scheme llm-tool
-            xcodebuild -scheme mnist-tool
+            xcodebuild -skipPackagePluginValidation -scheme llm-tool
+            xcodebuild -skipPackagePluginValidation -scheme mnist-tool
 
 workflows:
   build_and_test:
