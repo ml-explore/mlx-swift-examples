@@ -19,10 +19,7 @@ private class RMSNorm: Module, UnaryLayer {
     }
 
     func norm(_ x: MLXArray) -> MLXArray {
-        let S = 1.0 / sqrt(Float(x.dim(-1)))
-
-        let n = (x * S).square().sum(axis: -1, keepDims: true)
-        return rsqrt(n + eps)
+        x * rsqrt(x.square().mean(axis: -1, keepDims: true) + eps)
     }
 
     public func callAsFunction(_ x: MLXArray) -> MLXArray {
