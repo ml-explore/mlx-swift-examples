@@ -6,54 +6,7 @@ import MLXNN
 
 // https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/phi.py
 
-// TODO: remove once open classes are in
-
-public class MLXLayerNorm: Module, UnaryLayer {
-
-    let dimensions: Int
-    let eps: Float
-
-    let weight: MLXArray?
-    let bias: MLXArray?
-
-    /// Applies layer normalization [1] on the inputs.
-    ///
-    /// See [LayerNorm python docs](https://ml-explore.github.io/mlx/build/html/python/nn/_autosummary/mlx.nn.LayerNorm.html) for more information.
-    ///
-    /// ### References
-    /// 1. [https://arxiv.org/abs/1607.06450](https://arxiv.org/abs/1607.06450)
-    ///
-    /// - Parameters:
-    ///   - dimensions: number of features in the input
-    ///   - eps: value added to the denominator for numerical stability
-    ///   - affine: if `true` adds a trainable `weight` and `bias`
-    public init(dimensions: Int, eps: Float = 1e-5, affine: Bool = true) {
-        self.dimensions = dimensions
-        self.eps = eps
-
-        if affine {
-            self.weight = MLXArray.ones([dimensions])
-            self.bias = MLXArray.zeros([dimensions])
-        } else {
-            self.weight = nil
-            self.bias = nil
-        }
-    }
-
-    public func callAsFunction(_ x: MLXArray) -> MLXArray {
-        let means = mean(x, axis: -1, keepDims: true)
-        let variance = variance(x, axis: -1, keepDims: true)
-        let x = (x - means) * rsqrt(variance + eps)
-
-        if let weight, let bias {
-            return weight * x + bias
-        } else {
-            return x
-        }
-    }
-}
-
-private class LayerNorm: MLXLayerNorm {
+private class LayerNorm: MLXNN.LayerNorm {
     override func callAsFunction(_ x: MLXArray) -> MLXArray {
         super.callAsFunction(x.asType(Float.self)).asType(x.dtype)
     }
@@ -223,11 +176,14 @@ private class PhiModelInner: Module {
 
 public class PhiModel: Module, LLMModel {
 
+    public let vocabularySize: Int
+
     fileprivate let model: PhiModelInner
 
     @ModuleInfo(key: "lm_head") var lmHead: Linear
 
     public init(_ args: PhiConfiguration) {
+        self.vocabularySize = args.vocabularySize
         self.model = PhiModelInner(args)
         self._lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: true)
     }

@@ -187,11 +187,13 @@ public class LlamaModelInner: Module {
 
 public class LlamaModel: Module, LLMModel {
 
+    public let vocabularySize: Int
     let model: LlamaModelInner
 
     @ModuleInfo(key: "lm_head") var lmHead: Linear
 
     public init(_ args: LlamaConfiguration) {
+        self.vocabularySize = args.vocabularySize
         self.model = LlamaModelInner(args)
         self._lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
     }

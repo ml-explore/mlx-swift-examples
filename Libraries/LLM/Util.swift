@@ -8,12 +8,16 @@ import MLXNN
 import MLXRandom
 import Tokenizers
 
+struct LLMError: Error {
+    let message: String
+}
+
 /// Load and return the model and tokenizer
 public func load(
     hub: HubApi = HubApi(), name: String, progressHandler: @escaping (Progress) -> Void = { _ in }
 ) async throws -> (LLMModel, Tokenizer) {
     // note: this doesn't have a way to pass the HubApi
-    let tokenizer = try await AutoTokenizer.from(pretrained: name)
+    let tokenizer = try await loadTokenizer(name: name)
 
     // download the model weights and config
     let repo = Hub.Repo(id: name)
@@ -28,19 +32,78 @@ public func load(
 
     let model = try baseConfig.modelType.createModel(configuration: configurationURL)
 
-    // set up the model
+    // load the weights
+    let weights = try loadArrays(url: modelDirectory.appending(component: "weights.00.safetensors"))
+
+    // quantize if needed
     if let quantization = baseConfig.quantization {
-        QuantizedLinear.quantize(
-            model: model, groupSize: quantization.groupSize, bits: quantization.bits)
+        quantizeIfNeeded(model: model, weights: weights, quantization: quantization)
     }
 
     // apply the loaded weights
-    let weights = try loadArrays(url: modelDirectory.appending(component: "weights.00.safetensors"))
     let parameters = ModuleParameters.unflattened(weights)
     try model.update(parameters: parameters, verify: [.all])
-    eval(model.parameters())
+
+    eval(model)
 
     return (model, tokenizer)
+}
+
+public func loadTokenizer(name: String) async throws -> Tokenizer {
+    // from AutoTokenizer.from() -- this lets us override parts of the configuration
+    let config = LanguageModelConfigurationFromHub(modelName: name)
+    guard var tokenizerConfig = try await config.tokenizerConfig else {
+        throw LLMError(message: "missing config")
+    }
+    let tokenizerData = try await config.tokenizerData
+
+    if let tokenizerClass = tokenizerConfig.tokenizerClass?.stringValue,
+        let replacement = replacementTokenizers[tokenizerClass]
+    {
+        var dictionary = tokenizerConfig.dictionary
+        dictionary["tokenizer_class"] = replacement
+        tokenizerConfig = Config(dictionary)
+    }
+
+    return try PreTrainedTokenizer(tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
+}
+
+/// overrides for TokenizerModel/knownTokenizers
+let replacementTokenizers = [
+    "CodeLlamaTokenizer": "LlamaTokenizer"
+]
+
+private func quantizeIfNeeded(
+    model: LLMModel, weights: [String: MLXArray], quantization: BaseConfiguration.Quantization
+) {
+
+    func linearPredicate(layer: Module) -> Bool {
+        if let layer = layer as? Linear {
+            // avoid quantizing gate layers, otherwise we have to re-quant and upload all the mixtral models
+            return layer.weight.dim(0) != 8
+        }
+        return false
+    }
+
+    var predicate = linearPredicate(layer:)
+
+    // for legacy models that don't have lm_head quant due to non-32 dims
+    if weights["lm_head.scales"] == nil {
+        let vocabularySize = model.vocabularySize
+
+        func vocabularySizePredicate(layer: Module) -> Bool {
+            if let layer = layer as? Linear {
+                return layer.weight.dim(0) != 8 && layer.weight.dim(0) != vocabularySize
+            }
+            return false
+        }
+
+        predicate = vocabularySizePredicate(layer:)
+    }
+
+    QuantizedLinear.quantize(
+        model: model, groupSize: quantization.groupSize, bits: quantization.bits,
+        predicate: predicate)
 }
 
 private func sample(logits: MLXArray, temp: Float) -> MLXArray {

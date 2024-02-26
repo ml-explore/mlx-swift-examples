@@ -202,9 +202,11 @@ public class GemmaModelInner: Module {
 
 public class GemmaModel: Module, LLMModel {
 
+    public let vocabularySize: Int
     let model: GemmaModelInner
 
     public init(_ args: GemmaConfiguration) {
+        self.vocabularySize = args.vocabularySize
         self.model = GemmaModelInner(args)
     }
 
