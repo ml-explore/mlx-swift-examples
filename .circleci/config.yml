@@ -34,6 +34,7 @@ jobs:
             xcodebuild -version
             xcrun --show-sdk-build-version
             swift --version
+            find . -name Package.resolved -exec rm {} \;
             xcodebuild -skipPackagePluginValidation -scheme llm-tool
             xcodebuild -skipPackagePluginValidation -scheme mnist-tool
 
