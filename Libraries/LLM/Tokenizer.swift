@@ -4,6 +4,51 @@ import Foundation
 import Hub
 import Tokenizers
 
+/// Wrapper for `Tokenizers.Tokenizer` that provides access to config
+/// like ``eosToken``.
+public struct Tokenizer: Tokenizers.Tokenizer {
+
+    let tokenizer: Tokenizers.Tokenizer
+
+    public let eosToken: String?
+    public let eosTokenId: Int?
+
+    internal init(tokenizer: Tokenizers.Tokenizer, tokenizerConfig: Config) {
+        self.tokenizer = tokenizer
+        self.eosToken = tokenizerConfig.eosToken?.stringValue
+        if let eosToken {
+            self.eosTokenId = tokenizer.convertTokenToId(eosToken)
+        } else {
+            self.eosTokenId = nil
+        }
+    }
+
+    public func tokenize(text: String) -> [String] {
+        tokenizer.tokenize(text: text)
+    }
+
+    public func encode(text: String) -> [Int] {
+        tokenizer.encode(text: text)
+    }
+
+    public func decode(tokens: [Int]) -> String {
+        tokenizer.decode(tokens: tokens)
+    }
+
+    public func convertTokenToId(_ token: String) -> Int? {
+        tokenizer.convertTokenToId(token)
+    }
+
+    public func convertIdToToken(_ id: Int) -> String? {
+        tokenizer.convertIdToToken(id)
+    }
+
+    public var unknownToken: String? { tokenizer.unknownToken }
+
+    public var unknownTokenId: Int? { tokenizer.unknownTokenId }
+
+}
+
 public func loadTokenizer(name: String) async throws -> Tokenizer {
     // from AutoTokenizer.from() -- this lets us override parts of the configuration
     let config = LanguageModelConfigurationFromHub(modelName: name)
@@ -31,7 +76,10 @@ public func loadTokenizer(name: String) async throws -> Tokenizer {
         }
     }
 
-    return try PreTrainedTokenizer(tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
+    let impl = try PreTrainedTokenizer(
+        tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
+
+    return Tokenizer(tokenizer: impl, tokenizerConfig: tokenizerConfig)
 }
 
 public func discardUnhandledMerges(tokenizerData: Config) -> Config {

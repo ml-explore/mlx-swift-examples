@@ -64,7 +64,7 @@ struct SyncGenerator: AsyncParsableCommand {
             }
 
             let t = token.item(Int.self)
-            if t == tokenizer.unknownTokenId {
+            if t == tokenizer.unknownTokenId || t == tokenizer.eosTokenId {
                 break
             }
             tokens.append(t)
@@ -150,7 +150,7 @@ struct AsyncGenerator: AsyncParsableCommand {
                 start = now
             }
 
-            if token == tokenizer.unknownTokenId {
+            if token == tokenizer.unknownTokenId || token == tokenizer.eosTokenId {
                 break
             }
             tokens.append(token)
