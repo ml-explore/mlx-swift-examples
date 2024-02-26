@@ -21,7 +21,7 @@ public func load(
 
     // download the model weights and config
     let repo = Hub.Repo(id: name)
-    let modelFiles = ["config.json", "weights.00.safetensors"]
+    let modelFiles = ["config.json", "*.safetensors"]
     let modelDirectory = try await hub.snapshot(
         from: repo, matching: modelFiles, progressHandler: progressHandler)
 
@@ -33,7 +33,17 @@ public func load(
     let model = try baseConfig.modelType.createModel(configuration: configurationURL)
 
     // load the weights
-    let weights = try loadArrays(url: modelDirectory.appending(component: "weights.00.safetensors"))
+    var weights = [String: MLXArray]()
+    let enumerator = FileManager.default.enumerator(
+        at: modelDirectory, includingPropertiesForKeys: nil)!
+    for case let url as URL in enumerator {
+        if url.pathExtension == "safetensors" {
+            let w = try loadArrays(url: url)
+            for (key, value) in w {
+                weights[key] = value
+            }
+        }
+    }
 
     // quantize if needed
     if let quantization = baseConfig.quantization {
@@ -49,14 +59,17 @@ public func load(
     return (model, tokenizer)
 }
 
+// MARK: - Tokenizers
+
 public func loadTokenizer(name: String) async throws -> Tokenizer {
     // from AutoTokenizer.from() -- this lets us override parts of the configuration
     let config = LanguageModelConfigurationFromHub(modelName: name)
     guard var tokenizerConfig = try await config.tokenizerConfig else {
         throw LLMError(message: "missing config")
     }
-    let tokenizerData = try await config.tokenizerData
+    var tokenizerData = try await config.tokenizerData
 
+    // workaround: replacement tokenizers for unhandled values in swift-transform
     if let tokenizerClass = tokenizerConfig.tokenizerClass?.stringValue,
         let replacement = replacementTokenizers[tokenizerClass]
     {
@@ -65,13 +78,54 @@ public func loadTokenizer(name: String) async throws -> Tokenizer {
         tokenizerConfig = Config(dictionary)
     }
 
+    // workaround: some merges can't be split on space in BPETokenizer
+    if let tokenizerClass = tokenizerConfig.tokenizerClass?.stringValue {
+        switch tokenizerClass {
+        case "T5Tokenizer":
+            break
+        default:
+            tokenizerData = discardUnhandledMerges(tokenizerData: tokenizerData)
+        }
+    }
+
     return try PreTrainedTokenizer(tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
+}
+
+public func discardUnhandledMerges(tokenizerData: Config) -> Config {
+    // see https://github.com/ml-explore/mlx-swift-examples/issues/1
+
+    if let model = tokenizerData.model {
+        if let merges = model.dictionary["merges"] as? [String] {
+            // discard any merges that can't be split on a space
+            // (required by BPETokenizer)
+            let newMerges =
+                merges
+                .filter {
+                    $0.split(separator: " ").count == 2
+                }
+
+            if newMerges.count != merges.count {
+                var newModel = model.dictionary
+                newModel["merges"] = newMerges
+
+                var newTokenizerData = tokenizerData.dictionary
+                newTokenizerData["model"] = newModel
+
+                return Config(newTokenizerData)
+            }
+        }
+    }
+
+    return tokenizerData
 }
 
 /// overrides for TokenizerModel/knownTokenizers
 let replacementTokenizers = [
-    "CodeLlamaTokenizer": "LlamaTokenizer"
+    "CodeLlamaTokenizer": "LlamaTokenizer",
+    "GemmaTokenizer": "PreTrainedTokenizer",
 ]
+
+// MARK: - Quantization
 
 private func quantizeIfNeeded(
     model: LLMModel, weights: [String: MLXArray], quantization: BaseConfiguration.Quantization
@@ -104,70 +158,4 @@ private func quantizeIfNeeded(
     QuantizedLinear.quantize(
         model: model, groupSize: quantization.groupSize, bits: quantization.bits,
         predicate: predicate)
-}
-
-private func sample(logits: MLXArray, temp: Float) -> MLXArray {
-    if temp == 0 {
-        return argMax(logits, axis: -1)
-    } else {
-        return categorical(logits * (1 / temp))
-    }
-}
-
-/// Synchronous generator of tokens.
-///
-/// Port of `generate_step()` from https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/utils.py
-public struct TokenIterator: Sequence, IteratorProtocol {
-    let model: LLMModel
-    let temp: Float
-
-    var y: MLXArray
-    var cache: [(MLXArray, MLXArray)]
-
-    var first = true
-
-    public init(prompt: MLXArray, model: LLMModel, temp: Float = 0.0) {
-        self.model = model
-        self.temp = temp
-        self.y = prompt
-        self.cache = []
-    }
-
-    mutating public func next() -> MLXArray? {
-        var logits: MLXArray
-        (logits, cache) = model(expandedDimensions(y, axis: 0), cache: cache.isEmpty ? nil : cache)
-        y = sample(logits: logits[-1, axis: 1], temp: temp)
-
-        return y
-    }
-}
-
-/// Async generator of tokens.
-///
-/// Port of `generate_step()` from https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/utils.py.
-///
-/// Note that because MLXArray is not thread safe this eval's the result and sends the TokenId back
-/// to the caller.
-public func generate(prompt: MLXArray, model: LLMModel, temp: Float = 0.0) -> (
-    Task<Void, Never>, AsyncBufferSequence<AsyncChannel<Int>>
-) {
-    let channel = AsyncChannel<Int>()
-    let buffer = channel.buffer(policy: .bounded(10))
-
-    let task = Task {
-        var y = prompt
-        var cache = [(MLXArray, MLXArray)]()
-
-        while !Task.isCancelled {
-            var logits: MLXArray
-            (logits, cache) = model(
-                expandedDimensions(y, axis: 0), cache: cache.isEmpty ? nil : cache)
-            y = sample(logits: logits[-1, axis: 1], temp: temp)
-            eval(y)
-
-            await channel.send(y.item(Int.self))
-        }
-    }
-
-    return (task, buffer)
 }
