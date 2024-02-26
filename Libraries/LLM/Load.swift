@@ -93,6 +93,7 @@ public func loadTokenizer(name: String) async throws -> Tokenizer {
 
 public func discardUnhandledMerges(tokenizerData: Config) -> Config {
     // see https://github.com/ml-explore/mlx-swift-examples/issues/1
+    // and https://github.com/huggingface/swift-transformers/issues/51
 
     if let model = tokenizerData.model {
         if let merges = model.dictionary["merges"] as? [String] {
