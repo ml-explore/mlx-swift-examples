@@ -6,6 +6,7 @@ import LLM
 import MLX
 import MLXRandom
 
+@main
 struct LLMTool: AsyncParsableCommand {
     static var configuration = CommandConfiguration(
         abstract: "Command line tool for generating text using Llama models",
@@ -13,7 +14,6 @@ struct LLMTool: AsyncParsableCommand {
         defaultSubcommand: SyncGenerator.self)
 }
 
-@main
 struct SyncGenerator: AsyncParsableCommand {
 
     static var configuration = CommandConfiguration(
