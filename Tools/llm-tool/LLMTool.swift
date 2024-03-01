@@ -42,7 +42,7 @@ struct SyncGenerator: AsyncParsableCommand {
 
         let modelConfiguration = ModelConfiguration.configuration(id: model)
         let (model, tokenizer) = try await load(configuration: modelConfiguration)
-        
+
         let prompt = modelConfiguration.prepare(prompt: self.prompt)
         let promptTokens = tokenizer.encode(text: prompt)
 
@@ -57,7 +57,8 @@ struct SyncGenerator: AsyncParsableCommand {
         var tokens = [Int]()
         var printed = 0
 
-        for token in TokenIterator(prompt: MLXArray(promptTokens), model: model, temp: temperature) {
+        for token in TokenIterator(prompt: MLXArray(promptTokens), model: model, temp: temperature)
+        {
             if tokens.isEmpty {
                 eval(token)
                 let now = Date.timeIntervalSinceReferenceDate
@@ -130,7 +131,7 @@ struct AsyncGenerator: AsyncParsableCommand {
 
         let modelConfiguration = ModelConfiguration.configuration(id: model)
         let (model, tokenizer) = try await load(configuration: modelConfiguration)
-        
+
         let prompt = modelConfiguration.prepare(prompt: self.prompt)
         let promptTokens = tokenizer.encode(text: prompt)
 
@@ -145,7 +146,8 @@ struct AsyncGenerator: AsyncParsableCommand {
         var tokens = [Int]()
         var printed = 0
 
-        let (task, channel) = generate(prompt: MLXArray(promptTokens), model: model, temp: temperature)
+        let (task, channel) = generate(
+            prompt: MLXArray(promptTokens), model: model, temp: temperature)
 
         for await token in channel {
             if tokens.isEmpty {
