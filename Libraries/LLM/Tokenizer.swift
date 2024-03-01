@@ -49,9 +49,9 @@ public struct Tokenizer: Tokenizers.Tokenizer {
 
 }
 
-public func loadTokenizer(name: String) async throws -> Tokenizer {
+public func loadTokenizer(configuration: ModelConfiguration) async throws -> Tokenizer {
     // from AutoTokenizer.from() -- this lets us override parts of the configuration
-    let config = LanguageModelConfigurationFromHub(modelName: name)
+    let config = LanguageModelConfigurationFromHub(modelName: configuration.id)
     guard var tokenizerConfig = try await config.tokenizerConfig else {
         throw LLMError(message: "missing config")
     }

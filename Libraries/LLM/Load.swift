@@ -14,13 +14,13 @@ struct LLMError: Error {
 
 /// Load and return the model and tokenizer
 public func load(
-    hub: HubApi = HubApi(), name: String, progressHandler: @escaping (Progress) -> Void = { _ in }
+    hub: HubApi = HubApi(), configuration: ModelConfiguration, progressHandler: @escaping (Progress) -> Void = { _ in }
 ) async throws -> (LLMModel, Tokenizer) {
     // note: this doesn't have a way to pass the HubApi
-    let tokenizer = try await loadTokenizer(name: name)
+    let tokenizer = try await loadTokenizer(configuration: configuration)
 
     // download the model weights and config
-    let repo = Hub.Repo(id: name)
+    let repo = Hub.Repo(id: configuration.id)
     let modelFiles = ["config.json", "*.safetensors"]
     let modelDirectory = try await hub.snapshot(
         from: repo, matching: modelFiles, progressHandler: progressHandler)
