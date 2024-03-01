@@ -37,6 +37,7 @@ jobs:
             find . -name Package.resolved -exec rm {} \;
             xcodebuild -skipPackagePluginValidation -scheme llm-tool
             xcodebuild -skipPackagePluginValidation -scheme mnist-tool
+            xcodebuild -skipPackagePluginValidation -scheme MNISTTrainer
 
 workflows:
   build_and_test:
