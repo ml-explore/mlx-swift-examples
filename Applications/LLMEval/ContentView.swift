@@ -5,6 +5,7 @@ import MLX
 import Metal
 import SwiftUI
 import Tokenizers
+import MLXRandom
 
 struct ContentView: View {
 
@@ -57,7 +58,7 @@ class LLMEvaluator {
     let modelConfiguration = ModelConfiguration.phi4bit
 
     /// parameters controlling the output
-    let temperature: Float = 0.0
+    let temperature: Float = 0.6
     let maxTokens = 100
 
     enum LoadState {
@@ -99,6 +100,9 @@ class LLMEvaluator {
             // augment the prompt as needed
             let prompt = modelConfiguration.prepare(prompt: prompt)
             let promptTokens = MLXArray(tokenizer.encode(text: prompt))
+            
+            // each time you generate you will get something new
+            MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
             var outputTokens = [Int]()
 
