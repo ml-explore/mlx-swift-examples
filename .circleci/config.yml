@@ -38,6 +38,7 @@ jobs:
             xcodebuild -skipPackagePluginValidation -scheme llm-tool
             xcodebuild -skipPackagePluginValidation -scheme mnist-tool
             xcodebuild -skipPackagePluginValidation -scheme MNISTTrainer
+            xcodebuild -skipPackagePluginValidation -scheme LLMEval
 
 workflows:
   build_and_test:

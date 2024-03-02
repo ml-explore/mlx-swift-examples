@@ -2,9 +2,9 @@
 
 import LLM
 import MLX
+import Metal
 import SwiftUI
 import Tokenizers
-import Metal
 
 struct ContentView: View {
 
@@ -62,9 +62,11 @@ class LLMEvaluator {
     func load() async throws -> (LLMModel, LLM.Tokenizer) {
         switch loadState {
         case .idle:
-            let (model, tokenizer) = try await LLM.load(configuration: modelConfiguration) { [modelConfiguration] progress in
+            let (model, tokenizer) = try await LLM.load(configuration: modelConfiguration) {
+                [modelConfiguration] progress in
                 DispatchQueue.main.sync {
-                    self.output = "Downloading \(modelConfiguration.id): \(Int(progress.fractionCompleted * 100))%"
+                    self.output =
+                        "Downloading \(modelConfiguration.id): \(Int(progress.fractionCompleted * 100))%"
                 }
             }
             loadState = .loaded(model, tokenizer)

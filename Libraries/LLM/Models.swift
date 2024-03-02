@@ -54,7 +54,8 @@ public struct ModelConfiguration {
 
 extension ModelConfiguration {
 
-    public static let mistral7B4bit = ModelConfiguration(id: "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx")
+    public static let mistral7B4bit = ModelConfiguration(
+        id: "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx")
 
     public static let codeLlama13b4bit = ModelConfiguration(
         id: "mlx-community/CodeLlama-13b-Instruct-hf-4bit-MLX",
@@ -67,7 +68,8 @@ extension ModelConfiguration {
         "<PRE> " + prompt.replacingOccurrences(of: "<FILL_ME>", with: "<SUF>") + " <MID>"
     }
 
-    public static let phi4bit = ModelConfiguration(id: "mlx-community/phi-2-hf-4bit-mlx") { prompt in
+    public static let phi4bit = ModelConfiguration(id: "mlx-community/phi-2-hf-4bit-mlx") {
+        prompt in
         "Instruct: \(prompt). Output: "
     }
 
