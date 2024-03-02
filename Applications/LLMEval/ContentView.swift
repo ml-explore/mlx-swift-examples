@@ -2,10 +2,10 @@
 
 import LLM
 import MLX
+import MLXRandom
 import Metal
 import SwiftUI
 import Tokenizers
-import MLXRandom
 
 struct ContentView: View {
 
@@ -100,7 +100,7 @@ class LLMEvaluator {
             // augment the prompt as needed
             let prompt = modelConfiguration.prepare(prompt: prompt)
             let promptTokens = MLXArray(tokenizer.encode(text: prompt))
-            
+
             // each time you generate you will get something new
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
