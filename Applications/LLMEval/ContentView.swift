@@ -13,12 +13,14 @@ struct ContentView: View {
 
     var body: some View {
         VStack {
+            // show the model output
             ScrollView(.vertical) {
                 if llm.running {
                     ProgressView()
                 }
                 Text(llm.output)
             }
+
             HStack {
                 TextField("prompt", text: $prompt)
                     .onSubmit(generate)
@@ -29,6 +31,7 @@ struct ContentView: View {
         }
         .padding()
         .task {
+            // pre-load the weights on launch to speed up the first generation
             _ = try? await llm.load()
         }
     }
@@ -48,7 +51,11 @@ class LLMEvaluator {
 
     var output = ""
 
+    /// this controls which model loads -- phi4bit is one of the smaller ones so this will fit on
+    /// more devices
     let modelConfiguration = ModelConfiguration.phi4bit
+
+    /// parameters controlling the output
     let temperature: Float = 0.0
     let maxTokens = 100
 
@@ -59,6 +66,8 @@ class LLMEvaluator {
 
     var loadState = LoadState.idle
 
+    /// load and return the model -- can be called multiple times, subsequent calls will
+    /// just return the loaded model
     func load() async throws -> (LLMModel, LLM.Tokenizer) {
         switch loadState {
         case .idle:
@@ -86,6 +95,7 @@ class LLMEvaluator {
                 self.output = ""
             }
 
+            // augment the prompt as needed
             let prompt = modelConfiguration.prepare(prompt: prompt)
             let promptTokens = MLXArray(tokenizer.encode(text: prompt))
 
@@ -94,12 +104,14 @@ class LLMEvaluator {
             for token in TokenIterator(prompt: promptTokens, model: model, temp: temperature) {
                 let tokenId = token.item(Int.self)
 
-                if tokenId == tokenizer.unknownTokenId {
+                if tokenId == tokenizer.unknownTokenId || tokenId == tokenizer.eosTokenId {
                     break
                 }
 
                 outputTokens.append(tokenId)
                 let text = tokenizer.decode(tokens: outputTokens)
+
+                // update the output -- this will make the view show the text as it generates
                 await MainActor.run {
                     self.output = text
                 }
