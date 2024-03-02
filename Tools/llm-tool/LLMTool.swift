@@ -31,7 +31,7 @@ struct SyncGenerator: AsyncParsableCommand {
     var maxTokens = 100
 
     @Option(name: .shortAndLong, help: "The sampling temperature")
-    var temperature: Float = 0.0
+    var temperature: Float = 0.6
 
     @Option(name: .long, help: "The PRNG seed")
     var seed: UInt64 = 0
@@ -120,7 +120,7 @@ struct AsyncGenerator: AsyncParsableCommand {
     var maxTokens = 100
 
     @Option(name: .shortAndLong, help: "The sampling temperature")
-    var temperature: Float = 0.0
+    var temperature: Float = 0.6
 
     @Option(name: .long, help: "The PRNG seed")
     var seed: UInt64 = 0
