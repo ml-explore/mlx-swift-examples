@@ -19,6 +19,7 @@ struct ContentView: View {
                     ProgressView()
                 }
                 Text(llm.output)
+                    .textSelection(.enabled)
             }
 
             HStack {
