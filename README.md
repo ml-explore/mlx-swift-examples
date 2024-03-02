@@ -2,6 +2,21 @@
 
 Example [mlx-swift](https://github.com/ml-explore/mlx-swift) programs.
 
+## MNISTTrainer
+
+An example that runs on both iOS and macOS that downloads MNIST training
+data and trains an MNIST model.
+
+- [README](Applications/MNISTTrainer/README.md)
+
+## LLMEval
+
+An example that runs on both iOS and macOS that downloads a LLM model
+weights and tokenizer configuration from Hugging Face and evaluates
+a prompt in-process.
+
+- [README](Applications/LLMEval/README.md)
+
 ## LinearModelTraining
 
 A simple linear model and a training loop.
