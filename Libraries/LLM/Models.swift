@@ -11,6 +11,9 @@ import Foundation
 public struct ModelConfiguration {
     public let id: String
 
+    /// pull the tokenizer from an alternate id
+    public let tokenizerId: String?
+
     /// overrides for TokenizerModel/knownTokenizers -- useful before swift-transformers is updated
     public let overrideTokenizer: String?
 
@@ -20,9 +23,11 @@ public struct ModelConfiguration {
     private let preparePrompt: ((String) -> String)?
 
     public init(
-        id: String, overrideTokenizer: String? = nil, preparePrompt: ((String) -> String)? = nil
+        id: String, tokenizerId: String? = nil, overrideTokenizer: String? = nil,
+        preparePrompt: ((String) -> String)? = nil
     ) {
         self.id = id
+        self.tokenizerId = tokenizerId
         self.overrideTokenizer = overrideTokenizer
         self.preparePrompt = preparePrompt
     }
