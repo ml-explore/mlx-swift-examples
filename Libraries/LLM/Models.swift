@@ -70,7 +70,7 @@ extension ModelConfiguration {
 
     public static let phi4bit = ModelConfiguration(id: "mlx-community/phi-2-hf-4bit-mlx") {
         prompt in
-        "Instruct: \(prompt). Output: "
+        "Instruct: \(prompt)\nOutput: "
     }
 
     public static let gemma2bQuantized = ModelConfiguration(
