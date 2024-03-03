@@ -116,4 +116,5 @@ public func discardUnhandledMerges(tokenizerData: Config) -> Config {
 let replacementTokenizers = [
     "CodeLlamaTokenizer": "LlamaTokenizer",
     "GemmaTokenizer": "PreTrainedTokenizer",
+    "Qwen2Tokenizer": "PreTrainedTokenizer",
 ]
