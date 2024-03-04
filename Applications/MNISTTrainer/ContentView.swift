@@ -12,9 +12,6 @@ struct ContentView: View {
     // the training loop
     @State var trainer = Trainer()
 
-    // toggle for cpu/gpu training
-    @State var cpu = false
-
     var body: some View {
         VStack {
             Spacer()
@@ -30,12 +27,9 @@ struct ContentView: View {
 
                 Button("Train") {
                     Task {
-                        try! await trainer.run(device: cpu ? .cpu : .gpu)
+                        try! await trainer.run(device: .gpu)
                     }
                 }
-
-                Toggle("CPU", isOn: $cpu)
-                    .frame(maxWidth: 150)
 
                 Spacer()
             }

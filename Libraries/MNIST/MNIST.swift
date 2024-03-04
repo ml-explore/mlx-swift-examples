@@ -28,11 +28,11 @@ public class LeNet: Module, UnaryLayer {
 
     public func callAsFunction(_ x: MLXArray) -> MLXArray {
         var x = x
-        x = pool1(relu(conv1(x)))
-        x = pool2(relu(conv2(x)))
+        x = pool1(tanh(conv1(x)))
+        x = pool2(tanh(conv2(x)))
         x = flattened(x, start: 1)
-        x = relu(fc1(x))
-        x = relu(fc2(x))
+        x = tanh(fc1(x))
+        x = tanh(fc2(x))
         x = fc3(x)
         return x
     }
