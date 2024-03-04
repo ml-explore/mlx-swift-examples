@@ -42,9 +42,9 @@ struct SyncGenerator: AsyncParsableCommand {
 
         let modelConfiguration = ModelConfiguration.configuration(id: model)
         let (model, tokenizer) = try await load(configuration: modelConfiguration)
-        
+
         print("Model loaded -> \(self.model)")
-        
+
         let prompt = modelConfiguration.prepare(prompt: self.prompt)
         let promptTokens = tokenizer.encode(text: prompt)
 
@@ -133,7 +133,7 @@ struct AsyncGenerator: AsyncParsableCommand {
 
         let modelConfiguration = ModelConfiguration.configuration(id: model)
         let (model, tokenizer) = try await load(configuration: modelConfiguration)
-        
+
         print("Model loaded -> \(self.model)")
 
         let prompt = modelConfiguration.prepare(prompt: self.prompt)

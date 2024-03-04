@@ -84,7 +84,7 @@ extension ModelConfiguration {
     ) { prompt in
         "<start_of_turn>user \(prompt)<end_of_turn><start_of_turn>model"
     }
-    
+
     public static let qwen205b4bit = ModelConfiguration(
         id: "mlx-community/Qwen1.5-0.5B-Chat-4bit",
         overrideTokenizer: "PreTrainedTokenizer"
