@@ -31,6 +31,7 @@ public enum ModelType: String, Codable {
     case llama
     case phi
     case gemma
+    case qwen2
 
     func createModel(configuration: URL) throws -> LLMModel {
         switch self {
@@ -46,6 +47,10 @@ public enum ModelType: String, Codable {
             let configuration = try JSONDecoder().decode(
                 GemmaConfiguration.self, from: Data(contentsOf: configuration))
             return GemmaModel(configuration)
+        case .qwen2:
+            let configuration = try JSONDecoder().decode(
+                Qwen2Configuration.self, from: Data(contentsOf: configuration))
+            return Qwen2Model(configuration)
         }
     }
 }
