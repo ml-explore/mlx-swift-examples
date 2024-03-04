@@ -27,7 +27,7 @@ struct ContentView: View {
 
                 Button("Train") {
                     Task {
-                        try! await trainer.run(device: .gpu)
+                        try! await trainer.run()
                     }
                 }
 
@@ -44,11 +44,9 @@ class Trainer {
 
     var messages = [String]()
 
-    func run(device: Device = .cpu) async throws {
+    func run() async throws {
         // Note: this is pretty close to the code in `mnist-tool`, just
         // wrapped in an Observable to make it easy to display in SwiftUI
-
-        Device.setDefault(device: device)
 
         // download & load the training data
         let url = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
