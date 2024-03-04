@@ -74,7 +74,7 @@ class LLMEvaluator {
         switch loadState {
         case .idle:
             // limit the buffer cache
-            MLX.GPU.cacheLimit = 1024 * 200
+            MLX.GPU.cacheLimit = 20 * 1024 * 1024
 
             let (model, tokenizer) = try await LLM.load(configuration: modelConfiguration) {
                 [modelConfiguration] progress in
