@@ -1,8 +1,6 @@
 #  mnist-tool
 
-See other README:
-
-- [MNIST](../../Libraries/MNIST/README.md)
+See the [MNIST README.md](../../Libraries/MNIST/README.md).
 
 ### Building
 
