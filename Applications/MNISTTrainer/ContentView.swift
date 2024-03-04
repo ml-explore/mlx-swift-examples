@@ -13,7 +13,7 @@ struct ContentView: View {
     @State var trainer = Trainer()
 
     // toggle for cpu/gpu training
-    @State var cpu = true
+    @State var cpu = false
 
     var body: some View {
         VStack {
@@ -67,9 +67,7 @@ class Trainer {
         let testLabels = data[.init(.test, .labels)]!
 
         // create the model with random weights
-        let model = MLP(
-            layers: 2, inputDimensions: trainImages.dim(-1), hiddenDimensions: 32,
-            outputDimensions: 10)
+        let model = LeNet()
         eval(model.parameters())
 
         // the training loop

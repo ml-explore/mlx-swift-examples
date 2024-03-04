@@ -43,13 +43,13 @@ let files = [
         name: "train-images-idx3-ubyte.gz",
         offset: 16,
         convert: {
-            $0.reshaped([-1, 28 * 28]).asType(.float32) / 255.0
+            $0.reshaped([-1, 28, 28, 1]).asType(.float32) / 255.0
         }),
     FileKind(.test, .images): LoadInfo(
         name: "t10k-images-idx3-ubyte.gz",
         offset: 16,
         convert: {
-            $0.reshaped([-1, 28 * 28]).asType(.float32) / 255.0
+            $0.reshaped([-1, 28, 28, 1]).asType(.float32) / 255.0
         }),
     FileKind(.training, .labels): LoadInfo(
         name: "train-labels-idx1-ubyte.gz",
