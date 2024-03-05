@@ -73,6 +73,9 @@ class LLMEvaluator {
     func load() async throws -> (LLMModel, LLM.Tokenizer) {
         switch loadState {
         case .idle:
+            // limit the buffer cache
+            MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
+
             let (model, tokenizer) = try await LLM.load(configuration: modelConfiguration) {
                 [modelConfiguration] progress in
                 DispatchQueue.main.sync {
@@ -80,6 +83,8 @@ class LLMEvaluator {
                         "Downloading \(modelConfiguration.id): \(Int(progress.fractionCompleted * 100))%"
                 }
             }
+            self.output =
+                "Loaded \(modelConfiguration.id).  Weights: \(MLX.GPU.activeMemory / 1024 / 1024)M"
             loadState = .loaded(model, tokenizer)
             return (model, tokenizer)
 
