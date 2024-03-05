@@ -14,12 +14,7 @@ struct LLMTool: AsyncParsableCommand {
         defaultSubcommand: SyncGenerator.self)
 }
 
-struct SyncGenerator: AsyncParsableCommand {
-
-    static var configuration = CommandConfiguration(
-        commandName: "sync",
-        abstract: "Synchronous generator"
-    )
+struct LLMArguments: ParsableArguments {
 
     @Option(name: .long, help: "Name of the huggingface model")
     var model: String = "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
@@ -36,20 +31,91 @@ struct SyncGenerator: AsyncParsableCommand {
     @Option(name: .long, help: "The PRNG seed")
     var seed: UInt64 = 0
 
-    @MainActor
-    func run() async throws {
+    @Flag(help: "Show memory stats")
+    var memoryStats = false
+
+    @Option(name: .long, help: "Maximum cache size in M")
+    var cacheSize: Int?
+
+    @Option(name: .long, help: "Maximum memory size in M")
+    var memorySize: Int?
+
+    var startMemory: GPU.Snapshot?
+
+    mutating func load() async throws -> (LLMModel, Tokenizer, ModelConfiguration) {
         MLXRandom.seed(seed)
 
+        if let cacheSize {
+            GPU.set(cacheLimit: cacheSize * 1024 * 1024)
+        }
+
+        if let memorySize {
+            GPU.set(memoryLimit: memorySize * 1024 * 1024)
+        }
+
         let modelConfiguration = ModelConfiguration.configuration(id: model)
-        let (model, tokenizer) = try await load(configuration: modelConfiguration)
+        let (model, tokenizer) = try await LLM.load(configuration: modelConfiguration)
 
-        print("Model loaded -> \(self.model)")
+        startMemory = GPU.snapshot()
 
-        let prompt = modelConfiguration.prepare(prompt: self.prompt)
+        return (model, tokenizer, modelConfiguration)
+    }
+
+    func tokenizePropmpt(configuration: ModelConfiguration, tokenizer: Tokenizer) -> (String, [Int])
+    {
+        let prompt = configuration.prepare(prompt: self.prompt)
         let promptTokens = tokenizer.encode(text: prompt)
 
+        return (prompt, promptTokens)
+    }
+
+    func reportMemoryStatistics() {
+        if memoryStats, let startMemory {
+            let endMemory = GPU.snapshot()
+
+            print("=======")
+            print("Memory size: \(GPU.memoryLimit / 1024)K")
+            print("Cache size:  \(GPU.cacheLimit / 1024)K")
+
+            print("")
+            print("=======")
+            print("Starting memory")
+            print(startMemory.description)
+
+            print("")
+            print("=======")
+            print("Ending memory")
+            print(endMemory.description)
+
+            print("")
+            print("=======")
+            print("Growth")
+            print(startMemory.delta(endMemory).description)
+
+        }
+    }
+}
+
+struct SyncGenerator: AsyncParsableCommand {
+
+    static var configuration = CommandConfiguration(
+        commandName: "sync",
+        abstract: "Synchronous generator"
+    )
+
+    @OptionGroup var args: LLMArguments
+
+    @MainActor
+    mutating func run() async throws {
+        let (model, tokenizer, modelConfiguration) = try await args.load()
+
+        print("Model loaded -> \(modelConfiguration.id)")
+
+        let (prompt, promptTokens) = args.tokenizePropmpt(
+            configuration: modelConfiguration, tokenizer: tokenizer)
+
         print("Starting generation ...")
-        print(self.prompt, terminator: "")
+        print(prompt, terminator: "")
 
         var start = Date.timeIntervalSinceReferenceDate
         var promptTime: TimeInterval = 0
@@ -59,7 +125,8 @@ struct SyncGenerator: AsyncParsableCommand {
         var tokens = [Int]()
         var printed = 0
 
-        for token in TokenIterator(prompt: MLXArray(promptTokens), model: model, temp: temperature)
+        for token in TokenIterator(
+            prompt: MLXArray(promptTokens), model: model, temp: args.temperature)
         {
             if tokens.isEmpty {
                 eval(token)
@@ -83,7 +150,7 @@ struct SyncGenerator: AsyncParsableCommand {
 
             printed = fullOutput.count
 
-            if tokens.count == maxTokens {
+            if tokens.count == args.maxTokens {
                 break
             }
         }
@@ -98,6 +165,8 @@ struct SyncGenerator: AsyncParsableCommand {
             Prompt Tokens per second:     \((Double(promptTokens.count) / promptTime).formatted())
             Generation tokens per second: \((Double(tokens.count - 1) / generateTime).formatted())
             """)
+
+        args.reportMemoryStatistics()
     }
 }
 
@@ -112,35 +181,19 @@ struct AsyncGenerator: AsyncParsableCommand {
         abstract: "async generator"
     )
 
-    @Option(name: .long, help: "Name of the huggingface model")
-    var model: String = "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
-
-    @Option(name: .shortAndLong, help: "The message to be processed by the model")
-    var prompt = "compare python and swift"
-
-    @Option(name: .shortAndLong, help: "Maximum number of tokens to generate")
-    var maxTokens = 100
-
-    @Option(name: .shortAndLong, help: "The sampling temperature")
-    var temperature: Float = 0.6
-
-    @Option(name: .long, help: "The PRNG seed")
-    var seed: UInt64 = 0
+    @OptionGroup var args: LLMArguments
 
     @MainActor
-    func run() async throws {
-        MLXRandom.seed(seed)
+    mutating func run() async throws {
+        let (model, tokenizer, modelConfiguration) = try await args.load()
 
-        let modelConfiguration = ModelConfiguration.configuration(id: model)
-        let (model, tokenizer) = try await load(configuration: modelConfiguration)
+        print("Model loaded -> \(modelConfiguration.id)")
 
-        print("Model loaded -> \(self.model)")
-
-        let prompt = modelConfiguration.prepare(prompt: self.prompt)
-        let promptTokens = tokenizer.encode(text: prompt)
+        let (prompt, promptTokens) = args.tokenizePropmpt(
+            configuration: modelConfiguration, tokenizer: tokenizer)
 
         print("Starting generation ...")
-        print(self.prompt, terminator: "")
+        print(prompt, terminator: "")
 
         var start = Date.timeIntervalSinceReferenceDate
         var promptTime: TimeInterval = 0
@@ -151,7 +204,7 @@ struct AsyncGenerator: AsyncParsableCommand {
         var printed = 0
 
         let (task, channel) = generate(
-            prompt: MLXArray(promptTokens), model: model, temp: temperature)
+            prompt: MLXArray(promptTokens), model: model, temp: args.temperature)
 
         for await token in channel {
             if tokens.isEmpty {
@@ -174,7 +227,7 @@ struct AsyncGenerator: AsyncParsableCommand {
 
             printed = fullOutput.count
 
-            if tokens.count == maxTokens {
+            if tokens.count == args.maxTokens {
                 break
             }
         }
@@ -192,6 +245,8 @@ struct AsyncGenerator: AsyncParsableCommand {
             Prompt Tokens per second:     \((Double(promptTokens.count) / promptTime).formatted())
             Generation tokens per second: \((Double(tokens.count - 1) / generateTime).formatted())
             """)
+
+        args.reportMemoryStatistics()
 
         // wait for the task to complete -- since it is running async, it might
         // be in the middle of running the model
