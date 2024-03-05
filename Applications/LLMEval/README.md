@@ -20,6 +20,21 @@ Some notes about the setup:
 - The Phi2 4 bit model is small enough to run on some iPhone models
     - this can be changed by editing `let modelConfiguration = ModelConfiguration.phi4bit`
 
+### Trying Different Models
+
+The example application uses Phi2 model by default, see [ContentView.swift](ContentView.swift#L58):
+
+```
+    /// this controls which model loads -- phi4bit is one of the smaller ones so this will fit on
+    /// more devices
+    let modelConfiguration = ModelConfiguration.phi4bit
+```
+
+There are some pre-configured models in [LLM/Models.swift](../../Libraries/LLM/Models.swift#L62)
+and you can load any weights from Hugging Face where there
+is a model architecture defined and you have enough
+memory.
+
 ### Troubleshooting
 
 If the program crashes with a very deep stack trace you may need to build
