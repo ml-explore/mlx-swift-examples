@@ -52,7 +52,7 @@ There are a couple options:
 
 - build Release
 - force the model evaluation to run on the main thread, e.g. using @MainActor
-- build `Cmlx` with optimizations by modifying `mlx/Package.swift` and adding `.unsafeOptions(["-O3"]),` around line 87
+- build `Cmlx` with optimizations by modifying `mlx/Package.swift` and adding `.unsafeFlags(["-O"]),` around line 87
 
 Building in Release / optimizations will remove a lot of tail calls in the C++ 
 layer.  These lead to the stack overflows.
