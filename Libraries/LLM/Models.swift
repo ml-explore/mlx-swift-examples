@@ -89,7 +89,7 @@ extension ModelConfiguration {
         id: "mlx-community/Qwen1.5-0.5B-Chat-4bit",
         overrideTokenizer: "PreTrainedTokenizer"
     ) { prompt in
-        "<|im_start|>user \(prompt)<|im_end|><|im_start|>assistant"
+        "<|im_start|>system\nYou are a helpful assistant<|im_end|>\n<|im_start|>user\n\(prompt)<|im_end|>\n<|im_start|>assistant"
     }
 
     private enum BootstrapState {
