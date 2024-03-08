@@ -44,8 +44,8 @@ private class Attention: Module {
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil) -> (MLXArray, (MLXArray, MLXArray))
-    {
+        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
+    ) -> (MLXArray, (MLXArray, MLXArray)) {
         let (B, L) = (x.dim(0), x.dim(1))
 
         var queries = wq(x)
@@ -116,8 +116,8 @@ private class TransformerBlock: Module {
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil) -> (MLXArray, (MLXArray, MLXArray))
-    {
+        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
+    ) -> (MLXArray, (MLXArray, MLXArray)) {
         var (r, cache) = attention(inputLayerNorm(x), mask: mask, cache: cache)
         let h = x + r
         r = mlp(postAttentionLayerNorm(h))
@@ -146,8 +146,8 @@ public class Starcoder2ModelInner: Module {
     }
 
     public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]? = nil) -> (
-        MLXArray, [(MLXArray, MLXArray)])
-    {
+        MLXArray, [(MLXArray, MLXArray)]
+    ) {
         var h = embedTokens(inputs)
 
         var mask: MLXArray? = nil
@@ -186,8 +186,8 @@ public class Starcoder2Model: Module, LLMModel {
     }
 
     public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]?) -> (
-        MLXArray, [(MLXArray, MLXArray)])
-    {
+        MLXArray, [(MLXArray, MLXArray)]
+    ) {
         var (out, cache) = model(inputs, cache: cache)
 
         if !tieWordEmbeddings {
@@ -240,14 +240,20 @@ public struct Starcoder2Configuration: Codable {
             Int.self, forKey: Starcoder2Configuration.CodingKeys.intermediateSize)
         self.attentionHeads = try container.decode(
             Int.self, forKey: Starcoder2Configuration.CodingKeys.attentionHeads)
-        self.kvHeads = try container.decode(Int.self, forKey: Starcoder2Configuration.CodingKeys.kvHeads)
-        self.maxPositionEmbeddings = try container.decodeIfPresent(Int.self, forKey: Starcoder2Configuration.CodingKeys.maxPositionEmbeddings) ?? 16384
-        self.normEpsilon = try container.decodeIfPresent(
-            Float.self, forKey: Starcoder2Configuration.CodingKeys.normEpsilon) ?? 1e-5
-        self.normType = try container.decodeIfPresent(
-            String.self, forKey: Starcoder2Configuration.CodingKeys.normType) ?? "layer_norm"
-        self.vocabularySize = try container.decodeIfPresent(
-            Int.self, forKey: Starcoder2Configuration.CodingKeys.vocabularySize) ?? 49152
+        self.kvHeads = try container.decode(
+            Int.self, forKey: Starcoder2Configuration.CodingKeys.kvHeads)
+        self.maxPositionEmbeddings =
+            try container.decodeIfPresent(
+                Int.self, forKey: Starcoder2Configuration.CodingKeys.maxPositionEmbeddings) ?? 16384
+        self.normEpsilon =
+            try container.decodeIfPresent(
+                Float.self, forKey: Starcoder2Configuration.CodingKeys.normEpsilon) ?? 1e-5
+        self.normType =
+            try container.decodeIfPresent(
+                String.self, forKey: Starcoder2Configuration.CodingKeys.normType) ?? "layer_norm"
+        self.vocabularySize =
+            try container.decodeIfPresent(
+                Int.self, forKey: Starcoder2Configuration.CodingKeys.vocabularySize) ?? 49152
         self.ropeTheta =
             try container.decodeIfPresent(
                 Float.self, forKey: Starcoder2Configuration.CodingKeys.ropeTheta)
