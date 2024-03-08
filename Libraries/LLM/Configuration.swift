@@ -32,6 +32,7 @@ public enum ModelType: String, Codable {
     case phi
     case gemma
     case qwen2
+    case starcoder2
 
     func createModel(configuration: URL) throws -> LLMModel {
         switch self {
@@ -51,6 +52,10 @@ public enum ModelType: String, Codable {
             let configuration = try JSONDecoder().decode(
                 Qwen2Configuration.self, from: Data(contentsOf: configuration))
             return Qwen2Model(configuration)
+        case .starcoder2:
+            let configuration = try JSONDecoder().decode(
+                Starcoder2Configuration.self, from: Data(contentsOf: configuration))
+            return Starcoder2Model(configuration)
         }
     }
 }

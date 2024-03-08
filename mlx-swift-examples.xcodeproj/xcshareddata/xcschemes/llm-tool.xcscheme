@@ -56,12 +56,16 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--model mlx-community/Qwen1.5-0.5B-Chat-4bit"
+            argument = "--model mlx-community/starcoder2-3b-4bit"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--prompt &apos;func sortArray(_ array: [Int]) -&gt; String { &lt;FILL_ME&gt; }&apos;"
+            argument = "--model mlx-community/Qwen1.5-0.5B-Chat-4bit"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--prompt &apos;def quick_sort(arr, left=None, right=None):&apos;"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--model mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
