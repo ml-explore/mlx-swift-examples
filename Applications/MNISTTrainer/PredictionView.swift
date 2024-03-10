@@ -11,10 +11,10 @@ import MNIST
 import SwiftUI
 
 struct Canvas: View {
-    
+
     @Binding var path: Path
     @State var lastPoint: CGPoint?
-    
+
     var body: some View {
         path
             .stroke(.white, lineWidth: 10)
@@ -29,7 +29,7 @@ struct Canvas: View {
                     }
             )
     }
-    
+
     func add(point: CGPoint) {
         var newPath = path
         if let lastPoint {
@@ -57,7 +57,7 @@ struct PredictionView: View {
     let model: LeNet
     let canvasSize = 150.0
     let mnistImageSize: CGSize = CGSize(width: 28, height: 28)
-    
+
     var body: some View {
         VStack {
             if let prediction {
@@ -69,7 +69,7 @@ struct PredictionView: View {
                 .frame(width: canvasSize, height: canvasSize)
             HStack {
                 Button("Predict") {
-                    path.center(to: CGPoint(x: canvasSize/2, y: canvasSize/2))
+                    path.center(to: CGPoint(x: canvasSize / 2, y: canvasSize / 2))
                     predict()
                 }
                 Button("Clear") {
@@ -79,11 +79,14 @@ struct PredictionView: View {
             }
         }
     }
-    
+
     @MainActor
     func predict() {
-        let imageRenderer = ImageRenderer(content: Canvas(path: $path).frame(width: 150, height: 150))
-        guard let pixelData = imageRenderer.cgImage?.grayscaleImage(with: mnistImageSize)?.pixelData() else {
+        let imageRenderer = ImageRenderer(
+            content: Canvas(path: $path).frame(width: 150, height: 150))
+        guard
+            let pixelData = imageRenderer.cgImage?.grayscaleImage(with: mnistImageSize)?.pixelData()
+        else {
             return
         }
         // modify input vector to match training in MNIST/Files.swift
@@ -96,14 +99,17 @@ extension CGImage {
     func grayscaleImage(with newSize: CGSize) -> CGImage? {
         let colorSpace = CGColorSpaceCreateDeviceGray()
         let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue)
-        
-        guard let context = CGContext(data: nil,
-                                      width: Int(newSize.width),
-                                      height: Int(newSize.height),
-                                      bitsPerComponent: 8,
-                                      bytesPerRow: Int(newSize.width),
-                                      space: colorSpace,
-                                      bitmapInfo: bitmapInfo.rawValue) else {
+
+        guard
+            let context = CGContext(
+                data: nil,
+                width: Int(newSize.width),
+                height: Int(newSize.height),
+                bitsPerComponent: 8,
+                bytesPerRow: Int(newSize.width),
+                space: colorSpace,
+                bitmapInfo: bitmapInfo.rawValue)
+        else {
             return nil
         }
         context.draw(self, in: CGRect(x: 0, y: 0, width: newSize.width, height: newSize.width))
