@@ -48,6 +48,8 @@ workflows:
         - not: << pipeline.parameters.nightly_build >>
         - not: << pipeline.parameters.weekly_build >>
     jobs:
+      - apple/authenticate:
+          context: pr-approval
       - mac_build_and_test
 
   prb:
