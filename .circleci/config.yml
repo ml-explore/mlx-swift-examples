@@ -43,7 +43,7 @@ workflows:
     when:
       and:
         - matches:
-            pattern: "^(?!pull/)[-\\w]+$"
+            pattern: "^(?!pull/)[-_./\\w]+$"
             value: << pipeline.git.branch >>
         - not: << pipeline.parameters.nightly_build >>
         - not: << pipeline.parameters.weekly_build >>
