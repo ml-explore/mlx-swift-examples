@@ -48,9 +48,12 @@ workflows:
         - not: << pipeline.parameters.nightly_build >>
         - not: << pipeline.parameters.weekly_build >>
     jobs:
+      - hold:
+          type: approval
       - apple/authenticate:
           context: pr-approval
-      - mac_build_and_test
+      - mac_build_and_test:
+          requires: [ hold ]
 
   prb:
     when:
