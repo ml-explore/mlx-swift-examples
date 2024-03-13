@@ -43,17 +43,12 @@ workflows:
     when:
       and:
         - matches:
-            pattern: "^(?!pull/)[-_./\\w]+$"
+            pattern: "^(?!pull/)[-\\w]+$"
             value: << pipeline.git.branch >>
         - not: << pipeline.parameters.nightly_build >>
         - not: << pipeline.parameters.weekly_build >>
     jobs:
-      - hold:
-          type: approval
-      - apple/authenticate:
-          context: pr-approval
-      - mac_build_and_test:
-          requires: [ hold ]
+      - mac_build_and_test
 
   prb:
     when:
