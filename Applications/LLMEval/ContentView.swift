@@ -3,10 +3,10 @@
 import LLM
 import MLX
 import MLXRandom
+import MarkdownUI
 import Metal
 import SwiftUI
 import Tokenizers
-import MarkdownUI
 
 struct ContentView: View {
 
@@ -14,14 +14,14 @@ struct ContentView: View {
     @State var llm = LLMEvaluator()
 
     var body: some View {
-        VStack (alignment: .leading) {
+        VStack(alignment: .leading) {
             VStack {
                 HStack {
                     Text(llm.modelInfo)
                         .textFieldStyle(.roundedBorder)
-                    
+
                     Spacer()
-                    
+
                     Text(llm.stat)
                 }
                 
@@ -35,7 +35,6 @@ struct ContentView: View {
                 ScrollViewReader { sp in
                     Markdown(llm.output)
                         .textSelection(.enabled)
-
                         .onChange(of: llm.output) { _, _ in
                             sp.scrollTo("bottom")
                         }
@@ -67,7 +66,7 @@ struct ContentView: View {
                 .disabled(llm.output == "")
                 .labelStyle(.titleAndIcon)
             }
-            
+
         }
         .task {
             // pre-load the weights on launch to speed up the first generation
@@ -82,10 +81,10 @@ struct ContentView: View {
     }
     private func copyToClipboard(_ string: String) {
         #if os(macOS)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(string, forType: .string)
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(string, forType: .string)
         #else
-        UIPasteboard.general.string = string
+            UIPasteboard.general.string = string
         #endif
     }
 }
