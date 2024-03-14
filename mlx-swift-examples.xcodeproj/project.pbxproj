@@ -2220,8 +2220,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/huggingface/swift-transformers";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.2;
+				branch = main;
+				kind = branch;
 			};
 		};
 		C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
