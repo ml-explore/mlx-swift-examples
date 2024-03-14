@@ -67,54 +67,13 @@ public func loadTokenizer(configuration: ModelConfiguration) async throws -> Tok
         tokenizerConfig = Config(dictionary)
     }
 
-    // workaround: some merges can't be split on space in BPETokenizer
-    if let tokenizerClass = tokenizerConfig.tokenizerClass?.stringValue {
-        switch tokenizerClass {
-        case "T5Tokenizer":
-            break
-        default:
-            tokenizerData = discardUnhandledMerges(tokenizerData: tokenizerData)
-        }
-    }
-
     let impl = try PreTrainedTokenizer(
         tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
 
     return Tokenizer(tokenizer: impl, tokenizerConfig: tokenizerConfig)
 }
 
-public func discardUnhandledMerges(tokenizerData: Config) -> Config {
-    // see https://github.com/ml-explore/mlx-swift-examples/issues/1
-    // and https://github.com/huggingface/swift-transformers/issues/51
-
-    if let model = tokenizerData.model {
-        if let merges = model.dictionary["merges"] as? [String] {
-            // discard any merges that can't be split on a space
-            // (required by BPETokenizer)
-            let newMerges =
-                merges
-                .filter {
-                    $0.split(separator: " ").count == 2
-                }
-
-            if newMerges.count != merges.count {
-                var newModel = model.dictionary
-                newModel["merges"] = newMerges
-
-                var newTokenizerData = tokenizerData.dictionary
-                newTokenizerData["model"] = newModel
-
-                return Config(newTokenizerData)
-            }
-        }
-    }
-
-    return tokenizerData
-}
-
 /// overrides for TokenizerModel/knownTokenizers
 let replacementTokenizers = [
-    "CodeLlamaTokenizer": "LlamaTokenizer",
-    "GemmaTokenizer": "PreTrainedTokenizer",
     "Qwen2Tokenizer": "PreTrainedTokenizer",
 ]
