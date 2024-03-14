@@ -6,6 +6,7 @@ import MLXRandom
 import Metal
 import SwiftUI
 import Tokenizers
+import MarkdownUI
 
 struct ContentView: View {
 
@@ -13,14 +14,26 @@ struct ContentView: View {
     @State var llm = LLMEvaluator()
 
     var body: some View {
-        VStack {
-            // show the model output
-            ScrollView(.vertical) {
-                ScrollViewReader { sp in
+        VStack (alignment: .leading) {
+            VStack {
+                HStack {
+                    Text(llm.modelInfo)
+                        .textFieldStyle(.roundedBorder)
+                    
+                    Spacer()
+                    
+                    Text(llm.stat)
+                }
+                
                     if llm.running {
                         ProgressView()
                     }
-                    Text(llm.output)
+            }
+            
+            // show the model output
+            ScrollView(.vertical) {
+                ScrollViewReader { sp in
+                    Markdown(llm.output)
                         .textSelection(.enabled)
 
                         .onChange(of: llm.output) { _, _ in
@@ -62,6 +75,8 @@ class LLMEvaluator {
     var running = false
 
     var output = ""
+    var modelInfo = ""
+    var stat = ""
 
     /// this controls which model loads -- phi4bit is one of the smaller ones so this will fit on
     /// more devices
@@ -89,11 +104,11 @@ class LLMEvaluator {
             let (model, tokenizer) = try await LLM.load(configuration: modelConfiguration) {
                 [modelConfiguration] progress in
                 DispatchQueue.main.sync {
-                    self.output =
+                    self.modelInfo =
                         "Downloading \(modelConfiguration.id): \(Int(progress.fractionCompleted * 100))%"
                 }
             }
-            self.output =
+            self.modelInfo =
                 "Loaded \(modelConfiguration.id).  Weights: \(MLX.GPU.activeMemory / 1024 / 1024)M"
             loadState = .loaded(model, tokenizer)
             return (model, tokenizer)
@@ -104,6 +119,7 @@ class LLMEvaluator {
     }
 
     func generate(prompt: String) async {
+        let startTime = Date()
         do {
             let (model, tokenizer) = try await load()
 
@@ -115,6 +131,12 @@ class LLMEvaluator {
             // augment the prompt as needed
             let prompt = modelConfiguration.prepare(prompt: prompt)
             let promptTokens = MLXArray(tokenizer.encode(text: prompt))
+            
+            let initTime = Date()
+            let initDuration = initTime.timeIntervalSince(startTime)
+            await MainActor.run {
+                self.stat = "Init: \(String(format: "%.3f", initDuration))s"
+            }
 
             // each time you generate you will get something new
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
@@ -140,9 +162,13 @@ class LLMEvaluator {
                     break
                 }
             }
-
+            
+            let tokenDuration = Date().timeIntervalSince(initTime)
+            let tokensPerSecond = Double(outputTokens.count) / tokenDuration
+    
             await MainActor.run {
                 running = false
+                self.stat += " Token/second: \(String(format: "%.3f", tokensPerSecond))"
             }
 
         } catch {
