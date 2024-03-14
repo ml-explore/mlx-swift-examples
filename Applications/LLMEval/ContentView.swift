@@ -24,12 +24,12 @@ struct ContentView: View {
 
                     Text(llm.stat)
                 }
-                
-                    if llm.running {
-                        ProgressView()
-                    }
+
+                if llm.running {
+                    ProgressView()
+                }
             }
-            
+
             // show the model output
             ScrollView(.vertical) {
                 ScrollViewReader { sp in
@@ -152,7 +152,7 @@ class LLMEvaluator {
             // augment the prompt as needed
             let prompt = modelConfiguration.prepare(prompt: prompt)
             let promptTokens = MLXArray(tokenizer.encode(text: prompt))
-            
+
             let initTime = Date()
             let initDuration = initTime.timeIntervalSince(startTime)
             await MainActor.run {
@@ -183,10 +183,10 @@ class LLMEvaluator {
                     break
                 }
             }
-            
+
             let tokenDuration = Date().timeIntervalSince(initTime)
             let tokensPerSecond = Double(outputTokens.count) / tokenDuration
-    
+
             await MainActor.run {
                 running = false
                 self.stat += " Token/second: \(String(format: "%.3f", tokensPerSecond))"
