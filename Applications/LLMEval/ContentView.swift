@@ -16,11 +16,21 @@ struct ContentView: View {
         VStack {
             // show the model output
             ScrollView(.vertical) {
-                if llm.running {
-                    ProgressView()
+                ScrollViewReader { sp in
+                    if llm.running {
+                        ProgressView()
+                    }
+                    Text(llm.output)
+                        .textSelection(.enabled)
+
+                        .onChange(of: llm.output) { _, _ in
+                            sp.scrollTo("bottom")
+                        }
+
+                    Spacer()
+                        .frame(width: 1, height: 1)
+                        .id("bottom")
                 }
-                Text(llm.output)
-                    .textSelection(.enabled)
             }
 
             HStack {
