@@ -55,6 +55,20 @@ struct ContentView: View {
             }
         }
         .padding()
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    Task {
+                        copyToClipboard(llm.output)
+                    }
+                } label: {
+                    Label("Copy Output", systemImage: "doc.on.doc.fill")
+                }
+                .disabled(llm.output == "")
+                .labelStyle(.titleAndIcon)
+            }
+            
+        }
         .task {
             // pre-load the weights on launch to speed up the first generation
             _ = try? await llm.load()
@@ -65,6 +79,14 @@ struct ContentView: View {
         Task {
             await llm.generate(prompt: prompt)
         }
+    }
+    private func copyToClipboard(_ string: String) {
+        #if os(macOS)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(string, forType: .string)
+        #else
+        UIPasteboard.general.string = string
+        #endif
     }
 }
 
