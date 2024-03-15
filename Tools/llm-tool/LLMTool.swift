@@ -5,6 +5,7 @@ import Foundation
 import LLM
 import MLX
 import MLXRandom
+import Tokenizers
 
 @main
 struct LLMTool: AsyncParsableCommand {
