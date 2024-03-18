@@ -135,14 +135,14 @@ class LLMEvaluator {
 
     enum LoadState {
         case idle
-        case loaded(LLMModel, LLM.Tokenizer)
+        case loaded(LLMModel, Tokenizers.Tokenizer)
     }
 
     var loadState = LoadState.idle
 
     /// load and return the model -- can be called multiple times, subsequent calls will
     /// just return the loaded model
-    func load() async throws -> (LLMModel, LLM.Tokenizer) {
+    func load() async throws -> (LLMModel, Tokenizers.Tokenizer) {
         switch loadState {
         case .idle:
             // limit the buffer cache
