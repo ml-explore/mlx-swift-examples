@@ -13,6 +13,13 @@ struct ContentView: View {
     @State var prompt = "compare python and swift"
     @State var llm = LLMEvaluator()
 
+    enum displayStyle: String, CaseIterable, Identifiable {
+        case plain, markdown
+        var id: Self { self }
+    }
+
+    @State private var selectedDisplayStyle = displayStyle.markdown
+
     var body: some View {
         VStack(alignment: .leading) {
             VStack {
@@ -24,20 +31,39 @@ struct ContentView: View {
 
                     Text(llm.stat)
                 }
+                HStack {
+                    Spacer()
+                    if llm.running {
+                        ProgressView()
+                        Spacer()
+                    }
+                    Picker("", selection: $selectedDisplayStyle) {
+                        ForEach(displayStyle.allCases, id: \.self) { option in
+                            Text(option.rawValue.capitalized)
+                                .tag(option)
+                        }
 
-                if llm.running {
-                    ProgressView()
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 150)
                 }
             }
 
             // show the model output
             ScrollView(.vertical) {
                 ScrollViewReader { sp in
-                    Markdown(llm.output)
-                        .textSelection(.enabled)
-                        .onChange(of: llm.output) { _, _ in
-                            sp.scrollTo("bottom")
+                    Group {
+                        if selectedDisplayStyle == .plain {
+                            Text(llm.output)
+                                .textSelection(.enabled)
+                        } else {
+                            Markdown(llm.output)
+                                .textSelection(.enabled)
                         }
+                    }
+                    .onChange(of: llm.output) { _, _ in
+                        sp.scrollTo("bottom")
+                    }
 
                     Spacer()
                         .frame(width: 1, height: 1)
