@@ -3,6 +3,7 @@
 import LLM
 import MLX
 import MLXRandom
+import MarkdownUI
 import Metal
 import SwiftUI
 import Tokenizers
@@ -12,20 +13,57 @@ struct ContentView: View {
     @State var prompt = "compare python and swift"
     @State var llm = LLMEvaluator()
 
+    enum displayStyle: String, CaseIterable, Identifiable {
+        case plain, markdown
+        var id: Self { self }
+    }
+
+    @State private var selectedDisplayStyle = displayStyle.markdown
+
     var body: some View {
-        VStack {
+        VStack(alignment: .leading) {
+            VStack {
+                HStack {
+                    Text(llm.modelInfo)
+                        .textFieldStyle(.roundedBorder)
+
+                    Spacer()
+
+                    Text(llm.stat)
+                }
+                HStack {
+                    Spacer()
+                    if llm.running {
+                        ProgressView()
+                        Spacer()
+                    }
+                    Picker("", selection: $selectedDisplayStyle) {
+                        ForEach(displayStyle.allCases, id: \.self) { option in
+                            Text(option.rawValue.capitalized)
+                                .tag(option)
+                        }
+
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 150)
+                }
+            }
+
             // show the model output
             ScrollView(.vertical) {
                 ScrollViewReader { sp in
-                    if llm.running {
-                        ProgressView()
-                    }
-                    Text(llm.output)
-                        .textSelection(.enabled)
-
-                        .onChange(of: llm.output) { _, _ in
-                            sp.scrollTo("bottom")
+                    Group {
+                        if selectedDisplayStyle == .plain {
+                            Text(llm.output)
+                                .textSelection(.enabled)
+                        } else {
+                            Markdown(llm.output)
+                                .textSelection(.enabled)
                         }
+                    }
+                    .onChange(of: llm.output) { _, _ in
+                        sp.scrollTo("bottom")
+                    }
 
                     Spacer()
                         .frame(width: 1, height: 1)
@@ -42,6 +80,20 @@ struct ContentView: View {
             }
         }
         .padding()
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    Task {
+                        copyToClipboard(llm.output)
+                    }
+                } label: {
+                    Label("Copy Output", systemImage: "doc.on.doc.fill")
+                }
+                .disabled(llm.output == "")
+                .labelStyle(.titleAndIcon)
+            }
+
+        }
         .task {
             // pre-load the weights on launch to speed up the first generation
             _ = try? await llm.load()
@@ -53,6 +105,14 @@ struct ContentView: View {
             await llm.generate(prompt: prompt)
         }
     }
+    private func copyToClipboard(_ string: String) {
+        #if os(macOS)
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(string, forType: .string)
+        #else
+            UIPasteboard.general.string = string
+        #endif
+    }
 }
 
 @Observable
@@ -62,6 +122,8 @@ class LLMEvaluator {
     var running = false
 
     var output = ""
+    var modelInfo = ""
+    var stat = ""
 
     /// this controls which model loads -- phi4bit is one of the smaller ones so this will fit on
     /// more devices
@@ -89,11 +151,11 @@ class LLMEvaluator {
             let (model, tokenizer) = try await LLM.load(configuration: modelConfiguration) {
                 [modelConfiguration] progress in
                 DispatchQueue.main.sync {
-                    self.output =
+                    self.modelInfo =
                         "Downloading \(modelConfiguration.id): \(Int(progress.fractionCompleted * 100))%"
                 }
             }
-            self.output =
+            self.modelInfo =
                 "Loaded \(modelConfiguration.id).  Weights: \(MLX.GPU.activeMemory / 1024 / 1024)M"
             loadState = .loaded(model, tokenizer)
             return (model, tokenizer)
@@ -104,6 +166,7 @@ class LLMEvaluator {
     }
 
     func generate(prompt: String) async {
+        let startTime = Date()
         do {
             let (model, tokenizer) = try await load()
 
@@ -115,6 +178,12 @@ class LLMEvaluator {
             // augment the prompt as needed
             let prompt = modelConfiguration.prepare(prompt: prompt)
             let promptTokens = MLXArray(tokenizer.encode(text: prompt))
+
+            let initTime = Date()
+            let initDuration = initTime.timeIntervalSince(startTime)
+            await MainActor.run {
+                self.stat = "Init: \(String(format: "%.3f", initDuration))s"
+            }
 
             // each time you generate you will get something new
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
@@ -141,8 +210,12 @@ class LLMEvaluator {
                 }
             }
 
+            let tokenDuration = Date().timeIntervalSince(initTime)
+            let tokensPerSecond = Double(outputTokens.count) / tokenDuration
+
             await MainActor.run {
                 running = false
+                self.stat += " Token/second: \(String(format: "%.3f", tokensPerSecond))"
             }
 
         } catch {
