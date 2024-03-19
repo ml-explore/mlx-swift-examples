@@ -35,6 +35,7 @@ struct ContentView: View {
                     Spacer()
                     if llm.running {
                         ProgressView()
+                            .frame(maxHeight: 20)
                         Spacer()
                     }
                     Picker("", selection: $selectedDisplayStyle) {
@@ -131,7 +132,7 @@ class LLMEvaluator {
 
     /// parameters controlling the output
     let temperature: Float = 0.6
-    let maxTokens = 100
+    let maxTokens = 240
 
     enum LoadState {
         case idle
