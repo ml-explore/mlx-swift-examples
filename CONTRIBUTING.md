@@ -14,7 +14,7 @@ possible.
    You can also run the formatters manually as follows:
  
      ```
-     swift-format format --in-place --recursive Libraries Tools
+     swift-format format --in-place --recursive Libraries Tools Applications
      ```
  
    or run `pre-commit run --all-files` to check all files in the repo.
