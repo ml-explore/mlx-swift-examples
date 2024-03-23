@@ -56,8 +56,12 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--model mlx-community/starcoder2-3b-4bit"
+            argument = "--model mlx-community/c4ai-command-r-v01-4bit"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--model mlx-community/starcoder2-3b-4bit"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--model mlx-community/Qwen1.5-0.5B-Chat-4bit"

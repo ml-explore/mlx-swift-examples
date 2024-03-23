@@ -28,5 +28,6 @@ public func loadTokenizer(configuration: ModelConfiguration) async throws -> Tok
 
 /// overrides for TokenizerModel/knownTokenizers
 let replacementTokenizers = [
-    "Qwen2Tokenizer": "PreTrainedTokenizer"
+    "Qwen2Tokenizer": "PreTrainedTokenizer",
+    "CohereTokenizer": "PreTrainedTokenizer",
 ]
