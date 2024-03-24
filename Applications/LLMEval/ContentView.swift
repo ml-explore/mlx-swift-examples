@@ -84,14 +84,12 @@ struct ContentView: View {
         .padding()
         .toolbar {
             ToolbarItem {
-                HStack {
-                    Text(
-                        "GPU Usage: \(deviceStat.gpuUsage.activeMemory.formatted(.byteCount(style: .memory)))"
-                    )
-                    Image(systemName: "info.circle.fill")
-
-                }
-                .padding()
+                Label(
+                    "GPU Usage: \(deviceStat.gpuUsage.activeMemory.formatted(.byteCount(style: .memory)))",
+                    systemImage: "info.circle.fill"
+                )
+                .labelStyle(.titleAndIcon)
+                .padding(.horizontal)
                 .help(
                     Text(
                         """
@@ -236,7 +234,7 @@ class LLMEvaluator {
 
             await MainActor.run {
                 running = false
-                self.stat += " Token/second: \(String(format: "%.3f", tokensPerSecond))"
+                self.stat += " Tokens/second: \(String(format: "%.3f", tokensPerSecond))"
             }
 
         } catch {
