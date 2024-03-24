@@ -12,6 +12,7 @@ struct ContentView: View {
 
     @State var prompt = "compare python and swift"
     @State var llm = LLMEvaluator()
+    @EnvironmentObject var deviceStat: DeviceStat
 
     enum displayStyle: String, CaseIterable, Identifiable {
         case plain, markdown
@@ -82,6 +83,25 @@ struct ContentView: View {
         }
         .padding()
         .toolbar {
+            ToolbarItem {
+                HStack {
+                    Text(
+                        "GPU Usage: \(deviceStat.gpuUsage.activeMemory.formatted(.byteCount(style: .memory)))"
+                    )
+                    Image(systemName: "info.circle.fill")
+
+                }
+                .padding()
+                .help(
+                    Text(
+                        """
+                        Active Memory: \(deviceStat.gpuUsage.activeMemory.formatted(.byteCount(style: .memory)))/\(GPU.memoryLimit.formatted(.byteCount(style: .memory)))
+                        Cache Memory: \(deviceStat.gpuUsage.cacheMemory.formatted(.byteCount(style: .memory)))/\(GPU.cacheLimit.formatted(.byteCount(style: .memory)))
+                        Peak Memory: \(deviceStat.gpuUsage.peakMemory.formatted(.byteCount(style: .memory)))
+                        """
+                    )
+                )
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     Task {
