@@ -2,14 +2,13 @@ import Foundation
 import LLM
 import MLX
 
-class DeviceStat: ObservableObject {
-    @Published var gpuUsage: GPU.Snapshot
-    private var initialGPUSnapshot: GPU.Snapshot
+@Observable
+class DeviceStat {
+    var gpuUsage = GPU.snapshot()
+    private var initialGPUSnapshot = GPU.snapshot()
     private var timer: Timer?
 
     init() {
-        initialGPUSnapshot = GPU.snapshot()
-        gpuUsage = initialGPUSnapshot
         startTimer()
     }
 

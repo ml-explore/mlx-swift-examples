@@ -12,7 +12,7 @@ struct ContentView: View {
 
     @State var prompt = "compare python and swift"
     @State var llm = LLMEvaluator()
-    @EnvironmentObject var deviceStat: DeviceStat
+    @Environment(DeviceStat.self) private var deviceStat
 
     enum displayStyle: String, CaseIterable, Identifiable {
         case plain, markdown
