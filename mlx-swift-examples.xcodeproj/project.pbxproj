@@ -11,6 +11,7 @@
 		525C1E9D2B9A011000B5C356 /* Starcoder2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */; };
 		52A776182B94B5EE00AA6E80 /* Qwen2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A776172B94B5EE00AA6E80 /* Qwen2.swift */; };
 		81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 81695B402BA373D300F260D8 /* MarkdownUI */; };
+		819BEFF82BAF8B4E0002CCEE /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
 		C3288D762B6D9313009FF608 /* LinearModelTraining.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3288D752B6D9313009FF608 /* LinearModelTraining.swift */; };
 		C3288D7B2B6D9339009FF608 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C3288D7A2B6D9339009FF608 /* ArgumentParser */; };
 		C34E48F52B696F0B00FCB841 /* LLMTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48F42B696F0B00FCB841 /* LLMTool.swift */; };
@@ -187,6 +188,7 @@
 		12305EAE2B9D864400C92FEE /* PredictionView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PredictionView.swift; sourceTree = "<group>"; };
 		525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Starcoder2.swift; sourceTree = "<group>"; };
 		52A776172B94B5EE00AA6E80 /* Qwen2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Qwen2.swift; sourceTree = "<group>"; };
+		819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceStat.swift; sourceTree = "<group>"; };
 		C325DE3F2B648CDB00628871 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C3288D732B6D9313009FF608 /* LinearModelTraining */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LinearModelTraining; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3288D752B6D9313009FF608 /* LinearModelTraining.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinearModelTraining.swift; sourceTree = "<group>"; };
@@ -318,6 +320,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		819BEFF72BAF8B4E0002CCEE /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
 		C3288D742B6D9313009FF608 /* LinearModelTraining */ = {
 			isa = PBXGroup;
 			children = (
@@ -474,6 +484,7 @@
 		C3A8B3EB2B92A2A90002EFB8 /* LLMEval */ = {
 			isa = PBXGroup;
 			children = (
+				819BEFF72BAF8B4E0002CCEE /* ViewModels */,
 				C3A8B3EC2B92A2A90002EFB8 /* Assets.xcassets */,
 				C3A8B3F22B92A2A90002EFB8 /* ContentView.swift */,
 				C3A8B3F12B92A2A90002EFB8 /* LLMEval.entitlements */,
@@ -881,6 +892,7 @@
 			files = (
 				C3A8B3F42B92A2A90002EFB8 /* LLMEvalApp.swift in Sources */,
 				C3A8B3F72B92A2A90002EFB8 /* ContentView.swift in Sources */,
+				819BEFF82BAF8B4E0002CCEE /* DeviceStat.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
