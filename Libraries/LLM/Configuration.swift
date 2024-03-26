@@ -33,6 +33,7 @@ public enum ModelType: String, Codable {
     case gemma
     case qwen2
     case starcoder2
+    case cohere
 
     func createModel(configuration: URL) throws -> LLMModel {
         switch self {
@@ -56,6 +57,10 @@ public enum ModelType: String, Codable {
             let configuration = try JSONDecoder().decode(
                 Starcoder2Configuration.self, from: Data(contentsOf: configuration))
             return Starcoder2Model(configuration)
+        case .cohere:
+            let configuration = try JSONDecoder().decode(
+                CohereConfiguration.self, from: Data(contentsOf: configuration))
+            return CohereModel(configuration)
         }
     }
 }
