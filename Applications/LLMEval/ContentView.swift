@@ -85,7 +85,7 @@ struct ContentView: View {
         .toolbar {
             ToolbarItem {
                 Label(
-                    "GPU Usage: \(deviceStat.gpuUsage.activeMemory.formatted(.byteCount(style: .memory)))",
+                    "Memory Usage: \(deviceStat.gpuUsage.activeMemory.formatted(.byteCount(style: .memory)))",
                     systemImage: "info.circle.fill"
                 )
                 .labelStyle(.titleAndIcon)

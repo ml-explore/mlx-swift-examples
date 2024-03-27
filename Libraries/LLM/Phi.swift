@@ -7,12 +7,6 @@ import MLXNN
 
 // https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/phi.py
 
-private class LayerNorm: MLXNN.LayerNorm {
-    override func callAsFunction(_ x: MLXArray) -> MLXArray {
-        super.callAsFunction(x.asType(Float.self)).asType(x.dtype)
-    }
-}
-
 private class PhiAttention: Module {
 
     let args: PhiConfiguration
