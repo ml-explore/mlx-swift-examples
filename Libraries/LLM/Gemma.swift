@@ -19,7 +19,7 @@ private class RMSNorm: Module, UnaryLayer {
     }
 
     public func callAsFunction(_ x: MLXArray) -> MLXArray {
-        return MLXFast.rmsNorm(x, weight: self.weight, eps: self.eps)
+        return MLXFast.rmsNorm(x, weight: 1.0 + self.weight, eps: self.eps)
     }
 }
 
