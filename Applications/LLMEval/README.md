@@ -55,4 +55,4 @@ See discussion here: https://github.com/ml-explore/mlx-swift-examples/issues/3
 
 Different models have difference performance characteristics. For example Gemma 2B may outperform Phi-2 in terms of tokens / second.
 
-You may also find that running outside the debugger is also a performance boost.  You can do this in xcode by pressing cmd-opt-r and uncheck "Debug Executable".
+You may also find that running outside the debugger boosts performance.  You can do this in Xcode by pressing cmd-opt-r and unchecking "Debug Executable".
