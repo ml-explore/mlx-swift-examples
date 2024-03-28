@@ -47,7 +47,11 @@ struct ContentView: View {
 
                     }
                     .pickerStyle(.segmented)
-                    .frame(maxWidth: 150)
+                    #if os(visionOS)
+                        .frame(maxWidth: 250)
+                    #else
+                        .frame(maxWidth: 150)
+                    #endif
                 }
             }
 
@@ -77,11 +81,18 @@ struct ContentView: View {
                 TextField("prompt", text: $prompt)
                     .onSubmit(generate)
                     .disabled(llm.running)
+                    #if os(visionOS)
+                        .textFieldStyle(.roundedBorder)
+                    #endif
                 Button("generate", action: generate)
                     .disabled(llm.running)
             }
         }
-        .padding()
+        #if os(visionOS)
+            .padding(40)
+        #else
+            .padding()
+        #endif
         .toolbar {
             ToolbarItem {
                 Label(
