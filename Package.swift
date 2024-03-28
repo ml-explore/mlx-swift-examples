@@ -3,7 +3,7 @@
 
 import PackageDescription
 let package = Package(
-    name: "MLX-Libraries",
+    name: "mlx-libraries",
     platforms: [.macOS(.v14), .iOS(.v16),],
     products: [
         .library(
@@ -45,6 +45,7 @@ let package = Package(
                 .product(name: "MLXRandom", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
+                .product(name: "Gzip", package: "GzipSwift"),
             ],
             path: "Libraries/MNIST",
             exclude: [
