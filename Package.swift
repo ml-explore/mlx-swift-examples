@@ -4,14 +4,14 @@
 import PackageDescription
 let package = Package(
     name: "mlx-libraries",
-    platforms: [.macOS(.v14), .iOS(.v16),],
+    platforms: [.macOS(.v14), .iOS(.v16)],
     products: [
         .library(
             name: "LLM",
             targets: ["MLXLLM"]),
         .library(
             name: "MNIST",
-            targets: ["MLXMNIST"])
+            targets: ["MLXMNIST"]),
     ],
     dependencies: [
         .package(url: "https://github.com/ml-explore/mlx-swift", branch: "main"),
@@ -33,7 +33,7 @@ let package = Package(
             path: "Libraries/LLM",
             exclude: [
                 "README.md",
-                "LLM.h"
+                "LLM.h",
             ]
         ),
         .target(
