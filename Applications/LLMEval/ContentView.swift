@@ -151,7 +151,7 @@ class LLMEvaluator {
     /// parameters controlling the output
     let temperature: Float = 0.6
     let maxTokens = 240
-    
+
     /// update the display every N tokens -- 4 looks like it updates continuously
     /// and is low overhead.  observed ~15% reduction in tokens/s when updating
     /// on every token
@@ -216,7 +216,7 @@ class LLMEvaluator {
 
             for token in TokenIterator(prompt: promptTokens, model: model, temp: temperature) {
                 let tokenId = token.item(Int.self)
-                
+
                 // to match the measurement from the command line we reset the start time
                 // after the first token is generated (called the prompt time)
                 if outputTokens.isEmpty {
@@ -247,7 +247,7 @@ class LLMEvaluator {
 
             // update the text if needed, e.g. we haven't displayed because of displayEveryNTokens
             let finalText = tokenizer.decode(tokens: outputTokens)
-            
+
             await MainActor.run {
                 if finalText != self.output {
                     self.output = finalText
