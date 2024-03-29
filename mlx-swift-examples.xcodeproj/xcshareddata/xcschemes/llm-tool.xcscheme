@@ -56,6 +56,10 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--top-p 0.95"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--model mlx-community/c4ai-command-r-v01-4bit"
             isEnabled = "YES">
          </CommandLineArgument>

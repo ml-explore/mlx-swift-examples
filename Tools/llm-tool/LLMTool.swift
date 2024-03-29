@@ -29,6 +29,9 @@ struct LLMArguments: ParsableArguments {
     @Option(name: .shortAndLong, help: "The sampling temperature")
     var temperature: Float = 0.6
 
+    @Option(name: .shortAndLong, help: "The top p sampling")
+    var topP: Float = 0.9
+
     @Option(name: .long, help: "The PRNG seed")
     var seed: UInt64 = 0
 
@@ -127,7 +130,7 @@ struct SyncGenerator: AsyncParsableCommand {
         var printed = 0
 
         for token in TokenIterator(
-            prompt: MLXArray(promptTokens), model: model, temp: args.temperature)
+            prompt: MLXArray(promptTokens), model: model, temp: args.temperature, topP: args.topP)
         {
             if tokens.isEmpty {
                 eval(token)
