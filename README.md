@@ -18,3 +18,27 @@ Example [MLX Swift](https://github.com/ml-explore/mlx-swift) programs.
 
 - [mnist-tool](Tools/mnist-tool/README.md): A command line tool for training a
   a LeNet on MNIST.
+
+
+## Installation of MLXLLM and MLXMNIST libraries
+
+The MLXLLM and MLXMNIST libraries in the example repo are available as Swift Packages.
+
+
+Add the following dependency to your Package.swift
+
+```swift  
+.package(url: "https://github.com/ml-explore/mlx-swift-examples/", branch: "main"),
+```
+
+Then add one library or both libraries to the target as a dependency. 
+
+```swift
+.target(
+    name: "YourTargetName",
+    dependencies: [
+        .product(name: "LLM", package: "mlx-swift-examples")
+    ]),
+```
+
+Alternatively, add `https://github.com/ml-explore/mlx-swift-examples/` to the `Project Dependencies` and set the `Dependency Rule` to `Branch` and `main` in Xcode. 

@@ -35,7 +35,7 @@ public enum ModelType: String, Codable {
     case starcoder2
     case cohere
 
-    func createModel(configuration: URL) throws -> LLMModel {
+    public func createModel(configuration: URL) throws -> LLMModel {
         switch self {
         case .mistral, .llama:
             let configuration = try JSONDecoder().decode(
@@ -66,7 +66,7 @@ public enum ModelType: String, Codable {
 }
 
 public struct BaseConfiguration: Codable {
-    let modelType: ModelType
+    public let modelType: ModelType
 
     public struct Quantization: Codable {
         public init(groupSize: Int, bits: Int) {
@@ -83,7 +83,7 @@ public struct BaseConfiguration: Codable {
         }
     }
 
-    var quantization: Quantization?
+    public var quantization: Quantization?
 
     enum CodingKeys: String, CodingKey {
         case modelType = "model_type"
