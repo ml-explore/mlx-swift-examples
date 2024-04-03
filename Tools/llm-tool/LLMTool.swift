@@ -208,7 +208,7 @@ struct AsyncGenerator: AsyncParsableCommand {
         var printed = 0
 
         let (task, channel) = generate(
-            prompt: MLXArray(promptTokens), model: model, temp: args.temperature)
+            prompt: MLXArray(promptTokens), model: model, temp: args.temperature, topP: args.topP)
 
         for await token in channel {
             if tokens.isEmpty {
