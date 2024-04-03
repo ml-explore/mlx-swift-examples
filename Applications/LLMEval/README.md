@@ -50,3 +50,9 @@ Building in Release / optimizations will remove a lot of tail calls in the C++
 layer.  These lead to the stack overflows.
 
 See discussion here: https://github.com/ml-explore/mlx-swift-examples/issues/3
+
+### Performance
+
+Different models have difference performance characteristics. For example Gemma 2B may outperform Phi-2 in terms of tokens / second.
+
+You may also find that running outside the debugger boosts performance.  You can do this in Xcode by pressing cmd-opt-r and unchecking "Debug Executable".
