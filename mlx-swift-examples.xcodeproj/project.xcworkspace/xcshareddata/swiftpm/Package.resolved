@@ -1,5 +1,4 @@
 {
-  "originHash" : "da53546673b6d05016b6e5640c18814c7dba5b5af8db34715afe6d633037c758",
   "pins" : [
     {
       "identity" : "gzipswift",
@@ -79,9 +78,9 @@
       "location" : "https://github.com/huggingface/swift-transformers",
       "state" : {
         "branch" : "main",
-        "revision" : "3bd02269b7797ade67c15679a575cd5c6f203ce6"
+        "revision" : "9d82e00af680253499f1a9372abb2552a73527fb"
       }
     }
   ],
-  "version" : 3
+  "version" : 2
 }
