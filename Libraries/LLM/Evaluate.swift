@@ -58,8 +58,8 @@ public struct TokenIterator: Sequence, IteratorProtocol {
 
     mutating public func next() -> MLXArray? {
         var logits: MLXArray
-        (logits, cache) = model(expandedDimensions(y, axis: 0), cache: cache.isEmpty ? nil : cache)
-        y = sample(logits: logits[-1, axis: 1], temp: temp, topP: topP)
+        (logits, cache) = model(y[.newAxis], cache: cache.isEmpty ? nil : cache)
+        y = sample(logits: logits[0..., -1, 0...], temp: temp, topP: topP)
 
         return y
     }
@@ -83,9 +83,8 @@ public func generate(prompt: MLXArray, model: LLMModel, temp: Float = 0.0, topP:
 
         while !Task.isCancelled {
             var logits: MLXArray
-            (logits, cache) = model(
-                expandedDimensions(y, axis: 0), cache: cache.isEmpty ? nil : cache)
-            y = sample(logits: logits[-1, axis: 1], temp: temp, topP: topP)
+            (logits, cache) = model(y[.newAxis], cache: cache.isEmpty ? nil : cache)
+            y = sample(logits: logits[0..., -1, 0...], temp: temp, topP: topP)
             eval(y)
 
             await channel.send(y.item(Int.self))
