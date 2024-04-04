@@ -56,12 +56,16 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--repetition-penalty 1.2"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--top-p 0.95"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--model mlx-community/c4ai-command-r-v01-4bit"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--model mlx-community/starcoder2-3b-4bit"
@@ -77,7 +81,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--model mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--model mlx-community/quantized-gemma-2b-it"
