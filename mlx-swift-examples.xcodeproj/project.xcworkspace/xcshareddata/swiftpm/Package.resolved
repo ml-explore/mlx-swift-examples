@@ -15,7 +15,7 @@
       "location" : "https://github.com/ml-explore/mlx-swift",
       "state" : {
         "branch" : "main",
-        "revision" : "f4b00d8ce6917c64bd5057a4fb19433e848fdf87"
+        "revision" : "a1c544c817d44cfdfa1a650f521066b565c2ae4f"
       }
     },
     {
@@ -78,7 +78,7 @@
       "location" : "https://github.com/huggingface/swift-transformers",
       "state" : {
         "branch" : "main",
-        "revision" : "9d82e00af680253499f1a9372abb2552a73527fb"
+        "revision" : "74b94211bdc741694ed7e700a1104c72e5ba68fe"
       }
     }
   ],
