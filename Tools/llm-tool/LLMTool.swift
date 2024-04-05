@@ -11,7 +11,7 @@ import Tokenizers
 struct LLMTool: AsyncParsableCommand {
     static var configuration = CommandConfiguration(
         abstract: "Command line tool for generating text and manipulating LLMs",
-        subcommands: [EvaluateCommand.self],
+        subcommands: [EvaluateCommand.self, LoRACommand.self],
         defaultSubcommand: EvaluateCommand.self)
 }
 
@@ -21,9 +21,13 @@ struct ModelArguments: ParsableArguments {
     @Option(name: .long, help: "Name of the huggingface model")
     var model: String = "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
 
+    @Option(name: .long, help: "Optional URL of .safetensors weights file")
+    var weights: URL?
+
     func load() async throws -> (LLMModel, Tokenizer, ModelConfiguration) {
         let modelConfiguration = ModelConfiguration.configuration(id: model)
-        let (model, tokenizer) = try await LLM.load(configuration: modelConfiguration)
+        let (model, tokenizer) = try await LLM.load(
+            configuration: modelConfiguration, overrideWeights: weights)
         return (model, tokenizer, modelConfiguration)
     }
 }

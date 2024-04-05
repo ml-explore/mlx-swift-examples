@@ -12,9 +12,9 @@ private class Attention: Module {
     let args: LlamaConfiguration
     let scale: Float
 
-    @ModuleInfo(key: "q_proj") var wq: Linear
+    @ModuleInfo(key: "q_proj") var wq: LoRAReplacableLinear
     @ModuleInfo(key: "k_proj") var wk: Linear
-    @ModuleInfo(key: "v_proj") var wv: Linear
+    @ModuleInfo(key: "v_proj") var wv: LoRAReplacableLinear
     @ModuleInfo(key: "o_proj") var wo: Linear
 
     let rope: RoPE
@@ -251,5 +251,22 @@ public struct LlamaConfiguration: Codable {
         self.ropeScaling = try container.decodeIfPresent(
             [String: StringOrNumber].self, forKey: LlamaConfiguration.CodingKeys.ropeScaling)
 
+    }
+}
+
+// MARK: - LoRA
+
+extension Attention: LoRALayer {
+    func loraLinearModules() -> [String: any LoRAReplacableLinear] {
+        [
+            "q_proj": wq,
+            "v_proj": wv,
+        ]
+    }
+}
+
+extension LlamaModel: LoRAModel {
+    public func loraLayers() -> [LoRALayer] {
+        model.layers.map { $0.attention }
     }
 }

@@ -22,6 +22,11 @@
 		C34E49292B6A028100FCB841 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C34E49282B6A028100FCB841 /* ArgumentParser */; };
 		C34E492A2B6A028800FCB841 /* MNIST.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C34E490D2B69A92900FCB841 /* MNIST.framework */; };
 		C34E492B2B6A028800FCB841 /* MNIST.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C34E490D2B69A92900FCB841 /* MNIST.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C36BEFB02BBCBAC2002D4AFE /* Lora.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFAF2BBCBAC2002D4AFE /* Lora.swift */; };
+		C36BEFB22BBDE9D0002D4AFE /* MLXOptimizers in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFB12BBDE9D0002D4AFE /* MLXOptimizers */; };
+		C36BEFB52BBDEAD8002D4AFE /* LoraCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */; };
+		C36BEFB82BBDED51002D4AFE /* Arguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFB62BBDECBC002D4AFE /* Arguments.swift */; };
+		C36BEFBB2BBF02CC002D4AFE /* Lora+Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */; };
 		C382DE8A2B630889000F8F03 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = C382DE892B630889000F8F03 /* AsyncAlgorithms */; };
 		C38935C82B869C7A0037B833 /* LLM.h in Headers */ = {isa = PBXBuildFile; fileRef = C38935C72B869C7A0037B833 /* LLM.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C38935CC2B869C870037B833 /* Llama.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48EE2B696E6500FCB841 /* Llama.swift */; };
@@ -202,6 +207,10 @@
 		C34E49142B69C1E300FCB841 /* Files.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Files.swift; sourceTree = "<group>"; };
 		C34E49212B6A026F00FCB841 /* mnist-tool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "mnist-tool"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C34E49232B6A026F00FCB841 /* MNISTTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MNISTTool.swift; sourceTree = "<group>"; };
+		C36BEFAF2BBCBAC2002D4AFE /* Lora.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Lora.swift; sourceTree = "<group>"; };
+		C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoraCommands.swift; sourceTree = "<group>"; };
+		C36BEFB62BBDECBC002D4AFE /* Arguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Arguments.swift; sourceTree = "<group>"; };
+		C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Lora+Data.swift"; sourceTree = "<group>"; };
 		C38935C52B869C7A0037B833 /* LLM.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LLM.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C38935C72B869C7A0037B833 /* LLM.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LLM.h; sourceTree = "<group>"; };
 		C38935DE2B869DD00037B833 /* Phi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phi.swift; sourceTree = "<group>"; };
@@ -273,6 +282,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C36BEFB22BBDE9D0002D4AFE /* MLXOptimizers in Frameworks */,
 				C38935D22B869CC40037B833 /* MLXNN in Frameworks */,
 				C38935D42B869CC40037B833 /* MLXRandom in Frameworks */,
 				C38935D62B869CC40037B833 /* Transformers in Frameworks */,
@@ -340,8 +350,10 @@
 		C34E48F32B696F0B00FCB841 /* llm-tool */ = {
 			isa = PBXGroup;
 			children = (
-				C34E48F42B696F0B00FCB841 /* LLMTool.swift */,
 				C34E48F92B69930300FCB841 /* README.md */,
+				C34E48F42B696F0B00FCB841 /* LLMTool.swift */,
+				C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */,
+				C36BEFB62BBDECBC002D4AFE /* Arguments.swift */,
 			);
 			path = "llm-tool";
 			sourceTree = "<group>";
@@ -370,6 +382,8 @@
 		C38935C62B869C7A0037B833 /* LLM */ = {
 			isa = PBXGroup;
 			children = (
+				C36BEFAF2BBCBAC2002D4AFE /* Lora.swift */,
+				C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */,
 				525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */,
 				C34E48EF2B696E6500FCB841 /* Configuration.swift */,
 				C3A8B3AB2B9283150002EFB8 /* Models.swift */,
@@ -617,6 +631,7 @@
 				C38935D32B869CC40037B833 /* MLXRandom */,
 				C38935D52B869CC40037B833 /* Transformers */,
 				C38935DC2B869CEC0037B833 /* AsyncAlgorithms */,
+				C36BEFB12BBDE9D0002D4AFE /* MLXOptimizers */,
 			);
 			productName = LLM;
 			productReference = C38935C52B869C7A0037B833 /* LLM.framework */;
@@ -850,6 +865,8 @@
 				C38935E32B86C0FE0037B833 /* Gemma.swift in Sources */,
 				C38935CD2B869C870037B833 /* Configuration.swift in Sources */,
 				525C1E9D2B9A011000B5C356 /* Starcoder2.swift in Sources */,
+				C36BEFBB2BBF02CC002D4AFE /* Lora+Data.swift in Sources */,
+				C36BEFB02BBCBAC2002D4AFE /* Lora.swift in Sources */,
 				C38935DF2B869DD00037B833 /* Phi.swift in Sources */,
 				C38935CE2B869C870037B833 /* Load.swift in Sources */,
 				C3E786AD2B8D4AF50004D037 /* Tokenizer.swift in Sources */,
@@ -872,7 +889,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C36BEFB82BBDED51002D4AFE /* Arguments.swift in Sources */,
 				C34E48F52B696F0B00FCB841 /* LLMTool.swift in Sources */,
+				C36BEFB52BBDEAD8002D4AFE /* LoraCommands.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2294,6 +2313,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
 			productName = ArgumentParser;
+		};
+		C36BEFB12BBDE9D0002D4AFE /* MLXOptimizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
+			productName = MLXOptimizers;
 		};
 		C382DE892B630889000F8F03 /* AsyncAlgorithms */ = {
 			isa = XCSwiftPackageProductDependency;
