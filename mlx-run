@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# Wrapper to help run command line tools -- this will find the build directory
+# and set the DYLD_FRAMEWORK_PATH so that command line tools that link frameworks
+# can be run.
+#
+# Example:
+# ./mlx-run --debug llm-tool --help
+
+if [ "$#" -lt 1 ]; then
+	echo "usage: mlx-run [--debug/--release] <tool-name> arguments"
+	exit 1
+fi
+
+CONFIGURATION=Release
+if [ "$1" == "--release" ]; then
+	CONFIGURATION=Release
+	shift
+fi
+if [ "$1" == "--debug" ]; then
+	CONFIGURATION=Debug
+	shift
+fi
+if [ "$1" == "--list" ]; then
+	xcodebuild -list
+	exit 0
+fi
+
+COMMAND="$1"
+shift
+
+BUILD_DIR=`xcodebuild -configuration $CONFIGURATION -showBuildSettings -scheme $COMMAND | grep 'BUILT_PRODUCTS_DIR = /' | sed -e 's/^[^=]*= //g'`
+
+if [ -d "$BUILD_DIR/$COMMAND.app" ]; then
+	exec $BUILD_DIR/$COMMAND.app/Contents/MacOS/$COMMAND "$@" &
+fi
+
+if [ -f "$BUILD_DIR/$COMMAND" ]; then
+	export DYLD_FRAMEWORK_PATH=$BUILD_DIR/PackageFrameworks:$BUILD_DIR
+	exec "$BUILD_DIR/$COMMAND" "$@"
+else
+	echo "$BUILD_DIR/$COMMAND does not exist -- check build configuration ($CONFIGURATION)"
+	exit 1
+fi
+

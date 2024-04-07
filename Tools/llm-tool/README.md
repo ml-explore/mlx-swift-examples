@@ -32,16 +32,18 @@ See [LLM](../../Libraries/LLM/README.md) for more info.
 
 ### Running (Command Line)
 
-`llm-tool` can also be run from the command line if built from Xcode, but 
-the `DYLD_FRAMEWORK_PATH` must be set so that the frameworks and bundles can be found:
+Use the `mlx-run` script to run the command line tools:
+
+```
+./mlx-run llm-tool --prompt "swift programming language"
+```
+
+By default this will find and run the tools built in _Release_ configuration.  Specify `--debug`
+to find and run the tool built in _Debug_ configuration.
+
+See also:
 
 - [MLX troubleshooting](https://ml-explore.github.io/mlx-swift/MLX/documentation/mlx/troubleshooting)
-
-The easiest way to do this is drag the Products/llm-tool into Terminal to get the path:
-
-```
-DYLD_FRAMEWORK_PATH=~/Library/Developer/Xcode/DerivedData/mlx-examples-swift-ceuohnhzsownvsbbleukxoksddja/Build/Products/Debug ~/Library/Developer/Xcode/DerivedData/mlx-examples-swift-ceuohnhzsownvsbbleukxoksddja/Build/Products/Debug/llm-tool --prompt "swift programming language"
-```
 
 ### Troubleshooting
 

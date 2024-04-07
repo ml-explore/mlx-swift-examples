@@ -18,7 +18,19 @@ Example [MLX Swift](https://github.com/ml-explore/mlx-swift) programs.
 
 - [mnist-tool](Tools/mnist-tool/README.md): A command line tool for training a
   a LeNet on MNIST.
+  
+## Running
 
+The application and command line tool examples can be run from Xcode or from
+the command line:
+
+```
+./mlx-run llm-tool --prompt "swift programming language"
+```
+
+See also:
+
+- [MLX troubleshooting](https://ml-explore.github.io/mlx-swift/MLX/documentation/mlx/troubleshooting)
 
 ## Installation of MLXLLM and MLXMNIST libraries
 
