@@ -1,5 +1,5 @@
 {
-  "originHash" : "c553d4a0e8610e1ac348b9a2ae25cf60a97387e744154297089876b441e5896b",
+  "originHash" : "6750e2209d3e8ec777b601627ba31d0346e487e6b7d748ce241ec3d5623411a2",
   "pins" : [
     {
       "identity" : "gzipswift",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "7aff8d1b31148d32c5933d75557d42f6323ee3d1",
         "version" : "6.0.0"
+      }
+    },
+    {
+      "identity" : "progress.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jkandzi/Progress.swift",
+      "state" : {
+        "revision" : "fed6598735d7982058690acf8f52a0a5fdaeb3e0",
+        "version" : "0.4.0"
       }
     },
     {
