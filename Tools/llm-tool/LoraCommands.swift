@@ -235,11 +235,13 @@ struct LoRAEvalCommand: AsyncParsableCommand {
 
         memory.start()
 
-        let (prompt, promptTokens) = generate.tokenizePrompt(
+        let (prompt, promptTokens) = try generate.tokenizePrompt(
             configuration: modelConfiguration, tokenizer: tokenizer)
 
-        print("Starting generation ...")
-        print(prompt, terminator: "")
+        if !generate.quiet {
+            print("Starting generation ...")
+            print(prompt, terminator: "")
+        }
 
         // generate and print the result
         let _ = await generate.generate(
