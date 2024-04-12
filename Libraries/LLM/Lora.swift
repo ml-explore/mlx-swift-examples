@@ -67,18 +67,11 @@ public protocol LoRAModel: Module, LLMModel {
 public protocol LoRALayer: Module {
 
     /// Return the `Linear` layers that should have ``LoRALinear`` applied.
-    func loraLinearModules() -> [String: LoRAReplacableLinear]
+    func loraLinearModules() -> [String: Linear]
 }
 
-/// Type that allows properties to hold either `Linear` or ``LoRALinear`` values.
-///
-/// ### See Also
-/// - ``LoRALayer``
-public protocol LoRAReplacableLinear: Module, UnaryLayer {
-
-}
-
-extension Linear: LoRAReplacableLinear {
+public protocol LoRAConvertToLinear : Linear {
+    func toLinear(deQuantize: Bool) -> Linear
 }
 
 /// Implementation of LoRA `Linear` replacement layer.
@@ -98,18 +91,75 @@ extension Linear: LoRAReplacableLinear {
 /// - ``LoRALayer``
 /// - ``LoRATrain/convert(model:layers:)``
 /// - ``LoRATrain/fuse(model:deQuantize:)``
-public class LoRALinear: Module, LoRAReplacableLinear {
+public class LoRALinear: Linear, LoRAConvertToLinear {
 
     let scale: Float
-
-    @ModuleInfo var linear: Linear
 
     @ParameterInfo(key: "lora_a") var loraA: MLXArray
     @ParameterInfo(key: "lora_b") var loraB: MLXArray
 
-    public init(
+    required public init(
         _ inputDimensions: Int, _ outputDimensions: Int, rank: Int = 8, bias: Bool = false,
-        scale: Float = 20.0, linear: Linear? = nil
+        scale: Float = 20.0, linear: Linear
+    ) {
+        // Scale for low-rank update
+        self.scale = scale
+
+        // Low rank lora weights
+        let loraScale = 1 / sqrt(Float(inputDimensions))
+        self._loraA.wrappedValue = MLXRandom.uniform(
+            low: -loraScale, high: loraScale, [inputDimensions, rank])
+        self._loraB.wrappedValue = MLXArray.zeros([rank, outputDimensions])
+        
+        super.init(weight: linear.weight, bias: linear.bias)
+    }
+
+    /// Convert a `Linear` or `QuantizedLinear` layer into ``LoRALinear``.
+    ///
+    /// This is typically called via ``LoRATrain/convert(model:layers:)``.
+    ///
+    /// ### See Also
+    /// - ``LoRATrain/convert(model:layers:)``
+    public static func from(linear: Linear, rank: Int = 8) -> Linear {
+        if let linear = linear as? QuantizedLinear {
+            return QLoRALinear.from(linear: linear, rank: rank)
+        }
+        let (outputDimensions, inputDimensions) = linear.shape
+        return LoRALinear(inputDimensions, outputDimensions, rank: rank, linear: linear)
+    }
+
+    /// Convert a ``LoRALinear`` back into a fused `Linear` or `QuantizedLinear` layer.
+    ///
+    /// This is typically called via ``LoRATrain/fuse(model:deQuantize:)``.
+    ///
+    /// ### See Also
+    /// - ``LoRATrain/fuse(model:deQuantize:)``
+    public func toLinear(deQuantize: Bool = false) -> Linear {
+        let dtype = weight.dtype
+        let loraB = (scale * loraB.T).asType(dtype)
+        let loraA = loraA.T.asType(dtype)
+        return Linear(weight: weight + matmul(loraB, loraA), bias: bias)
+    }
+
+    public override func callAsFunction(_ x: MLXArray) -> MLXArray {
+        let y = super.callAsFunction(x.asType(weight.dtype))
+        let z = matmul(matmul(x, self.loraA), self.loraB)
+        return y + scale * z
+    }
+}
+
+public class QLoRALinear: QuantizedLinear, LoRAConvertToLinear {
+
+    let scale: Float
+
+    @ModuleInfo var linear: QuantizedLinear
+
+    @ParameterInfo(key: "lora_a") var loraA: MLXArray
+    @ParameterInfo(key: "lora_b") var loraB: MLXArray
+
+    required public init(
+        _ inputDimensions: Int, _ outputDimensions: Int, rank: Int = 8, bias: Bool = false,
+        scale: Float = 20.0, linear: Linear
     ) {
 
         // Scale for low-rank update
@@ -121,7 +171,7 @@ public class LoRALinear: Module, LoRAReplacableLinear {
             low: -loraScale, high: loraScale, [inputDimensions, rank])
         self._loraB.wrappedValue = MLXArray.zeros([rank, outputDimensions])
 
-        self.linear = linear ?? Linear(inputDimensions, outputDimensions, bias: bias)
+        super.init(weight: linear.weight, bias: linear.bias)
     }
 
     /// Convert a `Linear` or `QuantizedLinear` layer into ``LoRALinear``.
@@ -130,22 +180,10 @@ public class LoRALinear: Module, LoRAReplacableLinear {
     ///
     /// ### See Also
     /// - ``LoRATrain/convert(model:layers:)``
-    public static func from(linear: Linear, rank: Int = 8) -> LoRALinear {
+    public static func from(linear: QuantizedLinear, rank: Int = 8) -> Linear {
         var (outputDimensions, inputDimensions) = linear.shape
-        if let l = linear as? QuantizedLinear {
-            inputDimensions = inputDimensions * 32 / l.bits
-        }
-        return LoRALinear(inputDimensions, outputDimensions, rank: rank, linear: linear)
-    }
-
-    var dtype: DType {
-        let dtype: DType
-        if let q = linear as? QuantizedLinear {
-            dtype = q.scales.dtype
-        } else {
-            dtype = linear.weight.dtype
-        }
-        return dtype
+        inputDimensions = inputDimensions * 32 / linear.bits
+        return QLoRALinear(inputDimensions, outputDimensions, rank: rank, linear: linear)
     }
 
     /// Convert a ``LoRALinear`` back into a fused `Linear` or `QuantizedLinear` layer.
@@ -155,41 +193,24 @@ public class LoRALinear: Module, LoRAReplacableLinear {
     /// ### See Also
     /// - ``LoRATrain/fuse(model:deQuantize:)``
     public func toLinear(deQuantize: Bool = false) -> Linear {
-        var weight = linear.weight
-        var dtype = weight.dtype
+        // convert back into full weights
+        let weight = dequantized(
+            weight, scales: scales, biases: biases, groupSize: groupSize, bits: bits)
 
-        if let q = linear as? QuantizedLinear {
-            dtype = .float16
-            weight = dequantized(
-                weight, scales: q.scales, biases: q.biases, groupSize: q.groupSize, bits: q.bits)
-        }
-
-        let (outputDimensions, inputDimensions) = linear.shape
-        var fusedLinear = Linear(inputDimensions, outputDimensions, bias: linear.bias != nil)
-
-        let loraB = (scale * loraB.T).asType(dtype)
-        let loraA = loraA.T.asType(dtype)
-        var parameters = ModuleParameters()
-        parameters["weight"] = .value(weight + matmul(loraB, loraA))
-        if let bias = linear.bias {
-            parameters["bias"] = .value(bias)
-        }
-        fusedLinear.update(parameters: parameters)
-
-        if !deQuantize, let q = linear as? QuantizedLinear {
-            fusedLinear = QuantizedLinear.from(
-                linear: fusedLinear, groupSize: q.groupSize, bits: q.bits)
-        }
-
-        return fusedLinear
+        let loraB = (scale * loraB.T).asType(.float16)
+        let loraA = loraA.T.asType(.float16)
+        
+        // convert back into quantized
+        return QuantizedLinear(weight: weight + matmul(loraB, loraA), bias: bias, groupSize: groupSize, bits: bits)
     }
 
-    public func callAsFunction(_ x: MLXArray) -> MLXArray {
-        let y = linear(x.asType(self.dtype))
+    public override func callAsFunction(_ x: MLXArray) -> MLXArray {
+        let y = super.callAsFunction(x.asType(scales.dtype))
         let z = matmul(matmul(x, self.loraA), self.loraB)
         return y + scale * z
     }
 }
+
 
 /// Equivalent to `lora.py/iterate_batches()`
 struct LoRABatchIterator: Sequence, IteratorProtocol {
@@ -313,9 +334,7 @@ public enum LoRATrain {
         for layer in model.loraLayers().suffix(layers) {
             var update = ModuleChildren()
             for (key, linear) in layer.loraLinearModules() {
-                if let linear = linear as? Linear {
-                    update[key] = .value(LoRALinear.from(linear: linear))
-                }
+                update[key] = .value(LoRALinear.from(linear: linear))
             }
             layer.update(modules: update)
         }
@@ -333,7 +352,7 @@ public enum LoRATrain {
         for layer in model.loraLayers() {
             var update = ModuleChildren()
             for (key, linear) in layer.loraLinearModules() {
-                if let lora = linear as? LoRALinear {
+                if let lora = linear as? LoRAConvertToLinear {
                     update[key] = .value(lora.toLinear(deQuantize: deQuantize))
                 }
             }

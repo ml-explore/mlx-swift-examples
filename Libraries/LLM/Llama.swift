@@ -12,9 +12,9 @@ private class Attention: Module {
     let args: LlamaConfiguration
     let scale: Float
 
-    @ModuleInfo(key: "q_proj") var wq: LoRAReplacableLinear
+    @ModuleInfo(key: "q_proj") var wq: Linear
     @ModuleInfo(key: "k_proj") var wk: Linear
-    @ModuleInfo(key: "v_proj") var wv: LoRAReplacableLinear
+    @ModuleInfo(key: "v_proj") var wv: Linear
     @ModuleInfo(key: "o_proj") var wo: Linear
 
     let rope: RoPE
@@ -257,7 +257,7 @@ public struct LlamaConfiguration: Codable {
 // MARK: - LoRA
 
 extension Attention: LoRALayer {
-    func loraLinearModules() -> [String: any LoRAReplacableLinear] {
+    func loraLinearModules() -> [String:Linear] {
         [
             "q_proj": wq,
             "v_proj": wv,
