@@ -18,14 +18,21 @@ public func load(
     overrideWeights: URL? = nil,
     progressHandler: @escaping (Progress) -> Void = { _ in }
 ) async throws -> (LLMModel, Tokenizer) {
-    // note: this doesn't have a way to pass the HubApi
-    let tokenizer = try await loadTokenizer(configuration: configuration)
+    let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
 
-    // download the model weights and config
-    let repo = Hub.Repo(id: configuration.id)
-    let modelFiles = ["config.json", "*.safetensors"]
-    let modelDirectory = try await hub.snapshot(
-        from: repo, matching: modelFiles, progressHandler: progressHandler)
+    let modelDirectory: URL
+
+    switch configuration.id {
+    case .id(let id):
+        // download the model weights and config
+        let repo = Hub.Repo(id: id)
+        let modelFiles = ["config.json", "*.safetensors"]
+        modelDirectory = try await hub.snapshot(
+            from: repo, matching: modelFiles, progressHandler: progressHandler)
+
+    case .directory(let directory):
+        modelDirectory = directory
+    }
 
     // create the model (no weights loaded)
     let configurationURL = modelDirectory.appending(component: "config.json")

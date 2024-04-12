@@ -18,14 +18,22 @@ struct LLMTool: AsyncParsableCommand {
 /// Command line arguments for loading a model.
 struct ModelArguments: ParsableArguments {
 
-    @Option(name: .long, help: "Name of the huggingface model")
+    @Option(name: .long, help: "Name of the huggingface model or absolute path to directory")
     var model: String = "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
 
     @Option(name: .long, help: "Optional URL of .safetensors weights file")
     var weights: URL?
 
     func load() async throws -> (LLMModel, Tokenizer, ModelConfiguration) {
-        let modelConfiguration = ModelConfiguration.configuration(id: model)
+        let modelConfiguration: ModelConfiguration
+
+        if self.model.hasPrefix("/") {
+            // path
+            modelConfiguration = ModelConfiguration(directory: URL(filePath: self.model))
+        } else {
+            // identifier
+            modelConfiguration = ModelConfiguration.configuration(id: model)
+        }
         let (model, tokenizer) = try await LLM.load(
             configuration: modelConfiguration, overrideWeights: weights)
         return (model, tokenizer, modelConfiguration)
