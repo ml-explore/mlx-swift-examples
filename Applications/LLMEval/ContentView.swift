@@ -201,14 +201,20 @@ class LLMEvaluator {
     }
 
     func generate(prompt: String) async {
-        do {
-            let (model, tokenizer) = try await load()
-
-            await MainActor.run {
+        let canGenerate = await MainActor.run {
+            if running {
+                return false
+            } else {
                 running = true
                 self.output = ""
+                return true
             }
+        }
 
+        guard canGenerate else { return }
+
+        do {
+            let (model, tokenizer) = try await load()
             // augment the prompt as needed
             let prompt = modelConfiguration.prepare(prompt: prompt)
             let promptTokens = tokenizer.encode(text: prompt)
