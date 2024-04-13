@@ -7,80 +7,46 @@ import MLXOptimizers
 import MLXRandom
 import Tokenizers
 
-/// Protocol for models that can have LoRA adapters applied.
+/// Layers to apply LoRA adapters to.
 ///
-/// This protocol describes which layers (typically Attention) can
-/// have adapters applied.
-///
-/// For example the ``LlamaModel``  has `layers` (`TransformerBlock`)
-/// that each have `attention` -- these are the layers that should have the
-/// adapters applied:
-///
-/// ```swift
-/// extension LlamaModel: LoRAModel {
-///     public func loraLayers() -> [LoRALayer] {
-///         model.layers.map { $0.attention }
-///     }
-/// }
-/// ```
-///
-/// ### See Also
-/// - ``LoRALayer``
-/// - ``LoRATrain/convert(model:layers:)``
-public protocol LoRAModel: Module, LLMModel {
+/// This is the value returned by ``LoRAModel/loraLinearLayers()``.
+public typealias LoRALinearLayers = [(Module, [String])]
 
-    /// The layers that should have the LoRA adapter applied
-    func loraLayers() -> [LoRALayer]
+public protocol LoRAModel {
+    /// Return the layers and keys to apply LoRA adapters to.
+    ///
+    /// For example this might apply the adapters to the `q` an `v` projections in the
+    /// Attention layers:
+    ///
+    /// ```swift
+    /// model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
+    /// ```
+    ///
+    /// It is not required that a model implement this protocol to have LoRA adapters applied, but
+    /// the command line driver example uses this to produce the ``LoRALinearLayers``.
+    ///
+    /// ### See Also
+    /// - ``LoRATrain/convert(model:layers:)``
+    func loraLinearLayers() -> LoRALinearLayers
 }
 
-/// Protocol for layers that should have LoRA adapters applied.
+/// Protocol for LoRA implementations that provides a method for converting back to a `Linear`
+/// (or subtype).
 ///
-/// The ``loraLinearModules()``  method should return the module names
-/// and modules that should have apapters applied.  For example:
-///
-/// ```swift
-/// extension Attention: LoRALayer {
-///     func loraLinearModules() -> [String: any LoRAReplacableLinear] {
-///         [
-///             "q_proj": wq,
-///             "v_proj": wv,
-///         ]
-///     }
-/// }
-/// ```
-///
-/// The properties for the layers that need adapters must be of type ``LoRAReplacableLinear``:
-///
-/// ```swift
-/// @ModuleInfo(key: "q_proj") var wq: LoRAReplacableLinear
-/// @ModuleInfo(key: "k_proj") var wk: Linear
-/// @ModuleInfo(key: "v_proj") var wv: LoRAReplacableLinear
-/// @ModuleInfo(key: "o_proj") var wo: Linear
-/// ```
-///
-/// This is required so that the property can hold either a `Linear` layer or a ``LoRALinear``
-/// layer.
-///
-/// ### See Also
-/// - ``LoRAModel``
-/// - ``LoRATrain/convert(model:layers:)``
-public protocol LoRALayer: Module {
-
-    /// Return the `Linear` layers that should have ``LoRALinear`` applied.
-    func loraLinearModules() -> [String: Linear]
-}
-
-public protocol LoRAConvertToLinear : Linear {
+/// This is normally called via ``LoRATrain/fuse(model:layers:deQuantize:)``
+public protocol LoRAConvertToLinear {
     func toLinear(deQuantize: Bool) -> Linear
 }
 
 /// Implementation of LoRA `Linear` replacement layer.
 ///
-/// This layer implements the LoRA capabilities, specifically:
+/// This layer implements the LoRA capabilities for `Linear` layers, specifically:
 ///
-/// - converting `Linear` or `QuantizedLinear` layers to ``LoRALinear``
-/// - converting ``LoRALinear`` back to `Linear` or `QuantizedLinear`
+/// - converting `Linear` or `QuantizedLinear` layers to ``LoRALinear`` / ``QLoRALinear``
+/// - converting ``LoRALinear`` back to `Linear` or `QuantizedLinear` (``LoRAConvertToLinear``)
 /// - implementing the LoRA evaluation
+///
+/// ``QLoRALinear`` is the equivalent class for `QuantizedLinear`.
 ///
 /// This is not typically used directly -- ``LoRATrain/convert(model:layers:)`` is used to
 /// add the adapter layers to a given model.
@@ -88,9 +54,9 @@ public protocol LoRAConvertToLinear : Linear {
 /// ### See Also
 /// - [LoRA: Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685)
 /// - [QLoRA: Efficient Finetuning of Quantized LLMs](https://arxiv.org/abs/2305.14314)
-/// - ``LoRALayer``
+/// - ``QLoRALinear``
 /// - ``LoRATrain/convert(model:layers:)``
-/// - ``LoRATrain/fuse(model:deQuantize:)``
+/// - ``LoRATrain/fuse(model:layers:deQuantize:)``
 public class LoRALinear: Linear, LoRAConvertToLinear {
 
     let scale: Float
@@ -114,12 +80,14 @@ public class LoRALinear: Linear, LoRAConvertToLinear {
         super.init(weight: linear.weight, bias: linear.bias)
     }
 
-    /// Convert a `Linear` or `QuantizedLinear` layer into ``LoRALinear``.
+    /// Convert a `Linear` or `QuantizedLinear` layer into a new `Linear` layer
+    /// that implements the `LoRA` adapter.
     ///
     /// This is typically called via ``LoRATrain/convert(model:layers:)``.
     ///
     /// ### See Also
     /// - ``LoRATrain/convert(model:layers:)``
+    /// - ``QLoRALinear/from(linear:rank:)``
     public static func from(linear: Linear, rank: Int = 8) -> Linear {
         if let linear = linear as? QuantizedLinear {
             return QLoRALinear.from(linear: linear, rank: rank)
@@ -128,12 +96,14 @@ public class LoRALinear: Linear, LoRAConvertToLinear {
         return LoRALinear(inputDimensions, outputDimensions, rank: rank, linear: linear)
     }
 
-    /// Convert a ``LoRALinear`` back into a fused `Linear` or `QuantizedLinear` layer.
+    /// Convert back into a fused `Linear` layer.
     ///
-    /// This is typically called via ``LoRATrain/fuse(model:deQuantize:)``.
+    /// This is typically called via ``LoRATrain/fuse(model:layers:deQuantize:)``.
     ///
     /// ### See Also
-    /// - ``LoRATrain/fuse(model:deQuantize:)``
+    /// - ``LoRATrain/fuse(model:layers:deQuantize:)``
+    /// - ``LoRAConvertToLinear``
+    /// - ``QLoRALinear/toLinear(deQuantize:)``
     public func toLinear(deQuantize: Bool = false) -> Linear {
         let dtype = weight.dtype
         let loraB = (scale * loraB.T).asType(dtype)
@@ -148,6 +118,9 @@ public class LoRALinear: Linear, LoRAConvertToLinear {
     }
 }
 
+/// Implementation of LoRA `QuantizedLinear` replacement layer.
+///
+/// See ``LoRALinear`` (equivalent class for `Linear` layers) for more information.
 public class QLoRALinear: QuantizedLinear, LoRAConvertToLinear {
 
     let scale: Float
@@ -174,24 +147,26 @@ public class QLoRALinear: QuantizedLinear, LoRAConvertToLinear {
         super.init(weight: linear.weight, bias: linear.bias)
     }
 
-    /// Convert a `Linear` or `QuantizedLinear` layer into ``LoRALinear``.
+    /// Convert a `QuantizedLinear` layer into a new `Linear` layer
+    /// that implements the `LoRA` adapter.
     ///
     /// This is typically called via ``LoRATrain/convert(model:layers:)``.
     ///
     /// ### See Also
     /// - ``LoRATrain/convert(model:layers:)``
+    /// - ``LoRALinear/from(linear:rank:)``
     public static func from(linear: QuantizedLinear, rank: Int = 8) -> Linear {
         var (outputDimensions, inputDimensions) = linear.shape
         inputDimensions = inputDimensions * 32 / linear.bits
         return QLoRALinear(inputDimensions, outputDimensions, rank: rank, linear: linear)
     }
 
-    /// Convert a ``LoRALinear`` back into a fused `Linear` or `QuantizedLinear` layer.
+    /// Convert back into a fused `QuantizedLinear` layer.
     ///
-    /// This is typically called via ``LoRATrain/fuse(model:deQuantize:)``.
+    /// This is typically called via ``LoRATrain/fuse(model:layers:deQuantize:)``.
     ///
     /// ### See Also
-    /// - ``LoRATrain/fuse(model:deQuantize:)``
+    /// - ``LoRATrain/fuse(model:layers:deQuantize:)``
     public func toLinear(deQuantize: Bool = false) -> Linear {
         // convert back into full weights
         let weight = dequantized(
@@ -211,8 +186,7 @@ public class QLoRALinear: QuantizedLinear, LoRAConvertToLinear {
     }
 }
 
-
-/// Equivalent to `lora.py/iterate_batches()`
+/// Equivalent to `lora.py/iterate_batches()`.  Used internally by ``LoRATrain``.
 struct LoRABatchIterator: Sequence, IteratorProtocol {
 
     let dataset: [String]
@@ -274,6 +248,44 @@ struct LoRABatchIterator: Sequence, IteratorProtocol {
 
 }
 
+/// Collection of functions for adding LoRA adapters to an LLM model, training, fusing and saving/loading weights.
+///
+/// The typical flow for training is:
+///
+/// ```swift
+/// // load the base model and tokenizer
+/// let (model, tokenizer) = try await LLM.load(configuration: ModelConfiguration.mistral7B4bit)
+///
+/// // add LoRALinear adapter layers
+/// LoRATrain.convert(model: model, layers: Array(model.loraLinearLayers().suffix(4)))
+///
+/// // optionally load LoRA weights
+/// try LoRATrain.loadLoRAWeights(model: model, url: ...)
+///
+/// // load the train/validation data
+/// let train = try loadLoRAData(directory: data, name: "train")
+/// let valid = try loadLoRAData(directory: data, name: "valid")
+///
+/// // train
+/// let optimizer = Adam(learningRate: 1e-5)
+/// try await LoRATrain.train(
+///     model: model, train: train, validate: valid, optimizer: optimizer, tokenizer: tokenizer,
+///     parameters: LoRATrain.Parameters()
+/// ) { progress in
+///     print(progress)
+///     return .more
+/// }
+/// ```
+///
+/// At this point the model will be trained and you could do one of the following:
+///
+/// - ``saveLoRAWeights(model:url:)`` -- write the LoRA weights to a file
+/// - ``fuse(model:layers:deQuantize:)`` -- fuse the LoRA weights and convert back into the original model
+///     architecture.  These weights can be saved and reloaded with normal model handling code.
+/// - ``evaluate(model:dataset:loss:tokenizer:batchSize:batchCount:)``-- compute the test loss
+///     againts a test dataset
+/// - use the in memory model as a normal `LLMModel` and evaluate a prompt
+/// 
 public enum LoRATrain {
 
     public typealias LoraLossFunction = (Module, MLXArray, MLXArray, MLXArray) -> (
@@ -308,7 +320,7 @@ public enum LoRATrain {
     }
 
     /// Freeze the model layers and replace the indicated modules (Linear) that should be
-    /// converted to ``LoRALayer`` and remain trainable.
+    /// converted to ``LoRALinear`` and remain trainable.
     ///
     /// Once a model has had the LoRA adapters applied, adapter weights can be loaded
     /// (if available):
@@ -321,20 +333,29 @@ public enum LoRATrain {
     ///
     /// - training with ``train(model:train:validate:optimizer:loss:tokenizer:parameters:progress:)``
     /// - loss evaluation with ``evaluate(model:dataset:loss:tokenizer:batchSize:batchCount:)``
-    /// - fusing with ``fuse(model:deQuantize:)``
+    /// - fusing with ``fuse(model:layers:deQuantize:)``
     /// - text generation with ``generate(promptTokens:parameters:model:tokenizer:didGenerate:)``
     ///     - note that this is just using normal model text generation
     ///
     /// - Parameters:
     ///   - model: model to convert
     ///   - layers: number of suffix layers to convert
-    public static func convert(model: LoRAModel, layers: Int) {
+    public static func convert(model: Module, layers: LoRALinearLayers) {
         model.freeze()
 
-        for layer in model.loraLayers().suffix(layers) {
+        for (layer, keys) in layers {
             var update = ModuleChildren()
-            for (key, linear) in layer.loraLinearModules() {
-                update[key] = .value(LoRALinear.from(linear: linear))
+            let children = layer.children()
+            for key in keys {
+                if let item = children[key], case .value(let child) = item {
+                    if let linear = child as? Linear {
+                        update[key] = .value(LoRALinear.from(linear: linear))
+                    } else {
+                        print("\(key) on \(layer) is not Linear")
+                    }
+                } else {
+                    print("failed to find key \(key) on \(layer)")
+                }
             }
             layer.update(modules: update)
         }
@@ -348,12 +369,15 @@ public enum LoRATrain {
     /// - Parameters:
     ///   - model: model to convert
     ///   - deQuantize: if `true` will convert `QuantizedLinear` back into `Linear`
-    public static func fuse(model: LoRAModel, deQuantize: Bool = false) {
-        for layer in model.loraLayers() {
+    public static func fuse(model: Module, layers: LoRALinearLayers, deQuantize: Bool = false) {
+        for (layer, keys) in layers {
             var update = ModuleChildren()
-            for (key, linear) in layer.loraLinearModules() {
-                if let lora = linear as? LoRAConvertToLinear {
-                    update[key] = .value(lora.toLinear(deQuantize: deQuantize))
+            let children = layer.children()
+            for key in keys {
+                if let item = children[key], case .value(let child) = item {
+                    if let lora = child as? LoRAConvertToLinear {
+                        update[key] = .value(lora.toLinear(deQuantize: deQuantize))
+                    }
                 }
             }
             if !update.isEmpty {
@@ -417,15 +441,23 @@ public enum LoRATrain {
         return (sum(MLXArray(allLosses), stream: .cpu) / tokenCount).item(Float.self)
     }
 
-    /// Given a ``LoRAModel`` with LoRA adaptors applied, load adapter weights from a `.safetensors` file.
-    public static func loadLoRAWeights(model: LoRAModel, url: URL) throws {
+    /// Given a model with LoRA adaptors applied, load adapter weights from a `.safetensors` file.
+    ///
+    /// ### See Also
+    /// - ``convert(model:layers:)``
+    /// - ``saveLoRAWeights(model:url:)``
+    public static func loadLoRAWeights(model: Module, url: URL) throws {
         let weights = try ModuleParameters.unflattened(loadArrays(url: url))
         try model.update(parameters: weights, verify: .noUnusedKeys)
         eval(model)
     }
 
-    /// Given a ``LoRAModel`` with LoRA adaptors applied, write adapter weights to a `.safetensors` file.
-    public static func saveLoRAWeights(model: LoRAModel, url: URL) throws {
+    /// Given a model with LoRA adaptors applied, write adapter weights to a `.safetensors` file.
+    ///
+    /// ### See Also
+    /// - ``convert(model:layers:)``
+    /// - ``loadLoRAWeights(model:url:)``
+    public static func saveLoRAWeights(model: Module, url: URL) throws {
         let parameters = Dictionary(
             uniqueKeysWithValues: model.trainableParameters().flattened())
         try save(arrays: parameters, url: url)
@@ -472,7 +504,7 @@ public enum LoRATrain {
     ///   - parameters: training parameters
     ///   - progress: progress callback
     public static func train(
-        model: LoRAModel, train: [String], validate: [String], optimizer: Optimizer,
+        model: Module, train: [String], validate: [String], optimizer: Optimizer,
         loss: @escaping LoraLossFunction = loss, tokenizer: Tokenizer, parameters: Parameters,
         progress: (Progress) async -> ProgressDisposition
     ) async throws {

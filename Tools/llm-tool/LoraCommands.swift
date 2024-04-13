@@ -34,20 +34,26 @@ struct LoRAModelArguments: ParsableArguments {
     /// Load the model and apply the LoRA adapters.
     ///
     /// This does not load the adapter weights as they may not exist yet.
-    func load() async throws -> (LoRAModel, Tokenizer, ModelConfiguration) {
+    func load() async throws -> (LLMModel, Tokenizer, ModelConfiguration) {
         let (model, tokenizer, modelConfiguration) = try await args.load()
 
-        guard let model = model as? LoRAModel else {
-            fatalError(
-                "Model \(type(of: model)) (\(args.model)) must implement the LoRAModel protocol")
-        }
-
-        LoRATrain.convert(model: model, layers: loraLayers)
+        // convert some of the Linear layers to LoRALinear
+        LoRATrain.convert(model: model, layers: loraLayers(model: model))
 
         return (model, tokenizer, modelConfiguration)
     }
+    
+    func loraLayers(model: Module) -> LoRALinearLayers {
+        guard let layerProvider = model as? LoRAModel else {
+            // the layerProvider will indicate which Linear layers need to be replaced
+            fatalError(
+                "Model \(type(of: model)) (\(args.model)) must implement the LoRALayerProvider protocol")
+        }
+        
+        return Array(layerProvider.loraLinearLayers().suffix(loraLayers))
+    }
 
-    func describe(model: LoRAModel) {
+    func describe(model: Module) {
         let totalParameterCount = model.parameters()
             .flattenedValues().map { $0.size }.reduce(0, +)
         let trainableParameterCount = model.trainableParameters()
@@ -171,7 +177,7 @@ struct LoRAFuseCommand: AsyncParsableCommand {
         try LoRATrain.loadLoRAWeights(model: model, url: args.adapter)
 
         // fuse them back into Linear/QuantizedLinear
-        LoRATrain.fuse(model: model, deQuantize: deQuantize)
+        LoRATrain.fuse(model: model, layers: args.loraLayers(model: model), deQuantize: deQuantize)
 
         // write them back out
         let weights = Dictionary(uniqueKeysWithValues: model.parameters().flattened())

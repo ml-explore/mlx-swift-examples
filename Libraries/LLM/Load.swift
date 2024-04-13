@@ -15,7 +15,6 @@ struct LLMError: Error {
 /// Load and return the model and tokenizer
 public func load(
     hub: HubApi = HubApi(), configuration: ModelConfiguration,
-    overrideWeights: URL? = nil,
     progressHandler: @escaping (Progress) -> Void = { _ in }
 ) async throws -> (LLMModel, Tokenizer) {
     let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
@@ -43,17 +42,13 @@ public func load(
 
     // load the weights
     var weights = [String: MLXArray]()
-    if let overrideWeights {
-        weights = try loadArrays(url: overrideWeights)
-    } else {
-        let enumerator = FileManager.default.enumerator(
-            at: modelDirectory, includingPropertiesForKeys: nil)!
-        for case let url as URL in enumerator {
-            if url.pathExtension == "safetensors" {
-                let w = try loadArrays(url: url)
-                for (key, value) in w {
-                    weights[key] = value
-                }
+    let enumerator = FileManager.default.enumerator(
+        at: modelDirectory, includingPropertiesForKeys: nil)!
+    for case let url as URL in enumerator {
+        if url.pathExtension == "safetensors" {
+            let w = try loadArrays(url: url)
+            for (key, value) in w {
+                weights[key] = value
             }
         }
     }

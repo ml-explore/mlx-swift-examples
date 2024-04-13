@@ -21,9 +21,6 @@ struct ModelArguments: ParsableArguments {
     @Option(name: .long, help: "Name of the huggingface model or absolute path to directory")
     var model: String = "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
 
-    @Option(name: .long, help: "Optional URL of .safetensors weights file")
-    var weights: URL?
-
     func load() async throws -> (LLMModel, Tokenizer, ModelConfiguration) {
         let modelConfiguration: ModelConfiguration
 
@@ -34,8 +31,7 @@ struct ModelArguments: ParsableArguments {
             // identifier
             modelConfiguration = ModelConfiguration.configuration(id: model)
         }
-        let (model, tokenizer) = try await LLM.load(
-            configuration: modelConfiguration, overrideWeights: weights)
+        let (model, tokenizer) = try await LLM.load(configuration: modelConfiguration)
         return (model, tokenizer, modelConfiguration)
     }
 }
