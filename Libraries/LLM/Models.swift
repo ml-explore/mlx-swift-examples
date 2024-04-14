@@ -1,6 +1,7 @@
 // Copyright © 2024 Apple Inc.
 
 import Foundation
+import Hub
 
 /// Registry of models and and any overrides that go with them, e.g. prompt augmentation.
 /// If asked for an unknown configuration this will use the model/tokenizer as-is.
@@ -15,7 +16,7 @@ public struct ModelConfiguration {
         case directory(URL)
     }
 
-    public let id: Identifier
+    public var id: Identifier
 
     public var name: String {
         switch id {
@@ -59,6 +60,18 @@ public struct ModelConfiguration {
 
     public func prepare(prompt: String) -> String {
         preparePrompt?(prompt) ?? prompt
+    }
+    
+    public func modelDirectory(hub: HubApi = HubApi()) -> URL {
+        switch id {
+        case .id(let id):
+            // download the model weights and config
+            let repo = Hub.Repo(id: id)
+            return hub.localRepoLocation(repo)
+
+        case .directory(let directory):
+            return directory
+        }
     }
 
     public static var registry = [String: ModelConfiguration]()

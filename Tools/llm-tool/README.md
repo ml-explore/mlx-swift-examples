@@ -117,8 +117,8 @@ Here is an example run using adapters on the last 4 layers of the model:
 ```
 ./mlx-run llm-tool lora train \
     --model mlx-community/Mistral-7B-v0.1-hf-4bit-mlx \
-    --data /Users/dkoski/Developer/mlx-examples/lora/data \
-    --adapter /tmp/lora-layers-4.safetensors.safetensors \
+    --data Data/lora \
+    --adapter /tmp/lora-layers-4.safetensors \
     --batch-size 1 --lora-layers 4 \
     --cache-size 1024
 ```
@@ -164,7 +164,7 @@ You can test the LoRA adapated model against the `test` dataset using this comma
 ```
 ./mlx-run llm-tool lora test \ 
     --model mlx-community/Mistral-7B-v0.1-hf-4bit-mlx \
-    --data /Users/dkoski/Developer/mlx-examples/lora/data \
+    --data Data/lora \
     --adapter /tmp/lora-layers-4.safetensors \
     --batch-size 1 --lora-layers 4 \
     --cache-size 1024
@@ -225,17 +225,16 @@ have the adapter weights merged in:
 ./mlx-run llm-tool lora fuse \
     --model mlx-community/Mistral-7B-v0.1-hf-4bit-mlx \
     --adapter /tmp/lora-layers-4.safetensors \
-    --output /tmp/mistral-lora.safetensors
+    --output mlx-community/mistral-lora
 ```
 
 outputs:
 
 ```
 Total parameters: 1,244M
-Trainable parameters: 1.704M
-Fused weights written to /tmp/mistral-lora.safetensors
+Trainable parameters: 0.426M
 Use with:
-    llm-tool eval --model mlx-community/Mistral-7B-v0.1-hf-4bit-mlx --weights /tmp/mistral-lora.safetensors
+    llm-tool eval --model mlx-community/mistral-lora
 ```
 
 As noted in the output these new weights can be used with the original model architecture.

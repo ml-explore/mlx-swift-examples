@@ -78,6 +78,18 @@ public class LoRALinear: Linear, LoRAConvertToLinear {
         self._loraB.wrappedValue = MLXArray.zeros([rank, outputDimensions])
         
         super.init(weight: linear.weight, bias: linear.bias)
+        
+        freeze()
+    }
+    
+    /// Freeze all parameters except the lora parameters
+    public override func freeze(recursive: Bool = true, keys: [String]? = nil, strict: Bool = false) throws {
+        // realize the keys and omit the lora parameters
+        let keys = (keys ?? self.filterMap(filter: Self.filterLocalParameters).flattened().map { $0.0 })
+            .filter {
+                $0 != "lora_a" && $0 != "lora_b"
+            }
+        try super.freeze(recursive: recursive, keys: keys, strict: strict)
     }
 
     /// Convert a `Linear` or `QuantizedLinear` layer into a new `Linear` layer
@@ -125,14 +137,12 @@ public class QLoRALinear: QuantizedLinear, LoRAConvertToLinear {
 
     let scale: Float
 
-    @ModuleInfo var linear: QuantizedLinear
-
     @ParameterInfo(key: "lora_a") var loraA: MLXArray
     @ParameterInfo(key: "lora_b") var loraB: MLXArray
 
     required public init(
         _ inputDimensions: Int, _ outputDimensions: Int, rank: Int = 8, bias: Bool = false,
-        scale: Float = 20.0, linear: Linear
+        scale: Float = 20.0, linear: QuantizedLinear
     ) {
 
         // Scale for low-rank update
@@ -144,7 +154,20 @@ public class QLoRALinear: QuantizedLinear, LoRAConvertToLinear {
             low: -loraScale, high: loraScale, [inputDimensions, rank])
         self._loraB.wrappedValue = MLXArray.zeros([rank, outputDimensions])
 
-        super.init(weight: linear.weight, bias: linear.bias)
+        super.init(weight: linear.weight, bias: linear.bias, scales: linear.scales, biases: linear.biases, groupSize: linear.groupSize, bits: linear.bits)
+        
+        // start frozen except for the lora keys
+        freeze()
+    }
+
+    /// Freeze all parameters except the lora parameters
+    public override func freeze(recursive: Bool = true, keys: [String]? = nil, strict: Bool = false) throws {
+        // realize the keys and omit the lora parameters
+        let keys = (keys ?? self.filterMap(filter: Self.filterLocalParameters).flattened().map { $0.0 })
+            .filter {
+                $0 != "lora_a" && $0 != "lora_b"
+            }
+        try super.freeze(recursive: recursive, keys: keys, strict: strict)
     }
 
     /// Convert a `QuantizedLinear` layer into a new `Linear` layer
