@@ -2,13 +2,13 @@
 
 import ArgumentParser
 import Foundation
+import Hub
 import LLM
 import MLX
 import MLXNN
 import MLXOptimizers
 import MLXRandom
 import Tokenizers
-import Hub
 
 struct LoRACommand: AsyncParsableCommand {
 
@@ -43,14 +43,15 @@ struct LoRAModelArguments: ParsableArguments {
 
         return (model, tokenizer, modelConfiguration)
     }
-    
+
     func loraLayers(model: Module) -> LoRALinearLayers {
         guard let layerProvider = model as? LoRAModel else {
             // the layerProvider will indicate which Linear layers need to be replaced
             fatalError(
-                "Model \(type(of: model)) (\(args.model)) must implement the LoRALayerProvider protocol")
+                "Model \(type(of: model)) (\(args.model)) must implement the LoRALayerProvider protocol"
+            )
         }
-        
+
         return Array(layerProvider.loraLinearLayers().suffix(loraLayers))
     }
 
@@ -178,7 +179,7 @@ struct LoRAFuseCommand: AsyncParsableCommand {
             let repo = HubApi.Repo(id: output)
             outputURL = HubApi().localRepoLocation(repo)
         }
-        
+
         let (model, _, modelConfiguration) = try await args.load()
 
         // load the prepared weights
@@ -186,24 +187,26 @@ struct LoRAFuseCommand: AsyncParsableCommand {
 
         // fuse them back into Linear/QuantizedLinear
         LoRATrain.fuse(model: model, layers: args.loraLayers(model: model), deQuantize: deQuantize)
-        
+
         // make the new directory and copy files from source model
         try FileManager.default.createDirectory(at: outputURL, withIntermediateDirectories: true)
         let inputURL = modelConfiguration.modelDirectory()
-        let enumerator = FileManager.default.enumerator(at: inputURL, includingPropertiesForKeys: nil)!
+        let enumerator = FileManager.default.enumerator(
+            at: inputURL, includingPropertiesForKeys: nil)!
         for case let url as URL in enumerator {
             // copy everything except the model weights -- we will write out the fused one below
             if url.pathExtension == "safetensors" {
                 continue
             }
-            
-            try FileManager.default.copyItem(at: url, to: outputURL.appending(component: url.lastPathComponent))
+
+            try FileManager.default.copyItem(
+                at: url, to: outputURL.appending(component: url.lastPathComponent))
         }
 
         // write them back out
         let weights = Dictionary(uniqueKeysWithValues: model.parameters().flattened())
         try save(arrays: weights, url: outputURL.appending(component: "weights.safetensors"))
-        
+
         print("Fused weights written to \(outputURL.path())")
         print("Use with:\n\tllm-tool eval --model \(output)")
     }

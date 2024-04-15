@@ -61,7 +61,7 @@ public struct ModelConfiguration {
     public func prepare(prompt: String) -> String {
         preparePrompt?(prompt) ?? prompt
     }
-    
+
     public func modelDirectory(hub: HubApi = HubApi()) -> URL {
         switch id {
         case .id(let id):

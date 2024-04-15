@@ -76,16 +76,19 @@ public class LoRALinear: Linear, LoRAConvertToLinear {
         self._loraA.wrappedValue = MLXRandom.uniform(
             low: -loraScale, high: loraScale, [inputDimensions, rank])
         self._loraB.wrappedValue = MLXArray.zeros([rank, outputDimensions])
-        
+
         super.init(weight: linear.weight, bias: linear.bias)
-        
+
         freeze()
     }
-    
+
     /// Freeze all parameters except the lora parameters
-    public override func freeze(recursive: Bool = true, keys: [String]? = nil, strict: Bool = false) throws {
+    public override func freeze(recursive: Bool = true, keys: [String]? = nil, strict: Bool = false)
+        throws
+    {
         // realize the keys and omit the lora parameters
-        let keys = (keys ?? self.filterMap(filter: Self.filterLocalParameters).flattened().map { $0.0 })
+        let keys =
+            (keys ?? self.filterMap(filter: Self.filterLocalParameters).flattened().map { $0.0 })
             .filter {
                 $0 != "lora_a" && $0 != "lora_b"
             }
@@ -154,16 +157,21 @@ public class QLoRALinear: QuantizedLinear, LoRAConvertToLinear {
             low: -loraScale, high: loraScale, [inputDimensions, rank])
         self._loraB.wrappedValue = MLXArray.zeros([rank, outputDimensions])
 
-        super.init(weight: linear.weight, bias: linear.bias, scales: linear.scales, biases: linear.biases, groupSize: linear.groupSize, bits: linear.bits)
-        
+        super.init(
+            weight: linear.weight, bias: linear.bias, scales: linear.scales, biases: linear.biases,
+            groupSize: linear.groupSize, bits: linear.bits)
+
         // start frozen except for the lora keys
         freeze()
     }
 
     /// Freeze all parameters except the lora parameters
-    public override func freeze(recursive: Bool = true, keys: [String]? = nil, strict: Bool = false) throws {
+    public override func freeze(recursive: Bool = true, keys: [String]? = nil, strict: Bool = false)
+        throws
+    {
         // realize the keys and omit the lora parameters
-        let keys = (keys ?? self.filterMap(filter: Self.filterLocalParameters).flattened().map { $0.0 })
+        let keys =
+            (keys ?? self.filterMap(filter: Self.filterLocalParameters).flattened().map { $0.0 })
             .filter {
                 $0 != "lora_a" && $0 != "lora_b"
             }
@@ -197,9 +205,10 @@ public class QLoRALinear: QuantizedLinear, LoRAConvertToLinear {
 
         let loraB = (scale * loraB.T).asType(.float16)
         let loraA = loraA.T.asType(.float16)
-        
+
         // convert back into quantized
-        return QuantizedLinear(weight: weight + matmul(loraB, loraA), bias: bias, groupSize: groupSize, bits: bits)
+        return QuantizedLinear(
+            weight: weight + matmul(loraB, loraA), bias: bias, groupSize: groupSize, bits: bits)
     }
 
     public override func callAsFunction(_ x: MLXArray) -> MLXArray {
@@ -308,7 +317,7 @@ struct LoRABatchIterator: Sequence, IteratorProtocol {
 /// - ``evaluate(model:dataset:loss:tokenizer:batchSize:batchCount:)``-- compute the test loss
 ///     againts a test dataset
 /// - use the in memory model as a normal `LLMModel` and evaluate a prompt
-/// 
+///
 public enum LoRATrain {
 
     public typealias LoraLossFunction = (Module, MLXArray, MLXArray, MLXArray) -> (
@@ -338,7 +347,11 @@ public enum LoRATrain {
         /// save path for the adapter `.safetensors`
         public var adapterURL: URL?
 
-        public init(batchSize: Int = 4, iterations: Int = 1000, stepsPerReport: Int = 10, stepsPerEval: Int = 100, validationBatches: Int = 10, saveEvery: Int = 100, adapterURL: URL? = nil) {
+        public init(
+            batchSize: Int = 4, iterations: Int = 1000, stepsPerReport: Int = 10,
+            stepsPerEval: Int = 100, validationBatches: Int = 10, saveEvery: Int = 100,
+            adapterURL: URL? = nil
+        ) {
             self.batchSize = batchSize
             self.iterations = iterations
             self.stepsPerReport = stepsPerReport

@@ -19,9 +19,9 @@ public func load(
 ) async throws -> (LLMModel, Tokenizer) {
     do {
         let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
-        
+
         let modelDirectory: URL
-        
+
         switch configuration.id {
         case .id(let id):
             // download the model weights and config
@@ -33,14 +33,14 @@ public func load(
         case .directory(let directory):
             modelDirectory = directory
         }
-        
+
         // create the model (no weights loaded)
         let configurationURL = modelDirectory.appending(component: "config.json")
         let baseConfig = try JSONDecoder().decode(
             BaseConfiguration.self, from: Data(contentsOf: configurationURL))
-        
+
         let model = try baseConfig.modelType.createModel(configuration: configurationURL)
-        
+
         // load the weights
         var weights = [String: MLXArray]()
         let enumerator = FileManager.default.enumerator(
@@ -53,26 +53,27 @@ public func load(
                 }
             }
         }
-        
+
         // quantize if needed
         if let quantization = baseConfig.quantization {
             quantizeIfNeeded(model: model, weights: weights, quantization: quantization)
         }
-        
+
         // apply the loaded weights
         let parameters = ModuleParameters.unflattened(weights)
         try model.update(parameters: parameters, verify: [.all])
-        
+
         eval(model)
-        
+
         return (model, tokenizer)
-        
+
     } catch Hub.HubClientError.authorizationRequired {
         // an authorizationRequired means (typically) that the named repo doesn't exist on
         // on the server so retry with local only configuration
         var newConfiguration = configuration
         newConfiguration.id = .directory(configuration.modelDirectory(hub: hub))
-        return try await load(hub: hub, configuration: newConfiguration, progressHandler: progressHandler)
+        return try await load(
+            hub: hub, configuration: newConfiguration, progressHandler: progressHandler)
     }
 }
 
