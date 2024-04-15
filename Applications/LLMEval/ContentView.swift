@@ -187,7 +187,7 @@ class LLMEvaluator {
                 [modelConfiguration] progress in
                 DispatchQueue.main.sync {
                     self.modelInfo =
-                        "Downloading \(modelConfiguration.id): \(Int(progress.fractionCompleted * 100))%"
+                        "Downloading \(modelConfiguration.name): \(Int(progress.fractionCompleted * 100))%"
                 }
             }
             self.modelInfo =

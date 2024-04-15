@@ -338,7 +338,14 @@ public enum LoRATrain {
         /// save path for the adapter `.safetensors`
         public var adapterURL: URL?
 
-        public init() {
+        public init(batchSize: Int = 4, iterations: Int = 1000, stepsPerReport: Int = 10, stepsPerEval: Int = 100, validationBatches: Int = 10, saveEvery: Int = 100, adapterURL: URL? = nil) {
+            self.batchSize = batchSize
+            self.iterations = iterations
+            self.stepsPerReport = stepsPerReport
+            self.stepsPerEval = stepsPerEval
+            self.validationBatches = validationBatches
+            self.saveEvery = saveEvery
+            self.adapterURL = adapterURL
         }
     }
 
