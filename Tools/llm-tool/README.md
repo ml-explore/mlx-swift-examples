@@ -90,10 +90,8 @@ SUBCOMMANDS:
 
 ### Training
 
-The first step will be training the LoRA adapter.  For this example we will 
-assume https://github.com/ml-explore/mlx-examples has been checked out into 
-your home directory -- please adjust as necessary.  This will use `lora/data`
-from that repository as a small example for the training.  You can use your
+The first step will be training the LoRA adapter.  Example training data
+is available in $SRCROOT/Data/lora.  You can use your
 own data in either `jsonl` or `txt` format with one entry per line.
 
 We need to specify a number of parameters:

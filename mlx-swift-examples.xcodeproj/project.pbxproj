@@ -192,6 +192,10 @@
 		525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Starcoder2.swift; sourceTree = "<group>"; };
 		52A776172B94B5EE00AA6E80 /* Qwen2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Qwen2.swift; sourceTree = "<group>"; };
 		819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceStat.swift; sourceTree = "<group>"; };
+		C3056BA12BCD973400A31D04 /* test.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = test.jsonl; sourceTree = "<group>"; };
+		C3056BA22BCD973400A31D04 /* train.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = train.jsonl; sourceTree = "<group>"; };
+		C3056BA32BCD973400A31D04 /* valid.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = valid.jsonl; sourceTree = "<group>"; };
+		C3056BA42BCD973400A31D04 /* wikisql.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = wikisql.py; sourceTree = "<group>"; };
 		C325DE3F2B648CDB00628871 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C3288D732B6D9313009FF608 /* LinearModelTraining */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LinearModelTraining; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3288D752B6D9313009FF608 /* LinearModelTraining.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinearModelTraining.swift; sourceTree = "<group>"; };
@@ -338,6 +342,25 @@
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
+		C3056BA52BCD973400A31D04 /* lora */ = {
+			isa = PBXGroup;
+			children = (
+				C3056BA12BCD973400A31D04 /* test.jsonl */,
+				C3056BA22BCD973400A31D04 /* train.jsonl */,
+				C3056BA32BCD973400A31D04 /* valid.jsonl */,
+				C3056BA42BCD973400A31D04 /* wikisql.py */,
+			);
+			path = lora;
+			sourceTree = "<group>";
+		};
+		C3056BA62BCD973400A31D04 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				C3056BA52BCD973400A31D04 /* lora */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
 		C3288D742B6D9313009FF608 /* LinearModelTraining */ = {
 			isa = PBXGroup;
 			children = (
@@ -407,6 +430,7 @@
 			children = (
 				C325DE3F2B648CDB00628871 /* README.md */,
 				F8D7023A2BB4E223003D7CF5 /* Package.swift */,
+				C3056BA62BCD973400A31D04 /* Data */,
 				C39273822B606A9200368D5D /* Libraries */,
 				C3A8B3AD2B9294E30002EFB8 /* Applications */,
 				C39273812B606A7400368D5D /* Tools */,
