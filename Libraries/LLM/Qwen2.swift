@@ -251,3 +251,11 @@ public struct Qwen2Configuration: Codable {
             [String: StringOrNumber].self, forKey: Qwen2Configuration.CodingKeys.ropeScaling)
     }
 }
+
+// MARK: - LoRA
+
+extension Qwen2Model: LoRAModel {
+    public func loraLinearLayers() -> LoRALinearLayers {
+        model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
+    }
+}

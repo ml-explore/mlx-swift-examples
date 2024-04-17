@@ -254,3 +254,11 @@ public struct GemmaConfiguration: Codable {
                 Bool.self, forKey: CodingKeys.ropeTraditional) ?? false
     }
 }
+
+// MARK: - LoRA
+
+extension GemmaModel: LoRAModel {
+    public func loraLinearLayers() -> LoRALinearLayers {
+        model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
+    }
+}
