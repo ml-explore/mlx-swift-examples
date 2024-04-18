@@ -31,7 +31,7 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, minHeight: 25)
 
-            VSplitView {
+            VStack {
                 ScrollView(.vertical) {
                     ScrollViewReader { sp in
                         Group {
