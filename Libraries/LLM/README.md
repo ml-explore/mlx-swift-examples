@@ -1,4 +1,4 @@
-#  Llama
+#  LLM
 
 This is a port of several models from:
 
@@ -6,7 +6,7 @@ This is a port of several models from:
 
 using the Hugging Face swift transformers package to provide tokenization:
 
-https://github.com/huggingface/swift-transformers
+- https://github.com/huggingface/swift-transformers
 
 The [Models.swift](Models.swift) provides minor overrides and customization --
 if you require overrides for the tokenizer or prompt customizations they can be
@@ -30,3 +30,12 @@ Currently supported model types are:
 See [Configuration.swift](Configuration.swift) for more info.
 
 See [llm-tool](../../Tools/llm-tool)
+
+# LoRA
+
+[Lora.swift](Lora.swift) contains an implementation of LoRA based on this example:
+
+- https://github.com/ml-explore/mlx-examples/tree/main/lora
+
+See [llm-tool/LoraCommands.swift](../../Tools/llm-tool/LoraCommands.swift) for an example of a driver and
+[llm-tool](../../Tools/llm-tool) for examples of how to run it.

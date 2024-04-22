@@ -254,3 +254,11 @@ public struct Starcoder2Configuration: Codable {
             ?? true
     }
 }
+
+// MARK: - LoRA
+
+extension Starcoder2Model: LoRAModel {
+    public func loraLinearLayers() -> LoRALinearLayers {
+        model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
+    }
+}

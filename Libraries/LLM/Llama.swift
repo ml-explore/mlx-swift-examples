@@ -253,3 +253,11 @@ public struct LlamaConfiguration: Codable {
 
     }
 }
+
+// MARK: - LoRA
+
+extension LlamaModel: LoRAModel {
+    public func loraLinearLayers() -> LoRALinearLayers {
+        model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
+    }
+}

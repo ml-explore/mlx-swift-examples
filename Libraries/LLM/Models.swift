@@ -1,6 +1,7 @@
 // Copyright © 2024 Apple Inc.
 
 import Foundation
+import Hub
 
 /// Registry of models and and any overrides that go with them, e.g. prompt augmentation.
 /// If asked for an unknown configuration this will use the model/tokenizer as-is.
@@ -9,7 +10,22 @@ import Foundation
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
 public struct ModelConfiguration {
-    public let id: String
+
+    public enum Identifier {
+        case id(String)
+        case directory(URL)
+    }
+
+    public var id: Identifier
+
+    public var name: String {
+        switch id {
+        case .id(let string):
+            string
+        case .directory(let url):
+            url.deletingLastPathComponent().lastPathComponent + "/" + url.lastPathComponent
+        }
+    }
 
     /// pull the tokenizer from an alternate id
     public let tokenizerId: String?
@@ -26,7 +42,17 @@ public struct ModelConfiguration {
         id: String, tokenizerId: String? = nil, overrideTokenizer: String? = nil,
         preparePrompt: ((String) -> String)? = nil
     ) {
-        self.id = id
+        self.id = .id(id)
+        self.tokenizerId = tokenizerId
+        self.overrideTokenizer = overrideTokenizer
+        self.preparePrompt = preparePrompt
+    }
+
+    public init(
+        directory: URL, tokenizerId: String? = nil, overrideTokenizer: String? = nil,
+        preparePrompt: ((String) -> String)? = nil
+    ) {
+        self.id = .directory(directory)
         self.tokenizerId = tokenizerId
         self.overrideTokenizer = overrideTokenizer
         self.preparePrompt = preparePrompt
@@ -36,13 +62,25 @@ public struct ModelConfiguration {
         preparePrompt?(prompt) ?? prompt
     }
 
+    public func modelDirectory(hub: HubApi = HubApi()) -> URL {
+        switch id {
+        case .id(let id):
+            // download the model weights and config
+            let repo = Hub.Repo(id: id)
+            return hub.localRepoLocation(repo)
+
+        case .directory(let directory):
+            return directory
+        }
+    }
+
     public static var registry = [String: ModelConfiguration]()
 
     public static func register(configurations: [ModelConfiguration]) {
         bootstrap()
 
         for c in configurations {
-            registry[c.id] = c
+            registry[c.name] = c
         }
     }
 

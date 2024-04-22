@@ -240,3 +240,11 @@ public struct PhiConfiguration: Codable {
 
     }
 }
+
+// MARK: - LoRA
+
+extension PhiModel: LoRAModel {
+    public func loraLinearLayers() -> LoRALinearLayers {
+        model.layers.map { ($0.selfAttention, ["q_proj", "v_proj"]) }
+    }
+}
