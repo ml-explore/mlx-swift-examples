@@ -51,12 +51,12 @@ private class Attention: Module {
         _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
     ) -> (MLXArray, (MLXArray, MLXArray)) {
         let (B, L) = (x.dim(0), x.dim(1))
-        
+
         let qkv = split(wqkv(x), parts: 3, axis: -1)
         var queries = qkv[0]
         var keys = qkv[1]
         var values = qkv[2]
-        
+
         // prepare the queries, keys and values for the attention computation
         queries = queries.reshaped(B, L, args.attentionHeads, -1).transposed(0, 2, 1, 3)
         keys = keys.reshaped(B, L, args.kvHeads, -1).transposed(0, 2, 1, 3)
