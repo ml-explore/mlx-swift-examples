@@ -30,6 +30,7 @@ public enum ModelType: String, Codable {
     case mistral
     case llama
     case phi
+    case phi3
     case gemma
     case qwen2
     case starcoder2
@@ -45,6 +46,10 @@ public enum ModelType: String, Codable {
             let configuration = try JSONDecoder().decode(
                 PhiConfiguration.self, from: Data(contentsOf: configuration))
             return PhiModel(configuration)
+        case .phi3:
+            let configuration = try JSONDecoder().decode(
+                Phi3Configuration.self, from: Data(contentsOf: configuration))
+            return Phi3Model(configuration)
         case .gemma:
             let configuration = try JSONDecoder().decode(
                 GemmaConfiguration.self, from: Data(contentsOf: configuration))
