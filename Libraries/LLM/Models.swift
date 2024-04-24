@@ -116,6 +116,13 @@ extension ModelConfiguration {
         "Instruct: \(prompt)\nOutput: "
     }
 
+    public static let phi34bit = ModelConfiguration(
+        id: "mlx-community/Phi-3-mini-4k-instruct-4bit-no-q-embed"
+    ) {
+        prompt in
+        "<s><|user|>\n\(prompt)<|end|>\n<|assistant|>\n"
+    }
+
     public static let gemma2bQuantized = ModelConfiguration(
         id: "mlx-community/quantized-gemma-2b-it",
         overrideTokenizer: "PreTrainedTokenizer"
@@ -146,6 +153,7 @@ extension ModelConfiguration {
                 mistral7B4bit,
                 codeLlama13b4bit,
                 phi4bit,
+                phi34bit,
                 gemma2bQuantized,
                 qwen205b4bit,
             ])

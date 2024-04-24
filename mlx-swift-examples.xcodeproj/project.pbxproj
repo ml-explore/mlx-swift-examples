@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		12305EAF2B9D864400C92FEE /* PredictionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12305EAE2B9D864400C92FEE /* PredictionView.swift */; };
+		1CD79C702BD80DE100B6C06F /* Phi3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD79C6F2BD80DE100B6C06F /* Phi3.swift */; };
 		525C1E9D2B9A011000B5C356 /* Starcoder2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */; };
 		52A776182B94B5EE00AA6E80 /* Qwen2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A776172B94B5EE00AA6E80 /* Qwen2.swift */; };
 		81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 81695B402BA373D300F260D8 /* MarkdownUI */; };
@@ -216,6 +217,7 @@
 
 /* Begin PBXFileReference section */
 		12305EAE2B9D864400C92FEE /* PredictionView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PredictionView.swift; sourceTree = "<group>"; };
+		1CD79C6F2BD80DE100B6C06F /* Phi3.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Phi3.swift; sourceTree = "<group>"; };
 		525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Starcoder2.swift; sourceTree = "<group>"; };
 		52A776172B94B5EE00AA6E80 /* Qwen2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Qwen2.swift; sourceTree = "<group>"; };
 		819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceStat.swift; sourceTree = "<group>"; };
@@ -478,6 +480,7 @@
 				C38935C72B869C7A0037B833 /* LLM.h */,
 				C38935E02B869F420037B833 /* LLMModel.swift */,
 				C38935DE2B869DD00037B833 /* Phi.swift */,
+				1CD79C6F2BD80DE100B6C06F /* Phi3.swift */,
 				C34E48F62B69832600FCB841 /* README.md */,
 				C34E48ED2B696E6500FCB841 /* Load.swift */,
 				C3E786AA2B8D1AEC0004D037 /* Evaluate.swift */,
@@ -999,6 +1002,7 @@
 				F24B083A2BAF1A65008C8D19 /* Cohere.swift in Sources */,
 				C38935E32B86C0FE0037B833 /* Gemma.swift in Sources */,
 				C38935CD2B869C870037B833 /* Configuration.swift in Sources */,
+				1CD79C702BD80DE100B6C06F /* Phi3.swift in Sources */,
 				525C1E9D2B9A011000B5C356 /* Starcoder2.swift in Sources */,
 				C36BEFBB2BBF02CC002D4AFE /* Lora+Data.swift in Sources */,
 				C36BEFB02BBCBAC2002D4AFE /* Lora.swift in Sources */,
@@ -2341,6 +2345,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_ASSET_PATHS = "\"Applications/LLMEval/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -2431,6 +2436,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"Applications/LLMEval/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
