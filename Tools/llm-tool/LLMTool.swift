@@ -53,10 +53,10 @@ struct GenerateArguments: ParsableArguments {
     var temperature: Float = 0.6
 
     @Option(name: .long, help: "The top p sampling")
-    var topP: Float = 0.9
+    var topP: Float = 1.0
 
     @Option(name: .long, help: "The penalty factor for repeating tokens")
-    var repetitionPenalty: Float = 1.0
+    var repetitionPenalty: Float?
 
     @Option(name: .long, help: "The number of tokens to consider for repetition penalty")
     var repetitionContextSize: Int = 20

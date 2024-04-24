@@ -153,6 +153,7 @@ extension ModelConfiguration {
                 mistral7B4bit,
                 codeLlama13b4bit,
                 phi4bit,
+                phi34bit,
                 gemma2bQuantized,
                 qwen205b4bit,
             ])
