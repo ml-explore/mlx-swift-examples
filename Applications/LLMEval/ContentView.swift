@@ -10,7 +10,7 @@ import Tokenizers
 
 struct ContentView: View {
 
-    @State var prompt = "compare python and swift"
+    @State var prompt = ""
     @State var llm = LLMEvaluator()
     @Environment(DeviceStat.self) private var deviceStat
 
@@ -24,6 +24,9 @@ struct ContentView: View {
     var body: some View {
         VStack(alignment: .leading) {
             VStack {
+                TextField("Enter text", text: $prompt)
+                                .frame(width: 300, height: 30)
+                                .padding()
                 HStack {
                     Text(llm.modelInfo)
                         .textFieldStyle(.roundedBorder)
