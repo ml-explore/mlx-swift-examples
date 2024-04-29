@@ -162,6 +162,7 @@ extension ModelConfiguration {
                 phi34bit,
                 gemma2bQuantized,
                 qwen205b4bit,
+                openelm270m4bit
             ])
             bootstrapState = .bootstrapped
 
