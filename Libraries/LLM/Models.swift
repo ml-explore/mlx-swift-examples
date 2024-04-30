@@ -137,6 +137,12 @@ extension ModelConfiguration {
         "<|im_start|>system\nYou are a helpful assistant<|im_end|>\n<|im_start|>user\n\(prompt)<|im_end|>\n<|im_start|>assistant"
     }
 
+    public static let openelm270m4bit = ModelConfiguration(
+        id: "mlx-community/OpenELM-270M-Instruct"
+    ) { prompt in
+        "\(prompt)"
+    }
+
     private enum BootstrapState {
         case idle
         case bootstrapping
@@ -156,6 +162,7 @@ extension ModelConfiguration {
                 phi34bit,
                 gemma2bQuantized,
                 qwen205b4bit,
+                openelm270m4bit,
             ])
             bootstrapState = .bootstrapped
 
