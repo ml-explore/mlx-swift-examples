@@ -40,7 +40,7 @@ private class MultiHeadCausalAttention: Module {
 
     let rope: RoPE
 
-    public init(_  args: OpenElmConfiguration, layerId: Int) {
+    public init(_ args: OpenElmConfiguration, layerId: Int) {
         self.args = args
         self.headDim = args.headDimensions
         let modelDim = args.modelDim
@@ -53,15 +53,18 @@ private class MultiHeadCausalAttention: Module {
         self._qkvProj.wrappedValue = Linear(modelDim, opSize, bias: false)
         self._outProj.wrappedValue = Linear(heads * headDim, modelDim, bias: false)
 
-        if  args.normalizeQkProjections {
+        if args.normalizeQkProjections {
             self._qNorm.wrappedValue = RMSNorm(dimensions: headDim, eps: args.rmsNormEps)
             self._kNorm.wrappedValue = RMSNorm(dimensions: headDim, eps: args.rmsNormEps)
         }
 
-        self.rope = RoPE(dimensions: headDim, traditional: args.ropeTraditional, base: args.ropeTheta)
+        self.rope = RoPE(
+            dimensions: headDim, traditional: args.ropeTraditional, base: args.ropeTheta)
     }
 
-    public func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil) -> (MLXArray, (MLXArray, MLXArray)) {
+    public func callAsFunction(
+        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
+    ) -> (MLXArray, (MLXArray, MLXArray)) {
         let (B, L) = (x.dim(0), x.dim(1))
         let qkv = qkvProj(x).reshaped(B, L, heads + (kvHeads * 2), headDim).transposed(0, 2, 1, 3)
 
@@ -88,7 +91,6 @@ private class MultiHeadCausalAttention: Module {
         let output = MLXFast.scaledDotProductAttention(
             queries: queries, keys: keys, values: values, scale: scale, mask: mask
         ).transposed(0, 2, 1, 3).reshaped(B, L, heads * headDim)
-        // ).transposed(0, 2, 1, 3).reshaped(B, L, -1)
 
         return (outProj(output), (keys, values))
     }
@@ -101,7 +103,8 @@ private class FeedForwardNetwork: Module, UnaryLayer {
     public init(_ args: OpenElmConfiguration, layedId: Int) {
         let dim = args.modelDim
         let ffnMultiplier = args.ffnMultipliers[layedId]
-        let intermediateDim = Int(makeDivisible(Float(ffnMultiplier) * Float(dim), divisor: args.ffnDimDivisor))
+        let intermediateDim = Int(
+            makeDivisible(Float(ffnMultiplier) * Float(dim), divisor: args.ffnDimDivisor))
 
         self.proj_1 = Linear(dim, 2 * intermediateDim)
         self.proj_2 = Linear(intermediateDim, dim)
@@ -131,7 +134,9 @@ private class TransformerDecoderLayer: Module {
         self._attnNorm.wrappedValue = RMSNorm(dimensions: dim, eps: args.rmsNormEps)
     }
 
-    public func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil) -> (MLXArray, (MLXArray, MLXArray)) {
+    public func callAsFunction(
+        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
+    ) -> (MLXArray, (MLXArray, MLXArray)) {
         var (r, cache) = attn(attnNorm(x), mask: mask, cache: cache)
         let h = x + r
         r = ffn(ffnNorm(h))
@@ -163,7 +168,9 @@ class OpenELMModelInner: Module, LLMModel {
         self.norm = RMSNorm(dimensions: args.modelDim, eps: args.rmsNormEps)
     }
 
-    public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]? = nil) -> (MLXArray, [(MLXArray, MLXArray)]) {
+    public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]? = nil) -> (
+        MLXArray, [(MLXArray, MLXArray)]
+    ) {
         var h = embedTokens(inputs)
         var mask: MLXArray? = nil
         if h.dim(1) > 1 {
@@ -193,10 +200,13 @@ public class OpenELMModel: Module, LLMModel {
         self.vocabularySize = args.vocabularySize
         self.transformer = OpenELMModelInner(args)
         self.shareInputOutputLayers = args.shareInputOutputLayers
-        self._lmHead.wrappedValue = Linear(args.numTransformerLayers, args.vocabularySize, bias: false)
+        self._lmHead.wrappedValue = Linear(
+            args.numTransformerLayers, args.vocabularySize, bias: false)
     }
 
-    public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]?) -> (MLXArray, [(MLXArray, MLXArray)]) {
+    public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]?) -> (
+        MLXArray, [(MLXArray, MLXArray)]
+    ) {
         var (out, cache) = transformer(inputs, cache: cache)
         if shareInputOutputLayers {
             out = matmul(out, transformer.embedTokens.weight.T)
@@ -243,8 +253,8 @@ public struct OpenElmConfiguration: Codable {
     public init(from decoder: Decoder) throws {
         // custom implementation to handle optional keys with required values
         let container: KeyedDecodingContainer<OpenElmConfiguration.CodingKeys> =
-        try decoder.container(
-            keyedBy: OpenElmConfiguration.CodingKeys.self)
+            try decoder.container(
+                keyedBy: OpenElmConfiguration.CodingKeys.self)
 
         self.modelType = try container.decode(
             String.self, forKey: OpenElmConfiguration.CodingKeys.modelType)
@@ -260,8 +270,11 @@ public struct OpenElmConfiguration: Codable {
         self.ffnDimDivisor = try container.decode(
             Int.self, forKey: OpenElmConfiguration.CodingKeys.ffnDimDivisor)
 
-        let qkvMultipliers = stride(from: qkvMultiplier[0], through: qkvMultiplier[1], by: (qkvMultiplier[1] - qkvMultiplier[0]) / Float(numTransformerLayers - 1))
-            .map { round($0 * 100) / 100 }
+        let qkvMultipliers = stride(
+            from: qkvMultiplier[0], through: qkvMultiplier[1],
+            by: (qkvMultiplier[1] - qkvMultiplier[0]) / Float(numTransformerLayers - 1)
+        )
+        .map { round($0 * 100) / 100 }
 
         let headMultipleOf = numGqaGroups
         let queryDims = qkvMultipliers.map { a in
@@ -276,15 +289,21 @@ public struct OpenElmConfiguration: Codable {
             qHeads / numGqaGroups
         }
 
-        self.ffnMultipliers = stride(from: ffnMultipliers[0], through: ffnMultipliers[1], by: (ffnMultipliers[1] - ffnMultipliers[0]) / Float(numTransformerLayers - 1))
-            .map { round($0 * 100) / 100 }
+        self.ffnMultipliers = stride(
+            from: ffnMultipliers[0], through: ffnMultipliers[1],
+            by: (ffnMultipliers[1] - ffnMultipliers[0]) / Float(numTransformerLayers - 1)
+        )
+        .map { round($0 * 100) / 100 }
 
-        self.ffnWithGlu = try container.decodeIfPresent(
-            Bool.self, forKey: OpenElmConfiguration.CodingKeys.ffnWithGlu) ?? true
-        self.normalizeQkProjections = try container.decodeIfPresent(
-            Bool.self, forKey: OpenElmConfiguration.CodingKeys.normalizeQkProjections) ?? true
-        self.shareInputOutputLayers = try container.decodeIfPresent(
-            Bool.self, forKey: OpenElmConfiguration.CodingKeys.shareInputOutputLayers) ?? true
+        self.ffnWithGlu =
+            try container.decodeIfPresent(
+                Bool.self, forKey: OpenElmConfiguration.CodingKeys.ffnWithGlu) ?? true
+        self.normalizeQkProjections =
+            try container.decodeIfPresent(
+                Bool.self, forKey: OpenElmConfiguration.CodingKeys.normalizeQkProjections) ?? true
+        self.shareInputOutputLayers =
+            try container.decodeIfPresent(
+                Bool.self, forKey: OpenElmConfiguration.CodingKeys.shareInputOutputLayers) ?? true
     }
 }
 
@@ -292,6 +311,6 @@ public struct OpenElmConfiguration: Codable {
 
 extension OpenELMModel: LoRAModel {
     public func loraLinearLayers() -> LoRALinearLayers {
-        transformer.layers.map { ($0.attn, ["qkv_proj"])}
+        transformer.layers.map { ($0.attn, ["qkv_proj"]) }
     }
 }
