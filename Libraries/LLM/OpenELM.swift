@@ -106,8 +106,8 @@ private class FeedForwardNetwork: Module, UnaryLayer {
         let intermediateDim = Int(
             makeDivisible(Float(ffnMultiplier) * Float(dim), divisor: args.ffnDimDivisor))
 
-        self.proj_1 = Linear(dim, 2 * intermediateDim)
-        self.proj_2 = Linear(intermediateDim, dim)
+        self.proj_1 = Linear(dim, 2 * intermediateDim, bias: false)
+        self.proj_2 = Linear(intermediateDim, dim, bias: false)
     }
 
     public func callAsFunction(_ x: MLXArray) -> MLXArray {
