@@ -143,6 +143,13 @@ extension ModelConfiguration {
         "\(prompt)"
     }
 
+    public static let llama38B8bit = ModelConfiguration(
+        id: "mlx-community/Meta-Llama-3-8B-Instruct-4bit"
+    ) {
+        prompt in
+        "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful assistant<|eot_id|>\n<|start_header_id|>user<|end_header_id|>\n\(prompt)<|eot_id|>\n<|start_header_id|>assistant<|end_header_id|>"
+    }
+
     private enum BootstrapState {
         case idle
         case bootstrapping
