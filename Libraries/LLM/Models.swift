@@ -143,7 +143,7 @@ extension ModelConfiguration {
         "\(prompt)"
     }
 
-    public static let llama38B8bit = ModelConfiguration(
+    public static let llama38B4bit = ModelConfiguration(
         id: "mlx-community/Meta-Llama-3-8B-Instruct-4bit"
     ) {
         prompt in
