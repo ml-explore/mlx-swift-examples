@@ -10,7 +10,7 @@ import Tokenizers
 
 struct ContentView: View {
 
-    @State var prompt = "compare python and swift"
+    @State var prompt = ""
     @State var llm = LLMEvaluator()
     @Environment(DeviceStat.self) private var deviceStat
 
@@ -125,6 +125,8 @@ struct ContentView: View {
 
         }
         .task {
+            self.prompt = llm.modelConfiguration.defaultPrompt
+
             // pre-load the weights on launch to speed up the first generation
             _ = try? await llm.load()
         }
@@ -224,7 +226,7 @@ class LLMEvaluator {
 
             let result = await LLM.generate(
                 promptTokens: promptTokens, parameters: generateParameters, model: model,
-                tokenizer: tokenizer
+                tokenizer: tokenizer, configuration: modelConfiguration
             ) { tokens in
                 // update the output -- this will make the view show the text as it generates
                 if tokens.count % displayEveryNTokens == 0 {

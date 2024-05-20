@@ -12,4 +12,15 @@ public protocol LLMModel: Module {
     func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]?) -> (
         MLXArray, [(MLXArray, MLXArray)]
     )
+
+    /// Optionally preprocess the weights and modify / remove values as needed.
+    func sanitize(weights: [String: MLXArray]) -> [String: MLXArray]
+}
+
+extension LLMModel {
+
+    public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
+        weights
+    }
+
 }

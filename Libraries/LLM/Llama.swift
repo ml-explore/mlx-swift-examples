@@ -194,6 +194,13 @@ public class LlamaModel: Module, LLMModel {
         let (out, cache) = model(inputs, cache: cache)
         return (lmHead(out), cache)
     }
+
+    public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
+        // Remove unused precomputed rotary freqs
+        weights.filter {
+            !$0.key.contains("self_attn.rotary_emb.inv_freq")
+        }
+    }
 }
 
 public struct LlamaConfiguration: Codable {
