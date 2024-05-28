@@ -275,7 +275,8 @@ struct LoRAEvalCommand: AsyncParsableCommand {
 
         // generate and print the result
         let _ = await generate.generate(
-            promptTokens: promptTokens, model: model, tokenizer: tokenizer)
+            promptTokens: promptTokens, model: model, tokenizer: tokenizer,
+            extraEOSTokens: modelConfiguration.extraEOSTokens)
         print()
     }
 }
