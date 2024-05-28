@@ -177,7 +177,7 @@ public enum GenerateDisposition {
 ///   - didGenerate: visitor for the tokens as they are generated
 public func generate(
     promptTokens: [Int], parameters: GenerateParameters, model: LLMModel, tokenizer: Tokenizer,
-    configuration: ModelConfiguration,
+    extraEOSTokens: Set<String>? = nil,
     didGenerate: ([Int]) async -> GenerateDisposition
 ) async -> GenerateResult {
     var start = Date.timeIntervalSinceReferenceDate
@@ -185,8 +185,7 @@ public func generate(
 
     // build a set of additional stop tokens
     let additionalEOSTokenIds = Set(
-        configuration
-            .extraEOSTokens
+        (extraEOSTokens ?? [])
             .map {
                 tokenizer.encode(text: $0)
             }

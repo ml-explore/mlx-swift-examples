@@ -226,7 +226,7 @@ class LLMEvaluator {
 
             let result = await LLM.generate(
                 promptTokens: promptTokens, parameters: generateParameters, model: model,
-                tokenizer: tokenizer, configuration: modelConfiguration
+                tokenizer: tokenizer, extraEOSTokens: modelConfiguration.extraEOSTokens
             ) { tokens in
                 // update the output -- this will make the view show the text as it generates
                 if tokens.count % displayEveryNTokens == 0 {

@@ -97,7 +97,7 @@ struct GenerateArguments: ParsableArguments {
 
     func generate(
         promptTokens: [Int], model: LLMModel, tokenizer: Tokenizer,
-        configuration: ModelConfiguration
+        extraEOSTokens: Set<String>? = nil
     ) async
         -> GenerateResult
     {
@@ -106,7 +106,7 @@ struct GenerateArguments: ParsableArguments {
 
         return await LLM.generate(
             promptTokens: promptTokens, parameters: generateParameters,
-            model: model, tokenizer: tokenizer, configuration: configuration
+            model: model, tokenizer: tokenizer, extraEOSTokens: extraEOSTokens
         ) { tokens in
 
             // print any new parts of the string
@@ -231,7 +231,7 @@ struct EvaluateCommand: AsyncParsableCommand {
 
         let result = await generate.generate(
             promptTokens: promptTokens, model: model, tokenizer: tokenizer,
-            configuration: modelConfiguration)
+            extraEOSTokens: modelConfiguration.extraEOSTokens)
         print()
 
         if !generate.quiet {

@@ -266,6 +266,7 @@ class LoRAEvaluator {
         let result = await LLM.generate(
             promptTokens: promptTokens, parameters: generateParameters, model: model,
             tokenizer: tokenizer,
+            extraEOSTokens: modelConfiguration.extraEOSTokens,
             didGenerate: { tokens in
                 if tokens.count % evaluateShowEvery == 0 {
                     let fullOutput = tokenizer.decode(tokens: tokens)

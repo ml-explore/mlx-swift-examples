@@ -377,7 +377,7 @@ public enum LoRATrain {
     /// - training with ``train(model:train:validate:optimizer:loss:tokenizer:parameters:progress:)``
     /// - loss evaluation with ``evaluate(model:dataset:loss:tokenizer:batchSize:batchCount:)``
     /// - fusing with ``fuse(model:layers:deQuantize:)``
-    /// - text generation with ``generate(promptTokens:parameters:model:tokenizer:didGenerate:)``
+    /// - text generation with ``generate(promptTokens:parameters:model:tokenizer:additionalEOSTokens:didGenerate:)``
     ///     - note that this is just using normal model text generation
     ///
     /// - Parameters:
