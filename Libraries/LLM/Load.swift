@@ -24,9 +24,9 @@ public func load(
 
         switch configuration.id {
         case .id(let id):
-            // download the model weights and config
+            // download the model weights
             let repo = Hub.Repo(id: id)
-            let modelFiles = ["config.json", "*.safetensors"]
+            let modelFiles = ["*.safetensors"]
             modelDirectory = try await hub.snapshot(
                 from: repo, matching: modelFiles, progressHandler: progressHandler)
 
