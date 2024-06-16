@@ -9,9 +9,9 @@ import Hub
 /// The python tokenizers have a very rich set of implementations and configuration.  The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
-public struct ModelConfiguration {
+public struct ModelConfiguration: Sendable {
 
-    public enum Identifier {
+    public enum Identifier: Sendable {
         case id(String)
         case directory(URL)
     }
