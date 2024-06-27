@@ -2591,8 +2591,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/1024jp/GzipSwift";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 6.0.1;
+				kind = exactVersion;
+				version = 6.0.1;
 			};
 		};
 		C382DE882B630889000F8F03 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
