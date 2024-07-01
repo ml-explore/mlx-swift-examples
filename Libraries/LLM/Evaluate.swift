@@ -55,7 +55,7 @@ private func sample(logits: MLXArray, temp: Float, topP: Float = 1.0) -> MLXArra
 }
 
 /// Parameters for text generation, see ``TokenIterator``
-public struct GenerateParameters {
+public struct GenerateParameters: Sendable {
     /// sampling temperature
     public var temperature: Float = 0.6
 
@@ -129,7 +129,7 @@ public struct TokenIterator: Sequence, IteratorProtocol {
     }
 }
 
-public struct GenerateResult {
+public struct GenerateResult: Sendable {
     /// input tokens
     public let promptTokens: [Int]
 
@@ -161,7 +161,7 @@ public struct GenerateResult {
     }
 }
 
-public enum GenerateDisposition {
+public enum GenerateDisposition: Sendable {
     case more
     case stop
 }

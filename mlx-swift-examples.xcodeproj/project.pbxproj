@@ -1874,6 +1874,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				EXCLUDED_ARCHS = x86_64;
 				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Debug;
 		};
@@ -1883,6 +1884,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				EXCLUDED_ARCHS = x86_64;
 				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Release;
 		};
