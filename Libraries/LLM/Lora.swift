@@ -549,8 +549,8 @@ public enum LoRATrain {
     public static func train(
         model: Module, train: [String], validate: [String], optimizer: Optimizer,
         loss: @escaping LoraLossFunction = loss, tokenizer: Tokenizer, parameters: Parameters,
-        progress: (Progress) async -> ProgressDisposition
-    ) async throws {
+        progress: (Progress) -> ProgressDisposition
+    ) throws {
         // def train(model, train_set, val_set, optimizer, loss, tokenizer, args)
 
         let lossValueGrad = valueAndGrad(model: model) { model, arrays in
@@ -587,7 +587,7 @@ public enum LoRATrain {
                 let iterationsPerSecond = Double(parameters.stepsPerReport) / (now - start)
                 let tokensPerSecond = Double(tokenCount) / (now - start)
 
-                if await progress(
+                if progress(
                     .train(
                         iteration: iteration, trainingLoss: trainingLoss,
                         iterationsPerSecond: iterationsPerSecond, tokensPerSecond: tokensPerSecond))
@@ -609,7 +609,7 @@ public enum LoRATrain {
                     batchSize: parameters.batchSize, batchCount: parameters.validationBatches)
                 let now = Date.timeIntervalSinceReferenceDate
 
-                if await progress(
+                if progress(
                     .validation(
                         iteration: iteration, validationLoss: validationLoss,
                         validationTime: now - validationStart)) == .stop
@@ -624,7 +624,7 @@ public enum LoRATrain {
             if let adapterURL = parameters.adapterURL, (iteration + 1) % parameters.saveEvery == 0 {
                 try saveLoRAWeights(model: model, url: adapterURL)
 
-                if await progress(.save(iteration: iteration, url: adapterURL)) == .stop {
+                if progress(.save(iteration: iteration, url: adapterURL)) == .stop {
                     break
                 }
 

@@ -16,12 +16,12 @@ struct LLMTool: AsyncParsableCommand {
 }
 
 /// Command line arguments for loading a model.
-struct ModelArguments: ParsableArguments {
+struct ModelArguments: ParsableArguments, Sendable {
 
     @Option(name: .long, help: "Name of the huggingface model or absolute path to directory")
     var model: String = "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
 
-    func load() async throws -> (LLMModel, Tokenizer, ModelConfiguration) {
+    func load() async throws -> (ModelContainer, ModelConfiguration) {
         let modelConfiguration: ModelConfiguration
 
         if self.model.hasPrefix("/") {
@@ -31,13 +31,13 @@ struct ModelArguments: ParsableArguments {
             // identifier
             modelConfiguration = ModelConfiguration.configuration(id: model)
         }
-        let (model, tokenizer) = try await LLM.load(configuration: modelConfiguration)
-        return (model, tokenizer, modelConfiguration)
+        let modelContainer = try await LLM.loadModelContainer(configuration: modelConfiguration)
+        return (modelContainer, modelConfiguration)
     }
 }
 
 /// Command line arguments for controlling generation of text.
-struct GenerateArguments: ParsableArguments {
+struct GenerateArguments: ParsableArguments, Sendable {
 
     @Option(
         name: .shortAndLong,
@@ -204,7 +204,7 @@ struct MemoryArguments: ParsableArguments {
 
 struct EvaluateCommand: AsyncParsableCommand {
 
-    static var configuration = CommandConfiguration(
+    static let configuration = CommandConfiguration(
         commandName: "eval",
         abstract: "evaluate prompt and generate text"
     )
@@ -215,23 +215,27 @@ struct EvaluateCommand: AsyncParsableCommand {
 
     @MainActor
     mutating func run() async throws {
-        let (model, tokenizer, modelConfiguration) = try await memory.start(args.load)
+        let (modelContainer, modelConfiguration) = try await memory.start(args.load)
 
         if !generate.quiet {
             print("Model loaded -> \(modelConfiguration.id)")
         }
 
-        let (prompt, promptTokens) = try generate.tokenizePrompt(
-            configuration: modelConfiguration, tokenizer: tokenizer)
+        let (prompt, promptTokens) = try await modelContainer.perform { [generate] _, tokenizer in
+            try generate.tokenizePrompt(
+                configuration: modelConfiguration, tokenizer: tokenizer)
+        }
 
         if !generate.quiet {
             print("Starting generation ...")
             print(prompt, terminator: "")
         }
 
-        let result = generate.generate(
-            promptTokens: promptTokens, model: model, tokenizer: tokenizer,
-            extraEOSTokens: modelConfiguration.extraEOSTokens)
+        let result = await modelContainer.perform { [generate] model, tokenizer in
+            generate.generate(
+                promptTokens: promptTokens, model: model, tokenizer: tokenizer,
+                extraEOSTokens: modelConfiguration.extraEOSTokens)
+        }
         print()
 
         if !generate.quiet {

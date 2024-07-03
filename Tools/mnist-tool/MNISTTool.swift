@@ -16,11 +16,19 @@ struct MNISTTool: AsyncParsableCommand {
         defaultSubcommand: Train.self)
 }
 
-extension MLX.DeviceType: @retroactive ExpressibleByArgument {
-    public init?(argument: String) {
-        self.init(rawValue: argument)
+#if swift(>=6.0)
+    extension MLX.DeviceType: @retroactive ExpressibleByArgument {
+        public init?(argument: String) {
+            self.init(rawValue: argument)
+        }
     }
-}
+#else
+    extension MLX.DeviceType: ExpressibleByArgument {
+        public init?(argument: String) {
+            self.init(rawValue: argument)
+        }
+    }
+#endif
 
 struct Train: AsyncParsableCommand {
 

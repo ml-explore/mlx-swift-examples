@@ -7,11 +7,19 @@ import MLXNN
 import MLXOptimizers
 import MLXRandom
 
-extension MLX.DeviceType: @retroactive ExpressibleByArgument {
-    public init?(argument: String) {
-        self.init(rawValue: argument)
+#if swift(>=6.0)
+    extension MLX.DeviceType: @retroactive ExpressibleByArgument {
+        public init?(argument: String) {
+            self.init(rawValue: argument)
+        }
     }
-}
+#else
+    extension MLX.DeviceType: ExpressibleByArgument {
+        public init?(argument: String) {
+            self.init(rawValue: argument)
+        }
+    }
+#endif
 
 @main
 struct Train: AsyncParsableCommand {
