@@ -183,19 +183,10 @@ public func generate(
     var start = Date.timeIntervalSinceReferenceDate
     var promptTime: TimeInterval = 0
 
-    // build a set of additional stop tokens
     let additionalEOSTokenIds = Set(
         (extraEOSTokens ?? [])
-            .map {
-                tokenizer.encode(text: $0)
-            }
-            .filter {
-                // discard anything that is not a single token.  sometimes
-                // the tokenizer will insert a <s> token, so accept that too
-                $0.count == 1 || ($0.count == 2 && $0[0] == 1)
-            }
-            .map {
-                $0.last!
+            .compactMap {
+                tokenizer.convertTokenToId($0)
             })
 
     var tokens = [Int]()
