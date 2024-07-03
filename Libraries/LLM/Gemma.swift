@@ -200,7 +200,7 @@ public class GemmaModel: Module, LLMModel {
     }
 }
 
-public struct GemmaConfiguration: Codable {
+public struct GemmaConfiguration: Codable, Sendable {
 
     var hiddenSize: Int
     var hiddenLayers: Int

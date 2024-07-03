@@ -186,7 +186,7 @@ public class PhiModel: Module, LLMModel {
     }
 }
 
-public struct PhiConfiguration: Codable {
+public struct PhiConfiguration: Codable, Sendable {
     var maxPositionalEmbeddings = 2048
     var vocabularySize = 51200
     var hiddenSize = 2560

@@ -216,7 +216,7 @@ public class Qwen2Model: Module, LLMModel {
     }
 }
 
-public struct Qwen2Configuration: Codable {
+public struct Qwen2Configuration: Codable, Sendable {
     var hiddenSize: Int
     var hiddenLayers: Int
     var intermediateSize: Int

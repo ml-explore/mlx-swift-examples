@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ml-explore/mlx-swift",
       "state" : {
-        "revision" : "36d63a1fc386a551df14f5b67df1756dc17d2ebc",
-        "version" : "0.12.1"
+        "revision" : "084597e7ec38d97a92e50855b04de005c7dad1df",
+        "version" : "0.15.2"
       }
     },
     {
@@ -60,8 +60,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/gonzalezreal/swift-markdown-ui",
       "state" : {
-        "branch" : "main",
-        "revision" : "c0daf6eb79d97964180f3113868c990bd1c4a007"
+        "revision" : "9a8119b37e09a770367eeb26e05267c75d854053",
+        "version" : "2.3.1"
       }
     },
     {

@@ -15,7 +15,7 @@ struct LLMError: Error {
 /// Load and return the model and tokenizer
 public func load(
     hub: HubApi = HubApi(), configuration: ModelConfiguration,
-    progressHandler: @escaping (Progress) -> Void = { _ in }
+    progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
 ) async throws -> (LLMModel, Tokenizer) {
     do {
         let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
@@ -81,4 +81,13 @@ public func load(
         return try await load(
             hub: hub, configuration: newConfiguration, progressHandler: progressHandler)
     }
+}
+
+public func loadModelContainer(
+    hub: HubApi = HubApi(), configuration: ModelConfiguration,
+    progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
+) async throws -> ModelContainer {
+    let (model, tokenizer) = try await load(
+        hub: hub, configuration: configuration, progressHandler: progressHandler)
+    return ModelContainer(model: model, tokenizer: tokenizer)
 }

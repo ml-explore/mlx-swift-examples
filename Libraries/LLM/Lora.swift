@@ -325,7 +325,7 @@ public enum LoRATrain {
     )
 
     /// LoRA training parameters
-    public struct Parameters {
+    public struct Parameters: Sendable {
         /// number of prompts to evaluate per iteration
         public var batchSize = 4
 
@@ -506,7 +506,7 @@ public enum LoRATrain {
         try save(arrays: parameters, url: url)
     }
 
-    public enum Progress: CustomStringConvertible {
+    public enum Progress: CustomStringConvertible, Sendable {
         case train(
             iteration: Int, trainingLoss: Float, iterationsPerSecond: Double,
             tokensPerSecond: Double)
@@ -530,7 +530,7 @@ public enum LoRATrain {
         }
     }
 
-    public enum ProgressDisposition {
+    public enum ProgressDisposition: Sendable {
         case stop
         case more
     }

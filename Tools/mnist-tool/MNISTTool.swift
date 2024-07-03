@@ -16,7 +16,7 @@ struct MNISTTool: AsyncParsableCommand {
         defaultSubcommand: Train.self)
 }
 
-extension MLX.DeviceType: ExpressibleByArgument {
+extension MLX.DeviceType: @retroactive ExpressibleByArgument {
     public init?(argument: String) {
         self.init(rawValue: argument)
     }

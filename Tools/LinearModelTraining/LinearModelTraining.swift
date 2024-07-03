@@ -7,7 +7,7 @@ import MLXNN
 import MLXOptimizers
 import MLXRandom
 
-extension MLX.DeviceType: ExpressibleByArgument {
+extension MLX.DeviceType: @retroactive ExpressibleByArgument {
     public init?(argument: String) {
         self.init(rawValue: argument)
     }

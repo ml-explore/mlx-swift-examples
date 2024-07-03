@@ -178,7 +178,7 @@ public class CohereModel: Module, LLMModel {
     }
 }
 
-public struct CohereConfiguration: Codable {
+public struct CohereConfiguration: Codable, Sendable {
 
     var hiddenSize: Int
     var hiddenLayers: Int

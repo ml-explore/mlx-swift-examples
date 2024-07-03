@@ -3,33 +3,22 @@ import LLM
 import MLX
 
 @Observable
-class DeviceStat {
+final class DeviceStat: @unchecked Sendable {
+
+    @MainActor
     var gpuUsage = GPU.snapshot()
-    private var initialGPUSnapshot = GPU.snapshot()
+
+    private let initialGPUSnapshot = GPU.snapshot()
     private var timer: Timer?
 
     init() {
-        startTimer()
-    }
-
-    deinit {
-        stopTimer()
-    }
-
-    private func startTimer() {
-        timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            self?.updateStats()
+            self?.updateGPUUsages()
         }
     }
 
-    private func stopTimer() {
+    deinit {
         timer?.invalidate()
-        timer = nil
-    }
-
-    private func updateStats() {
-        updateGPUUsages()
     }
 
     private func updateGPUUsages() {

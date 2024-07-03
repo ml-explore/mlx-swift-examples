@@ -189,7 +189,7 @@ public class Starcoder2Model: Module, LLMModel {
     }
 }
 
-public struct Starcoder2Configuration: Codable {
+public struct Starcoder2Configuration: Codable, Sendable {
     var hiddenSize: Int
     var hiddenLayers: Int
     var intermediateSize: Int

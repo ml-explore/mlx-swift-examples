@@ -2,7 +2,7 @@
 
 import Foundation
 
-public enum StringOrNumber: Codable, Equatable {
+public enum StringOrNumber: Codable, Equatable, Sendable {
     case string(String)
     case float(Float)
 
@@ -26,7 +26,7 @@ public enum StringOrNumber: Codable, Equatable {
     }
 }
 
-public enum ModelType: String, Codable {
+public enum ModelType: String, Codable, Sendable {
     case mistral
     case llama
     case phi
@@ -80,10 +80,10 @@ public enum ModelType: String, Codable {
     }
 }
 
-public struct BaseConfiguration: Codable {
+public struct BaseConfiguration: Codable, Sendable {
     public let modelType: ModelType
 
-    public struct Quantization: Codable {
+    public struct Quantization: Codable, Sendable {
         public init(groupSize: Int, bits: Int) {
             self.groupSize = groupSize
             self.bits = bits

@@ -9,7 +9,7 @@ import Tokenizers
 
 @main
 struct LLMTool: AsyncParsableCommand {
-    static var configuration = CommandConfiguration(
+    static let configuration = CommandConfiguration(
         abstract: "Command line tool for generating text and manipulating LLMs",
         subcommands: [EvaluateCommand.self, LoRACommand.self],
         defaultSubcommand: EvaluateCommand.self)
@@ -98,13 +98,13 @@ struct GenerateArguments: ParsableArguments {
     func generate(
         promptTokens: [Int], model: LLMModel, tokenizer: Tokenizer,
         extraEOSTokens: Set<String>? = nil
-    ) async
+    )
         -> GenerateResult
     {
         // track how much we have printed
         var printed = 0
 
-        return await LLM.generate(
+        return LLM.generate(
             promptTokens: promptTokens, parameters: generateParameters,
             model: model, tokenizer: tokenizer, extraEOSTokens: extraEOSTokens
         ) { tokens in
@@ -229,7 +229,7 @@ struct EvaluateCommand: AsyncParsableCommand {
             print(prompt, terminator: "")
         }
 
-        let result = await generate.generate(
+        let result = generate.generate(
             promptTokens: promptTokens, model: model, tokenizer: tokenizer,
             extraEOSTokens: modelConfiguration.extraEOSTokens)
         print()
