@@ -110,6 +110,13 @@ public struct ModelConfiguration {
 }
 
 extension ModelConfiguration {
+    public static let smolLM_135M_4bit = ModelConfiguration(
+        id: "mlx-community/SmolLM-135M-Instruct-4bit",
+        defaultPrompt: "Tell me about the history of Spain."
+    ) {
+        prompt in
+        "<|im_start|>user\n\(prompt)<|im_end|>\n<|im_start|>assistant\n"
+    }
 
     public static let mistral7B4bit = ModelConfiguration(
         id: "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx",
