@@ -21,6 +21,7 @@ struct ModelArguments: ParsableArguments, Sendable {
     @Option(name: .long, help: "Name of the huggingface model or absolute path to directory")
     var model: String = "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
 
+    @Sendable
     func load() async throws -> (ModelContainer, ModelConfiguration) {
         let modelConfiguration: ModelConfiguration
 
@@ -29,7 +30,7 @@ struct ModelArguments: ParsableArguments, Sendable {
             modelConfiguration = ModelConfiguration(directory: URL(filePath: self.model))
         } else {
             // identifier
-            modelConfiguration = ModelConfiguration.configuration(id: model)
+            modelConfiguration = await ModelConfiguration.configuration(id: model)
         }
         let modelContainer = try await LLM.loadModelContainer(configuration: modelConfiguration)
         return (modelContainer, modelConfiguration)
@@ -128,7 +129,7 @@ struct GenerateArguments: ParsableArguments, Sendable {
 }
 
 /// Argument package for adjusting and reporting memory use.
-struct MemoryArguments: ParsableArguments {
+struct MemoryArguments: ParsableArguments, Sendable {
 
     @Flag(name: .long, help: "Show memory stats")
     var memoryStats = false

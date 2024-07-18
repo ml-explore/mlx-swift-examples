@@ -12,7 +12,7 @@ import Tokenizers
 
 struct LoRACommand: AsyncParsableCommand {
 
-    static var configuration = CommandConfiguration(
+    static let configuration = CommandConfiguration(
         commandName: "lora",
         abstract: "LoRA commands",
         subcommands: [
@@ -74,7 +74,7 @@ struct LoRAModelArguments: ParsableArguments, Sendable {
 
 struct LoRATrainCommand: AsyncParsableCommand {
 
-    static var configuration = CommandConfiguration(
+    static let configuration = CommandConfiguration(
         commandName: "train",
         abstract: "LoRA training"
     )

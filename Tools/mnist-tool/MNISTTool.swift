@@ -10,7 +10,7 @@ import MNIST
 
 @main
 struct MNISTTool: AsyncParsableCommand {
-    static var configuration = CommandConfiguration(
+    static let configuration = CommandConfiguration(
         abstract: "Command line tool for training mnist models",
         subcommands: [Train.self],
         defaultSubcommand: Train.self)

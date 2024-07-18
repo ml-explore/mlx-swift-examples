@@ -88,8 +88,10 @@ public struct ModelConfiguration: Sendable {
         }
     }
 
+    @MainActor
     public static var registry = [String: ModelConfiguration]()
 
+    @MainActor
     public static func register(configurations: [ModelConfiguration]) {
         bootstrap()
 
@@ -98,6 +100,7 @@ public struct ModelConfiguration: Sendable {
         }
     }
 
+    @MainActor
     public static func configuration(id: String) -> ModelConfiguration {
         bootstrap()
 
@@ -193,14 +196,16 @@ extension ModelConfiguration {
         "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful assistant<|eot_id|>\n<|start_header_id|>user<|end_header_id|>\n\(prompt)<|eot_id|>\n<|start_header_id|>assistant<|end_header_id|>"
     }
 
-    private enum BootstrapState {
+    private enum BootstrapState: Sendable {
         case idle
         case bootstrapping
         case bootstrapped
     }
 
+    @MainActor
     static private var bootstrapState = BootstrapState.idle
 
+    @MainActor
     static func bootstrap() {
         switch bootstrapState {
         case .idle:

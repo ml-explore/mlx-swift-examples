@@ -9,7 +9,7 @@ import SwiftUI
 
 struct TrainingView: View {
 
-    @Binding var trainer: Trainer
+    @Binding var trainer: ModelState
 
     var body: some View {
         VStack {
@@ -27,7 +27,7 @@ struct TrainingView: View {
                 case .untrained:
                     Button("Train") {
                         Task {
-                            try! await trainer.run()
+                            try! await trainer.train()
                         }
                     }
                 case .trained(let model), .predict(let model):
@@ -46,7 +46,7 @@ struct TrainingView: View {
 
 struct ContentView: View {
     // the training loop
-    @State var trainer = Trainer()
+    @State var trainer = ModelState()
 
     var body: some View {
         switch trainer.state {
@@ -58,19 +58,33 @@ struct ContentView: View {
     }
 }
 
+@MainActor
 @Observable
-class Trainer {
+class ModelState {
 
     enum State {
         case untrained
-        case trained(LeNet)
-        case predict(LeNet)
+        case trained(LeNetContainer)
+        case predict(LeNetContainer)
     }
 
     var state: State = .untrained
     var messages = [String]()
 
-    func run() async throws {
+    func train() async throws {
+        let model = LeNetContainer()
+        try await model.train(output: self)
+        self.state = .trained(model)
+    }
+}
+
+actor LeNetContainer {
+
+    private let model = LeNet()
+
+    let mnistImageSize: CGSize = CGSize(width: 28, height: 28)
+
+    func train(output: ModelState) async throws {
         // Note: this is pretty close to the code in `mnist-tool`, just
         // wrapped in an Observable to make it easy to display in SwiftUI
 
@@ -117,18 +131,26 @@ class Trainer {
             let end = Date.timeIntervalSinceReferenceDate
 
             // add to messages -- triggers display
+            let accuracyItem = accuracy.item(Float.self)
             await MainActor.run {
-                messages.append(
+                output.messages.append(
                     """
-                    Epoch \(e): test accuracy \(accuracy.item(Float.self).formatted())
+                    Epoch \(e): test accuracy \(accuracyItem.formatted())
                     Time: \((end - start).formatted())
 
                     """
                 )
             }
         }
-        await MainActor.run {
-            state = .trained(model)
+    }
+
+    func evaluate(image: CGImage) -> Int? {
+        let pixelData = image.grayscaleImage(with: mnistImageSize)?.pixelData()
+        if let pixelData {
+            let x = pixelData.reshaped([1, 28, 28, 1]).asType(.float32) / 255.0
+            return argMax(model(x)).item()
+        } else {
+            return nil
         }
     }
 }

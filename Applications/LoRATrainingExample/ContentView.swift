@@ -2,6 +2,7 @@
 
 import LLM
 import MLX
+import MLXNN
 import MLXOptimizers
 import MLXRandom
 import SwiftUI
@@ -94,25 +95,26 @@ struct ContentView: View {
 }
 
 /// Progress reporting with a title.
-struct Progress: Equatable {
+struct Progress: Equatable, Sendable {
     let title: String
     let current: Double?
     let limit: Double?
 }
 
 @Observable
+@MainActor
 class LoRAEvaluator {
 
-    enum State {
+    enum State: Sendable {
         case idle
         case training
         case evaluate
         case failed(String)
     }
 
-    enum ModelState {
+    enum ModelState: Sendable {
         case idle
-        case loaded(LLMModel, Tokenizer)
+        case loaded(ModelContainer)
     }
 
     var state = State.idle
@@ -131,7 +133,7 @@ class LoRAEvaluator {
     private let evaluateShowEvery = 8
     private let maxTokens = 200
 
-    private func loadModel() async throws -> (LLMModel, Tokenizer) {
+    private func loadModel() async throws -> ModelContainer {
         switch self.model {
         case .idle:
             let name = modelConfiguration.name
@@ -139,22 +141,21 @@ class LoRAEvaluator {
                 progress = .init(title: "Loading \(name)", current: 0, limit: 1)
             }
 
-            let (model, tokenizer) = try await LLM.load(configuration: modelConfiguration) {
+            let modelContainer = try await LLM.loadModelContainer(configuration: modelConfiguration)
+            {
                 progress in
-                if progress.fractionCompleted < 1.0 {
-                    DispatchQueue.main.sync {
-                        self.progress = .init(
-                            title: "Download \(name)", current: progress.fractionCompleted,
-                            limit: 1.0)
-                    }
+                Task { @MainActor in
+                    self.progress = .init(
+                        title: "Download \(name)", current: progress.fractionCompleted,
+                        limit: 1.0)
                 }
             }
             eval(model)
-            self.model = .loaded(model, tokenizer)
-            return (model, tokenizer)
+            self.model = .loaded(modelContainer)
+            return modelContainer
 
-        case .loaded(let model, let tokenizer):
-            return (model, tokenizer)
+        case .loaded(let modelContainer):
+            return modelContainer
         }
     }
 
@@ -173,6 +174,17 @@ class LoRAEvaluator {
         }
     }
 
+    nonisolated private func loraLayers(model: Module) -> LoRALinearLayers {
+        guard let layerProvider = model as? LoRAModel else {
+            // the layerProvider will indicate which Linear layers need to be replaced
+            fatalError(
+                "Model \(type(of: model)) (\(modelConfiguration.name)) must implement the LoRALayerProvider protocol"
+            )
+        }
+
+        return Array(layerProvider.loraLinearLayers().suffix(loraLayers))
+    }
+
     private func startInner() async throws {
         // setup
         GPU.set(cacheLimit: 32 * 1024 * 1024)
@@ -182,15 +194,13 @@ class LoRAEvaluator {
         }
 
         // load the model
-        let (model, tokenizer) = try await loadModel()
+        let modelContainer = try await loadModel()
 
         // apply LoRA adapters and train
-        guard let layerProvider = model as? LoRAModel else {
-            state = .failed("Model must implement the LoRALayerProvider protocol")
-            return
+        await modelContainer.perform { model, _ in
+            LoRATrain.convert(
+                model: model, layers: loraLayers(model: model))
         }
-        LoRATrain.convert(
-            model: model, layers: Array(layerProvider.loraLinearLayers().suffix(loraLayers)))
 
         let train = try loadLoRAData(name: "train")
         let valid = try loadLoRAData(name: "valid")
@@ -199,45 +209,47 @@ class LoRAEvaluator {
             return
         }
 
-        let optimizer = Adam(learningRate: learningRate)
-        try await LoRATrain.train(
-            model: model, train: train, validate: valid, optimizer: optimizer, tokenizer: tokenizer,
-            parameters: parameters
-        ) { progress in
-            await MainActor.run {
-                switch progress {
-                case .train(let i, _, _, _):
-                    self.progress = .init(
-                        title: "Train", current: Double(i), limit: Double(parameters.iterations))
-                case .validation:
-                    output += "\n"
-                default:
-                    break
+        try await modelContainer.perform { model, tokenizer in
+            let optimizer = Adam(learningRate: learningRate)
+            try LoRATrain.train(
+                model: model, train: train, validate: valid, optimizer: optimizer,
+                tokenizer: tokenizer,
+                parameters: parameters
+            ) { progress in
+                Task { @MainActor in
+                    switch progress {
+                    case .train(let i, _, _, _):
+                        self.progress = .init(
+                            title: "Train", current: Double(i), limit: Double(parameters.iterations)
+                        )
+                    case .validation:
+                        output += "\n"
+                    default:
+                        break
+                    }
+                    output += progress.description + "\n"
                 }
 
-                output += progress.description + "\n"
+                return .more
             }
-
-            return .more
         }
 
         // done training, test
-        await MainActor.run {
-            self.progress = .init(title: "Testing", current: nil, limit: nil)
-        }
+        self.progress = .init(title: "Testing", current: nil, limit: nil)
         guard let test = try loadLoRAData(name: "test") else {
             state = .failed("Failed to load test data")
             return
         }
 
-        let loss = LoRATrain.evaluate(
-            model: model, dataset: test, tokenizer: tokenizer, batchSize: 1, batchCount: 0)
-        await MainActor.run {
-            self.progress = nil
-            self.output += "\n"
-            self.output += "Test loss \(loss.formatted()), ppl \(exp(loss).formatted())\n"
-            self.state = .evaluate
+        let loss = await modelContainer.perform { model, tokenizer in
+            LoRATrain.evaluate(
+                model: model, dataset: test, tokenizer: tokenizer, batchSize: 1, batchCount: 0)
         }
+
+        self.progress = nil
+        self.output += "\n"
+        self.output += "Test loss \(loss.formatted()), ppl \(exp(loss).formatted())\n"
+        self.state = .evaluate
     }
 
     func evaluate(prompt: String) async {
@@ -256,30 +268,32 @@ class LoRAEvaluator {
 
         MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
-        let (model, tokenizer) = try await loadModel()
+        let modelContainer = try await loadModel()
 
         // prepare the prompt
         let preparedPrompt = modelConfiguration.prepare(prompt: prompt)
-        let promptTokens = tokenizer.encode(text: preparedPrompt)
+        let promptTokens = await modelContainer.perform { _, tokenizer in
+            tokenizer.encode(text: preparedPrompt)
+        }
 
         // evaluate
-        let result = await LLM.generate(
-            promptTokens: promptTokens, parameters: generateParameters, model: model,
-            tokenizer: tokenizer,
-            extraEOSTokens: modelConfiguration.extraEOSTokens,
-            didGenerate: { tokens in
-                if tokens.count % evaluateShowEvery == 0 {
-                    let fullOutput = tokenizer.decode(tokens: tokens)
-                    await MainActor.run {
-                        self.output = fullOutput
+        let result = await modelContainer.perform { model, tokenizer in
+            LLM.generate(
+                promptTokens: promptTokens, parameters: generateParameters, model: model,
+                tokenizer: tokenizer,
+                extraEOSTokens: modelConfiguration.extraEOSTokens,
+                didGenerate: { tokens in
+                    if tokens.count % evaluateShowEvery == 0 {
+                        let fullOutput = tokenizer.decode(tokens: tokens)
+                        Task { @MainActor in
+                            self.output = fullOutput
+                        }
                     }
-                }
-                return tokens.count >= maxTokens ? .stop : .more
-            })
-
-        await MainActor.run {
-            self.output = result.output
-            self.progress = nil
+                    return tokens.count >= maxTokens ? .stop : .more
+                })
         }
+
+        self.output = result.output
+        self.progress = nil
     }
 }

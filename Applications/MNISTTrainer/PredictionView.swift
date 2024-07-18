@@ -54,7 +54,7 @@ extension Path {
 struct PredictionView: View {
     @State var path: Path = Path()
     @State var prediction: Int?
-    let model: LeNet
+    let model: LeNetContainer
     let canvasSize = 150.0
     let mnistImageSize: CGSize = CGSize(width: 28, height: 28)
 
@@ -84,14 +84,12 @@ struct PredictionView: View {
     func predict() {
         let imageRenderer = ImageRenderer(
             content: Canvas(path: $path).frame(width: 150, height: 150))
-        guard
-            let pixelData = imageRenderer.cgImage?.grayscaleImage(with: mnistImageSize)?.pixelData()
-        else {
-            return
+
+        if let image = imageRenderer.cgImage {
+            Task {
+                self.prediction = await model.evaluate(image: image)
+            }
         }
-        // modify input vector to match training in MNIST/Files.swift
-        let x = pixelData.reshaped([1, 28, 28, 1]).asType(.float32) / 255.0
-        prediction = argMax(model(x)).item()
     }
 }
 

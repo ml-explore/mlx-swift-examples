@@ -30,15 +30,15 @@ public struct FileKind: Hashable, CustomStringConvertible, Sendable {
     }
 }
 
-struct LoadInfo {
+struct LoadInfo: Sendable {
     let name: String
     let offset: Int
-    let convert: (MLXArray) -> MLXArray
+    let convert: @Sendable (MLXArray) -> MLXArray
 }
 
 let baseURL = URL(string: "http://yann.lecun.com/exdb/mnist/")!
 
-let files = [
+private let files = [
     FileKind(.training, .images): LoadInfo(
         name: "train-images-idx3-ubyte.gz",
         offset: 16,
