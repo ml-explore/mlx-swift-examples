@@ -119,11 +119,11 @@ extension ModelConfiguration {
     }
 
     public static let mistral7B4bit = ModelConfiguration(
-        id: "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx",
-
-        // https://www.promptingguide.ai/models/mistral-7b
-        defaultPrompt: "describe the swift language"
-    )
+        id: "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
+        defaultPrompt: "Describe the Swift language."
+    ) { prompt in
+        "<s>[INST] \(prompt) [/INST] "
+    }
 
     public static let codeLlama13b4bit = ModelConfiguration(
         id: "mlx-community/CodeLlama-13b-Instruct-hf-4bit-MLX",
