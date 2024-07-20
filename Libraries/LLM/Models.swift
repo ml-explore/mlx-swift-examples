@@ -118,6 +118,13 @@ extension ModelConfiguration {
         "<|im_start|>user\n\(prompt)<|im_end|>\n<|im_start|>assistant\n"
     }
 
+    public static let mistralNeMo4bit = ModelConfiguration(
+        id: "mlx-community/Mistral-Nemo-Instruct-2407-4bit",
+        defaultPrompt: "Explain quaternions."
+    ) { prompt in
+        "<s>[INST] \(prompt) [/INST] "
+    }
+
     public static let mistral7B4bit = ModelConfiguration(
         id: "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
         defaultPrompt: "Describe the Swift language."
@@ -213,6 +220,8 @@ extension ModelConfiguration {
         case .idle:
             bootstrapState = .bootstrapping
             register(configurations: [
+                mistralNeMo4bit,
+                smolLM_135M_4bit,
                 mistral7B4bit,
                 codeLlama13b4bit,
                 phi4bit,
