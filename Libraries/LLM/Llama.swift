@@ -9,7 +9,7 @@ import MLXNN
 
 private class DynamicNTKScalingRoPE: Module {
     let dims: Int
-    let maxPositionEmbeddings: Int
+    let maxPositionEmbeddings: Int?
     let traditional: Bool
     let originalBase: Float
     var scale: Float
@@ -17,7 +17,7 @@ private class DynamicNTKScalingRoPE: Module {
     let ropeScaling: [String: StringOrNumber]?
 
     init(
-        dims: Int, maxPositionEmbeddings: Int = 2048, traditional: Bool = false,
+        dims: Int, maxPositionEmbeddings: Int?, traditional: Bool = false,
         base: Float = 10000, scale: Float = 1.0, ropeType: String = "default",
         ropeScaling: [String: StringOrNumber]? = nil
     ) {
@@ -76,7 +76,7 @@ private class DynamicNTKScalingRoPE: Module {
     func callAsFunction(_ x: MLXArray, offset: Int = 0) -> MLXArray {
         let seqLen = x.dim(1) + offset
         var base = computeBaseFrequency()
-        if maxPositionEmbeddings > 0 && seqLen > maxPositionEmbeddings {
+        if let maxPositionEmbeddings, maxPositionEmbeddings > 0, seqLen > maxPositionEmbeddings {
             let factorAdjustment = Float(seqLen) / Float(maxPositionEmbeddings) - 1
             let dimensionRatio = Float(dims) / Float(Float(dims) - 2)
             let adjustedScale = scale * pow(1 + factorAdjustment, dimensionRatio)
@@ -116,7 +116,7 @@ private class Attention: Module {
 
         self.rope = DynamicNTKScalingRoPE(
             dims: headDim,
-            maxPositionEmbeddings: args.maxPositionEmbeddings ?? 2048,
+            maxPositionEmbeddings: args.maxPositionEmbeddings,
             traditional: args.ropeTraditional,
             base: args.ropeTheta,
             scale: 1.0,
