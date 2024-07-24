@@ -7,11 +7,53 @@ import MLXNN
 
 // port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/llama.py
 
+func computeBaseFrequency(
+    base: Float, dims: Int, ropeType: String, ropeScaling: [String: StringOrNumber]?
+)
+    -> Float
+{
+    if ropeType != "llama3" {
+        return base
+    }
+
+    guard let ropeScaling = ropeScaling else {
+        return base
+    }
+
+    guard case .float(let factor) = ropeScaling["factor"],
+        case .float(let lowFreqFactor) = ropeScaling["low_freq_factor"] ?? .float(1.0),
+        case .float(let highFreqFactor) = ropeScaling["high_freq_factor"] ?? .float(4.0),
+        case .float(let oldContextLen) = ropeScaling["original_max_position_embeddings"]
+            ?? .float(8192)
+    else {
+        return base
+    }
+
+    let lowFreqWavelen = oldContextLen / lowFreqFactor
+    let highFreqWavelen = oldContextLen / highFreqFactor
+
+    let freqs = (0 ..< dims).compactMap { index -> Float? in
+        if index % 2 == 0 {
+            return pow(base, Float(index) / Float(dims))
+        }
+        return nil
+    }
+
+    let newBaseFreqs = freqs.map { freq -> Float in
+        let wavelen = 2 * .pi / freq
+        let smooth = max(
+            0, min(1, (wavelen - highFreqWavelen) / (lowFreqWavelen - highFreqWavelen)))
+        return freq * ((1 - smooth) * factor + smooth)
+    }
+
+    return newBaseFreqs.reduce(0, +) / Float(newBaseFreqs.count)
+}
+
 private class DynamicNTKScalingRoPE: Module {
     let dims: Int
     let maxPositionEmbeddings: Int?
     let traditional: Bool
-    let originalBase: Float
+    let base: Float
     var scale: Float
     let ropeType: String
     let ropeScaling: [String: StringOrNumber]?
@@ -24,59 +66,17 @@ private class DynamicNTKScalingRoPE: Module {
         self.dims = dims
         self.maxPositionEmbeddings = maxPositionEmbeddings
         self.traditional = traditional
-        self.originalBase = base
+        self.base = computeBaseFrequency(
+            base: base, dims: dims, ropeType: ropeType, ropeScaling: ropeScaling)
         self.scale = scale
         self.ropeType = ropeType
         self.ropeScaling = ropeScaling
     }
 
-    func computeBaseFrequency() -> Float {
-        switch ropeType {
-        case "llama3":
-            return computeLlama3BaseFrequency()
-        default:
-            return originalBase
-        }
-    }
-
-    func computeLlama3BaseFrequency() -> Float {
-        guard let ropeScaling = ropeScaling else {
-            return originalBase
-        }
-
-        guard case .float(let factor) = ropeScaling["factor"],
-            case .float(let lowFreqFactor) = ropeScaling["low_freq_factor"] ?? .float(1.0),
-            case .float(let highFreqFactor) = ropeScaling["high_freq_factor"] ?? .float(4.0),
-            case .float(let oldContextLen) = ropeScaling["original_max_position_embeddings"]
-                ?? .float(8192)
-        else {
-            return originalBase
-        }
-
-        let lowFreqWavelen = oldContextLen / lowFreqFactor
-        let highFreqWavelen = oldContextLen / highFreqFactor
-
-        let freqs = (0 ..< dims).compactMap { index -> Float? in
-            if index % 2 == 0 {
-                return pow(originalBase, Float(index) / Float(dims))
-            }
-            return nil
-        }
-
-        let newBaseFreqs = freqs.map { freq -> Float in
-            let wavelen = 2 * .pi / freq
-            let smooth = max(
-                0, min(1, (wavelen - highFreqWavelen) / (lowFreqWavelen - highFreqWavelen)))
-            return freq * ((1 - smooth) * factor + smooth)
-        }
-
-        return newBaseFreqs.reduce(0, +) / Float(newBaseFreqs.count)
-    }
-
     func callAsFunction(_ x: MLXArray, offset: Int = 0) -> MLXArray {
         let seqLen = x.dim(1) + offset
-        var base = computeBaseFrequency()
-        if let maxPositionEmbeddings, maxPositionEmbeddings > 0, seqLen > maxPositionEmbeddings {
+        var base = self.base
+        if let maxPositionEmbeddings, seqLen > maxPositionEmbeddings {
             let factorAdjustment = Float(seqLen) / Float(maxPositionEmbeddings) - 1
             let dimensionRatio = Float(dims) / Float(Float(dims) - 2)
             let adjustedScale = scale * pow(1 + factorAdjustment, dimensionRatio)
