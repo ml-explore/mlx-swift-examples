@@ -199,9 +199,17 @@ extension ModelConfiguration {
         "\(prompt)"
     }
 
+    public static let llama3_1_8B_4bit = ModelConfiguration(
+        id: "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?"
+    ) {
+        prompt in
+        "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful assistant<|eot_id|>\n<|start_header_id|>user<|end_header_id|>\n\(prompt)<|eot_id|>\n<|start_header_id|>assistant<|end_header_id|>"
+    }
+
     public static let llama38B4bit = ModelConfiguration(
         id: "mlx-community/Meta-Llama-3-8B-Instruct-4bit",
-        defaultPrompt: "what is the difference between a fruit and a vegetable?"
+        defaultPrompt: "What is the difference between a fruit and a vegetable?"
     ) {
         prompt in
         "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful assistant<|eot_id|>\n<|start_header_id|>user<|end_header_id|>\n\(prompt)<|eot_id|>\n<|start_header_id|>assistant<|end_header_id|>"
@@ -220,6 +228,7 @@ extension ModelConfiguration {
         case .idle:
             bootstrapState = .bootstrapping
             register(configurations: [
+                llama3_1_8B_4bit,
                 mistralNeMo4bit,
                 smolLM_135M_4bit,
                 mistral7B4bit,
