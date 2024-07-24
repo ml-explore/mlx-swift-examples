@@ -296,8 +296,8 @@ public struct LlamaConfiguration: Codable {
     var maxPositionEmbeddings: Int?
     var ropeTheta: Float = 10_000
     var ropeTraditional: Bool = false
-    var ropeScaling: [String: StringOrNumber]? = nil
-    var tieWordEmbeddings: Bool = false
+    var ropeScaling: [String: StringOrNumber]?
+    var tieWordEmbeddings: Bool = true
     var attentionBias: Bool = false
     var mlpBias: Bool = false
 
@@ -329,20 +329,57 @@ public struct LlamaConfiguration: Codable {
         headDimensions = try container.decodeIfPresent(Int.self, forKey: .headDimensions)
         rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
         vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
-        kvHeads = try container.decode(Int.self, forKey: .kvHeads)
+        kvHeads = try container.decodeIfPresent(Int.self, forKey: .kvHeads) ?? attentionHeads
         maxPositionEmbeddings = try container.decodeIfPresent(
             Int.self, forKey: .maxPositionEmbeddings)
-        ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 10_000
-        ropeTraditional =
-            try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
+        if let ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) {
+            self.ropeTheta = ropeTheta
+        }
+        if let ropeTraditional = try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional)
+        {
+            self.ropeTraditional = ropeTraditional
+        }
         ropeScaling = try container.decodeIfPresent(
             [String: StringOrNumber].self, forKey: .ropeScaling)
-        tieWordEmbeddings =
-            try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
-        attentionBias = try container.decodeIfPresent(Bool.self, forKey: .attentionBias) ?? false
-        mlpBias = try container.decodeIfPresent(Bool.self, forKey: .mlpBias) ?? false
-    }
+        if let tieWordEmbeddings = try container.decodeIfPresent(
+            Bool.self, forKey: .tieWordEmbeddings)
+        {
+            self.tieWordEmbeddings = tieWordEmbeddings
+        }
+        if let attentionBias = try container.decodeIfPresent(Bool.self, forKey: .attentionBias) {
+            self.attentionBias = attentionBias
+        }
+        if let mlpBias = try container.decodeIfPresent(Bool.self, forKey: .mlpBias) {
+            self.mlpBias = mlpBias
+        }
 
+        if let ropeScaling {
+            if ropeScaling["factor"] == nil {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .ropeScaling, in: container,
+                    debugDescription: "rope_scaling must contain 'factor'")
+            }
+            if let ropeType = ropeScaling["type"] ?? ropeScaling["rope_type"] {
+                if case .string = ropeType {
+                    let options = [
+                        StringOrNumber.string("linear"), StringOrNumber.string("dynamic"),
+                        StringOrNumber.string("llama3"),
+                    ]
+                    if !options.contains(ropeType) {
+                        throw DecodingError.dataCorruptedError(
+                            forKey: .ropeScaling, in: container,
+                            debugDescription:
+                                "rope_scaling 'type' currently only supports 'linear', 'dynamic', or 'llama3'"
+                        )
+                    }
+                }
+            } else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .ropeScaling, in: container,
+                    debugDescription: "rope_scaling must contain either 'type' or 'rope_type'")
+            }
+        }
+    }
 }
 
 // MARK: - LoRA
