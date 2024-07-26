@@ -159,7 +159,7 @@ class LLMEvaluator {
 
     /// this controls which model loads -- phi4bit is one of the smaller ones so this will fit on
     /// more devices
-    let modelConfiguration = ModelConfiguration.phi34bit
+    let modelConfiguration = ModelConfiguration.phi3_4bit
 
     /// parameters controlling the output
     let generateParameters = GenerateParameters(temperature: 0.6)
