@@ -219,7 +219,7 @@
 
 /* Begin PBXFileReference section */
 		12305EAE2B9D864400C92FEE /* PredictionView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PredictionView.swift; sourceTree = "<group>"; };
-		1C5531792C5AAB4E00B07ECD /* Gemma2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Gemma2.swift; path = Libraries/LLM/Gemma2.swift; sourceTree = "<group>"; };
+		1C5531792C5AAB4E00B07ECD /* Gemma2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Gemma2.swift; sourceTree = "<group>"; };
 		1CD79C6F2BD80DE100B6C06F /* Phi3.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Phi3.swift; sourceTree = "<group>"; };
 		525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Starcoder2.swift; sourceTree = "<group>"; };
 		52A776172B94B5EE00AA6E80 /* Qwen2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Qwen2.swift; sourceTree = "<group>"; };
@@ -482,6 +482,7 @@
 				C3A8B3AB2B9283150002EFB8 /* Models.swift */,
 				C34E48EE2B696E6500FCB841 /* Llama.swift */,
 				C38935E22B86C0FE0037B833 /* Gemma.swift */,
+				1C5531792C5AAB4E00B07ECD /* Gemma2.swift */,
 				C38935C72B869C7A0037B833 /* LLM.h */,
 				C38935E02B869F420037B833 /* LLMModel.swift */,
 				C38935DE2B869DD00037B833 /* Phi.swift */,
@@ -499,7 +500,6 @@
 		C39273672B60697700368D5D = {
 			isa = PBXGroup;
 			children = (
-				1C5531792C5AAB4E00B07ECD /* Gemma2.swift */,
 				C325DE3F2B648CDB00628871 /* README.md */,
 				F8D7023A2BB4E223003D7CF5 /* Package.swift */,
 				C3056BA62BCD973400A31D04 /* Data */,

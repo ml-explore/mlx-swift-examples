@@ -82,7 +82,9 @@ private class Attention: Module {
             keys = rope(keys)
         }
 
-        let repeats = self.headDim / self.args.kvHeads
+        let newCache = (keys, values)
+        
+        let repeats = self.args.attentionHeads / self.args.kvHeads
         if repeats > 1 {
             queries = queries.reshaped(
                 [B, self.args.kvHeads, repeats, L, self.headDim]
@@ -103,7 +105,7 @@ private class Attention: Module {
             output = output.reshaped([B, self.args.attentionHeads, L, self.headDim])
         }
         output = output.transposed(0, 2, 1, 3).reshaped(B, L, -1)
-        return (wo(output), (keys, values))
+        return (wo(output), newCache)
     }
 }
 
