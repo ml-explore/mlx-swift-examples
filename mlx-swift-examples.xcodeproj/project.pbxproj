@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		12305EAF2B9D864400C92FEE /* PredictionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12305EAE2B9D864400C92FEE /* PredictionView.swift */; };
+		1C55317A2C5AAB4E00B07ECD /* Gemma2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C5531792C5AAB4E00B07ECD /* Gemma2.swift */; };
 		1CD79C702BD80DE100B6C06F /* Phi3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD79C6F2BD80DE100B6C06F /* Phi3.swift */; };
 		525C1E9D2B9A011000B5C356 /* Starcoder2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */; };
 		52A776182B94B5EE00AA6E80 /* Qwen2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A776172B94B5EE00AA6E80 /* Qwen2.swift */; };
@@ -218,6 +219,7 @@
 
 /* Begin PBXFileReference section */
 		12305EAE2B9D864400C92FEE /* PredictionView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PredictionView.swift; sourceTree = "<group>"; };
+		1C5531792C5AAB4E00B07ECD /* Gemma2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Gemma2.swift; path = Libraries/LLM/Gemma2.swift; sourceTree = "<group>"; };
 		1CD79C6F2BD80DE100B6C06F /* Phi3.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Phi3.swift; sourceTree = "<group>"; };
 		525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Starcoder2.swift; sourceTree = "<group>"; };
 		52A776172B94B5EE00AA6E80 /* Qwen2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Qwen2.swift; sourceTree = "<group>"; };
@@ -497,6 +499,7 @@
 		C39273672B60697700368D5D = {
 			isa = PBXGroup;
 			children = (
+				1C5531792C5AAB4E00B07ECD /* Gemma2.swift */,
 				C325DE3F2B648CDB00628871 /* README.md */,
 				F8D7023A2BB4E223003D7CF5 /* Package.swift */,
 				C3056BA62BCD973400A31D04 /* Data */,
@@ -1014,6 +1017,7 @@
 				C38935CE2B869C870037B833 /* Load.swift in Sources */,
 				C3E786AD2B8D4AF50004D037 /* Tokenizer.swift in Sources */,
 				C3A8B3AC2B9283150002EFB8 /* Models.swift in Sources */,
+				1C55317A2C5AAB4E00B07ECD /* Gemma2.swift in Sources */,
 				C3E786AB2B8D1AEC0004D037 /* Evaluate.swift in Sources */,
 				C38935CC2B869C870037B833 /* Llama.swift in Sources */,
 				52A776182B94B5EE00AA6E80 /* Qwen2.swift in Sources */,
