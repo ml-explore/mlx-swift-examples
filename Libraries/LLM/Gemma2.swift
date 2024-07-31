@@ -81,7 +81,7 @@ private class Attention: Module {
             queries = rope(queries)
             keys = rope(keys)
         }
-        
+
         let repeats = self.headDim / self.args.kvHeads
         if repeats > 1 {
             queries = queries.reshaped(
@@ -90,10 +90,10 @@ private class Attention: Module {
             keys = expandedDimensions(keys, axes: [2])
             values = expandedDimensions(values, axes: [2])
         }
-        
+
         var scores = matmul(queries, keys.swappedAxes(-1, -2))
         scores = tanh(scores / self.logitSoftCap) * self.logitSoftCap
-        
+
         if mask != nil {
             scores = scores + mask!
         }
@@ -231,7 +231,6 @@ public class Gemma2Model: Module, LLMModel {
     }
 }
 
-
 public struct Gemma2Configuration: Codable {
 
     var hiddenSize: Int
@@ -298,8 +297,6 @@ public struct Gemma2Configuration: Codable {
             Int.self, forKey: CodingKeys.queryPreAttnScalar)
     }
 }
-
-
 
 // MARK: - LoRA
 
