@@ -83,7 +83,7 @@ private class Attention: Module {
         }
 
         let newCache = (keys, values)
-        
+
         let repeats = self.args.attentionHeads / self.args.kvHeads
         if repeats > 1 {
             queries = queries.reshaped(
