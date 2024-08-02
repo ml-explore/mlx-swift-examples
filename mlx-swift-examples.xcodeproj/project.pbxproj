@@ -39,7 +39,6 @@
 		C36BEFB52BBDEAD8002D4AFE /* LoraCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */; };
 		C36BEFB82BBDED51002D4AFE /* Arguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFB62BBDECBC002D4AFE /* Arguments.swift */; };
 		C36BEFBB2BBF02CC002D4AFE /* Lora+Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */; };
-		C382DE8A2B630889000F8F03 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = C382DE892B630889000F8F03 /* AsyncAlgorithms */; };
 		C38935C82B869C7A0037B833 /* LLM.h in Headers */ = {isa = PBXBuildFile; fileRef = C38935C72B869C7A0037B833 /* LLM.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C38935CC2B869C870037B833 /* Llama.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48EE2B696E6500FCB841 /* Llama.swift */; };
 		C38935CD2B869C870037B833 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48EF2B696E6500FCB841 /* Configuration.swift */; };
@@ -50,7 +49,6 @@
 		C38935D62B869CC40037B833 /* Transformers in Frameworks */ = {isa = PBXBuildFile; productRef = C38935D52B869CC40037B833 /* Transformers */; };
 		C38935D72B869CCD0037B833 /* LLM.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C38935C52B869C7A0037B833 /* LLM.framework */; };
 		C38935D82B869CCD0037B833 /* LLM.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C38935C52B869C7A0037B833 /* LLM.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		C38935DD2B869CEC0037B833 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = C38935DC2B869CEC0037B833 /* AsyncAlgorithms */; };
 		C38935DF2B869DD00037B833 /* Phi.swift in Sources */ = {isa = PBXBuildFile; fileRef = C38935DE2B869DD00037B833 /* Phi.swift */; };
 		C38935E12B869F420037B833 /* LLMModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C38935E02B869F420037B833 /* LLMModel.swift */; };
 		C38935E32B86C0FE0037B833 /* Gemma.swift in Sources */ = {isa = PBXBuildFile; fileRef = C38935E22B86C0FE0037B833 /* Gemma.swift */; };
@@ -339,7 +337,6 @@
 				C38935D42B869CC40037B833 /* MLXRandom in Frameworks */,
 				C38935D62B869CC40037B833 /* Transformers in Frameworks */,
 				C38935D02B869CC40037B833 /* MLX in Frameworks */,
-				C38935DD2B869CEC0037B833 /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -357,7 +354,6 @@
 			files = (
 				C397C59C2B62C6D0004B084D /* ArgumentParser in Frameworks */,
 				C38935D72B869CCD0037B833 /* LLM.framework in Frameworks */,
-				C382DE8A2B630889000F8F03 /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -749,7 +745,6 @@
 				C38935D12B869CC40037B833 /* MLXNN */,
 				C38935D32B869CC40037B833 /* MLXRandom */,
 				C38935D52B869CC40037B833 /* Transformers */,
-				C38935DC2B869CEC0037B833 /* AsyncAlgorithms */,
 				C36BEFB12BBDE9D0002D4AFE /* MLXOptimizers */,
 			);
 			productName = LLM;
@@ -793,7 +788,6 @@
 			name = "llm-tool";
 			packageProductDependencies = (
 				C397C59B2B62C6D0004B084D /* ArgumentParser */,
-				C382DE892B630889000F8F03 /* AsyncAlgorithms */,
 			);
 			productName = "mistral-tool";
 			productReference = C397C58B2B62C6A9004B084D /* llm-tool */;
@@ -894,7 +888,6 @@
 			mainGroup = C39273672B60697700368D5D;
 			packageReferences = (
 				C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
-				C382DE882B630889000F8F03 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 				C34E491A2B69C43600FCB841 /* XCRemoteSwiftPackageReference "GzipSwift" */,
 				C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */,
 				C38935BB2B866BFA0037B833 /* XCRemoteSwiftPackageReference "swift-transformers" */,
@@ -2690,14 +2683,6 @@
 				version = 6.0.1;
 			};
 		};
-		C382DE882B630889000F8F03 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-async-algorithms";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
-			};
-		};
 		C38935BB2B866BFA0037B833 /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/huggingface/swift-transformers";
@@ -2750,11 +2735,6 @@
 			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
 			productName = MLXOptimizers;
 		};
-		C382DE892B630889000F8F03 /* AsyncAlgorithms */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C382DE882B630889000F8F03 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
-			productName = AsyncAlgorithms;
-		};
 		C38935CF2B869CC40037B833 /* MLX */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
@@ -2774,11 +2754,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C38935BB2B866BFA0037B833 /* XCRemoteSwiftPackageReference "swift-transformers" */;
 			productName = Transformers;
-		};
-		C38935DC2B869CEC0037B833 /* AsyncAlgorithms */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C382DE882B630889000F8F03 /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
-			productName = AsyncAlgorithms;
 		};
 		C397C59B2B62C6D0004B084D /* ArgumentParser */ = {
 			isa = XCSwiftPackageProductDependency;
