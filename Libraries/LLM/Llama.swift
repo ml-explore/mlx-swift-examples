@@ -283,7 +283,7 @@ public class LlamaModel: Module, LLMModel {
     }
 }
 
-public struct LlamaConfiguration: Codable {
+public struct LlamaConfiguration: Codable, Sendable {
 
     var hiddenSize: Int
     var hiddenLayers: Int

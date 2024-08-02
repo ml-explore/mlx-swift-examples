@@ -15,8 +15,8 @@ let package = Package(
             targets: ["MLXMNIST"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/ml-explore/mlx-swift", from: "0.12.1"),
-        .package(url: "https://github.com/huggingface/swift-transformers", from: "0.1.8"),
+        .package(url: "https://github.com/ml-explore/mlx-swift", from: "0.16.0"),
+        .package(url: "https://github.com/huggingface/swift-transformers", from: "0.1.9"),
         .package(url: "https://github.com/1024jp/GzipSwift", "6.0.1" ... "6.0.1"),
         .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
     ],

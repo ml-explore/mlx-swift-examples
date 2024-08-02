@@ -6,17 +6,17 @@ import MLX
 
 // based on https://github.com/ml-explore/mlx-examples/blob/main/mnist/mnist.py
 
-public enum Use: String, Hashable {
+public enum Use: String, Hashable, Sendable {
     case test
     case training
 }
 
-public enum DataKind: String, Hashable {
+public enum DataKind: String, Hashable, Sendable {
     case images
     case labels
 }
 
-public struct FileKind: Hashable, CustomStringConvertible {
+public struct FileKind: Hashable, CustomStringConvertible, Sendable {
     let use: Use
     let data: DataKind
 
@@ -30,15 +30,15 @@ public struct FileKind: Hashable, CustomStringConvertible {
     }
 }
 
-struct LoadInfo {
+struct LoadInfo: Sendable {
     let name: String
     let offset: Int
-    let convert: (MLXArray) -> MLXArray
+    let convert: @Sendable (MLXArray) -> MLXArray
 }
 
 let baseURL = URL(string: "http://yann.lecun.com/exdb/mnist/")!
 
-let files = [
+private let files = [
     FileKind(.training, .images): LoadInfo(
         name: "train-images-idx3-ubyte.gz",
         offset: 16,

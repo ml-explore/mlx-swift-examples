@@ -9,9 +9,9 @@ import Hub
 /// The python tokenizers have a very rich set of implementations and configuration.  The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
-public struct ModelConfiguration {
+public struct ModelConfiguration: Sendable {
 
-    public enum Identifier {
+    public enum Identifier: Sendable {
         case id(String)
         case directory(URL)
     }
@@ -42,13 +42,13 @@ public struct ModelConfiguration {
     /// custom preparation logic for the prompt.  custom tokenizers provide more capability, but this
     /// allows some minor formtting changes, e.g. wrapping the user input in the expected prompt
     /// format
-    private let preparePrompt: ((String) -> String)?
+    private let preparePrompt: (@Sendable (String) -> String)?
 
     public init(
         id: String, tokenizerId: String? = nil, overrideTokenizer: String? = nil,
         defaultPrompt: String = "hello",
         extraEOSTokens: Set<String> = [],
-        preparePrompt: ((String) -> String)? = nil
+        preparePrompt: (@Sendable (String) -> String)? = nil
     ) {
         self.id = .id(id)
         self.tokenizerId = tokenizerId
@@ -62,7 +62,7 @@ public struct ModelConfiguration {
         directory: URL, tokenizerId: String? = nil, overrideTokenizer: String? = nil,
         defaultPrompt: String = "hello",
         extraEOSTokens: Set<String> = [],
-        preparePrompt: ((String) -> String)? = nil
+        preparePrompt: (@Sendable (String) -> String)? = nil
     ) {
         self.id = .directory(directory)
         self.tokenizerId = tokenizerId
@@ -88,8 +88,10 @@ public struct ModelConfiguration {
         }
     }
 
+    @MainActor
     public static var registry = [String: ModelConfiguration]()
 
+    @MainActor
     public static func register(configurations: [ModelConfiguration]) {
         bootstrap()
 
@@ -98,6 +100,7 @@ public struct ModelConfiguration {
         }
     }
 
+    @MainActor
     public static func configuration(id: String) -> ModelConfiguration {
         bootstrap()
 
@@ -226,14 +229,16 @@ extension ModelConfiguration {
         "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful assistant<|eot_id|>\n<|start_header_id|>user<|end_header_id|>\n\(prompt)<|eot_id|>\n<|start_header_id|>assistant<|end_header_id|>"
     }
 
-    private enum BootstrapState {
+    private enum BootstrapState: Sendable {
         case idle
         case bootstrapping
         case bootstrapped
     }
 
+    @MainActor
     static private var bootstrapState = BootstrapState.idle
 
+    @MainActor
     static func bootstrap() {
         switch bootstrapState {
         case .idle:

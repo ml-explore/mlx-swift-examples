@@ -13,7 +13,7 @@ import Foundation
 //
 // Derived from public domain C implementation by Sebastiano Vigna
 // See http://xoshiro.di.unimi.it/splitmix64.c
-public struct SplitMix64: RandomNumberGenerator {
+public struct SplitMix64: RandomNumberGenerator, Sendable {
     private var state: UInt64
 
     public init(seed: UInt64) {

@@ -190,7 +190,7 @@ public class Phi3Model: Module, LLMModel {
     }
 }
 
-public struct Phi3Configuration: Codable {
+public struct Phi3Configuration: Codable, Sendable {
 
     var hiddenSize: Int
     var hiddenLayers: Int

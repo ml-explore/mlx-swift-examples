@@ -218,7 +218,7 @@ public class OpenELMModel: Module, LLMModel {
     }
 }
 
-public struct OpenElmConfiguration: Codable {
+public struct OpenElmConfiguration: Codable, Sendable {
     var modelType: String
     var headDimensions: Int
     var numTransformerLayers: Int
