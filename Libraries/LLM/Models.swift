@@ -168,11 +168,22 @@ extension ModelConfiguration {
         defaultPrompt: "what is the difference between lettuce and cabbage?"
 
     ) { prompt in
-        "<start_of_turn>user \(prompt)<end_of_turn><start_of_turn>model"
+        "<start_of_turn>user\n\(prompt)<end_of_turn>\n<start_of_turn>model\n"
     }
 
     public static let gemma_2_9b_it_4bit = ModelConfiguration(
         id: "mlx-community/gemma-2-9b-it-4bit",
+        overrideTokenizer: "PreTrainedTokenizer",
+
+        // https://www.promptingguide.ai/models/gemma
+        defaultPrompt: "What is the difference between lettuce and cabbage?"
+
+    ) { prompt in
+        "<start_of_turn>user\n\(prompt)<end_of_turn>\n<start_of_turn>model\n"
+    }
+
+    public static let gemma_2_2b_it_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-2-2b-it-4bit",
         overrideTokenizer: "PreTrainedTokenizer",
 
         // https://www.promptingguide.ai/models/gemma
