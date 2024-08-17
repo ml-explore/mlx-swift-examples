@@ -150,7 +150,6 @@ class LoRAEvaluator {
                         limit: 1.0)
                 }
             }
-            eval(model)
             self.model = .loaded(modelContainer)
             return modelContainer
 
