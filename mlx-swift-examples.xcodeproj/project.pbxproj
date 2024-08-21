@@ -15,6 +15,7 @@
 		7BBD0D6E2BE044A10019C5D7 /* OpenELM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBD0D6D2BE044A10019C5D7 /* OpenELM.swift */; };
 		81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 81695B402BA373D300F260D8 /* MarkdownUI */; };
 		819BEFF82BAF8B4E0002CCEE /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
+		927C784E2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927C784D2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift */; };
 		C3056BAE2BCD97B700A31D04 /* LoRATrainingExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAD2BCD97B700A31D04 /* LoRATrainingExampleApp.swift */; };
 		C3056BB02BCD97B700A31D04 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAF2BCD97B700A31D04 /* ContentView.swift */; };
 		C3056BB22BCD97B800A31D04 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3056BB12BCD97B800A31D04 /* Assets.xcassets */; };
@@ -223,6 +224,7 @@
 		52A776172B94B5EE00AA6E80 /* Qwen2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Qwen2.swift; sourceTree = "<group>"; };
 		7BBD0D6D2BE044A10019C5D7 /* OpenELM.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OpenELM.swift; sourceTree = "<group>"; };
 		819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceStat.swift; sourceTree = "<group>"; };
+		927C784D2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuScaledRotaryEmbedding.swift; sourceTree = "<group>"; };
 		C3056BA12BCD973400A31D04 /* test.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = test.jsonl; sourceTree = "<group>"; };
 		C3056BA22BCD973400A31D04 /* train.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = train.jsonl; sourceTree = "<group>"; };
 		C3056BA32BCD973400A31D04 /* valid.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = valid.jsonl; sourceTree = "<group>"; };
@@ -489,6 +491,7 @@
 				C3E786AC2B8D4AF50004D037 /* Tokenizer.swift */,
 				52A776172B94B5EE00AA6E80 /* Qwen2.swift */,
 				F24B08392BAF1A65008C8D19 /* Cohere.swift */,
+				927C784D2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift */,
 			);
 			path = LLM;
 			sourceTree = "<group>";
@@ -1013,6 +1016,7 @@
 				1C55317A2C5AAB4E00B07ECD /* Gemma2.swift in Sources */,
 				C3E786AB2B8D1AEC0004D037 /* Evaluate.swift in Sources */,
 				C38935CC2B869C870037B833 /* Llama.swift in Sources */,
+				927C784E2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift in Sources */,
 				52A776182B94B5EE00AA6E80 /* Qwen2.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

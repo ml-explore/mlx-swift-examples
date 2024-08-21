@@ -13,7 +13,21 @@ private class Attention: Module {
     @ModuleInfo(key: "qkv_proj") var wqkv: Linear
     @ModuleInfo(key: "o_proj") var wo: Linear
 
-    let rope: RoPE
+    enum PositionalEncoding {
+        case rope(RoPE)
+        case suScaledRotaryEmbedding(SuScaledRotaryEmbedding)
+
+        func applyEncoding(_ x: MLXArray, offset: Int = 0) -> MLXArray {
+            switch self {
+            case .rope(let rope):
+                return rope.callAsFunction(x, offset: offset)
+            case .suScaledRotaryEmbedding(let suScaledRotaryEmbedding):
+                return suScaledRotaryEmbedding.callAsFunction(x, offset: offset)
+            }
+        }
+    }
+
+    let rope: PositionalEncoding
 
     public init(_ args: Phi3Configuration) {
         self.args = args
@@ -29,22 +43,32 @@ private class Attention: Module {
         self._wo.wrappedValue = Linear(heads * headDim, dim, bias: false)
 
         let ropeScale: Float
-        if let ropeScaling = args.ropeScaling, ropeScaling["type"] == .string("linear"),
-            let factor = ropeScaling["factor"]
+
+        if let ropeScaling = args.ropeScaling, ropeScaling.type == "linear",
+            let factor = ropeScaling.factor
         {
-            switch factor {
-            case .string:
-                fatalError("ropeScaling.factor must be a float")
-            case .float(let v):
-                ropeScale = 1 / v
-            }
+            ropeScale = 1 / factor
         } else {
             ropeScale = 1
         }
 
-        self.rope = RoPE(
-            dimensions: headDim, traditional: args.ropeTraditional, base: args.ropeTheta,
-            scale: ropeScale)
+        if let ropeScaling = args.ropeScaling,
+            ropeScaling.type == "su" || ropeScaling.type == "longrope",
+            let shortFactor = ropeScaling.shortFactor, let longFactor = ropeScaling.longFactor
+        {
+            self.rope = .suScaledRotaryEmbedding(
+                SuScaledRotaryEmbedding(
+                    dimensions: headDim, base: args.ropeTheta,
+                    maxPositionEmbeddings: args.maxPositionEmbeddings,
+                    originalMaxPositionEmbeddings: args.originalMaxPositionEmbeddings,
+                    longFactor: longFactor))
+
+        } else {
+            self.rope = .rope(
+                RoPE(
+                    dimensions: headDim, traditional: args.ropeTraditional, base: args.ropeTheta,
+                    scale: ropeScale))
+        }
     }
 
     public func callAsFunction(
@@ -63,13 +87,13 @@ private class Attention: Module {
         values = values.reshaped(B, L, args.kvHeads, -1).transposed(0, 2, 1, 3)
 
         if let (keyCache, valueCache) = cache {
-            queries = rope(queries, offset: keyCache.dim(2))
-            keys = rope(keys, offset: keyCache.dim(2))
+            queries = rope.applyEncoding(queries, offset: keyCache.dim(2))
+            keys = rope.applyEncoding(keys, offset: keyCache.dim(2))
             keys = concatenated([keyCache, keys], axis: 2)
             values = concatenated([valueCache, values], axis: 2)
         } else {
-            queries = rope(queries)
-            keys = rope(keys)
+            queries = rope.applyEncoding(queries)
+            keys = rope.applyEncoding(keys)
         }
 
         let output = MLXFast.scaledDotProductAttention(
@@ -191,6 +215,19 @@ public class Phi3Model: Module, LLMModel {
 }
 
 public struct Phi3Configuration: Codable, Sendable {
+    struct RopeScaling: Codable {
+        let longFactor: [Float]?
+        let shortFactor: [Float]?
+        let factor: Float?
+        let type: String?
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case factor
+            case longFactor = "long_factor"
+            case shortFactor = "short_factor"
+        }
+    }
 
     var hiddenSize: Int
     var hiddenLayers: Int
@@ -201,7 +238,9 @@ public struct Phi3Configuration: Codable, Sendable {
     var kvHeads: Int
     var ropeTheta: Float = 10_000
     var ropeTraditional: Bool = false
-    var ropeScaling: [String: StringOrNumber]? = nil
+    var ropeScaling: RopeScaling?
+    var maxPositionEmbeddings: Int
+    var originalMaxPositionEmbeddings: Int
 
     enum CodingKeys: String, CodingKey {
         case hiddenSize = "hidden_size"
@@ -214,36 +253,37 @@ public struct Phi3Configuration: Codable, Sendable {
         case ropeTheta = "rope_theta"
         case ropeTraditional = "rope_traditional"
         case ropeScaling = "rope_scaling"
+        case maxPositionEmbeddings = "max_position_embeddings"
+        case originalMaxPositionEmbeddings = "original_max_position_embeddings"
     }
 
     public init(from decoder: Decoder) throws {
         // custom implementation to handle optional keys with required values
-        let container: KeyedDecodingContainer<Phi3Configuration.CodingKeys> =
-            try decoder.container(
-                keyedBy: Phi3Configuration.CodingKeys.self)
+        let container: KeyedDecodingContainer<Phi3Configuration.CodingKeys> = try decoder.container(
+            keyedBy: Phi3Configuration.CodingKeys.self)
 
-        self.hiddenSize = try container.decode(
-            Int.self, forKey: Phi3Configuration.CodingKeys.hiddenSize)
-        self.hiddenLayers = try container.decode(
+        hiddenSize = try container.decode(Int.self, forKey: Phi3Configuration.CodingKeys.hiddenSize)
+        hiddenLayers = try container.decode(
             Int.self, forKey: Phi3Configuration.CodingKeys.hiddenLayers)
-        self.intermediateSize = try container.decode(
+        intermediateSize = try container.decode(
             Int.self, forKey: Phi3Configuration.CodingKeys.intermediateSize)
-        self.attentionHeads = try container.decode(
+        attentionHeads = try container.decode(
             Int.self, forKey: Phi3Configuration.CodingKeys.attentionHeads)
-        self.rmsNormEps = try container.decode(
+        rmsNormEps = try container.decode(
             Float.self, forKey: Phi3Configuration.CodingKeys.rmsNormEps)
-        self.vocabularySize = try container.decode(
+        vocabularySize = try container.decode(
             Int.self, forKey: Phi3Configuration.CodingKeys.vocabularySize)
-        self.kvHeads = try container.decode(Int.self, forKey: Phi3Configuration.CodingKeys.kvHeads)
-        self.ropeTheta =
+        kvHeads = try container.decode(Int.self, forKey: Phi3Configuration.CodingKeys.kvHeads)
+        ropeTheta =
             try container.decodeIfPresent(
-                Float.self, forKey: Phi3Configuration.CodingKeys.ropeTheta)
-            ?? 10_000
-        self.ropeTraditional =
+                Float.self, forKey: Phi3Configuration.CodingKeys.ropeTheta) ?? 10_000
+        ropeTraditional =
             try container.decodeIfPresent(
                 Bool.self, forKey: Phi3Configuration.CodingKeys.ropeTraditional) ?? false
-        self.ropeScaling = try container.decodeIfPresent(
-            [String: StringOrNumber].self, forKey: Phi3Configuration.CodingKeys.ropeScaling)
+        ropeScaling = try container.decodeIfPresent(RopeScaling.self, forKey: .ropeScaling)
+        maxPositionEmbeddings = try container.decode(Int.self, forKey: .maxPositionEmbeddings)
+        originalMaxPositionEmbeddings = try container.decode(
+            Int.self, forKey: .originalMaxPositionEmbeddings)
 
     }
 }
