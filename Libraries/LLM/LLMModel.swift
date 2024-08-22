@@ -1,6 +1,7 @@
 // Copyright © 2024 Apple Inc.
 
 import Foundation
+@preconcurrency import Hub
 import MLX
 import MLXNN
 import Tokenizers
@@ -35,6 +36,31 @@ public actor ModelContainer {
     public init(model: LLMModel, tokenizer: Tokenizer) {
         self.model = model
         self.tokenizer = tokenizer
+    }
+
+    public init(model: LLMModel, configuration: ModelConfiguration, hub: HubApi) async throws {
+        self.model = model
+
+        let (tokenizerConfig, tokenizerData) = try await loadTokenizerConfig(
+            configuration: configuration, hub: hub)
+
+        self.tokenizer = try PreTrainedTokenizer(
+            tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
+    }
+
+    /// build the model and tokenizer without passing non-sendable data over isolation barriers
+    public init(
+        hub: HubApi, configuration: ModelConfiguration,
+        progressHandler: @Sendable @escaping (Progress) -> Void
+    ) async throws {
+        let modelDirectory = try await prepareModelDirectory(
+            hub: hub, configuration: configuration, progressHandler: progressHandler)
+        self.model = try loadSynchronous(modelDirectory: modelDirectory)
+
+        let (tokenizerConfig, tokenizerData) = try await loadTokenizerConfig(
+            configuration: configuration, hub: hub)
+        self.tokenizer = try PreTrainedTokenizer(
+            tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
     }
 
     /// Perform an action on the model and/or tokenizer.  Callers _must_ eval any `MLXArray` before returning as
