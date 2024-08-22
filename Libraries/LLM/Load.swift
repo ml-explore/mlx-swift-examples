@@ -94,6 +94,8 @@ public func loadModelContainer(
     hub: HubApi = HubApi(), configuration: ModelConfiguration,
     progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
 ) async throws -> ModelContainer {
-    return try await ModelContainer(
+    let modelDirectory = try await prepareModelDirectory(
         hub: hub, configuration: configuration, progressHandler: progressHandler)
+    return try await ModelContainer(
+        hub: hub, modelDirectory: modelDirectory, configuration: configuration)
 }
