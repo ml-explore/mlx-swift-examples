@@ -58,8 +58,8 @@ private class Attention: Module {
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
-    ) -> (MLXArray, (MLXArray, MLXArray)) {
+        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+    ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
 
         var queries = wq(x)
@@ -71,11 +71,10 @@ private class Attention: Module {
         keys = keys.reshaped(B, L, args.kvHeads, -1).transposed(0, 2, 1, 3)
         values = values.reshaped(B, L, args.kvHeads, -1).transposed(0, 2, 1, 3)
 
-        if let (keyCache, valueCache) = cache {
-            queries = rope(queries, offset: keyCache.dim(2))
-            keys = rope(keys, offset: keyCache.dim(2))
-            keys = concatenated([keyCache, keys], axis: 2)
-            values = concatenated([valueCache, values], axis: 2)
+        if let cache {
+            queries = rope(queries, offset: cache.offset)
+            keys = rope(keys, offset: cache.offset)
+            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope(queries)
             keys = rope(keys)
@@ -87,7 +86,7 @@ private class Attention: Module {
         .transposed(0, 2, 1, 3)
         .reshaped(B, L, -1)
 
-        return (wo(output), (keys, values))
+        return wo(output)
     }
 }
 
@@ -124,13 +123,13 @@ private class TransformerBlock: Module {
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
-    ) -> (MLXArray, (MLXArray, MLXArray)) {
-        var (r, cache) = attention(inputLayerNorm(x), mask: mask, cache: cache)
+        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+    ) -> MLXArray {
+        var r = attention(inputLayerNorm(x), mask: mask, cache: cache)
         let h = x + r
         r = mlp(postAttentionLayerNorm(h))
         let out = h + r
-        return (out, cache)
+        return out
     }
 }
 
@@ -153,31 +152,24 @@ public class Qwen2ModelInner: Module {
         self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
-    public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]? = nil) -> (
-        MLXArray, [(MLXArray, MLXArray)]
-    ) {
+    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
         var h = embedTokens(inputs)
 
-        var mask: MLXArray? = nil
-        if h.dim(1) > 1 {
-            mask = MultiHeadAttention.createAdditiveCausalMask(h.dim(1))
-            mask = mask?.asType(h.dtype)
-        }
-
-        var newCache = [(MLXArray, MLXArray)]()
+        let mask: MLXArray? = createAttentionMask(h: h, cache: cache)
 
         for (i, layer) in layers.enumerated() {
-            var cacheUpdate: (MLXArray, MLXArray)
-            (h, cacheUpdate) = layer(h, mask: mask, cache: cache?[i])
-            newCache.append(cacheUpdate)
+            h = layer(h, mask: mask, cache: cache?[i])
         }
 
-        return (norm(h), newCache)
+        return norm(h)
     }
 }
 
-public class Qwen2Model: Module, LLMModel {
+public class Qwen2Model: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
+    public let kvHeads: [Int]
+    public let headDim: IntOrPair
+
     let model: Qwen2ModelInner
     let configuration: Qwen2Configuration
 
@@ -186,20 +178,20 @@ public class Qwen2Model: Module, LLMModel {
     public init(_ args: Qwen2Configuration) {
         self.configuration = args
         self.vocabularySize = args.vocabularySize
+        self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
+        self.headDim = .init(args.hiddenSize / args.attentionHeads)
         self.model = Qwen2ModelInner(args)
         _lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
     }
 
-    public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]?) -> (
-        MLXArray, [(MLXArray, MLXArray)]
-    ) {
-        var (out, cache) = model(inputs, cache: cache)
+    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
+        var out = model(inputs, cache: cache)
         if configuration.tieWordEmbeddings {
             out = model.embedTokens.asLinear(out)
         } else {
             out = lmHead(out)
         }
-        return (out, cache)
+        return out
     }
 
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {

@@ -106,7 +106,7 @@ private class Attention: Module {
         let heads = args.attentionHeads
         let kvHeads = args.kvHeads
 
-        let headDim = args.headDimensions ?? (args.hiddenSize / heads)
+        let headDim = args.resolvedHeadDimensions
         self.scale = pow(Float(headDim), -0.5)
 
         self._wq.wrappedValue = Linear(dim, heads * headDim, bias: args.attentionBias)
@@ -131,8 +131,8 @@ private class Attention: Module {
     }
 
     func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
-    ) -> (MLXArray, (MLXArray, MLXArray)) {
+        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+    ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
 
         var queries = wq(x)
@@ -144,11 +144,10 @@ private class Attention: Module {
         keys = keys.reshaped(B, L, args.kvHeads, -1).transposed(0, 2, 1, 3)
         values = values.reshaped(B, L, args.kvHeads, -1).transposed(0, 2, 1, 3)
 
-        if let (keyCache, valueCache) = cache {
-            queries = rope(queries, offset: keyCache.dim(2))
-            keys = rope(keys, offset: keyCache.dim(2))
-            keys = concatenated([keyCache, keys], axis: 2)
-            values = concatenated([valueCache, values], axis: 2)
+        if let cache {
+            queries = rope(queries, offset: cache.offset)
+            keys = rope(keys, offset: cache.offset)
+            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope(queries)
             keys = rope(keys)
@@ -160,7 +159,7 @@ private class Attention: Module {
         .transposed(0, 2, 1, 3)
         .reshaped(B, L, -1)
 
-        return (wo(output), (keys, values))
+        return wo(output)
     }
 }
 
@@ -199,13 +198,13 @@ private class TransformerBlock: Module {
     }
 
     func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
-    ) -> (MLXArray, (MLXArray, MLXArray)) {
-        var (r, cache) = attention(inputLayerNorm(x), mask: mask, cache: cache)
+        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+    ) -> MLXArray {
+        var r = attention(inputLayerNorm(x), mask: mask, cache: cache)
         let h = x + r
         r = mlp(postAttentionLayerNorm(h))
         let out = h + r
-        return (out, cache)
+        return out
     }
 }
 
@@ -226,52 +225,45 @@ private class LlamaModelInner: Module {
         self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
-    func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]? = nil) -> (
-        MLXArray, [(MLXArray, MLXArray)]
-    ) {
+    func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
         var h = embedTokens(inputs)
 
-        var mask: MLXArray? = nil
-        if h.dim(1) > 1 {
-            mask = MultiHeadAttention.createAdditiveCausalMask(h.dim(1))
-            mask = mask?.asType(h.dtype)
-        }
-
-        var newCache = [(MLXArray, MLXArray)]()
+        let mask: MLXArray? = createAttentionMask(h: h, cache: cache)
 
         for (i, layer) in layers.enumerated() {
-            var cacheUpdate: (MLXArray, MLXArray)
-            (h, cacheUpdate) = layer(h, mask: mask, cache: cache?[i])
-            newCache.append(cacheUpdate)
+            h = layer(h, mask: mask, cache: cache?[i])
         }
 
-        return (norm(h), newCache)
+        return norm(h)
     }
 }
 
-public class LlamaModel: Module, LLMModel {
+public class LlamaModel: Module, LLMModel, KVCacheDimensionProvider {
 
     public let vocabularySize: Int
+    public let kvHeads: [Int]
+    public let headDim: IntOrPair
+
     fileprivate let model: LlamaModelInner
 
     @ModuleInfo(key: "lm_head") var lmHead: Linear?
 
     public init(_ args: LlamaConfiguration) {
         self.vocabularySize = args.vocabularySize
+        self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
+        self.headDim = .init(args.resolvedHeadDimensions)
         self.model = LlamaModelInner(args)
         if !args.tieWordEmbeddings {
             self._lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
         }
     }
 
-    public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]?) -> (
-        MLXArray, [(MLXArray, MLXArray)]
-    ) {
-        let (out, cache) = model(inputs, cache: cache)
+    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
+        let out = model(inputs, cache: cache)
         if let lmHead {
-            return (lmHead(out), cache)
+            return lmHead(out)
         } else {
-            return (model.embedTokens.asLinear(out), cache)
+            return model.embedTokens.asLinear(out)
         }
     }
 
@@ -300,6 +292,10 @@ public struct LlamaConfiguration: Codable, Sendable {
     var tieWordEmbeddings: Bool = true
     var attentionBias: Bool = false
     var mlpBias: Bool = false
+
+    var resolvedHeadDimensions: Int {
+        headDimensions ?? (hiddenSize / attentionHeads)
+    }
 
     enum CodingKeys: String, CodingKey {
         case hiddenSize = "hidden_size"

@@ -41,3 +41,49 @@ let replacementTokenizers = [
     "Qwen2Tokenizer": "PreTrainedTokenizer",
     "CohereTokenizer": "PreTrainedTokenizer",
 ]
+
+public protocol StreamingDetokenizer: IteratorProtocol<String> {
+
+    mutating func append(token: Int)
+
+}
+
+public struct NaiveStreamingDetokenizer: StreamingDetokenizer {
+    let tokenizer: Tokenizer
+
+    var segmentTokens = [Int]()
+    var segment = ""
+
+    public init(tokenizer: Tokenizer) {
+        self.tokenizer = tokenizer
+    }
+
+    mutating public func append(token: Int) {
+        segmentTokens.append(token)
+    }
+
+    mutating func startNewSegment() {
+        let lastToken = segmentTokens.last
+        segmentTokens.removeAll()
+        if let lastToken {
+            segmentTokens.append(lastToken)
+            segment = tokenizer.decode(tokens: segmentTokens)
+        } else {
+            segment = ""
+        }
+    }
+
+    public mutating func next() -> String? {
+        let newSegment = tokenizer.decode(tokens: segmentTokens)
+        let new = newSegment.suffix(newSegment.count - segment.count)
+
+        if new.contains("\n") {
+            startNewSegment()
+        } else {
+            self.segment = newSegment
+        }
+
+        return String(new)
+    }
+
+}

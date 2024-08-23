@@ -63,8 +63,8 @@ private class MultiHeadCausalAttention: Module {
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
-    ) -> (MLXArray, (MLXArray, MLXArray)) {
+        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+    ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
         let qkv = qkvProj(x).reshaped(B, L, heads + (kvHeads * 2), headDim).transposed(0, 2, 1, 3)
 
@@ -78,11 +78,10 @@ private class MultiHeadCausalAttention: Module {
             keys = kNorm(keys)
         }
 
-        if let (keyCache, valueCache) = cache {
-            queries = rope(queries, offset: keyCache.dim(2))
-            keys = rope(keys, offset: keyCache.dim(2))
-            keys = concatenated([keyCache, keys], axis: 2)
-            values = concatenated([valueCache, values], axis: 2)
+        if let cache {
+            queries = rope(queries, offset: cache.offset)
+            keys = rope(keys, offset: cache.offset)
+            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope(queries)
             keys = rope(keys)
@@ -92,7 +91,7 @@ private class MultiHeadCausalAttention: Module {
             queries: queries, keys: keys, values: values, scale: scale, mask: mask
         ).transposed(0, 2, 1, 3).reshaped(B, L, heads * headDim)
 
-        return (outProj(output), (keys, values))
+        return outProj(output)
     }
 }
 
@@ -135,18 +134,20 @@ private class TransformerDecoderLayer: Module {
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
-    ) -> (MLXArray, (MLXArray, MLXArray)) {
-        var (r, cache) = attn(attnNorm(x), mask: mask, cache: cache)
+        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+    ) -> MLXArray {
+        var r = attn(attnNorm(x), mask: mask, cache: cache)
         let h = x + r
         r = ffn(ffnNorm(h))
         let out = h + r
-        return (out, cache)
+        return out
     }
 }
 
-class OpenELMModelInner: Module, LLMModel {
-    var vocabularySize: Int
+class OpenELMModelInner: Module, LLMModel, KVCacheDimensionProvider {
+    let vocabularySize: Int
+    let kvHeads: [Int]
+    let headDim: IntOrPair
 
     @ModuleInfo(key: "token_embeddings") var embedTokens: Embedding
 
@@ -157,6 +158,8 @@ class OpenELMModelInner: Module, LLMModel {
         precondition(args.vocabularySize > 0)
 
         self.vocabularySize = args.vocabularySize
+        self.kvHeads = args.kvHeads
+        self.headDim = .init(args.headDimensions)
         self._embedTokens.wrappedValue = Embedding(
             embeddingCount: self.vocabularySize, dimensions: args.modelDim)
 
@@ -168,29 +171,23 @@ class OpenELMModelInner: Module, LLMModel {
         self.norm = RMSNorm(dimensions: args.modelDim, eps: args.rmsNormEps)
     }
 
-    public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]? = nil) -> (
-        MLXArray, [(MLXArray, MLXArray)]
-    ) {
+    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
         var h = embedTokens(inputs)
-        var mask: MLXArray? = nil
-        if h.dim(1) > 1 {
-            mask = MultiHeadAttention.createAdditiveCausalMask(h.dim(1))
-            mask = mask?.asType(h.dtype)
-        }
+        let mask: MLXArray? = createAttentionMask(h: h, cache: cache)
 
-        var newCache = [(MLXArray, MLXArray)]()
         for (i, layer) in layers.enumerated() {
-            var cacheUpdate: (MLXArray, MLXArray)
-            (h, cacheUpdate) = layer(h, mask: mask, cache: cache?[i])
-            newCache.append(cacheUpdate)
+            h = layer(h, mask: mask, cache: cache?[i])
         }
 
-        return (norm(h), newCache)
+        return norm(h)
     }
 }
 
-public class OpenELMModel: Module, LLMModel {
+public class OpenELMModel: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
+    public let kvHeads: [Int]
+    public let headDim: IntOrPair
+
     let shareInputOutputLayers: Bool
     let transformer: OpenELMModelInner
 
@@ -198,23 +195,24 @@ public class OpenELMModel: Module, LLMModel {
 
     public init(_ args: OpenElmConfiguration) {
         self.vocabularySize = args.vocabularySize
+        self.kvHeads = args.kvHeads
+        self.headDim = .init(args.headDimensions)
+
         self.transformer = OpenELMModelInner(args)
         self.shareInputOutputLayers = args.shareInputOutputLayers
         self._lmHead.wrappedValue = Linear(
             args.numTransformerLayers, args.vocabularySize, bias: false)
     }
 
-    public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]?) -> (
-        MLXArray, [(MLXArray, MLXArray)]
-    ) {
-        var (out, cache) = transformer(inputs, cache: cache)
+    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
+        var out = transformer(inputs, cache: cache)
         if shareInputOutputLayers {
             out = matmul(out, transformer.embedTokens.weight.T)
         } else {
             out = lmHead(out)
         }
 
-        return (out, cache)
+        return out
     }
 }
 

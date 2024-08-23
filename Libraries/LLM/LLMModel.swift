@@ -49,18 +49,33 @@ public protocol LLMModel: Module {
 
     var vocabularySize: Int { get }
 
-    func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]?) -> (
-        MLXArray, [(MLXArray, MLXArray)]
-    )
+    func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray
+
+    /// create a new array of ``KVCache`` -- automatic implementation if self
+    /// implements ``KVCacheDimensionProvider``
+    func newCache(parameters: GenerateParameters) -> [KVCache]
 
     /// Optionally preprocess the weights and modify / remove values as needed.
     func sanitize(weights: [String: MLXArray]) -> [String: MLXArray]
 }
 
-extension LLMModel {
+/// Optional protocol that can be implemented by ``LLMModel`` and will
+/// provide an automatic implementation of ``LLMModel/newCache(parameters:)``
+public protocol KVCacheDimensionProvider {
+    var kvHeads: [Int] { get }
+    var headDim: IntOrPair { get }
+}
 
+extension LLMModel {
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
         weights
     }
+}
 
+extension LLMModel where Self: KVCacheDimensionProvider {
+    public func newCache(parameters: GenerateParameters) -> [KVCache] {
+        kvHeads.map { n in
+            KVCacheSimple(headDim: headDim, kvHeads: n)
+        }
+    }
 }

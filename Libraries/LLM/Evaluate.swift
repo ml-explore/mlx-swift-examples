@@ -5,56 +5,12 @@ import MLX
 import MLXRandom
 import Tokenizers
 
-private func topPSampling(logits: MLXArray, topP: Float, temp: Float) -> MLXArray {
-    var logits = logits
-    if logits.dtype == .bfloat16 {
-        logits = logits.asType(.float32)
-    }
-
-    let probs = softmax(logits / temp, axis: -1)
-    let sortedIndices = argSort(probs, axis: -1)
-
-    // probs shape is [B,V] and after take it will be [1, B, V], so we squeeze it back to [B, V]
-    let sortedProbs = take(probs, sortedIndices, axis: -1).squeezed(axis: 0)
-
-    let cumulativeProbs = cumsum(sortedProbs, axis: -1)
-
-    let topProbs = MLX.where(cumulativeProbs .> (1 - topP), sortedProbs, zeros(like: sortedProbs))
-
-    let sortedToken = categorical(log(topProbs))
-    return sortedIndices.squeezed(axis: 0)[sortedToken]
-}
-
-private func applyRepetitionPenalty(
-    logits: MLXArray, repetitionContext: MLXArray, penalty: Float
-) -> MLXArray {
-    if repetitionContext.shape[0] > 0 {
-        let indices = repetitionContext
-        var selectedLogits = logits[0..., indices]
-
-        selectedLogits = MLX.where(
-            selectedLogits .< 0, selectedLogits * penalty, selectedLogits / penalty)
-
-        logits[0..., indices] = selectedLogits
-        return logits
-    }
-
-    return logits
-}
-
-private func sample(logits: MLXArray, temp: Float, topP: Float = 1.0) -> MLXArray {
-    if temp == 0 {
-        return argMax(logits, axis: -1)
-    } else {
-        if topP > 0 && topP < 1 {
-            return topPSampling(logits: logits, topP: topP, temp: temp)
-        }
-        return categorical(logits * (1 / temp))
-    }
-}
-
 /// Parameters for text generation, see ``TokenIterator``
 public struct GenerateParameters: Sendable {
+
+    /// Step size for processing the prompt
+    public var prefillStepSize = 512
+
     /// sampling temperature
     public var temperature: Float = 0.6
 
@@ -78,53 +34,187 @@ public struct GenerateParameters: Sendable {
     }
 }
 
+struct SampleContext {
+
+    let temp: MLXArray
+    let topP: MLXArray
+    let useTopP: Bool
+    let useArgMax: Bool
+
+    init(parameters: GenerateParameters) {
+        self.temp = MLXArray(parameters.temperature)
+        self.topP = MLXArray(parameters.topP)
+        self.useTopP = parameters.topP > 0 && parameters.topP < 1
+        self.useArgMax = parameters.temperature == 0
+    }
+
+    private let compiledTopPSampling: (MLXArray, MLXArray, MLXArray) -> MLXArray = {
+        compile(inputs: [MLXRandom.globalState], outputs: [MLXRandom.globalState]) {
+            logits, topP, temp in
+            let probs = softmax(logits / temp, axis: -1)
+            let sortedIndices = argSort(probs, axis: -1)
+
+            // probs shape is [B,V] and after take it will be [1, B, V], so we squeeze it back to [B, V]
+            let sortedProbs = take(probs, sortedIndices, axis: -1).squeezed(axis: 0)
+
+            let cumulativeProbs = cumsum(sortedProbs, axis: -1)
+
+            let topProbs = MLX.where(
+                cumulativeProbs .> (1 - topP), sortedProbs, zeros(like: sortedProbs))
+
+            let sortedToken = categorical(log(topProbs))
+            return sortedIndices.squeezed(axis: 0)[sortedToken]
+        }
+    }()
+
+    private let compiledCategorical: (MLXArray, MLXArray) -> MLXArray = {
+        compile(inputs: [MLXRandom.globalState], outputs: [MLXRandom.globalState]) { logits, temp in
+            categorical(logits * (1 / temp))
+        }
+    }()
+
+    private func topPSampling(logits: MLXArray) -> MLXArray {
+        var logits = logits
+        if logits.dtype == .bfloat16 {
+            logits = logits.asType(.float32)
+        }
+
+        return compiledTopPSampling(logits, topP, temp)
+    }
+
+    func sample(logits: MLXArray) -> MLXArray {
+        if useArgMax {
+            return argMax(logits, axis: -1)
+        } else {
+            if useTopP {
+                return topPSampling(logits: logits)
+            } else {
+                return compiledCategorical(logits, temp)
+            }
+        }
+    }
+}
+
+/// Encapsulaton of the repetitionPenalty
+struct RepetitionContext: Sendable {
+    /// tokens in the repetition context sliding window
+    var tokens: [Int]
+
+    /// current write into into the tokens circular array
+    var index = 0
+
+    /// penalty factor for repeating tokens
+    let repetitionPenalty: Float?
+
+    /// number of tokens to consider for repetition penalty
+    let repetitionContextSize: Int
+
+    init(prompt: MLXArray, parameters: GenerateParameters) {
+        self.repetitionPenalty = parameters.repetitionPenalty
+        self.repetitionContextSize = parameters.repetitionContextSize
+
+        if repetitionPenalty != nil && repetitionContextSize > 1 {
+            if prompt.shape[0] <= repetitionContextSize {
+                self.tokens = prompt.asArray(Int.self)
+            } else {
+                self.tokens = prompt[(-repetitionContextSize)...].asArray(Int.self)
+            }
+        } else {
+            self.tokens = []
+        }
+    }
+
+    func applyRepetitionPenalty(logits: MLXArray) -> MLXArray {
+        if let penalty = repetitionPenalty, tokens.count > 0 {
+            let indices = MLXArray(tokens.map { UInt32($0) })
+            var selectedLogits = logits[0..., indices]
+
+            selectedLogits = MLX.where(
+                selectedLogits .< 0, selectedLogits * penalty, selectedLogits / penalty)
+
+            logits[0..., indices] = selectedLogits
+            return logits
+        }
+
+        return logits
+    }
+
+    mutating func append(token: MLXArray) {
+        if repetitionPenalty != nil {
+            if tokens.count >= repetitionContextSize {
+                tokens[index] = token.item(Int.self)
+                index = (index + 1) % repetitionContextSize
+            } else {
+                tokens.append(token.item(Int.self))
+            }
+        }
+    }
+}
+
 /// Synchronous generator of tokens.
 ///
+/// Tokens are integers that can be passed through a `Tokenizer` or ``StreamingDetokenizer`` to produce Strings.
+///
 /// Port of `generate_step()` from https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/utils.py
+///
+/// Note: this uses `asyncEval()` and there may be an async evaluation running after a call to `next()`.
 public struct TokenIterator: Sequence, IteratorProtocol {
     let model: LLMModel
     let parameters: GenerateParameters
-    var repetitionContext: MLXArray
-    var y: MLXArray
-    var cache: [(MLXArray, MLXArray)]
 
-    var first = true
+    var y: MLXArray
+    var cache: [KVCache]
+    var repetitionContext: RepetitionContext
+    let sampleContext: SampleContext
 
     public init(prompt: MLXArray, model: LLMModel, parameters: GenerateParameters) {
         self.model = model
         self.parameters = parameters
         self.y = prompt
-        self.cache = []
-        if parameters.repetitionContextSize > 1 {
-            if prompt.shape[0] <= parameters.repetitionContextSize {
-                self.repetitionContext = prompt
-            } else {
-                self.repetitionContext = prompt[(-parameters.repetitionContextSize)...]
-            }
-        } else {
-            self.repetitionContext = []
+        self.cache = model.newCache(parameters: parameters)
+
+        self.repetitionContext = RepetitionContext(prompt: prompt, parameters: parameters)
+        self.sampleContext = SampleContext(parameters: parameters)
+
+        // prepare the prompt in chunks if larger than the prefill size
+        while y.size > parameters.prefillStepSize {
+            _ = model(
+                y[..<parameters.prefillStepSize, .newAxis], cache: cache.isEmpty ? nil : cache)
+            eval(cache)
+            y = y[parameters.prefillStepSize...]
         }
+
+        // evaluate the remainder of the prompt -- this primes the pump
+        y = step(previous: y)
+        asyncEval(y)
     }
 
-    mutating public func next() -> MLXArray? {
+    /// Evaluate the next token and return the new token (y) and cache state.
+    ///
+    /// This may mutate the repititionContext.
+    mutating func step(previous: MLXArray) -> MLXArray {
         var logits: MLXArray
-        (logits, cache) = model(expandedDimensions(y, axis: 0), cache: cache.isEmpty ? nil : cache)
+        logits = model(previous[.newAxis], cache: cache.isEmpty ? nil : cache)
+
         logits = logits[0..., -1, 0...]
-        if let repetitionPenalty = parameters.repetitionPenalty {
-            // apply repetition penalty
-            logits = applyRepetitionPenalty(
-                logits: logits, repetitionContext: repetitionContext,
-                penalty: repetitionPenalty)
-        }
-        y = sample(logits: logits, temp: parameters.temperature, topP: parameters.topP)
-        // append the current token to the context and check repetitionPenalty context see if need to remove the first token
-        if parameters.repetitionContextSize > 1 {
-            if repetitionContext.shape[0] > parameters.repetitionContextSize {
-                repetitionContext = repetitionContext[(-parameters.repetitionContextSize)...]
-            }
-        }
+        logits = repetitionContext.applyRepetitionPenalty(logits: logits)
+
+        let y = sampleContext.sample(logits: logits)
+
+        repetitionContext.append(token: y)
 
         return y
+    }
+
+    mutating public func next() -> Int? {
+        // save current value -- this will be returned
+        let previousY = y
+
+        // compute the next state and async eval the next token
+        y = step(previous: previousY)
+        asyncEval(y)
+
+        return previousY.item(Int.self)
     }
 }
 
@@ -149,13 +239,13 @@ public struct GenerateResult: Sendable {
     }
 
     public var tokensPerSecond: Double {
-        Double(tokens.count - 1) / generateTime
+        Double(tokens.count) / generateTime
     }
 
     public func summary() -> String {
         """
-        Prompt Tokens per second:     \(promptTokensPerSecond.formatted())
-        Generation tokens per second: \(tokensPerSecond.formatted())
+        Prompt:     \(promptTokens.count) tokens, \(promptTokensPerSecond.formatted()) tokens/s
+        Generation: \(tokens.count) tokens, \(tokensPerSecond.formatted()) tokens/s, \(generateTime.formatted())s
         """
     }
 }
@@ -195,20 +285,17 @@ public func generate(
     {
         // compute the timing for the prompt
         if tokens.isEmpty {
-            eval(token)
             let now = Date.timeIntervalSinceReferenceDate
             promptTime = now - start
             start = now
         }
 
-        let t = token.item(Int.self)
-        if t == tokenizer.unknownTokenId || t == tokenizer.eosTokenId
-            || additionalEOSTokenIds.contains(t)
+        if token == tokenizer.unknownTokenId || token == tokenizer.eosTokenId
+            || additionalEOSTokenIds.contains(token)
         {
             break
         }
-
-        tokens.append(t)
+        tokens.append(token)
 
         if didGenerate(tokens) == .stop {
             break
@@ -217,6 +304,12 @@ public func generate(
 
     let now = Date.timeIntervalSinceReferenceDate
     let generateTime = now - start
+
+    // TokenIterator uses `asyncEval()` to keep the pipeline full.  If the caller
+    // exits the program right away, those tasks will still be executing and will
+    // hit assertions as the mlx scheduler is torn down.  Synchronize with the stream
+    // to make sure it is complete.
+    Stream().synchronize()
 
     return GenerateResult(
         promptTokens: promptTokens, tokens: tokens,
