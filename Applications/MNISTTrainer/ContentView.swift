@@ -98,7 +98,6 @@ actor LeNetContainer {
         let testImages = data[.init(.test, .images)]!
         let testLabels = data[.init(.test, .labels)]!
 
-        // create the model with random weights
         eval(model.parameters())
 
         // the training loop
