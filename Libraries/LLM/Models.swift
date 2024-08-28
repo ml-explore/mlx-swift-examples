@@ -154,9 +154,9 @@ extension ModelConfiguration {
         defaultPrompt: "Why is the sky blue?"
     )
 
-    public static let phi3_4bit = ModelConfiguration(
-        id: "mlx-community/Phi-3-mini-4k-instruct-4bit-no-q-embed",
-        defaultPrompt: "what is the gravity on mars and the moon?",
+    public static let phi3_5_4bit = ModelConfiguration(
+        id: "mlx-community/Phi-3.5-mini-instruct-4bit",
+        defaultPrompt: "What is the gravity on Mars and the moon?",
         extraEOSTokens: ["<|end|>"]
     ) {
         prompt in
@@ -250,7 +250,7 @@ extension ModelConfiguration {
                 mistral7B4bit,
                 codeLlama13b4bit,
                 phi4bit,
-                phi3_4bit,
+                phi3_5_4bit,
                 gemma2bQuantized,
                 gemma_2_9b_it_4bit,
                 qwen205b4bit,
