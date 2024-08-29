@@ -77,7 +77,7 @@ public struct NaiveStreamingDetokenizer: StreamingDetokenizer {
         let newSegment = tokenizer.decode(tokens: segmentTokens)
         let new = newSegment.suffix(newSegment.count - segment.count)
 
-        if new.contains("\n") {
+        if new.hasSuffix("\n") {
             startNewSegment()
         } else {
             self.segment = newSegment
