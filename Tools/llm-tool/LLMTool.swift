@@ -102,22 +102,21 @@ struct GenerateArguments: ParsableArguments, Sendable {
     )
         -> GenerateResult
     {
-        // track how much we have printed
-        var printed = 0
+        var detokenizer = NaiveStreamingDetokenizer(tokenizer: tokenizer)
 
         return LLM.generate(
             promptTokens: promptTokens, parameters: generateParameters,
             model: model, tokenizer: tokenizer, extraEOSTokens: extraEOSTokens
         ) { tokens in
 
-            // print any new parts of the string
-            let fullOutput = tokenizer.decode(tokens: tokens)
-            let emitLength = fullOutput.count - printed
-            let suffix = fullOutput.suffix(emitLength)
-            print(suffix, terminator: "")
-            fflush(stdout)
+            if let last = tokens.last {
+                detokenizer.append(token: last)
+            }
 
-            printed = fullOutput.count
+            if let new = detokenizer.next() {
+                print(new, terminator: "")
+                fflush(stdout)
+            }
 
             if tokens.count >= maxTokens {
                 return .stop

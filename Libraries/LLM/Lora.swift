@@ -438,7 +438,7 @@ public enum LoRATrain {
 
         // run model on inputs
         let model = model as! LLMModel
-        let logits = model(inputs, cache: nil).0.asType(.float32)
+        let logits = model(inputs, cache: nil).asType(.float32)
 
         // mask padding tokens
         let lengthMask = MLXArray(0 ..< inputs.dim(1))[.newAxis, 0...] .< lengths[0..., .newAxis]

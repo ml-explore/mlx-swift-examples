@@ -40,6 +40,7 @@
 		C36BEFB52BBDEAD8002D4AFE /* LoraCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */; };
 		C36BEFB82BBDED51002D4AFE /* Arguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFB62BBDECBC002D4AFE /* Arguments.swift */; };
 		C36BEFBB2BBF02CC002D4AFE /* Lora+Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */; };
+		C373EB732C792DD1004E201E /* KVCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = C373EB722C792DD1004E201E /* KVCache.swift */; };
 		C38935C82B869C7A0037B833 /* LLM.h in Headers */ = {isa = PBXBuildFile; fileRef = C38935C72B869C7A0037B833 /* LLM.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C38935CC2B869C870037B833 /* Llama.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48EE2B696E6500FCB841 /* Llama.swift */; };
 		C38935CD2B869C870037B833 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48EF2B696E6500FCB841 /* Configuration.swift */; };
@@ -255,6 +256,7 @@
 		C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoraCommands.swift; sourceTree = "<group>"; };
 		C36BEFB62BBDECBC002D4AFE /* Arguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Arguments.swift; sourceTree = "<group>"; };
 		C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Lora+Data.swift"; sourceTree = "<group>"; };
+		C373EB722C792DD1004E201E /* KVCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KVCache.swift; sourceTree = "<group>"; };
 		C38935C52B869C7A0037B833 /* LLM.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LLM.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C38935C72B869C7A0037B833 /* LLM.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LLM.h; sourceTree = "<group>"; };
 		C38935DE2B869DD00037B833 /* Phi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phi.swift; sourceTree = "<group>"; };
@@ -488,6 +490,7 @@
 				C34E48F62B69832600FCB841 /* README.md */,
 				C34E48ED2B696E6500FCB841 /* Load.swift */,
 				C3E786AA2B8D1AEC0004D037 /* Evaluate.swift */,
+				C373EB722C792DD1004E201E /* KVCache.swift */,
 				C3E786AC2B8D4AF50004D037 /* Tokenizer.swift */,
 				52A776172B94B5EE00AA6E80 /* Qwen2.swift */,
 				F24B08392BAF1A65008C8D19 /* Cohere.swift */,
@@ -1003,6 +1006,7 @@
 				C38935E12B869F420037B833 /* LLMModel.swift in Sources */,
 				F24B083A2BAF1A65008C8D19 /* Cohere.swift in Sources */,
 				C38935E32B86C0FE0037B833 /* Gemma.swift in Sources */,
+				C373EB732C792DD1004E201E /* KVCache.swift in Sources */,
 				C38935CD2B869C870037B833 /* Configuration.swift in Sources */,
 				1CD79C702BD80DE100B6C06F /* Phi3.swift in Sources */,
 				525C1E9D2B9A011000B5C356 /* Starcoder2.swift in Sources */,
@@ -2708,7 +2712,7 @@
 			repositoryURL = "https://github.com/ml-explore/mlx-swift";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.16.0;
+				minimumVersion = 0.16.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

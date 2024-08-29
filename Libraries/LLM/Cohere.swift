@@ -37,8 +37,8 @@ private class Attention: Module {
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
-    ) -> (MLXArray, (MLXArray, MLXArray)) {
+        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+    ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
 
         var queries = wq(x)
@@ -50,11 +50,10 @@ private class Attention: Module {
         keys = keys.reshaped(B, L, args.kvHeads, -1).transposed(0, 2, 1, 3)
         values = values.reshaped(B, L, args.kvHeads, -1).transposed(0, 2, 1, 3)
 
-        if let (keyCache, valueCache) = cache {
-            queries = rope(queries, offset: keyCache.dim(2))
-            keys = rope(keys, offset: keyCache.dim(2))
-            keys = concatenated([keyCache, keys], axis: 2)
-            values = concatenated([valueCache, values], axis: 2)
+        if let cache {
+            queries = rope(queries, offset: cache.offset)
+            keys = rope(keys, offset: cache.offset)
+            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope(queries)
             keys = rope(keys)
@@ -66,7 +65,7 @@ private class Attention: Module {
         .transposed(0, 2, 1, 3)
         .reshaped(B, L, -1)
 
-        return (wo(output), (keys, values))
+        return wo(output)
     }
 }
 
@@ -104,12 +103,12 @@ private class TransformerBlock: Module {
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: (MLXArray, MLXArray)? = nil
-    ) -> (MLXArray, (MLXArray, MLXArray)) {
+        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+    ) -> MLXArray {
         let h = inputLayerNorm(x)
-        let (attnH, cache) = attention(h, mask: mask, cache: cache)
+        let attnH = attention(h, mask: mask, cache: cache)
         let ffH = mlp(h)
-        return (attnH + ffH + x, cache)
+        return attnH + ffH + x
     }
 }
 
@@ -133,48 +132,41 @@ public class CohereModelInner: Module {
         self.norm = LayerNorm(dimensions: args.hiddenSize, eps: args.layerNormEps)
     }
 
-    public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]? = nil) -> (
-        MLXArray, [(MLXArray, MLXArray)]
-    ) {
+    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
         var h = embedTokens(inputs)
 
-        var mask: MLXArray? = nil
-        if h.dim(1) > 1 {
-            mask = MultiHeadAttention.createAdditiveCausalMask(h.dim(1))
-            mask = mask?.asType(h.dtype)
-        }
-
-        var newCache = [(MLXArray, MLXArray)]()
+        let mask: MLXArray? = createAttentionMask(h: h, cache: cache)
 
         for (i, layer) in layers.enumerated() {
-            var cacheUpdate: (MLXArray, MLXArray)
-            (h, cacheUpdate) = layer(h, mask: mask, cache: cache?[i])
-            newCache.append(cacheUpdate)
+            h = layer(h, mask: mask, cache: cache?[i])
         }
 
-        return (norm(h), newCache)
+        return norm(h)
     }
 }
 
-public class CohereModel: Module, LLMModel {
+public class CohereModel: Module, LLMModel, KVCacheDimensionProvider {
 
     public let vocabularySize: Int
+    public let kvHeads: [Int]
+    public let headDim: IntOrPair
+
     let model: CohereModelInner
     let logitScale: Float
 
     public init(_ args: CohereConfiguration) {
         self.vocabularySize = args.vocabularySize
+        self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
+        self.headDim = .init(args.hiddenSize / args.attentionHeads)
         self.model = CohereModelInner(args)
         self.logitScale = args.logitScale
     }
 
-    public func callAsFunction(_ inputs: MLXArray, cache: [(MLXArray, MLXArray)]?) -> (
-        MLXArray, [(MLXArray, MLXArray)]
-    ) {
-        var (out, cache) = model(inputs, cache: cache)
+    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
+        var out = model(inputs, cache: cache)
         out = matmul(out, model.embedTokens.weight.T)
         out = out * self.logitScale
-        return (out, cache)
+        return out
     }
 }
 
