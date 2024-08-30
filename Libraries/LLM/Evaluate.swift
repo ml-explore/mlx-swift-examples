@@ -179,7 +179,7 @@ public struct TokenIterator: Sequence, IteratorProtocol {
         // prepare the prompt in chunks if larger than the prefill size
         while y.size > parameters.prefillStepSize {
             _ = model(
-                y[..<parameters.prefillStepSize, .newAxis], cache: cache.isEmpty ? nil : cache)
+                y[.newAxis, ..<parameters.prefillStepSize], cache: cache.isEmpty ? nil : cache)
             eval(cache)
             y = y[parameters.prefillStepSize...]
         }
