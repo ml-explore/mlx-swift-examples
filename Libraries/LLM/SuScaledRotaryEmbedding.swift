@@ -16,7 +16,9 @@ public class SuScaledRotaryEmbedding: Module {
         base: Float = 10000.0,
         maxPositionEmbeddings: Int = 131072,
         originalMaxPositionEmbeddings: Int = 4096,
-        longFactor: [Float] = [1.0]
+        longFactor: [Float] = [1.0],
+        // shortMScale: Float? = nil,
+        longMScale: Float? = nil
     ) {
         precondition(dimensions % 2 == 0, "Dimensions must be even")
 
@@ -30,10 +32,12 @@ public class SuScaledRotaryEmbedding: Module {
         let freqs = MLX.pow(MLXArray(base), exponent)
         self._freqs = MLXArray(longFactor).asType(.float32) * freqs
 
-        self.scale = sqrt(
-            1 + log(Float(maxPositionEmbeddings) / Float(originalMaxPositionEmbeddings))
-                / log(Float(originalMaxPositionEmbeddings))
-        )
+        self.scale =
+            longMScale
+            ?? sqrt(
+                1 + log(Float(maxPositionEmbeddings) / Float(originalMaxPositionEmbeddings))
+                    / log(Float(originalMaxPositionEmbeddings))
+            )
     }
 
     public func callAsFunction(_ x: MLXArray, offset: Int = 0) -> MLXArray {

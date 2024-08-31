@@ -163,6 +163,15 @@ extension ModelConfiguration {
         "<s><|user|>\n\(prompt)<|end|>\n<|assistant|>\n"
     }
 
+    public static let phi3_5MoE = ModelConfiguration(
+        id: "mlx-community/Phi-3.5-MoE-instruct-4bit",
+        defaultPrompt: "What is the gravity on Mars and the moon?",
+        extraEOSTokens: ["<|end|>"]
+    ) {
+        prompt in
+        "<s><|user|>\n\(prompt)<|end|>\n<|assistant|>\n"
+    }
+
     public static let gemma2bQuantized = ModelConfiguration(
         id: "mlx-community/quantized-gemma-2b-it",
         overrideTokenizer: "PreTrainedTokenizer",
