@@ -10,12 +10,21 @@
       }
     },
     {
+      "identity" : "jinja",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/maiqingqiang/Jinja",
+      "state" : {
+        "branch" : "main",
+        "revision" : "5b0703d19a8901b76948753e5c5e3ca77043d33f"
+      }
+    },
+    {
       "identity" : "mlx-swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ml-explore/mlx-swift",
       "state" : {
-        "branch" : "main",
-        "revision" : "5e51224ac869366017859dc0b07f6d2dc51b3bae"
+        "revision" : "86ad75ab1ee96cd70325732b37cd830f87d7e43f",
+        "version" : "0.16.1"
       }
     },
     {
@@ -23,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser.git",
       "state" : {
-        "revision" : "c8ed701b513cf5177118a175d85fbbbcd707ab41",
-        "version" : "1.3.0"
+        "revision" : "41982a3656a71c768319979febd796c6fd111d5c",
+        "version" : "1.5.0"
       }
     },
     {
@@ -59,8 +68,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/huggingface/swift-transformers",
       "state" : {
-        "revision" : "4f915610451d29a05948802a140880ff37494dad",
-        "version" : "0.1.6"
+        "branch" : "main",
+        "revision" : "5d89b5d9ab5a25d4337c42dbc559d391c966c912"
       }
     }
   ],
