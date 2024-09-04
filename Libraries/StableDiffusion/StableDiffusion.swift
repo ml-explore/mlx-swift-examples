@@ -147,7 +147,7 @@ public actor ModelContainer<M> {
         }
     }
 
-    public func setConservativeMemory(_ conserveMemory: Bool) {
+    public func setConserveMemory(_ conserveMemory: Bool) {
         self.conserveMemory = conserveMemory
     }
 

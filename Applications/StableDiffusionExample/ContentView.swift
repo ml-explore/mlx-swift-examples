@@ -158,7 +158,7 @@ actor ModelFactory {
                 let container = try ModelContainer<TextToImageGenerator>.createTextToImageGenerator(
                     configuration: configuration, loadConfiguration: loadConfiguration)
 
-                await container.setConservativeMemory(conserveMemory)
+                await container.setConserveMemory(conserveMemory)
 
                 try await container.perform { model in
                     reportProgress(.init(title: "Loading weights", current: 0, limit: 1))
