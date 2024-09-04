@@ -41,8 +41,12 @@ public func load(
 ) async throws -> (LLMModel, Tokenizer) {
     let modelDirectory = try await prepareModelDirectory(
         hub: hub, configuration: configuration, progressHandler: progressHandler)
-    let model = try loadSynchronous(modelDirectory: modelDirectory)
+
+    // Note: a side effect of loading the tokenizer is that it will ensure
+    // the config.json is downloaded, which is required by the model loading
     let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
+
+    let model = try loadSynchronous(modelDirectory: modelDirectory)
 
     return (model, tokenizer)
 }
