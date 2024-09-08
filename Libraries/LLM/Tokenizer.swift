@@ -51,7 +51,7 @@ private func updateTokenizerConfig(_ tokenizerConfig: Config) -> Config {
 }
 
 /// overrides for TokenizerModel/knownTokenizers
-let replacementTokenizers = [
+public var replacementTokenizers = [
     "Qwen2Tokenizer": "PreTrainedTokenizer",
     "CohereTokenizer": "PreTrainedTokenizer",
 ]
