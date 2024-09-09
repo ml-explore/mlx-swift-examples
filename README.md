@@ -13,10 +13,17 @@ Example [MLX Swift](https://github.com/ml-explore/mlx-swift) programs.
 - [LinearModelTraining](Tools/LinearModelTraining/README.md): An example that
   trains a simple linear model.
 
+- [StableDiffusionExample](Applications/StableDiffusionExample/README.md): An 
+  example that runs on both iOS and macOS that downloads a stable diffusion model
+  from Hugging Face and  and generates an image from a given prompt. 
+
 - [llm-tool](Tools/llm-tool/README.md): A command line tool for generating text
   using a variety of LLMs available on the Hugging Face hub.
 
-- [mnist-tool](Tools/mnist-tool/README.md): A command line tool for training
+- [image-tool](Tools/image-tool/README.md): A command line tool for generating images
+  using a stable diffusion model from Hugging Face.
+
+- [mnist-tool](Tools/mnist-tool/README.md): A command line tool for training a
   a LeNet on MNIST.
   
 ## Running
@@ -34,7 +41,8 @@ See also:
 
 ## Installation of MLXLLM and MLXMNIST libraries
 
-The MLXLLM and MLXMNIST libraries in the example repo are available as Swift Packages.
+The MLXLLM, MLXMNIST and StableDiffusion libraries in the example repo are available
+as Swift Packages.
 
 
 Add the following dependency to your Package.swift
