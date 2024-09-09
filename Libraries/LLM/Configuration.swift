@@ -26,62 +26,68 @@ public enum StringOrNumber: Codable, Equatable, Sendable {
     }
 }
 
-public enum ModelType: String, Codable, Sendable {
-    case mistral
-    case llama
-    case phi
-    case phi3
-    case gemma
-    case gemma2
-    case qwen2
-    case starcoder2
-    case cohere
-    case openelm
-    case internlm2
+public struct ModelType: RawRepresentable, Codable, Sendable {
+    public let rawValue: String
 
-    public func createModel(configuration: URL) throws -> LLMModel {
-        switch self {
-        case .mistral, .llama:
-            let configuration = try JSONDecoder().decode(
-                LlamaConfiguration.self, from: Data(contentsOf: configuration))
-            return LlamaModel(configuration)
-        case .phi:
-            let configuration = try JSONDecoder().decode(
-                PhiConfiguration.self, from: Data(contentsOf: configuration))
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    private static func createLlamaModel(url: URL) throws -> LLMModel {
+        let configuration = try JSONDecoder().decode(LlamaConfiguration.self, from: Data(contentsOf: url))
+        return LlamaModel(configuration)
+    }
+
+    private static var creators: [String: (URL) throws -> LLMModel] = [
+        "mistral": createLlamaModel,
+        "llama": createLlamaModel,
+        "phi": { url in
+            let configuration = try JSONDecoder().decode(PhiConfiguration.self, from: Data(contentsOf: url))
             return PhiModel(configuration)
-        case .phi3:
-            let configuration = try JSONDecoder().decode(
-                Phi3Configuration.self, from: Data(contentsOf: configuration))
+        },
+        "phi3": { url in
+            let configuration = try JSONDecoder().decode(Phi3Configuration.self, from: Data(contentsOf: url))
             return Phi3Model(configuration)
-        case .gemma:
-            let configuration = try JSONDecoder().decode(
-                GemmaConfiguration.self, from: Data(contentsOf: configuration))
+        },
+        "gemma": { url in
+            let configuration = try JSONDecoder().decode(GemmaConfiguration.self, from: Data(contentsOf: url))
             return GemmaModel(configuration)
-        case .gemma2:
-            let configuration = try JSONDecoder().decode(
-                Gemma2Configuration.self, from: Data(contentsOf: configuration))
+        },
+        "gemma2": { url in
+            let configuration = try JSONDecoder().decode(Gemma2Configuration.self, from: Data(contentsOf: url))
             return Gemma2Model(configuration)
-        case .qwen2:
-            let configuration = try JSONDecoder().decode(
-                Qwen2Configuration.self, from: Data(contentsOf: configuration))
+        },
+        "qwen2": { url in
+            let configuration = try JSONDecoder().decode(Qwen2Configuration.self, from: Data(contentsOf: url))
             return Qwen2Model(configuration)
-        case .starcoder2:
-            let configuration = try JSONDecoder().decode(
-                Starcoder2Configuration.self, from: Data(contentsOf: configuration))
+        },
+        "starcoder2": { url in
+            let configuration = try JSONDecoder().decode(Starcoder2Configuration.self, from: Data(contentsOf: url))
             return Starcoder2Model(configuration)
-        case .cohere:
-            let configuration = try JSONDecoder().decode(
-                CohereConfiguration.self, from: Data(contentsOf: configuration))
+        },
+        "cohere": { url in
+            let configuration = try JSONDecoder().decode(CohereConfiguration.self, from: Data(contentsOf: url))
             return CohereModel(configuration)
-        case .openelm:
-            let configuration = try JSONDecoder().decode(
-                OpenElmConfiguration.self, from: Data(contentsOf: configuration))
+        },
+        "openelm": { url in
+            let configuration = try JSONDecoder().decode(OpenElmConfiguration.self, from: Data(contentsOf: url))
             return OpenELMModel(configuration)
-        case .internlm2:
-            let configuration = try JSONDecoder().decode(
-                InternLM2Configuration.self, from: Data(contentsOf: configuration))
+        },
+        "internlm2": { url in
+            let configuration = try JSONDecoder().decode(InternLM2Configuration.self, from: Data(contentsOf: url))
             return InternLM2Model(configuration)
         }
+    ]
+
+    public static func registerModelType(_ type: String, creator: @escaping (URL) throws -> LLMModel) {
+        creators[type] = creator
+    }
+
+    public func createModel(configuration: URL) throws -> LLMModel {
+        guard let creator = ModelType.creators[rawValue] else {
+            throw LLMError(message: "Unsupported model type.")
+        }
+        return try creator(configuration)
     }
 }
 
