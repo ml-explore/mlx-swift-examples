@@ -41,6 +41,7 @@
 		C36BEFB82BBDED51002D4AFE /* Arguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFB62BBDECBC002D4AFE /* Arguments.swift */; };
 		C36BEFBB2BBF02CC002D4AFE /* Lora+Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */; };
 		C373EB732C792DD1004E201E /* KVCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = C373EB722C792DD1004E201E /* KVCache.swift */; };
+		C380FFF72C8F5053006428A3 /* Internlm2.swift in Sources */ = {isa = PBXBuildFile; fileRef = C380FFF62C8F5053006428A3 /* Internlm2.swift */; };
 		C38935C82B869C7A0037B833 /* LLM.h in Headers */ = {isa = PBXBuildFile; fileRef = C38935C72B869C7A0037B833 /* LLM.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C38935CC2B869C870037B833 /* Llama.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48EE2B696E6500FCB841 /* Llama.swift */; };
 		C38935CD2B869C870037B833 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48EF2B696E6500FCB841 /* Configuration.swift */; };
@@ -257,6 +258,7 @@
 		C36BEFB62BBDECBC002D4AFE /* Arguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Arguments.swift; sourceTree = "<group>"; };
 		C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Lora+Data.swift"; sourceTree = "<group>"; };
 		C373EB722C792DD1004E201E /* KVCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KVCache.swift; sourceTree = "<group>"; };
+		C380FFF62C8F5053006428A3 /* Internlm2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Internlm2.swift; sourceTree = "<group>"; };
 		C38935C52B869C7A0037B833 /* LLM.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LLM.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C38935C72B869C7A0037B833 /* LLM.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LLM.h; sourceTree = "<group>"; };
 		C38935DE2B869DD00037B833 /* Phi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phi.swift; sourceTree = "<group>"; };
@@ -474,6 +476,7 @@
 		C38935C62B869C7A0037B833 /* LLM */ = {
 			isa = PBXGroup;
 			children = (
+				C380FFF62C8F5053006428A3 /* Internlm2.swift */,
 				7BBD0D6D2BE044A10019C5D7 /* OpenELM.swift */,
 				C36BEFAF2BBCBAC2002D4AFE /* Lora.swift */,
 				C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */,
@@ -1004,6 +1007,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C38935E12B869F420037B833 /* LLMModel.swift in Sources */,
+				C380FFF72C8F5053006428A3 /* Internlm2.swift in Sources */,
 				F24B083A2BAF1A65008C8D19 /* Cohere.swift in Sources */,
 				C38935E32B86C0FE0037B833 /* Gemma.swift in Sources */,
 				C373EB732C792DD1004E201E /* KVCache.swift in Sources */,
