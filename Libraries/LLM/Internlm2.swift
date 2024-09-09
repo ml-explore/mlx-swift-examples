@@ -3,7 +3,6 @@
 import Foundation
 import MLX
 import MLXFast
-import MLXLLM
 import MLXNN
 
 // Port of https://github.com/maiqingqiang/mlx-examples/blob/main/llms/mlx_lm/models/internlm2.py
