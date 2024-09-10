@@ -53,7 +53,7 @@ func loadSynchronous(modelDirectory: URL) throws -> LLMModel {
     let baseConfig = try JSONDecoder().decode(
         BaseConfiguration.self, from: Data(contentsOf: configurationURL))
 
-    let model = try baseConfig.modelType.createModel(configuration: configurationURL)
+    let model = try baseConfig.modelType.createModelSynchronous(configuration: configurationURL)
 
     // load the weights
     var weights = [String: MLXArray]()

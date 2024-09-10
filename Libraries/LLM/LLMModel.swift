@@ -58,7 +58,7 @@ public actor ModelContainer {
 }
 
 /// Interface for all LLM Models
-public protocol LLMModel: Module {
+public protocol LLMModel: Module,Sendable {
 
     var vocabularySize: Int { get }
 

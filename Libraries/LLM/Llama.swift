@@ -238,7 +238,7 @@ private class LlamaModelInner: Module {
     }
 }
 
-public class LlamaModel: Module, LLMModel, KVCacheDimensionProvider {
+public class LlamaModel: Module, LLMModel, KVCacheDimensionProvider,@unchecked Sendable {
 
     public let vocabularySize: Int
     public let kvHeads: [Int]

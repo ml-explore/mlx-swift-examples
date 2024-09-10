@@ -147,7 +147,7 @@ public class Starcoder2ModelInner: Module {
     }
 }
 
-public class Starcoder2Model: Module, LLMModel, KVCacheDimensionProvider {
+public class Starcoder2Model: Module, LLMModel, KVCacheDimensionProvider,@unchecked Sendable {
     public let vocabularySize: Int
     public let kvHeads: [Int]
     public let headDim: IntOrPair

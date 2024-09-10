@@ -26,20 +26,14 @@ public enum StringOrNumber: Codable, Equatable, Sendable {
     }
 }
 
-public struct ModelType: RawRepresentable, Codable, Sendable {
-    public let rawValue: String
-
-    public init(rawValue: String) {
-        self.rawValue = rawValue
-    }
-
-    private static func createLlamaModel(url: URL) throws -> LLMModel {
+public actor ModelTypeRegistry {
+    @Sendable private static func createLlamaModel(url: URL) throws -> LLMModel {
         let configuration = try JSONDecoder().decode(
             LlamaConfiguration.self, from: Data(contentsOf: url))
         return LlamaModel(configuration)
     }
 
-    private static var creators: [String: (URL) throws -> LLMModel] = [
+    private var creators: [String: @Sendable (URL) throws -> any LLMModel] = [
         "mistral": createLlamaModel,
         "llama": createLlamaModel,
         "phi": { url in
@@ -89,20 +83,97 @@ public struct ModelType: RawRepresentable, Codable, Sendable {
         },
     ]
 
-    public static func registerModelType(
-        _ type: String, creator: @escaping (URL) throws -> LLMModel
+    func registerModelType(
+        _ type: String, creator: @Sendable @escaping (URL) throws -> any LLMModel
     ) {
         creators[type] = creator
     }
 
-    public func createModel(configuration: URL) throws -> LLMModel {
-        guard let creator = ModelType.creators[rawValue] else {
+    public func getCreator(for type: String) -> (@Sendable (URL) throws -> LLMModel)? {
+        creators[type]
+    }
+}
+
+public struct ModelType: RawRepresentable, Codable, Sendable {
+    public let rawValue: String
+    private static let registry = ModelTypeRegistry()
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    private static func createLlamaModel(url: URL) throws -> LLMModel {
+        let configuration = try JSONDecoder().decode(
+            LlamaConfiguration.self, from: Data(contentsOf: url))
+        return LlamaModel(configuration)
+    }
+
+    public static func registerModelType(
+        _ type: String, creator: @Sendable @escaping (URL) throws -> any LLMModel
+    ) async {
+        await registry.registerModelType(type, creator: creator)
+    }
+
+    public func createModel(configuration: URL) async throws -> LLMModel {
+        guard let creator = await ModelType.registry.getCreator(for: rawValue) else {
             throw LLMError(message: "Unsupported model type.")
         }
         return try creator(configuration)
     }
-}
 
+    //    public func createModelSynchronous(configuration: URL) throws -> any LLMModel {
+    //        // 使用 DispatchQueue 来同步执行异步操作
+    //        let semaphore = DispatchSemaphore(value: 0)
+    //        var result: Result<any LLMModel, Error>?
+    //
+    //        DispatchQueue.global().async {
+    //            Task {
+    //                do {
+    //                    let model = try await self.createModel(configuration: configuration)
+    //                    result = .success(model)
+    //                } catch {
+    //                    result = .failure(error)
+    //                }
+    //                semaphore.signal()
+    //            }
+    //        }
+    //
+    //        semaphore.wait()
+    //
+    //        guard let finalResult = result else {
+    //            fatalError("Unexpected state: result not set")
+    //        }
+    //
+    //        return try finalResult.get()
+    //    }
+
+    public func createModelSynchronous(configuration: URL) throws -> any LLMModel {
+        let semaphore = DispatchSemaphore(value: 0)
+        var resultModel: (any LLMModel)?
+        var resultError: Error?
+
+        Task {
+            do {
+                let model = try await self.createModel(configuration: configuration)
+                resultModel = model
+            } catch {
+                resultError = error
+            }
+            semaphore.signal()
+        }
+
+        semaphore.wait()
+
+        if let error = resultError {
+            throw error
+        }
+        guard let model = resultModel else {
+            throw LLMError(message: "Failed to create model")
+        }
+        return model
+    }
+
+}
 public struct BaseConfiguration: Codable, Sendable {
     public let modelType: ModelType
 
