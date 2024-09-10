@@ -165,7 +165,7 @@ public class Qwen2ModelInner: Module {
     }
 }
 
-public class Qwen2Model: Module, LLMModel, KVCacheDimensionProvider,@unchecked Sendable {
+public class Qwen2Model: Module, LLMModel, KVCacheDimensionProvider, @unchecked Sendable {
     public let vocabularySize: Int
     public let kvHeads: [Int]
     public let headDim: IntOrPair

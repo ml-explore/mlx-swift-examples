@@ -15,7 +15,7 @@ import Foundation
         }
     }
 #else
-extension URL: @retroactive ExpressibleByArgument {
+    extension URL: @retroactive ExpressibleByArgument {
         public init?(argument: String) {
             if argument.contains("://") {
                 self.init(string: argument)

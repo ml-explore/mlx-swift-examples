@@ -183,7 +183,7 @@ public class Phi3ModelInner: Module {
     }
 }
 
-public class Phi3Model: Module, LLMModel, KVCacheDimensionProvider,@unchecked Sendable {
+public class Phi3Model: Module, LLMModel, KVCacheDimensionProvider, @unchecked Sendable {
 
     public let vocabularySize: Int
     public let kvHeads: [Int]

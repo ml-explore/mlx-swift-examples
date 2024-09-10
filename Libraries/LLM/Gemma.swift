@@ -170,7 +170,7 @@ public class GemmaModelInner: Module {
     }
 }
 
-public class GemmaModel: Module, LLMModel, KVCacheDimensionProvider,@unchecked Sendable {
+public class GemmaModel: Module, LLMModel, KVCacheDimensionProvider, @unchecked Sendable {
 
     public let vocabularySize: Int
     public let kvHeads: [Int]

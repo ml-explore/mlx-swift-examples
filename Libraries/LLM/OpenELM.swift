@@ -144,7 +144,7 @@ private class TransformerDecoderLayer: Module {
     }
 }
 
-class OpenELMModelInner: Module, LLMModel, KVCacheDimensionProvider,@unchecked Sendable {
+class OpenELMModelInner: Module, LLMModel, KVCacheDimensionProvider, @unchecked Sendable {
     let vocabularySize: Int
     let kvHeads: [Int]
     let headDim: IntOrPair
@@ -183,7 +183,7 @@ class OpenELMModelInner: Module, LLMModel, KVCacheDimensionProvider,@unchecked S
     }
 }
 
-public class OpenELMModel: Module, LLMModel, KVCacheDimensionProvider,@unchecked Sendable {
+public class OpenELMModel: Module, LLMModel, KVCacheDimensionProvider, @unchecked Sendable {
     public let vocabularySize: Int
     public let kvHeads: [Int]
     public let headDim: IntOrPair

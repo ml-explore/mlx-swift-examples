@@ -40,7 +40,7 @@ func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) async t
 private func updateTokenizerConfig(_ tokenizerConfig: Config) async -> Config {
     // workaround: replacement tokenizers for unhandled values in swift-transform
     if let tokenizerClass = tokenizerConfig.tokenizerClass?.stringValue,
-       let replacement = await tokenizerRegistry.getReplacement(for: tokenizerClass)
+        let replacement = await tokenizerRegistry.getReplacement(for: tokenizerClass)
     {
         var dictionary = tokenizerConfig.dictionary
         dictionary["tokenizer_class"] = replacement
@@ -68,7 +68,6 @@ actor TokenizerRegistry {
 }
 
 let tokenizerRegistry = TokenizerRegistry()
-
 
 public protocol StreamingDetokenizer: IteratorProtocol<String> {
 

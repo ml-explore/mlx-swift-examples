@@ -145,7 +145,7 @@ public class CohereModelInner: Module {
     }
 }
 
-public class CohereModel: Module, LLMModel, KVCacheDimensionProvider,@unchecked Sendable {
+public class CohereModel: Module, LLMModel, KVCacheDimensionProvider, @unchecked Sendable {
 
     public let vocabularySize: Int
     public let kvHeads: [Int]

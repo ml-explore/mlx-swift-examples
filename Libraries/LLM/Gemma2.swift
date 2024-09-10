@@ -198,7 +198,7 @@ public class ModelInner: Module {
 }
 
 // Uses Gemma2ModelInner, otherwise same as GemmaModel
-public class Gemma2Model: Module, LLMModel, KVCacheDimensionProvider,@unchecked Sendable {
+public class Gemma2Model: Module, LLMModel, KVCacheDimensionProvider, @unchecked Sendable {
 
     public let vocabularySize: Int
     public let kvHeads: [Int]

@@ -197,7 +197,7 @@ private class InternLM2ModelInner: Module {
     }
 }
 
-public class InternLM2Model: Module, LLMModel, KVCacheDimensionProvider,@unchecked Sendable {
+public class InternLM2Model: Module, LLMModel, KVCacheDimensionProvider, @unchecked Sendable {
     public let vocabularySize: Int
     public let kvHeads: [Int]
     public let headDim: IntOrPair
