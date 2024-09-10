@@ -151,7 +151,7 @@ private class PhiModelInner: Module {
     }
 }
 
-public class PhiModel: Module, LLMModel, KVCacheDimensionProvider, @unchecked Sendable {
+public class PhiModel: Module, LLMModel, KVCacheDimensionProvider {
 
     public let vocabularySize: Int
     public let kvHeads: [Int]
