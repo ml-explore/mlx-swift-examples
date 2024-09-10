@@ -32,15 +32,15 @@ func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) async t
     }
     let tokenizerData = try await config.tokenizerData
 
-    tokenizerConfig = updateTokenizerConfig(tokenizerConfig)
+    tokenizerConfig = await updateTokenizerConfig(tokenizerConfig)
 
     return (tokenizerConfig, tokenizerData)
 }
 
-private func updateTokenizerConfig(_ tokenizerConfig: Config) -> Config {
+private func updateTokenizerConfig(_ tokenizerConfig: Config) async -> Config {
     // workaround: replacement tokenizers for unhandled values in swift-transform
     if let tokenizerClass = tokenizerConfig.tokenizerClass?.stringValue,
-        let replacement = replacementTokenizers[tokenizerClass]
+       let replacement = await tokenizerRegistry.getReplacement(for: tokenizerClass)
     {
         var dictionary = tokenizerConfig.dictionary
         dictionary["tokenizer_class"] = replacement
@@ -51,11 +51,24 @@ private func updateTokenizerConfig(_ tokenizerConfig: Config) -> Config {
 }
 
 /// overrides for TokenizerModel/knownTokenizers
-public var replacementTokenizers = [
-    "InternLM2Tokenizer": "PreTrainedTokenizer",
-    "Qwen2Tokenizer": "PreTrainedTokenizer",
-    "CohereTokenizer": "PreTrainedTokenizer",
-]
+actor TokenizerRegistry {
+    private var replacementTokenizers: [String: String] = [
+        "InternLM2Tokenizer": "PreTrainedTokenizer",
+        "Qwen2Tokenizer": "PreTrainedTokenizer",
+        "CohereTokenizer": "PreTrainedTokenizer",
+    ]
+
+    func getReplacement(for tokenizer: String) -> String? {
+        replacementTokenizers[tokenizer]
+    }
+
+    func setReplacement(_ replacement: String, for tokenizer: String) {
+        replacementTokenizers[tokenizer] = replacement
+    }
+}
+
+let tokenizerRegistry = TokenizerRegistry()
+
 
 public protocol StreamingDetokenizer: IteratorProtocol<String> {
 
