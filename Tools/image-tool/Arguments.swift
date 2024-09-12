@@ -4,7 +4,7 @@ import ArgumentParser
 import Foundation
 import MLX
 
-#if swift(>=6.0)
+#if swift(>=5.10)
     /// Extension to allow URL command line arguments.
     extension URL: @retroactive ExpressibleByArgument {
         public init?(argument: String) {

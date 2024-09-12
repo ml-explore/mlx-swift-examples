@@ -4,7 +4,7 @@ import ArgumentParser
 import Foundation
 
 /// Extension to allow URL command line arguments.
-#if swift(>=6.0)
+#if swift(>=5.10)
     extension URL: @retroactive ExpressibleByArgument {
         public init?(argument: String) {
             if argument.contains("://") {
