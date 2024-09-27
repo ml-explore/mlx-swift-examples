@@ -146,12 +146,25 @@ actor ModelFactory {
         switch loadState {
         case .idle:
             let task = Task {
-                try await configuration.download { progress in
-                    if progress.fractionCompleted < 0.99 {
-                        reportProgress(
-                            .init(
-                                title: "Download", current: progress.fractionCompleted * 100,
-                                limit: 100))
+                do {
+                    try await configuration.download { progress in
+                        if progress.fractionCompleted < 0.99 {
+                            reportProgress(
+                                .init(
+                                    title: "Download", current: progress.fractionCompleted * 100,
+                                    limit: 100))
+                        }
+                    }
+                } catch {
+                    let nserror = error as NSError
+                    if nserror.domain == NSURLErrorDomain
+                        && nserror.code == NSURLErrorNotConnectedToInternet
+                    {
+                        // Internet connection appears to be offline -- fall back to loading from
+                        // the local directory
+                        reportProgress(.init(title: "Offline", current: 100, limit: 100))
+                    } else {
+                        throw error
                     }
                 }
 
