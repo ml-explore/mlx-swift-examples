@@ -31,6 +31,15 @@ func prepareModelDirectory(
         // an authorizationRequired means (typically) that the named repo doesn't exist on
         // on the server so retry with local only configuration
         return configuration.modelDirectory(hub: hub)
+    } catch {
+        let nserror = error as NSError
+        if nserror.domain == NSURLErrorDomain && nserror.code == NSURLErrorNotConnectedToInternet {
+            // Error Domain=NSURLErrorDomain Code=-1009 "The Internet connection appears to be offline."
+            // fall back to the local directory
+            return configuration.modelDirectory(hub: hub)
+        } else {
+            throw error
+        }
     }
 }
 

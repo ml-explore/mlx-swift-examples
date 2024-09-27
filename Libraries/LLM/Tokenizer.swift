@@ -21,8 +21,25 @@ func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) async t
 
     switch configuration.id {
     case .id(let id):
-        config = LanguageModelConfigurationFromHub(
-            modelName: configuration.tokenizerId ?? id, hubApi: hub)
+        do {
+            // the load can fail (async when we try to use it)
+            let loaded = LanguageModelConfigurationFromHub(
+                modelName: configuration.tokenizerId ?? id, hubApi: hub)
+            _ = try await loaded.tokenizerConfig
+            config = loaded
+        } catch {
+            let nserror = error as NSError
+            if nserror.domain == NSURLErrorDomain
+                && nserror.code == NSURLErrorNotConnectedToInternet
+            {
+                // Internet connection appears to be offline -- fall back to loading from
+                // the local directory
+                config = LanguageModelConfigurationFromHub(
+                    modelFolder: configuration.modelDirectory(hub: hub), hubApi: hub)
+            } else {
+                throw error
+            }
+        }
     case .directory(let directory):
         config = LanguageModelConfigurationFromHub(modelFolder: directory, hubApi: hub)
     }
