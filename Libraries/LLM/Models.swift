@@ -3,7 +3,7 @@
 import Foundation
 import Hub
 
-/// Registry of models and and any overrides that go with them, e.g. prompt augmentation.
+/// Registry of models and any overrides that go with them, e.g. prompt augmentation.
 /// If asked for an unknown configuration this will use the model/tokenizer as-is.
 ///
 /// The python tokenizers have a very rich set of implementations and configuration.  The
