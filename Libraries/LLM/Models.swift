@@ -228,7 +228,7 @@ extension ModelConfiguration {
         prompt in
         "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful assistant<|eot_id|>\n<|start_header_id|>user<|end_header_id|>\n\(prompt)<|eot_id|>\n<|start_header_id|>assistant<|end_header_id|>"
     }
-    
+
     public static let llama3_2_1B_4bit = ModelConfiguration(
         id: "mlx-community/Llama-3.2-1B-Instruct-4bit",
         defaultPrompt: "What is the difference between a fruit and a vegetable?"
@@ -236,11 +236,11 @@ extension ModelConfiguration {
         prompt in
         "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful assistant<|eot_id|>\n<|start_header_id|>user<|end_header_id|>\n\(prompt)<|eot_id|>\n<|start_header_id|>assistant<|end_header_id|>"
     }
-    
+
     public static let llama3_2_3B_4bit = ModelConfiguration(
         id: "mlx-community/Llama-3.2-3B-Instruct-4bit",
         defaultPrompt: "What is the difference between a fruit and a vegetable?"
-        ) {
+    ) {
         prompt in
         "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful assistant<|eot_id|>\n<|start_header_id|>user<|end_header_id|>\n\(prompt)<|eot_id|>\n<|start_header_id|>assistant<|end_header_id|>"
     }
