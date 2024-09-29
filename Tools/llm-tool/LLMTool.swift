@@ -84,18 +84,6 @@ struct GenerateArguments: ParsableArguments, Sendable {
         }
     }
 
-    func tokenizePrompt(configuration: ModelConfiguration, tokenizer: Tokenizer) throws -> (
-        String, [Int]
-    ) {
-        MLXRandom.seed(seed)
-
-        let prompt = try resolvePrompt(configuration: configuration)
-        let preparedPrompt = configuration.prepare(prompt: prompt)
-        let promptTokens = tokenizer.encode(text: preparedPrompt)
-
-        return (prompt, promptTokens)
-    }
-
     func generate(
         promptTokens: [Int], model: LLMModel, tokenizer: Tokenizer,
         extraEOSTokens: Set<String>? = nil
@@ -221,9 +209,10 @@ struct EvaluateCommand: AsyncParsableCommand {
             print("Model loaded -> \(modelConfiguration.id)")
         }
 
-        let (prompt, promptTokens) = try await modelContainer.perform { [generate] _, tokenizer in
-            try generate.tokenizePrompt(
-                configuration: modelConfiguration, tokenizer: tokenizer)
+        let prompt = generate.prompt ?? modelConfiguration.defaultPrompt
+        let messages = [["role": "user", "content": prompt]]
+        let promptTokens = try await modelContainer.perform { _, tokenizer in
+            try tokenizer.applyChatTemplate(messages: messages)
         }
 
         if !generate.quiet {

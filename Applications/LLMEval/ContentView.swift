@@ -159,7 +159,10 @@ class LLMEvaluator {
 
     /// This controls which model loads. `phi3_5_4bit` is one of the smaller ones, so this will fit on
     /// more devices.
-    let modelConfiguration = ModelConfiguration.phi3_5_4bit
+
+    // let modelConfiguration = ModelConfiguration.phi3_5_4bit
+    // let modelConfiguration = ModelConfiguration.mistral7B4bit
+    let modelConfiguration = ModelConfiguration.llama3_2_3B_4bit
 
     /// parameters controlling the output
     let generateParameters = GenerateParameters(temperature: 0.6)
@@ -217,11 +220,9 @@ class LLMEvaluator {
         do {
             let modelContainer = try await load()
 
-            // augment the prompt as needed
-            let prompt = modelConfiguration.prepare(prompt: prompt)
-
-            let promptTokens = await modelContainer.perform { _, tokenizer in
-                tokenizer.encode(text: prompt)
+            let messages = [["role": "user", "content": prompt]]
+            let promptTokens = try await modelContainer.perform { _, tokenizer in
+                try tokenizer.applyChatTemplate(messages: messages)
             }
 
             // each time you generate you will get something new
