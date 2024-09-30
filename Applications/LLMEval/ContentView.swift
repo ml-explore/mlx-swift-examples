@@ -194,7 +194,7 @@ class LLMEvaluator {
                 }
             }
             self.modelInfo =
-                "Loaded \(modelConfiguration.id).  Weights: \(MLX.GPU.activeMemory / 1024 / 1024)M"
+                "Loaded \(modelConfiguration.id).  Weights: \(await modelContainer.numParams() / (1024*1024))M"
             loadState = .loaded(modelContainer)
             return modelContainer
 

@@ -58,8 +58,21 @@ struct LoRAModelArguments: ParsableArguments, Sendable {
     }
 
     func describe(model: Module) {
-        let totalParameterCount = model.parameters()
-            .flattenedValues().map { $0.size }.reduce(0, +)
+        let totalParameterCount = model.leafModules().flattenedValues().map {
+            mod -> Int in
+            if let qlin = mod as? QuantizedLinear {
+                return qlin.scales.size * qlin.groupSize
+            } else if let qemb = mod as? QuantizedEmbedding {
+                return qemb.scales.size * qemb.groupSize
+            } else {
+                return mod.parameters().flattenedValues().reduce(
+                    0,
+                    {
+                        $0 + $1.size
+                    })
+            }
+        }.reduce(0, +)
+
         let trainableParameterCount = model.trainableParameters()
             .flattenedValues().map { $0.size }.reduce(0, +)
 
