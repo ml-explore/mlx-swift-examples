@@ -16,7 +16,7 @@ struct MNISTTool: AsyncParsableCommand {
         defaultSubcommand: Train.self)
 }
 
-#if swift(>=6.0)
+#if swift(>=5.10)
     extension MLX.DeviceType: @retroactive ExpressibleByArgument {
         public init?(argument: String) {
             self.init(rawValue: argument)

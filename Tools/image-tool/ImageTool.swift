@@ -22,7 +22,7 @@ struct StableDiffusionTool: AsyncParsableCommand {
     )
 }
 
-#if swift(>=6.0)
+#if swift(>=5.10)
     extension StableDiffusionConfiguration.Preset: @retroactive ExpressibleByArgument {}
 #else
     extension StableDiffusionConfiguration.Preset: ExpressibleByArgument {}

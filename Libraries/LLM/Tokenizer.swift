@@ -67,12 +67,35 @@ private func updateTokenizerConfig(_ tokenizerConfig: Config) -> Config {
     return tokenizerConfig
 }
 
-/// overrides for TokenizerModel/knownTokenizers
-public var replacementTokenizers = [
-    "InternLM2Tokenizer": "PreTrainedTokenizer",
-    "Qwen2Tokenizer": "PreTrainedTokenizer",
-    "CohereTokenizer": "PreTrainedTokenizer",
-]
+public class TokenizerReplacementRegistry: @unchecked Sendable {
+
+    // Note: using NSLock as we have very small (just dictionary get/set)
+    // critical sections and expect no contention.  this allows the methods
+    // to remain synchronous.
+    private let lock = NSLock()
+
+    /// overrides for TokenizerModel/knownTokenizers
+    private var replacementTokenizers = [
+        "InternLM2Tokenizer": "PreTrainedTokenizer",
+        "Qwen2Tokenizer": "PreTrainedTokenizer",
+        "CohereTokenizer": "PreTrainedTokenizer",
+    ]
+
+    public subscript(key: String) -> String? {
+        get {
+            lock.withLock {
+                replacementTokenizers[key]
+            }
+        }
+        set {
+            lock.withLock {
+                replacementTokenizers[key] = newValue
+            }
+        }
+    }
+}
+
+public let replacementTokenizers = TokenizerReplacementRegistry()
 
 public protocol StreamingDetokenizer: IteratorProtocol<String> {
 
