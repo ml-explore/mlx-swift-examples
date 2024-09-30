@@ -58,7 +58,7 @@ struct LoRAModelArguments: ParsableArguments, Sendable {
     }
 
     func describe(model: Module) {
-        let totalParameterCount = numParameters(model: model)
+        let totalParameterCount = model.numParameters()
         let trainableParameterCount = model.trainableParameters()
             .flattenedValues().map { $0.size }.reduce(0, +)
 

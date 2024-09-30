@@ -195,7 +195,7 @@ class LLMEvaluator {
             }
             let numParams = await modelContainer.perform {
                 [] model, _ in
-                return numParameters(model: model)
+                return model.numParameters()
             }
 
             self.modelInfo =

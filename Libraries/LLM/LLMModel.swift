@@ -57,22 +57,25 @@ public actor ModelContainer {
     }
 }
 
-/// Compute the number of parameters in a possibly quantized model
-public func numParameters(model: Module) -> Int {
-    return model.leafModules().flattenedValues().map {
-        mod -> Int in
-        if let qlin = mod as? QuantizedLinear {
-            return qlin.scales.size * qlin.groupSize
-        } else if let qemb = mod as? QuantizedEmbedding {
-            return qemb.scales.size * qemb.groupSize
-        } else {
-            return mod.parameters().flattenedValues().reduce(
-                0,
-                {
-                    $0 + $1.size
-                })
-        }
-    }.reduce(0, +)
+extension Module {
+
+    /// Compute the number of parameters in a possibly quantized model
+    public func numParameters() -> Int {
+        return leafModules().flattenedValues().map {
+            mod -> Int in
+            if let qlin = mod as? QuantizedLinear {
+                return qlin.scales.size * qlin.groupSize
+            } else if let qemb = mod as? QuantizedEmbedding {
+                return qemb.scales.size * qemb.groupSize
+            } else {
+                return mod.parameters().flattenedValues().reduce(
+                    0,
+                    {
+                        $0 + $1.size
+                    })
+            }
+        }.reduce(0, +)
+    }
 }
 
 /// Interface for all LLM Models
