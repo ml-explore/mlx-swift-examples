@@ -193,8 +193,13 @@ class LLMEvaluator {
                         "Downloading \(modelConfiguration.name): \(Int(progress.fractionCompleted * 100))%"
                 }
             }
+            let numParams = await modelContainer.perform {
+                [] model, _ in
+                return numParameters(model: model)
+            }
+
             self.modelInfo =
-                "Loaded \(modelConfiguration.id).  Weights: \(await modelContainer.numParams() / (1024*1024))M"
+                "Loaded \(modelConfiguration.id).  Weights: \(numParams / (1024*1024))M"
             loadState = .loaded(modelContainer)
             return modelContainer
 

@@ -50,28 +50,29 @@ public actor ModelContainer {
             tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
     }
 
-    public func numParams() -> Int {
-        return model.leafModules().flattenedValues().map {
-            mod -> Int in
-            if let qlin = mod as? QuantizedLinear {
-                return qlin.scales.size * qlin.groupSize
-            } else if let qemb = mod as? QuantizedEmbedding {
-                return qemb.scales.size * qemb.groupSize
-            } else {
-                return mod.parameters().flattenedValues().reduce(
-                    0,
-                    {
-                        $0 + $1.size
-                    })
-            }
-        }.reduce(0, +)
-    }
-
     /// Perform an action on the model and/or tokenizer.  Callers _must_ eval any `MLXArray` before returning as
     /// `MLXArray` is not `Sendable`.
     public func perform<R>(_ action: @Sendable (LLMModel, Tokenizer) throws -> R) rethrows -> R {
         try action(model, tokenizer)
     }
+}
+
+/// Compute the number of parameters in a possibly quantized model
+public func numParameters(model: Module) -> Int {
+    return model.leafModules().flattenedValues().map {
+        mod -> Int in
+        if let qlin = mod as? QuantizedLinear {
+            return qlin.scales.size * qlin.groupSize
+        } else if let qemb = mod as? QuantizedEmbedding {
+            return qemb.scales.size * qemb.groupSize
+        } else {
+            return mod.parameters().flattenedValues().reduce(
+                0,
+                {
+                    $0 + $1.size
+                })
+        }
+    }.reduce(0, +)
 }
 
 /// Interface for all LLM Models
