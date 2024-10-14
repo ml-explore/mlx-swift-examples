@@ -36,7 +36,7 @@ struct LoadInfo: Sendable {
     let convert: @Sendable (MLXArray) -> MLXArray
 }
 
-let baseURL = URL(string: "http://yann.lecun.com/exdb/mnist/")!
+let baseURL = URL(string: "https://raw.githubusercontent.com/fgnt/mnist/master/")!
 
 private let files = [
     FileKind(.training, .images): LoadInfo(
