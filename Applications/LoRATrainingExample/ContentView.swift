@@ -269,10 +269,9 @@ class LoRAEvaluator {
 
         let modelContainer = try await loadModel()
 
-        // prepare the prompt
-        let preparedPrompt = modelConfiguration.prepare(prompt: prompt)
-        let promptTokens = await modelContainer.perform { _, tokenizer in
-            tokenizer.encode(text: preparedPrompt)
+        let messages = [["role": "user", "content": prompt]]
+        let promptTokens = try await modelContainer.perform { _, tokenizer in
+            try tokenizer.applyChatTemplate(messages: messages)
         }
 
         // evaluate

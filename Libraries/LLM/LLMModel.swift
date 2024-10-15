@@ -8,12 +8,13 @@ import Tokenizers
 
 /// Container for models that guarantees single threaded access.
 ///
-/// Wrap models used by e.g. the UI in a ModelContainer.  Callers can access
+/// Wrap models used by e.g. the UI in a ModelContainer. Callers can access
 /// the model and/or tokenizer:
 ///
 /// ```swift
-/// let promptTokens = await modelContainer.perform { _, tokenizer in
-///     tokenizer.encode(text: prompt)
+/// let messages = [["role": "user", "content": prompt]]
+/// let promptTokens = try await modelContainer.perform { _, tokenizer in
+///     try tokenizer.applyChatTemplate(messages: messages)
 /// }
 /// ```
 ///

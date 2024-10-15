@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/maiqingqiang/Jinja",
       "state" : {
-        "revision" : "5b0703d19a8901b76948753e5c5e3ca77043d33f",
-        "version" : "1.0.0"
+        "revision" : "b435eb62b0d3d5f34167ec70a128355486981712",
+        "version" : "1.0.5"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ml-explore/mlx-swift",
       "state" : {
-        "revision" : "86ad75ab1ee96cd70325732b37cd830f87d7e43f",
-        "version" : "0.16.1"
+        "revision" : "78a7cfe6701d6e9c88e9d4a0d1f7990af84b2146",
+        "version" : "0.18.0"
       }
     },
     {
@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser.git",
       "state" : {
-        "revision" : "0fbc8848e389af3bb55c182bc19ca9d5dc2f255b",
-        "version" : "1.4.0"
+        "revision" : "41982a3656a71c768319979febd796c6fd111d5c",
+        "version" : "1.5.0"
       }
     },
     {
@@ -60,8 +60,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/gonzalezreal/swift-markdown-ui",
       "state" : {
-        "revision" : "9a8119b37e09a770367eeb26e05267c75d854053",
-        "version" : "2.3.1"
+        "revision" : "55441810c0f678c78ed7e2ebd46dde89228e02fc",
+        "version" : "2.4.0"
       }
     },
     {
@@ -78,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/huggingface/swift-transformers",
       "state" : {
-        "revision" : "0f2306713d48a75b862026ebb291926793773f52",
-        "version" : "0.1.12"
+        "revision" : "4d25d20e49d2269aec1556231f8e278db7b2a4f0",
+        "version" : "0.1.13"
       }
     }
   ],
