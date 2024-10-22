@@ -134,13 +134,13 @@ private class PhiMoESparseMoeBlock: Module {
         let inds = MLX.stopGradient(
             MLX.argPartition(
                 -gates,
-                kth: k - 1
-                    // !! Here the Python has an extra argument that is not available in Swift: axis=-1
+                kth: k - 1,
+                axis: -1
             )[.ellipsis, ..<k])
-        let scores = MLX.softmax(MLX.take(gates, inds, axis: -1), axis: -1, precise: true)
+        let scores = MLX.softmax(MLX.takeAlong(gates, inds, axis: -1), axis: -1, precise: true)
 
         let y = switchMLP(x, inds)
-        return (y * MLX.expandedDimensions(scores, axis: -1)).sum(axis: -2)  // !! Please check this line. In Python: (y * scores[..., None]).sum(axis=-2)
+        return (y * scores[.ellipsis, .newAxis]).sum(axis: -2)
     }
 }
 
