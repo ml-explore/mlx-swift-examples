@@ -334,6 +334,22 @@ class SwitchLinear: Module, Quantizable {
         super.init()
     }
 
+    /// Initializer meant for subclasses to provide weight and bias arrays directly.
+    ///
+    /// This is used e.g. by ``QuantizedSwitchLinear`` to provide quantized weights and biases
+    /// rather than have ``SwitchLinear`` compute them.
+    init(
+        inputDims: Int, outputDims: Int, numExperts: Int,
+        weight: MLXArray, bias: MLXArray? = nil
+    ) {
+        self.inputDims = inputDims
+        self.outputDims = outputDims
+        self.numExperts = numExperts
+
+        self._weight.wrappedValue = weight
+        self._bias.wrappedValue = bias
+    }
+
     func callAsFunction(_ x: MLXArray, _ indices: MLXArray) -> MLXArray {
         let weightT = self.weight.swappedAxes(-1, -2)
         var result = MLX.gatherMatmul(x, weightT, rhsIndices: indices)
@@ -361,19 +377,15 @@ class QuantizedSwitchLinear: SwitchLinear {
         self.groupSize = groupSize
         self.bits = bits
 
-        super.init(
-            inputDims: other.inputDims, outputDims: other.outputDims, numExperts: other.numExperts,
-            bias: other.bias != nil)
-
         let (quantizedWeight, scales, biases) = MLX.quantized(
             other.weight, groupSize: groupSize, bits: bits)
-        self.weight = quantizedWeight
-        self.scales = scales
-        self.biases = biases
 
-        if let bias = other.bias {
-            self.bias = bias
-        }
+        self._scales.wrappedValue = scales
+        self._biases.wrappedValue = biases
+
+        super.init(
+            inputDims: other.inputDims, outputDims: other.outputDims, numExperts: other.numExperts,
+            weight: quantizedWeight, bias: other.bias)
 
         self.freeze()
     }
