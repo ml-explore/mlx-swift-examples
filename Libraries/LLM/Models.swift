@@ -134,6 +134,15 @@ extension ModelConfiguration {
         extraEOSTokens: ["<|end|>"]
     )
 
+    public static let phi3_5MoE = ModelConfiguration(
+        id: "mlx-community/Phi-3.5-MoE-instruct-4bit",
+        defaultPrompt: "What is the gravity on Mars and the moon?",
+        extraEOSTokens: ["<|end|>"]
+    ) {
+        prompt in
+        "<|user|>\n\(prompt)<|end|>\n<|assistant|>\n"
+    }
+
     public static let gemma2bQuantized = ModelConfiguration(
         id: "mlx-community/quantized-gemma-2b-it",
         overrideTokenizer: "PreTrainedTokenizer",
@@ -202,19 +211,22 @@ extension ModelConfiguration {
         case .idle:
             bootstrapState = .bootstrapping
             register(configurations: [
+                codeLlama13b4bit,
+                gemma2bQuantized,
+                gemma_2_2b_it_4bit,
+                gemma_2_9b_it_4bit,
                 llama3_1_8B_4bit,
                 llama3_2_1B_4bit,
                 llama3_2_3B_4bit,
-                mistralNeMo4bit,
-                smolLM_135M_4bit,
+                llama3_8B_4bit,
                 mistral7B4bit,
-                codeLlama13b4bit,
-                phi4bit,
-                phi3_5_4bit,
-                gemma2bQuantized,
-                gemma_2_9b_it_4bit,
-                qwen205b4bit,
+                mistralNeMo4bit,
                 openelm270m4bit,
+                phi3_5MoE,
+                phi3_5_4bit,
+                phi4bit,
+                qwen205b4bit,
+                smolLM_135M_4bit,
             ])
             bootstrapState = .bootstrapped
 

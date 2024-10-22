@@ -15,6 +15,7 @@
 		7BBD0D6E2BE044A10019C5D7 /* OpenELM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBD0D6D2BE044A10019C5D7 /* OpenELM.swift */; };
 		81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 81695B402BA373D300F260D8 /* MarkdownUI */; };
 		819BEFF82BAF8B4E0002CCEE /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
+		927B80422C83769800500C13 /* PhiMoE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927B80412C83769400500C13 /* PhiMoE.swift */; };
 		927C784E2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927C784D2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift */; };
 		C3056BAE2BCD97B700A31D04 /* LoRATrainingExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAD2BCD97B700A31D04 /* LoRATrainingExampleApp.swift */; };
 		C3056BB02BCD97B700A31D04 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAF2BCD97B700A31D04 /* ContentView.swift */; };
@@ -27,6 +28,7 @@
 		C3056BBE2BCD984F00A31D04 /* LLM.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C38935C52B869C7A0037B833 /* LLM.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C3288D762B6D9313009FF608 /* LinearModelTraining.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3288D752B6D9313009FF608 /* LinearModelTraining.swift */; };
 		C3288D7B2B6D9339009FF608 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C3288D7A2B6D9339009FF608 /* ArgumentParser */; };
+		C343B2782CC8091B00334888 /* SwitchLayers.swift in Sources */ = {isa = PBXBuildFile; fileRef = C343B2772CC8091B00334888 /* SwitchLayers.swift */; };
 		C34E48F52B696F0B00FCB841 /* LLMTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48F42B696F0B00FCB841 /* LLMTool.swift */; };
 		C34E49102B69A92900FCB841 /* MNIST.h in Headers */ = {isa = PBXBuildFile; fileRef = C34E490F2B69A92900FCB841 /* MNIST.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C34E49152B69C1E300FCB841 /* Files.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E49142B69C1E300FCB841 /* Files.swift */; };
@@ -296,6 +298,7 @@
 		52A776172B94B5EE00AA6E80 /* Qwen2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Qwen2.swift; sourceTree = "<group>"; };
 		7BBD0D6D2BE044A10019C5D7 /* OpenELM.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OpenELM.swift; sourceTree = "<group>"; };
 		819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceStat.swift; sourceTree = "<group>"; };
+		927B80412C83769400500C13 /* PhiMoE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhiMoE.swift; sourceTree = "<group>"; };
 		927C784D2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuScaledRotaryEmbedding.swift; sourceTree = "<group>"; };
 		C3056BA12BCD973400A31D04 /* test.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = test.jsonl; sourceTree = "<group>"; };
 		C3056BA22BCD973400A31D04 /* train.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = train.jsonl; sourceTree = "<group>"; };
@@ -312,6 +315,7 @@
 		C3288D732B6D9313009FF608 /* LinearModelTraining */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LinearModelTraining; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3288D752B6D9313009FF608 /* LinearModelTraining.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinearModelTraining.swift; sourceTree = "<group>"; };
 		C3288D842B6D94BD009FF608 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		C343B2772CC8091B00334888 /* SwitchLayers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchLayers.swift; sourceTree = "<group>"; };
 		C34E48ED2B696E6500FCB841 /* Load.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Load.swift; sourceTree = "<group>"; };
 		C34E48EE2B696E6500FCB841 /* Llama.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Llama.swift; sourceTree = "<group>"; };
 		C34E48EF2B696E6500FCB841 /* Configuration.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
@@ -658,6 +662,8 @@
 				C38935E02B869F420037B833 /* LLMModel.swift */,
 				C38935DE2B869DD00037B833 /* Phi.swift */,
 				1CD79C6F2BD80DE100B6C06F /* Phi3.swift */,
+				927B80412C83769400500C13 /* PhiMoE.swift */,
+				C343B2772CC8091B00334888 /* SwitchLayers.swift */,
 				C34E48F62B69832600FCB841 /* README.md */,
 				C34E48ED2B696E6500FCB841 /* Load.swift */,
 				C3E786AA2B8D1AEC0004D037 /* Evaluate.swift */,
@@ -1336,6 +1342,7 @@
 				525C1E9D2B9A011000B5C356 /* Starcoder2.swift in Sources */,
 				C36BEFBB2BBF02CC002D4AFE /* Lora+Data.swift in Sources */,
 				C36BEFB02BBCBAC2002D4AFE /* Lora.swift in Sources */,
+				927B80422C83769800500C13 /* PhiMoE.swift in Sources */,
 				7BBD0D6E2BE044A10019C5D7 /* OpenELM.swift in Sources */,
 				C38935DF2B869DD00037B833 /* Phi.swift in Sources */,
 				C38935CE2B869C870037B833 /* Load.swift in Sources */,
@@ -1344,6 +1351,7 @@
 				1C55317A2C5AAB4E00B07ECD /* Gemma2.swift in Sources */,
 				C3E786AB2B8D1AEC0004D037 /* Evaluate.swift in Sources */,
 				C38935CC2B869C870037B833 /* Llama.swift in Sources */,
+				C343B2782CC8091B00334888 /* SwitchLayers.swift in Sources */,
 				927C784E2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift in Sources */,
 				52A776182B94B5EE00AA6E80 /* Qwen2.swift in Sources */,
 			);

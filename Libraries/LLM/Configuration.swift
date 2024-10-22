@@ -53,6 +53,11 @@ private class ModelTypeRegistry: @unchecked Sendable {
                 Phi3Configuration.self, from: Data(contentsOf: url))
             return Phi3Model(configuration)
         },
+        "phimoe": { url in
+            let configuration = try JSONDecoder().decode(
+                PhiMoEConfiguration.self, from: Data(contentsOf: url))
+            return PhiMoEModel(configuration)
+        },
         "gemma": { url in
             let configuration = try JSONDecoder().decode(
                 GemmaConfiguration.self, from: Data(contentsOf: url))

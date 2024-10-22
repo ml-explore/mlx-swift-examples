@@ -207,21 +207,25 @@ public class Phi3Model: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct Phi3Configuration: Codable, Sendable {
-    struct RopeScaling: Codable {
-        let longFactor: [Float]?
-        let shortFactor: [Float]?
-        let factor: Float?
-        let type: String?
+struct RopeScalingWithFactorArrays: Codable {
+    let longFactor: [Float]?
+    let shortFactor: [Float]?
+    let factor: Float?
+    let type: String?
+    let longMScale: Float?
+    let shortMScale: Float?
 
-        enum CodingKeys: String, CodingKey {
-            case type
-            case factor
-            case longFactor = "long_factor"
-            case shortFactor = "short_factor"
-        }
+    enum CodingKeys: String, CodingKey {
+        case type
+        case factor
+        case longFactor = "long_factor"
+        case shortFactor = "short_factor"
+        case longMScale = "long_mscale"
+        case shortMScale = "short_mscale"
     }
+}
 
+public struct Phi3Configuration: Codable, Sendable {
     var hiddenSize: Int
     var hiddenLayers: Int
     var intermediateSize: Int
@@ -231,7 +235,7 @@ public struct Phi3Configuration: Codable, Sendable {
     var kvHeads: Int
     var ropeTheta: Float = 10_000
     var ropeTraditional: Bool = false
-    var ropeScaling: RopeScaling?
+    var ropeScaling: RopeScalingWithFactorArrays?
     var maxPositionEmbeddings: Int
     var originalMaxPositionEmbeddings: Int
 
@@ -273,7 +277,8 @@ public struct Phi3Configuration: Codable, Sendable {
         ropeTraditional =
             try container.decodeIfPresent(
                 Bool.self, forKey: Phi3Configuration.CodingKeys.ropeTraditional) ?? false
-        ropeScaling = try container.decodeIfPresent(RopeScaling.self, forKey: .ropeScaling)
+        ropeScaling = try container.decodeIfPresent(
+            RopeScalingWithFactorArrays.self, forKey: .ropeScaling)
         maxPositionEmbeddings = try container.decode(Int.self, forKey: .maxPositionEmbeddings)
         originalMaxPositionEmbeddings = try container.decode(
             Int.self, forKey: .originalMaxPositionEmbeddings)
