@@ -291,9 +291,10 @@ struct LoRAEvalCommand: AsyncParsableCommand {
 
         memory.start()
 
-        let (prompt, promptTokens) = try await modelContainer.perform { [generate] _, tokenizer in
-            try generate.tokenizePrompt(
-                configuration: modelConfiguration, tokenizer: tokenizer)
+        let prompt = generate.prompt ?? modelConfiguration.defaultPrompt
+        let messages = [["role": "user", "content": prompt]]
+        let promptTokens = try await modelContainer.perform { _, tokenizer in
+            try tokenizer.applyChatTemplate(messages: messages)
         }
 
         if !generate.quiet {
