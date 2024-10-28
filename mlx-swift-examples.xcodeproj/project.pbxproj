@@ -517,6 +517,24 @@
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
+		92EBB3282CD014B800998339 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				C380FFF62C8F5053006428A3 /* Internlm2.swift */,
+				7BBD0D6D2BE044A10019C5D7 /* OpenELM.swift */,
+				525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */,
+				C34E48EE2B696E6500FCB841 /* Llama.swift */,
+				C38935E22B86C0FE0037B833 /* Gemma.swift */,
+				1C5531792C5AAB4E00B07ECD /* Gemma2.swift */,
+				C38935DE2B869DD00037B833 /* Phi.swift */,
+				1CD79C6F2BD80DE100B6C06F /* Phi3.swift */,
+				927B80412C83769400500C13 /* PhiMoE.swift */,
+				52A776172B94B5EE00AA6E80 /* Qwen2.swift */,
+				F24B08392BAF1A65008C8D19 /* Cohere.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 		C3056BA52BCD973400A31D04 /* lora */ = {
 			isa = PBXGroup;
 			children = (
@@ -648,29 +666,19 @@
 		C38935C62B869C7A0037B833 /* LLM */ = {
 			isa = PBXGroup;
 			children = (
-				C380FFF62C8F5053006428A3 /* Internlm2.swift */,
-				7BBD0D6D2BE044A10019C5D7 /* OpenELM.swift */,
+				92EBB3282CD014B800998339 /* Models */,
 				C36BEFAF2BBCBAC2002D4AFE /* Lora.swift */,
 				C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */,
-				525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */,
 				C34E48EF2B696E6500FCB841 /* Configuration.swift */,
 				C3A8B3AB2B9283150002EFB8 /* Models.swift */,
-				C34E48EE2B696E6500FCB841 /* Llama.swift */,
-				C38935E22B86C0FE0037B833 /* Gemma.swift */,
-				1C5531792C5AAB4E00B07ECD /* Gemma2.swift */,
 				C38935C72B869C7A0037B833 /* LLM.h */,
 				C38935E02B869F420037B833 /* LLMModel.swift */,
-				C38935DE2B869DD00037B833 /* Phi.swift */,
-				1CD79C6F2BD80DE100B6C06F /* Phi3.swift */,
-				927B80412C83769400500C13 /* PhiMoE.swift */,
 				C343B2772CC8091B00334888 /* SwitchLayers.swift */,
 				C34E48F62B69832600FCB841 /* README.md */,
 				C34E48ED2B696E6500FCB841 /* Load.swift */,
 				C3E786AA2B8D1AEC0004D037 /* Evaluate.swift */,
 				C373EB722C792DD1004E201E /* KVCache.swift */,
 				C3E786AC2B8D4AF50004D037 /* Tokenizer.swift */,
-				52A776172B94B5EE00AA6E80 /* Qwen2.swift */,
-				F24B08392BAF1A65008C8D19 /* Cohere.swift */,
 				927C784D2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift */,
 			);
 			path = LLM;
