@@ -13,6 +13,9 @@ let package = Package(
         .library(
             name: "MNIST",
             targets: ["MLXMNIST"]),
+        .library(
+            name: "StableDiffusion",
+            targets: ["StableDiffusion"]),
     ],
     dependencies: [
         .package(url: "https://github.com/ml-explore/mlx-swift", from: "0.16.1"),
