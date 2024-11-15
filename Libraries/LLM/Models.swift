@@ -134,6 +134,12 @@ extension ModelConfiguration {
         extraEOSTokens: ["<|end|>"]
     )
 
+    public static let phi3_mini_128k_4bit = ModelConfiguration(
+        id: "mlx-community/Phi-3-mini-128k-instruct-4bit",
+        defaultPrompt: "What is the gravity on Mars and the moon?",
+        extraEOSTokens: ["<|end|>"]
+    )
+
     public static let phi3_5MoE = ModelConfiguration(
         id: "mlx-community/Phi-3.5-MoE-instruct-4bit",
         defaultPrompt: "What is the gravity on Mars and the moon?",

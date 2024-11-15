@@ -30,7 +30,18 @@ public class SuScaledRotaryEmbedding: Module {
         let exponent =
             MLXArray(stride(from: 0, to: dimensions, by: 2)).asType(.float32) / Float(dimensions)
         let freqs = MLX.pow(MLXArray(base), exponent)
-        self._freqs = MLXArray(longFactor).asType(.float32) * freqs
+
+        let longFactorArray = MLXArray(longFactor).asType(.float32)
+        if longFactorArray.size == 1 {
+            // If longFactor is a single value, broadcast it
+            self._freqs = MLXArray(longFactor[0]) * freqs
+        } else {
+            // If longFactor is an array, it should match the frequency dimensions
+            precondition(
+                longFactorArray.size == freqs.size,
+                "longFactor size must match frequency dimensions")
+            self._freqs = longFactorArray * freqs
+        }
 
         self.scale =
             longMScale
