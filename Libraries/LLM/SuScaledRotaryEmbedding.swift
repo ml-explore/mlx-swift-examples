@@ -45,10 +45,10 @@ public class SuScaledRotaryEmbedding: Module {
             self.scale * x,
             dimensions: x.shape.last!,
             traditional: false,
-            base: self.base,  // TODO: After updating to MLX 0.17.0, use `nil`
+            base: nil,
             scale: 1.0,
-            offset: offset
-                // TODO: After updating to MLX 0.17.0, pass `self._freqs` to `freqs`
+            offset: offset,
+            freqs: self._freqs
         )
     }
 }
