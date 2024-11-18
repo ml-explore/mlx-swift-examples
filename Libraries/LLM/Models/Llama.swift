@@ -53,7 +53,7 @@ private class DynamicNTKScalingRoPE: Module {
     let dims: Int
     let maxPositionEmbeddings: Int
     let traditional: Bool
-    let base: Float
+    var base: Float?
     let scale: Float
     let ropeType: String
     let ropeScaling: [String: StringOrNumber]?
@@ -63,7 +63,7 @@ private class DynamicNTKScalingRoPE: Module {
         dims: Int,
         maxPositionEmbeddings: Int?,
         traditional: Bool = false,
-        base: Float?,
+        base: Float = 10000,
         scale: Float = 1.0,
         ropeType: String = "default",
         ropeScaling: [String: StringOrNumber]? = nil
@@ -71,7 +71,7 @@ private class DynamicNTKScalingRoPE: Module {
         self.dims = dims
         self.maxPositionEmbeddings = maxPositionEmbeddings ?? 2048
         self.traditional = traditional
-        self.base = base ?? 10000
+        self.base = base
         self.scale = scale
         self.ropeType = ropeType
         self.ropeScaling = ropeScaling
@@ -90,7 +90,8 @@ private class DynamicNTKScalingRoPE: Module {
             case .float(let lowFreqFactor) = ropeScaling["low_freq_factor"] ?? .float(1.0),
             case .float(let highFreqFactor) = ropeScaling["high_freq_factor"] ?? .float(4.0),
             case .float(let oldContextLen) = ropeScaling["original_max_position_embeddings"]
-                ?? .float(8192)
+                ?? .float(8192),
+            let base
         else {
             freqs = nil
             return
@@ -114,6 +115,7 @@ private class DynamicNTKScalingRoPE: Module {
         let smoothFreqs = frequencies / ((1 - smoothFactors) / factor + smoothFactors)
 
         freqs = MLX.where(isMediumFreq, smoothFreqs, frequencies)
+        self.base = nil
     }
 
     func callAsFunction(_ x: MLXArray, offset: Int = 0) -> MLXArray {
