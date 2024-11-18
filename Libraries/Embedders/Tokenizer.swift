@@ -1,9 +1,3 @@
-//
-//  Tokenizer.swift
-//
-//
-//  Created by Anish Basu on 10/18/24.
-//
 // Copyright © 2024 Apple Inc.
 
 import Foundation
