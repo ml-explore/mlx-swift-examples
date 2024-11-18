@@ -11,7 +11,7 @@ let modelContainer = try await MLXEmbedders.loadModelContainer(
 let result = await modelContainer.perform {
     (model: EmbeddingModel, tokenizer, pooling) -> [[Float]] in
     let inputs = [
-        "search_query: Animals in Tropica Climates.",
+        "search_query: Animals in Tropical Climates.",
         "search_document: Elephants",
         "search_document: Horses",
         "search_document: Polar Bears",
