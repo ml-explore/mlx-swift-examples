@@ -41,6 +41,20 @@ let package = Package(
             ]
         ),
         .target(
+            name: "MLXEmbedders",
+            dependencies: [
+                .product(name: "MLX", package: "mlx-swift"),
+                .product(name: "MLXFast", package: "mlx-swift"),
+                .product(name: "MLXNN", package: "mlx-swift"),
+                .product(name: "Transformers", package: "swift-transformers"),
+                .product(name: "MLXLinalg", package: "mlx-swift"),
+            ],
+            path: "Libraries/Embedders",
+            exclude: [
+                "README.md"
+            ]
+        ),
+        .target(
             name: "MLXMNIST",
             dependencies: [
                 .product(name: "MLX", package: "mlx-swift"),
