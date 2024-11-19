@@ -51,39 +51,83 @@ func computeBaseFrequency(
 
 private class DynamicNTKScalingRoPE: Module {
     let dims: Int
-    let maxPositionEmbeddings: Int?
+    let maxPositionEmbeddings: Int
     let traditional: Bool
-    let base: Float
-    var scale: Float
+    var base: Float?
+    let scale: Float
     let ropeType: String
     let ropeScaling: [String: StringOrNumber]?
+    var freqs: MLXArray?
 
     init(
-        dims: Int, maxPositionEmbeddings: Int?, traditional: Bool = false,
-        base: Float = 10000, scale: Float = 1.0, ropeType: String = "default",
+        dims: Int,
+        maxPositionEmbeddings: Int?,
+        traditional: Bool = false,
+        base: Float = 10000,
+        scale: Float = 1.0,
+        ropeType: String = "default",
         ropeScaling: [String: StringOrNumber]? = nil
     ) {
         self.dims = dims
-        self.maxPositionEmbeddings = maxPositionEmbeddings
+        self.maxPositionEmbeddings = maxPositionEmbeddings ?? 2048
         self.traditional = traditional
-        self.base = computeBaseFrequency(
-            base: base, dims: dims, ropeType: ropeType, ropeScaling: ropeScaling)
+        self.base = base
         self.scale = scale
         self.ropeType = ropeType
         self.ropeScaling = ropeScaling
+        super.init()
+        computeFreqs()
+    }
+
+    private func computeFreqs() {
+        if ropeType != "llama3" {
+            freqs = nil
+            return
+        }
+
+        guard let ropeScaling = ropeScaling,
+            case .float(let factor) = ropeScaling["factor"],
+            case .float(let lowFreqFactor) = ropeScaling["low_freq_factor"] ?? .float(1.0),
+            case .float(let highFreqFactor) = ropeScaling["high_freq_factor"] ?? .float(4.0),
+            case .float(let oldContextLen) = ropeScaling["original_max_position_embeddings"]
+                ?? .float(8192),
+            let base
+        else {
+            freqs = nil
+            return
+        }
+
+        let lowFreqWavelen = oldContextLen / lowFreqFactor
+        let highFreqWavelen = oldContextLen / highFreqFactor
+
+        let indices = MLXArray(stride(from: 0, to: dims, by: 2))
+        var frequencies = MLX.pow(base, indices / Float(dims))
+        let wavelens = 2 * Float.pi * frequencies
+
+        frequencies = MLX.where(
+            wavelens .> MLXArray(lowFreqWavelen), frequencies * factor, frequencies)
+        let isMediumFreq = MLX.logicalAnd(
+            wavelens .> MLXArray(highFreqWavelen),
+            wavelens .< MLXArray(lowFreqWavelen)
+        )
+        let smoothFactors =
+            (oldContextLen / wavelens - lowFreqFactor) / (highFreqFactor - lowFreqFactor)
+        let smoothFreqs = frequencies / ((1 - smoothFactors) / factor + smoothFactors)
+
+        freqs = MLX.where(isMediumFreq, smoothFreqs, frequencies)
+        self.base = nil
     }
 
     func callAsFunction(_ x: MLXArray, offset: Int = 0) -> MLXArray {
-        let seqLen = x.dim(1) + offset
-        var base = self.base
-        if let maxPositionEmbeddings, seqLen > maxPositionEmbeddings {
-            let factorAdjustment = Float(seqLen) / Float(maxPositionEmbeddings) - 1
-            let dimensionRatio = Float(dims) / Float(Float(dims) - 2)
-            let adjustedScale = scale * pow(1 + factorAdjustment, dimensionRatio)
-            base *= adjustedScale
-        }
-        return MLXFast.RoPE(
-            x, dimensions: dims, traditional: traditional, base: base, scale: scale, offset: offset)
+        MLXFast.RoPE(
+            x,
+            dimensions: dims,
+            traditional: traditional,
+            base: base,
+            scale: scale,
+            offset: offset,
+            freqs: freqs
+        )
     }
 }
 
