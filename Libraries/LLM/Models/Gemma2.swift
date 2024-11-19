@@ -7,7 +7,7 @@ import MLXNN
 
 // Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/gemma2.py
 
-// specialized norm for gemma
+// Specialized norm for gemma
 private class RMSNorm: Module, UnaryLayer {
     let weight: MLXArray
     let eps: Float
@@ -24,11 +24,13 @@ private class RMSNorm: Module, UnaryLayer {
 }
 
 private class Attention: Module {
-
     let args: Gemma2Configuration
     let scale: Float
     let logitSoftCap: Float
     let headDim: Int
+    let nHeads: Int
+    let nKVHeads: Int
+    let repeats: Int
 
     @ModuleInfo(key: "q_proj") var wq: Linear
     @ModuleInfo(key: "k_proj") var wk: Linear
@@ -41,19 +43,18 @@ private class Attention: Module {
         self.args = args
 
         let dim = args.hiddenSize
-        let heads = args.attentionHeads
-        let kvHeads = args.kvHeads
+        self.nHeads = args.attentionHeads
+        self.nKVHeads = args.kvHeads
+        self.repeats = args.attentionHeads / args.kvHeads
+        self.headDim = args.headDimensions
 
-        let headDim = args.headDimensions
-        self.headDim = headDim
-        self.scale = pow(Float(args.queryPreAttnScalar), -0.5)
+        self.scale = 1.0 / pow(Float(args.queryPreAttnScalar), 0.5)
+
+        self._wq.wrappedValue = Linear(dim, nHeads * headDim, bias: false)
+        self._wk.wrappedValue = Linear(dim, nKVHeads * headDim, bias: false)
+        self._wv.wrappedValue = Linear(dim, nKVHeads * headDim, bias: false)
+        self._wo.wrappedValue = Linear(nHeads * headDim, dim, bias: false)
         self.logitSoftCap = args.attnLogitSoftcapping
-
-        self._wq.wrappedValue = Linear(dim, heads * headDim, bias: false)
-        self._wk.wrappedValue = Linear(dim, kvHeads * headDim, bias: false)
-        self._wv.wrappedValue = Linear(dim, kvHeads * headDim, bias: false)
-        self._wo.wrappedValue = Linear(heads * headDim, dim, bias: false)
-
         self.rope = RoPE(
             dimensions: headDim, traditional: args.ropeTraditional, base: args.ropeTheta)
     }
@@ -62,15 +63,12 @@ private class Attention: Module {
         _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
     ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
-
         var queries = wq(x)
         var keys = wk(x)
         var values = wv(x)
-
-        // prepare the queries, keys and values for the attention computation
-        queries = queries.reshaped(B, L, args.attentionHeads, -1).transposed(0, 2, 1, 3)
-        keys = keys.reshaped(B, L, args.kvHeads, -1).transposed(0, 2, 1, 3)
-        values = values.reshaped(B, L, args.kvHeads, -1).transposed(0, 2, 1, 3)
+        queries = queries.reshaped(B, L, nHeads, -1).transposed(0, 2, 1, 3)
+        keys = keys.reshaped(B, L, nKVHeads, -1).transposed(0, 2, 1, 3)
+        values = values.reshaped(B, L, nKVHeads, -1).transposed(0, 2, 1, 3)
 
         if let cache {
             queries = rope(queries, offset: cache.offset)
@@ -81,25 +79,24 @@ private class Attention: Module {
             keys = rope(keys)
         }
 
-        let repeats = self.args.attentionHeads / self.args.kvHeads
+        queries = queries * self.scale
+
         if repeats > 1 {
-            queries = queries.reshaped(
-                [B, self.args.kvHeads, repeats, L, self.headDim]
-            )
+            queries = queries.reshaped([B, nKVHeads, repeats, L, headDim])
             keys = expandedDimensions(keys, axes: [2])
             values = expandedDimensions(values, axes: [2])
         }
 
         var scores = matmul(queries, keys.swappedAxes(-1, -2))
-        scores = tanh(scores / self.logitSoftCap) * self.logitSoftCap
+        scores = tanh(scores / logitSoftCap) * logitSoftCap
 
-        if mask != nil {
-            scores = scores + mask!
+        if let mask {
+            scores = scores + mask
         }
         scores = softmax(scores, axis: -1, precise: true)
         var output = matmul(scores, values)
         if repeats > 1 {
-            output = output.reshaped([B, self.args.attentionHeads, L, self.headDim])
+            output = output.reshaped([B, nHeads, L, headDim])
         }
         output = output.transposed(0, 2, 1, 3).reshaped(B, L, -1)
         return wo(output)
@@ -107,7 +104,6 @@ private class Attention: Module {
 }
 
 private class MLP: Module, UnaryLayer {
-
     @ModuleInfo(key: "gate_proj") var gate: Linear
     @ModuleInfo(key: "down_proj") var down: Linear
     @ModuleInfo(key: "up_proj") var up: Linear
@@ -125,7 +121,6 @@ private class MLP: Module, UnaryLayer {
 
 // Minimal changes from Gemma TransformerBlock
 private class TransformerBlock: Module {
-
     @ModuleInfo(key: "self_attn") var attention: Attention
     let mlp: MLP
 
@@ -160,7 +155,6 @@ private class TransformerBlock: Module {
 
 // Uses Gemma2TransformerBlock, otherwise same as GemmaModelInner
 public class ModelInner: Module {
-
     @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
 
     fileprivate let layers: [TransformerBlock]
@@ -199,7 +193,6 @@ public class ModelInner: Module {
 
 // Uses Gemma2ModelInner, otherwise same as GemmaModel
 public class Gemma2Model: Module, LLMModel, KVCacheDimensionProvider {
-
     public let vocabularySize: Int
     public let kvHeads: [Int]
     public let headDim: IntOrPair
@@ -209,7 +202,7 @@ public class Gemma2Model: Module, LLMModel, KVCacheDimensionProvider {
 
     public init(_ args: Gemma2Configuration) {
         self.vocabularySize = args.vocabularySize
-        self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
+        self.kvHeads = Array(repeating: args.kvHeads, count: args.hiddenLayers)
         self.headDim = .init(args.headDimensions)
         self.model = ModelInner(args)
         self.logitSoftCap = args.finalLogitSoftcapping
@@ -218,13 +211,12 @@ public class Gemma2Model: Module, LLMModel, KVCacheDimensionProvider {
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
         var out = model(inputs, cache: cache)
         out = model.embedTokens.asLinear(out)
-        out = tanh(out / self.logitSoftCap) * self.logitSoftCap
+        out = tanh(out / logitSoftCap) * logitSoftCap
         return out
     }
 }
 
 public struct Gemma2Configuration: Codable {
-
     var hiddenSize: Int
     var hiddenLayers: Int
     var intermediateSize: Int
@@ -237,7 +229,7 @@ public struct Gemma2Configuration: Codable {
     var ropeTraditional: Bool = false
     var attnLogitSoftcapping: Float = 50.0
     var finalLogitSoftcapping: Float = 30.0
-    var queryPreAttnScalar: Int = 256
+    var queryPreAttnScalar: Float = 144.0
 
     enum CodingKeys: String, CodingKey {
         case hiddenSize = "hidden_size"
@@ -256,7 +248,7 @@ public struct Gemma2Configuration: Codable {
     }
 
     public init(from decoder: Decoder) throws {
-        // custom implementation to handle optional keys with required values
+        // Custom implementation to handle optional keys with required values
         let container: KeyedDecodingContainer<CodingKeys> = try decoder.container(
             keyedBy: CodingKeys.self)
 
@@ -286,7 +278,7 @@ public struct Gemma2Configuration: Codable {
         self.finalLogitSoftcapping = try container.decode(
             Float.self, forKey: CodingKeys.finalLogitSoftcapping)
         self.queryPreAttnScalar = try container.decode(
-            Int.self, forKey: CodingKeys.queryPreAttnScalar)
+            Float.self, forKey: CodingKeys.queryPreAttnScalar)
     }
 }
 
