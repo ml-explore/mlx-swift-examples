@@ -136,7 +136,7 @@ class Transformer2D: Module {
 
         // Perform the input norm and projection
         let (B, H, W, C) = x.shape4
-        x = norm(x.asType(.float32)).asType(dtype).reshaped(B, -1, C)
+        x = norm(x).reshaped(B, -1, C)
         x = projectIn(x)
 
         // apply the transformer
@@ -195,7 +195,7 @@ class ResnetBlock2D: Module {
     func callAsFunction(_ x: MLXArray, timeEmbedding: MLXArray? = nil) -> MLXArray {
         let dtype = x.dtype
 
-        var y = norm1(x.asType(.float32)).asType(dtype)
+        var y = norm1(x)
         y = silu(y)
         y = conv1(y)
 
@@ -204,7 +204,7 @@ class ResnetBlock2D: Module {
             y = y + timeEmbedding[0..., .newAxis, .newAxis, 0...]
         }
 
-        y = norm2(y.asType(.float32)).asType(dtype)
+        y = norm2(y)
         y = silu(y)
         y = conv2(y)
 
@@ -501,7 +501,7 @@ class UNetModel: Module {
 
         // postprocess the output
         let dtype = x.dtype
-        x = convNormOut(x.asType(.float32)).asType(dtype)
+        x = convNormOut(x)
         x = silu(x)
         x = convOut(x)
 
