@@ -372,10 +372,11 @@ open class StableDiffusionXL: StableDiffusion, TextToImageGenerator, ImageToImag
                 conditioning2.hiddenStates.dropLast().last!,
             ],
             axis: -1)
-        let pooledConditionng = conditioning2.pooledOutput
+        var pooledConditionng = conditioning2.pooledOutput
 
         if imageCount > 1 {
             conditioning = repeated(conditioning, count: imageCount, axis: 0)
+            pooledConditionng = repeated(pooledConditionng, count: imageCount, axis: 0)
         }
 
         return (conditioning, pooledConditionng)
