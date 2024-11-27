@@ -92,7 +92,7 @@ public struct Image {
             }
         }
 
-        let holder = DataHolder(raster.asData())
+        let holder = DataHolder(raster.asData(access: .copy).data)
 
         let payload = Unmanaged.passRetained(holder).toOpaque()
         func release(payload: UnsafeMutableRawPointer?, data: UnsafeMutableRawPointer?) {
