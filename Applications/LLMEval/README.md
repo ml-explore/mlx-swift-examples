@@ -30,7 +30,7 @@ The example application uses Phi2 model by default, see [ContentView.swift](Cont
     let modelConfiguration = ModelConfiguration.phi4bit
 ```
 
-There are some pre-configured models in [LLM/Models.swift](../../Libraries/LLM/Models.swift#L62)
+There are some pre-configured models in [MLXLLM/LLMModelFactory.swift](../../Libraries/MLXLLM/LLMModelFactory.swift#L78)
 and you can load any weights from Hugging Face where there
 is a model architecture defined and you have enough
 memory.

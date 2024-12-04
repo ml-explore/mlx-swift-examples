@@ -1,10 +1,10 @@
 // Copyright © 2024 Apple Inc.
 
 import MLX
+import MLXMNIST
 import MLXNN
 import MLXOptimizers
 import MLXRandom
-import MNIST
 import SwiftUI
 
 struct TrainingView: View {

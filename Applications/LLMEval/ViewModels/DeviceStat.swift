@@ -1,6 +1,6 @@
 import Foundation
-import LLM
 import MLX
+import MLXLLM
 
 @Observable
 final class DeviceStat: @unchecked Sendable {

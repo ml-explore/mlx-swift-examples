@@ -3,20 +3,13 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		12305EAF2B9D864400C92FEE /* PredictionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12305EAE2B9D864400C92FEE /* PredictionView.swift */; };
-		1C55317A2C5AAB4E00B07ECD /* Gemma2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C5531792C5AAB4E00B07ECD /* Gemma2.swift */; };
-		1CD79C702BD80DE100B6C06F /* Phi3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD79C6F2BD80DE100B6C06F /* Phi3.swift */; };
-		525C1E9D2B9A011000B5C356 /* Starcoder2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */; };
-		52A776182B94B5EE00AA6E80 /* Qwen2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A776172B94B5EE00AA6E80 /* Qwen2.swift */; };
-		7BBD0D6E2BE044A10019C5D7 /* OpenELM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBD0D6D2BE044A10019C5D7 /* OpenELM.swift */; };
 		81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 81695B402BA373D300F260D8 /* MarkdownUI */; };
 		819BEFF82BAF8B4E0002CCEE /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
-		927B80422C83769800500C13 /* PhiMoE.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927B80412C83769400500C13 /* PhiMoE.swift */; };
-		927C784E2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 927C784D2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift */; };
 		C3056BAE2BCD97B700A31D04 /* LoRATrainingExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAD2BCD97B700A31D04 /* LoRATrainingExampleApp.swift */; };
 		C3056BB02BCD97B700A31D04 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAF2BCD97B700A31D04 /* ContentView.swift */; };
 		C3056BB22BCD97B800A31D04 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3056BB12BCD97B800A31D04 /* Assets.xcassets */; };
@@ -24,146 +17,44 @@
 		C3056BBA2BCD981900A31D04 /* train.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA22BCD973400A31D04 /* train.jsonl */; };
 		C3056BBB2BCD981900A31D04 /* test.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA12BCD973400A31D04 /* test.jsonl */; };
 		C3056BBC2BCD981900A31D04 /* valid.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA32BCD973400A31D04 /* valid.jsonl */; };
-		C3056BBD2BCD984F00A31D04 /* LLM.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C38935C52B869C7A0037B833 /* LLM.framework */; };
-		C3056BBE2BCD984F00A31D04 /* LLM.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C38935C52B869C7A0037B833 /* LLM.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C3288D762B6D9313009FF608 /* LinearModelTraining.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3288D752B6D9313009FF608 /* LinearModelTraining.swift */; };
 		C3288D7B2B6D9339009FF608 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C3288D7A2B6D9339009FF608 /* ArgumentParser */; };
-		C343B2782CC8091B00334888 /* SwitchLayers.swift in Sources */ = {isa = PBXBuildFile; fileRef = C343B2772CC8091B00334888 /* SwitchLayers.swift */; };
+		C32A17FD2CFFB98A0092A5B6 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FC2CFFB98A0092A5B6 /* MLXLLM */; };
+		C32A17FF2CFFB98A0092A5B6 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FE2CFFB98A0092A5B6 /* MLXVLM */; };
+		C32A18012CFFD1810092A5B6 /* MLXMNIST in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18002CFFD1810092A5B6 /* MLXMNIST */; };
+		C32A18032CFFD1920092A5B6 /* MLXMNIST in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18022CFFD1920092A5B6 /* MLXMNIST */; };
+		C32A18052CFFD19F0092A5B6 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18042CFFD19F0092A5B6 /* MLXLLM */; };
+		C32A18072CFFD1AA0092A5B6 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18062CFFD1AA0092A5B6 /* MLXLLM */; };
+		C32A18092CFFD1B70092A5B6 /* StableDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18082CFFD1B70092A5B6 /* StableDiffusion */; };
+		C32A18462D00E1490092A5B6 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18452D00E1490092A5B6 /* MLX */; };
+		C32A18482D00E1540092A5B6 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18472D00E1540092A5B6 /* MLX */; };
+		C32A184A2D00E1540092A5B6 /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18492D00E1540092A5B6 /* MLXNN */; };
+		C32A184C2D00E1540092A5B6 /* MLXOptimizers in Frameworks */ = {isa = PBXBuildFile; productRef = C32A184B2D00E1540092A5B6 /* MLXOptimizers */; };
 		C34E48F52B696F0B00FCB841 /* LLMTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48F42B696F0B00FCB841 /* LLMTool.swift */; };
-		C34E49102B69A92900FCB841 /* MNIST.h in Headers */ = {isa = PBXBuildFile; fileRef = C34E490F2B69A92900FCB841 /* MNIST.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		C34E49152B69C1E300FCB841 /* Files.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E49142B69C1E300FCB841 /* Files.swift */; };
-		C34E491C2B69C43600FCB841 /* Gzip in Frameworks */ = {isa = PBXBuildFile; productRef = C34E491B2B69C43600FCB841 /* Gzip */; };
 		C34E49242B6A026F00FCB841 /* MNISTTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E49232B6A026F00FCB841 /* MNISTTool.swift */; };
 		C34E49292B6A028100FCB841 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C34E49282B6A028100FCB841 /* ArgumentParser */; };
-		C34E492A2B6A028800FCB841 /* MNIST.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C34E490D2B69A92900FCB841 /* MNIST.framework */; };
-		C34E492B2B6A028800FCB841 /* MNIST.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C34E490D2B69A92900FCB841 /* MNIST.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		C36BEFB02BBCBAC2002D4AFE /* Lora.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFAF2BBCBAC2002D4AFE /* Lora.swift */; };
-		C36BEFB22BBDE9D0002D4AFE /* MLXOptimizers in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFB12BBDE9D0002D4AFE /* MLXOptimizers */; };
 		C36BEFB52BBDEAD8002D4AFE /* LoraCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */; };
 		C36BEFB82BBDED51002D4AFE /* Arguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFB62BBDECBC002D4AFE /* Arguments.swift */; };
-		C36BEFBB2BBF02CC002D4AFE /* Lora+Data.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */; };
-		C36BEFCA2BC09953002D4AFE /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFC92BC09953002D4AFE /* Configuration.swift */; };
-		C36BEFCC2BC09E53002D4AFE /* Sampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFCB2BC09E53002D4AFE /* Sampler.swift */; };
-		C36BEFCE2BC0A194002D4AFE /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFCD2BC0A194002D4AFE /* MLX */; };
-		C36BEFD02BC0A194002D4AFE /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFCF2BC0A194002D4AFE /* MLXNN */; };
-		C36BEFD22BC0A194002D4AFE /* MLXRandom in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFD12BC0A194002D4AFE /* MLXRandom */; };
-		C36BEFD42BC0B4A9002D4AFE /* Clip.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFD32BC0B4A9002D4AFE /* Clip.swift */; };
-		C36BEFD82BC0BD9B002D4AFE /* VAE.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFD72BC0BD9B002D4AFE /* VAE.swift */; };
-		C36BEFDA2BC0BDDC002D4AFE /* UNet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFD92BC0BDDC002D4AFE /* UNet.swift */; };
 		C36BEFE32BC32988002D4AFE /* ImageTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFE22BC32988002D4AFE /* ImageTool.swift */; };
-		C36BEFE72BC329AB002D4AFE /* StableDiffusion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C36BEFC22BC098F3002D4AFE /* StableDiffusion.framework */; };
-		C36BEFE82BC329AB002D4AFE /* StableDiffusion.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C36BEFC22BC098F3002D4AFE /* StableDiffusion.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C36BEFEF2BC329C5002D4AFE /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFEE2BC329C5002D4AFE /* ArgumentParser */; };
 		C36BEFF22BC32A9A002D4AFE /* Progress in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFF12BC32A9A002D4AFE /* Progress */; };
-		C36BEFF42BC349FA002D4AFE /* Load.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFF32BC349FA002D4AFE /* Load.swift */; };
-		C36BEFF62BC34A46002D4AFE /* StableDiffusion.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFF52BC34A46002D4AFE /* StableDiffusion.swift */; };
-		C36BEFF82BC59CE1002D4AFE /* Tokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFF72BC59CE1002D4AFE /* Tokenizer.swift */; };
-		C36BEFFA2BC5B996002D4AFE /* Transformers in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFF92BC5B996002D4AFE /* Transformers */; };
-		C36BEFFC2BC5BA79002D4AFE /* Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFFB2BC5BA79002D4AFE /* Image.swift */; };
 		C36BF0042BC5CE55002D4AFE /* StableDiffusionExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BF0032BC5CE55002D4AFE /* StableDiffusionExampleApp.swift */; };
 		C36BF0062BC5CE55002D4AFE /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BF0052BC5CE55002D4AFE /* ContentView.swift */; };
 		C36BF0082BC5CE56002D4AFE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C36BF0072BC5CE56002D4AFE /* Assets.xcassets */; };
 		C36BF00C2BC5CE56002D4AFE /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C36BF00B2BC5CE56002D4AFE /* Preview Assets.xcassets */; };
-		C36BF0102BC5CF17002D4AFE /* StableDiffusion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C36BEFC22BC098F3002D4AFE /* StableDiffusion.framework */; };
-		C36BF0112BC5CF17002D4AFE /* StableDiffusion.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C36BEFC22BC098F3002D4AFE /* StableDiffusion.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C36BF0352BC70F11002D4AFE /* Arguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BF0342BC70F11002D4AFE /* Arguments.swift */; };
-		C373EB732C792DD1004E201E /* KVCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = C373EB722C792DD1004E201E /* KVCache.swift */; };
-		C380FFF72C8F5053006428A3 /* Internlm2.swift in Sources */ = {isa = PBXBuildFile; fileRef = C380FFF62C8F5053006428A3 /* Internlm2.swift */; };
-		C38935C82B869C7A0037B833 /* LLM.h in Headers */ = {isa = PBXBuildFile; fileRef = C38935C72B869C7A0037B833 /* LLM.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		C38935CC2B869C870037B833 /* Llama.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48EE2B696E6500FCB841 /* Llama.swift */; };
-		C38935CD2B869C870037B833 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48EF2B696E6500FCB841 /* Configuration.swift */; };
-		C38935CE2B869C870037B833 /* Load.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48ED2B696E6500FCB841 /* Load.swift */; };
-		C38935D02B869CC40037B833 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C38935CF2B869CC40037B833 /* MLX */; };
-		C38935D22B869CC40037B833 /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = C38935D12B869CC40037B833 /* MLXNN */; };
-		C38935D42B869CC40037B833 /* MLXRandom in Frameworks */ = {isa = PBXBuildFile; productRef = C38935D32B869CC40037B833 /* MLXRandom */; };
-		C38935D62B869CC40037B833 /* Transformers in Frameworks */ = {isa = PBXBuildFile; productRef = C38935D52B869CC40037B833 /* Transformers */; };
-		C38935D72B869CCD0037B833 /* LLM.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C38935C52B869C7A0037B833 /* LLM.framework */; };
-		C38935D82B869CCD0037B833 /* LLM.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C38935C52B869C7A0037B833 /* LLM.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		C38935DF2B869DD00037B833 /* Phi.swift in Sources */ = {isa = PBXBuildFile; fileRef = C38935DE2B869DD00037B833 /* Phi.swift */; };
-		C38935E12B869F420037B833 /* LLMModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C38935E02B869F420037B833 /* LLMModel.swift */; };
-		C38935E32B86C0FE0037B833 /* Gemma.swift in Sources */ = {isa = PBXBuildFile; fileRef = C38935E22B86C0FE0037B833 /* Gemma.swift */; };
 		C392737D2B606A1D00368D5D /* Tutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = C392737C2B606A1D00368D5D /* Tutorial.swift */; };
-		C3932D572B6A060B00A81055 /* MNIST.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3932D562B6A060B00A81055 /* MNIST.swift */; };
-		C3932D592B6A0BE400A81055 /* Random.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3932D582B6A0BE400A81055 /* Random.swift */; };
 		C397C59C2B62C6D0004B084D /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C397C59B2B62C6D0004B084D /* ArgumentParser */; };
-		C3A8B3AC2B9283150002EFB8 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3AB2B9283150002EFB8 /* Models.swift */; };
 		C3A8B3CB2B92951E0002EFB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3C32B92951E0002EFB8 /* Assets.xcassets */; };
 		C3A8B3CC2B92951E0002EFB8 /* MNISTTrainerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3C42B92951E0002EFB8 /* MNISTTrainerApp.swift */; };
 		C3A8B3CD2B92951E0002EFB8 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3C62B92951E0002EFB8 /* Preview Assets.xcassets */; };
 		C3A8B3CF2B92951E0002EFB8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3C92B92951E0002EFB8 /* ContentView.swift */; };
-		C3A8B3D22B92A0880002EFB8 /* MLXOptimizers in Frameworks */ = {isa = PBXBuildFile; productRef = C3A8B3D12B92A0880002EFB8 /* MLXOptimizers */; };
-		C3A8B3D32B92A0880002EFB8 /* MNIST.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C34E490D2B69A92900FCB841 /* MNIST.framework */; };
-		C3A8B3D42B92A0880002EFB8 /* MNIST.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C34E490D2B69A92900FCB841 /* MNIST.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C3A8B3F32B92A2A90002EFB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3EC2B92A2A90002EFB8 /* Assets.xcassets */; };
 		C3A8B3F42B92A2A90002EFB8 /* LLMEvalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3ED2B92A2A90002EFB8 /* LLMEvalApp.swift */; };
 		C3A8B3F52B92A2A90002EFB8 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3EF2B92A2A90002EFB8 /* Preview Assets.xcassets */; };
 		C3A8B3F72B92A2A90002EFB8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3F22B92A2A90002EFB8 /* ContentView.swift */; };
-		C3A8B3F82B92A3360002EFB8 /* LLM.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C38935C52B869C7A0037B833 /* LLM.framework */; };
-		C3A8B3F92B92A3360002EFB8 /* LLM.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C38935C52B869C7A0037B833 /* LLM.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		C3E786AB2B8D1AEC0004D037 /* Evaluate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E786AA2B8D1AEC0004D037 /* Evaluate.swift */; };
-		C3E786AD2B8D4AF50004D037 /* Tokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E786AC2B8D4AF50004D037 /* Tokenizer.swift */; };
-		C3FBCB212B8520B80007E490 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C3FBCB202B8520B80007E490 /* MLX */; };
-		C3FBCB292B8520DA0007E490 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C3FBCB282B8520DA0007E490 /* MLX */; };
-		C3FBCB2B2B8520DA0007E490 /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = C3FBCB2A2B8520DA0007E490 /* MLXNN */; };
-		C3FBCB2D2B8520E80007E490 /* MLXOptimizers in Frameworks */ = {isa = PBXBuildFile; productRef = C3FBCB2C2B8520E80007E490 /* MLXOptimizers */; };
-		C3FBCB2F2B8520F20007E490 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C3FBCB2E2B8520F20007E490 /* MLX */; };
-		C3FBCB312B8520F20007E490 /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = C3FBCB302B8520F20007E490 /* MLXNN */; };
-		C3FBCB332B8520F20007E490 /* MLXOptimizers in Frameworks */ = {isa = PBXBuildFile; productRef = C3FBCB322B8520F20007E490 /* MLXOptimizers */; };
-		C3FBCB352B8520F20007E490 /* MLXRandom in Frameworks */ = {isa = PBXBuildFile; productRef = C3FBCB342B8520F20007E490 /* MLXRandom */; };
-		F24B083A2BAF1A65008C8D19 /* Cohere.swift in Sources */ = {isa = PBXBuildFile; fileRef = F24B08392BAF1A65008C8D19 /* Cohere.swift */; };
+		C3E7D94D2CF6C9B20056C095 /* StableDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = C3E7D94C2CF6C9B20056C095 /* StableDiffusion */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		C3056BBF2BCD984F00A31D04 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = C39273682B60697700368D5D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C38935C42B869C7A0037B833;
-			remoteInfo = LLM;
-		};
-		C34E492C2B6A028800FCB841 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = C39273682B60697700368D5D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C34E490C2B69A92900FCB841;
-			remoteInfo = MNIST;
-		};
-		C36BEFE92BC329AB002D4AFE /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = C39273682B60697700368D5D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C36BEFC12BC098F3002D4AFE;
-			remoteInfo = StableDiffusion;
-		};
-		C36BF0122BC5CF17002D4AFE /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = C39273682B60697700368D5D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C36BEFC12BC098F3002D4AFE;
-			remoteInfo = StableDiffusion;
-		};
-		C38935D92B869CCD0037B833 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = C39273682B60697700368D5D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C38935C42B869C7A0037B833;
-			remoteInfo = LLM;
-		};
-		C3A8B3D52B92A0880002EFB8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = C39273682B60697700368D5D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C34E490C2B69A92900FCB841;
-			remoteInfo = MNIST;
-		};
-		C3A8B3FA2B92A3360002EFB8 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = C39273682B60697700368D5D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C38935C42B869C7A0037B833;
-			remoteInfo = LLM;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		C3056BC12BCD984F00A31D04 /* Embed Frameworks */ = {
@@ -172,7 +63,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				C3056BBE2BCD984F00A31D04 /* LLM.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -201,7 +91,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				C34E492B2B6A028800FCB841 /* MNIST.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -221,7 +110,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				C36BEFE82BC329AB002D4AFE /* StableDiffusion.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -232,7 +120,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				C36BF0112BC5CF17002D4AFE /* StableDiffusion.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -243,7 +130,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				C38935D82B869CCD0037B833 /* LLM.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -272,7 +158,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				C3A8B3D42B92A0880002EFB8 /* MNIST.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -283,7 +168,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				C3A8B3F92B92A3360002EFB8 /* LLM.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -292,14 +176,7 @@
 
 /* Begin PBXFileReference section */
 		12305EAE2B9D864400C92FEE /* PredictionView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PredictionView.swift; sourceTree = "<group>"; };
-		1C5531792C5AAB4E00B07ECD /* Gemma2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Gemma2.swift; sourceTree = "<group>"; };
-		1CD79C6F2BD80DE100B6C06F /* Phi3.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Phi3.swift; sourceTree = "<group>"; };
-		525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Starcoder2.swift; sourceTree = "<group>"; };
-		52A776172B94B5EE00AA6E80 /* Qwen2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Qwen2.swift; sourceTree = "<group>"; };
-		7BBD0D6D2BE044A10019C5D7 /* OpenELM.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OpenELM.swift; sourceTree = "<group>"; };
 		819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceStat.swift; sourceTree = "<group>"; };
-		927B80412C83769400500C13 /* PhiMoE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhiMoE.swift; sourceTree = "<group>"; };
-		927C784D2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuScaledRotaryEmbedding.swift; sourceTree = "<group>"; };
 		C3056BA12BCD973400A31D04 /* test.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = test.jsonl; sourceTree = "<group>"; };
 		C3056BA22BCD973400A31D04 /* train.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = train.jsonl; sourceTree = "<group>"; };
 		C3056BA32BCD973400A31D04 /* valid.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = valid.jsonl; sourceTree = "<group>"; };
@@ -315,34 +192,14 @@
 		C3288D732B6D9313009FF608 /* LinearModelTraining */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LinearModelTraining; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3288D752B6D9313009FF608 /* LinearModelTraining.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinearModelTraining.swift; sourceTree = "<group>"; };
 		C3288D842B6D94BD009FF608 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		C343B2772CC8091B00334888 /* SwitchLayers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwitchLayers.swift; sourceTree = "<group>"; };
-		C34E48ED2B696E6500FCB841 /* Load.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Load.swift; sourceTree = "<group>"; };
-		C34E48EE2B696E6500FCB841 /* Llama.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Llama.swift; sourceTree = "<group>"; };
-		C34E48EF2B696E6500FCB841 /* Configuration.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
 		C34E48F42B696F0B00FCB841 /* LLMTool.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LLMTool.swift; sourceTree = "<group>"; };
-		C34E48F62B69832600FCB841 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C34E48F92B69930300FCB841 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		C34E490D2B69A92900FCB841 /* MNIST.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MNIST.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		C34E490F2B69A92900FCB841 /* MNIST.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MNIST.h; sourceTree = "<group>"; };
-		C34E49142B69C1E300FCB841 /* Files.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Files.swift; sourceTree = "<group>"; };
 		C34E49212B6A026F00FCB841 /* mnist-tool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "mnist-tool"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C34E49232B6A026F00FCB841 /* MNISTTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MNISTTool.swift; sourceTree = "<group>"; };
-		C36BEFAF2BBCBAC2002D4AFE /* Lora.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Lora.swift; sourceTree = "<group>"; };
 		C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoraCommands.swift; sourceTree = "<group>"; };
 		C36BEFB62BBDECBC002D4AFE /* Arguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Arguments.swift; sourceTree = "<group>"; };
-		C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Lora+Data.swift"; sourceTree = "<group>"; };
-		C36BEFC22BC098F3002D4AFE /* StableDiffusion.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = StableDiffusion.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		C36BEFC92BC09953002D4AFE /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
-		C36BEFCB2BC09E53002D4AFE /* Sampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sampler.swift; sourceTree = "<group>"; };
-		C36BEFD32BC0B4A9002D4AFE /* Clip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clip.swift; sourceTree = "<group>"; };
-		C36BEFD72BC0BD9B002D4AFE /* VAE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VAE.swift; sourceTree = "<group>"; };
-		C36BEFD92BC0BDDC002D4AFE /* UNet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UNet.swift; sourceTree = "<group>"; };
 		C36BEFE02BC32988002D4AFE /* image-tool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "image-tool"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C36BEFE22BC32988002D4AFE /* ImageTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageTool.swift; sourceTree = "<group>"; };
-		C36BEFF32BC349FA002D4AFE /* Load.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Load.swift; sourceTree = "<group>"; };
-		C36BEFF52BC34A46002D4AFE /* StableDiffusion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StableDiffusion.swift; sourceTree = "<group>"; };
-		C36BEFF72BC59CE1002D4AFE /* Tokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tokenizer.swift; sourceTree = "<group>"; };
-		C36BEFFB2BC5BA79002D4AFE /* Image.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Image.swift; sourceTree = "<group>"; };
 		C36BF0012BC5CE55002D4AFE /* StableDiffusionExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StableDiffusionExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C36BF0032BC5CE55002D4AFE /* StableDiffusionExampleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StableDiffusionExampleApp.swift; sourceTree = "<group>"; };
 		C36BF0052BC5CE55002D4AFE /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -350,19 +207,9 @@
 		C36BF0092BC5CE56002D4AFE /* StableDiffusionExample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StableDiffusionExample.entitlements; sourceTree = "<group>"; };
 		C36BF00B2BC5CE56002D4AFE /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		C36BF0342BC70F11002D4AFE /* Arguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Arguments.swift; sourceTree = "<group>"; };
-		C373EB722C792DD1004E201E /* KVCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KVCache.swift; sourceTree = "<group>"; };
-		C380FFF62C8F5053006428A3 /* Internlm2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Internlm2.swift; sourceTree = "<group>"; };
-		C38935C52B869C7A0037B833 /* LLM.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LLM.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		C38935C72B869C7A0037B833 /* LLM.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LLM.h; sourceTree = "<group>"; };
-		C38935DE2B869DD00037B833 /* Phi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phi.swift; sourceTree = "<group>"; };
-		C38935E02B869F420037B833 /* LLMModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMModel.swift; sourceTree = "<group>"; };
-		C38935E22B86C0FE0037B833 /* Gemma.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gemma.swift; sourceTree = "<group>"; };
 		C39273742B606A0A00368D5D /* Tutorial */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Tutorial; sourceTree = BUILT_PRODUCTS_DIR; };
 		C392737C2B606A1D00368D5D /* Tutorial.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Tutorial.swift; sourceTree = "<group>"; };
-		C3932D562B6A060B00A81055 /* MNIST.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MNIST.swift; sourceTree = "<group>"; };
-		C3932D582B6A0BE400A81055 /* Random.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Random.swift; sourceTree = "<group>"; };
 		C397C58B2B62C6A9004B084D /* llm-tool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "llm-tool"; sourceTree = BUILT_PRODUCTS_DIR; };
-		C3A8B3AB2B9283150002EFB8 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		C3A8B3B22B9295090002EFB8 /* MNISTTrainer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MNISTTrainer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3A8B3C22B92951E0002EFB8 /* MNISTTrainer-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "MNISTTrainer-Info.plist"; sourceTree = "<group>"; };
 		C3A8B3C32B92951E0002EFB8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -379,22 +226,21 @@
 		C3A8B3F12B92A2A90002EFB8 /* LLMEval.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = LLMEval.entitlements; sourceTree = "<group>"; };
 		C3A8B3F22B92A2A90002EFB8 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C3C3240B2B6CA689007D2D9A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		C3C3240C2B6CA792007D2D9A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C3C36A6B2CA714600099FFA4 /* Build.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Build.xcconfig; sourceTree = "<group>"; };
 		C3D573052C40701E00857A35 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		C3D573062C40702D00857A35 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		C3E786AA2B8D1AEC0004D037 /* Evaluate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Evaluate.swift; sourceTree = "<group>"; };
-		C3E786AC2B8D4AF50004D037 /* Tokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tokenizer.swift; sourceTree = "<group>"; };
-		F24B08392BAF1A65008C8D19 /* Cohere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cohere.swift; sourceTree = "<group>"; };
 		F8D7023A2BB4E223003D7CF5 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		C397D92E2CD440EF00B87EE2 /* Libraries */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Libraries; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C3056BA82BCD97B700A31D04 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3056BBD2BCD984F00A31D04 /* LLM.framework in Frameworks */,
+				C32A18072CFFD1AA0092A5B6 /* MLXLLM in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -402,21 +248,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3FBCB332B8520F20007E490 /* MLXOptimizers in Frameworks */,
-				C3FBCB312B8520F20007E490 /* MLXNN in Frameworks */,
-				C3FBCB2F2B8520F20007E490 /* MLX in Frameworks */,
-				C3FBCB352B8520F20007E490 /* MLXRandom in Frameworks */,
+				C32A184C2D00E1540092A5B6 /* MLXOptimizers in Frameworks */,
+				C32A184A2D00E1540092A5B6 /* MLXNN in Frameworks */,
+				C32A18482D00E1540092A5B6 /* MLX in Frameworks */,
 				C3288D7B2B6D9339009FF608 /* ArgumentParser in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C34E490A2B69A92900FCB841 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C3FBCB2B2B8520DA0007E490 /* MLXNN in Frameworks */,
-				C3FBCB292B8520DA0007E490 /* MLX in Frameworks */,
-				C34E491C2B69C43600FCB841 /* Gzip in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -424,20 +259,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3FBCB2D2B8520E80007E490 /* MLXOptimizers in Frameworks */,
-				C34E492A2B6A028800FCB841 /* MNIST.framework in Frameworks */,
+				C32A18012CFFD1810092A5B6 /* MLXMNIST in Frameworks */,
 				C34E49292B6A028100FCB841 /* ArgumentParser in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C36BEFBF2BC098F3002D4AFE /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C36BEFD02BC0A194002D4AFE /* MLXNN in Frameworks */,
-				C36BEFD22BC0A194002D4AFE /* MLXRandom in Frameworks */,
-				C36BEFFA2BC5B996002D4AFE /* Transformers in Frameworks */,
-				C36BEFCE2BC0A194002D4AFE /* MLX in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -446,8 +269,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				C36BEFEF2BC329C5002D4AFE /* ArgumentParser in Frameworks */,
+				C3E7D94D2CF6C9B20056C095 /* StableDiffusion in Frameworks */,
 				C36BEFF22BC32A9A002D4AFE /* Progress in Frameworks */,
-				C36BEFE72BC329AB002D4AFE /* StableDiffusion.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -455,19 +278,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C36BF0102BC5CF17002D4AFE /* StableDiffusion.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C38935C22B869C7A0037B833 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C36BEFB22BBDE9D0002D4AFE /* MLXOptimizers in Frameworks */,
-				C38935D22B869CC40037B833 /* MLXNN in Frameworks */,
-				C38935D42B869CC40037B833 /* MLXRandom in Frameworks */,
-				C38935D62B869CC40037B833 /* Transformers in Frameworks */,
-				C38935D02B869CC40037B833 /* MLX in Frameworks */,
+				C32A18092CFFD1B70092A5B6 /* StableDiffusion in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -475,7 +286,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3FBCB212B8520B80007E490 /* MLX in Frameworks */,
+				C32A18462D00E1490092A5B6 /* MLX in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -483,8 +294,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C32A17FD2CFFB98A0092A5B6 /* MLXLLM in Frameworks */,
 				C397C59C2B62C6D0004B084D /* ArgumentParser in Frameworks */,
-				C38935D72B869CCD0037B833 /* LLM.framework in Frameworks */,
+				C32A17FF2CFFB98A0092A5B6 /* MLXVLM in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -492,8 +304,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3A8B3D32B92A0880002EFB8 /* MNIST.framework in Frameworks */,
-				C3A8B3D22B92A0880002EFB8 /* MLXOptimizers in Frameworks */,
+				C32A18032CFFD1920092A5B6 /* MLXMNIST in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -501,7 +312,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3A8B3F82B92A3360002EFB8 /* LLM.framework in Frameworks */,
+				C32A18052CFFD19F0092A5B6 /* MLXLLM in Frameworks */,
 				81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -515,24 +326,6 @@
 				819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */,
 			);
 			path = ViewModels;
-			sourceTree = "<group>";
-		};
-		92EBB3282CD014B800998339 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				C380FFF62C8F5053006428A3 /* Internlm2.swift */,
-				7BBD0D6D2BE044A10019C5D7 /* OpenELM.swift */,
-				525C1E9C2B9A010F00B5C356 /* Starcoder2.swift */,
-				C34E48EE2B696E6500FCB841 /* Llama.swift */,
-				C38935E22B86C0FE0037B833 /* Gemma.swift */,
-				1C5531792C5AAB4E00B07ECD /* Gemma2.swift */,
-				C38935DE2B869DD00037B833 /* Phi.swift */,
-				1CD79C6F2BD80DE100B6C06F /* Phi3.swift */,
-				927B80412C83769400500C13 /* PhiMoE.swift */,
-				52A776172B94B5EE00AA6E80 /* Qwen2.swift */,
-				F24B08392BAF1A65008C8D19 /* Cohere.swift */,
-			);
-			path = Models;
 			sourceTree = "<group>";
 		};
 		C3056BA52BCD973400A31D04 /* lora */ = {
@@ -595,18 +388,6 @@
 			path = "llm-tool";
 			sourceTree = "<group>";
 		};
-		C34E490E2B69A92900FCB841 /* MNIST */ = {
-			isa = PBXGroup;
-			children = (
-				C34E490F2B69A92900FCB841 /* MNIST.h */,
-				C34E49142B69C1E300FCB841 /* Files.swift */,
-				C3932D562B6A060B00A81055 /* MNIST.swift */,
-				C3932D582B6A0BE400A81055 /* Random.swift */,
-				C3C3240C2B6CA792007D2D9A /* README.md */,
-			);
-			path = MNIST;
-			sourceTree = "<group>";
-		};
 		C34E49222B6A026F00FCB841 /* mnist-tool */ = {
 			isa = PBXGroup;
 			children = (
@@ -614,23 +395,6 @@
 				C3C3240B2B6CA689007D2D9A /* README.md */,
 			);
 			path = "mnist-tool";
-			sourceTree = "<group>";
-		};
-		C36BEFC32BC098F3002D4AFE /* StableDiffusion */ = {
-			isa = PBXGroup;
-			children = (
-				C3D573062C40702D00857A35 /* README.md */,
-				C36BEFD32BC0B4A9002D4AFE /* Clip.swift */,
-				C36BEFC92BC09953002D4AFE /* Configuration.swift */,
-				C36BEFCB2BC09E53002D4AFE /* Sampler.swift */,
-				C36BEFD72BC0BD9B002D4AFE /* VAE.swift */,
-				C36BEFD92BC0BDDC002D4AFE /* UNet.swift */,
-				C36BEFF32BC349FA002D4AFE /* Load.swift */,
-				C36BEFF52BC34A46002D4AFE /* StableDiffusion.swift */,
-				C36BEFF72BC59CE1002D4AFE /* Tokenizer.swift */,
-				C36BEFFB2BC5BA79002D4AFE /* Image.swift */,
-			);
-			path = StableDiffusion;
 			sourceTree = "<group>";
 		};
 		C36BEFE12BC32988002D4AFE /* image-tool */ = {
@@ -663,27 +427,6 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
-		C38935C62B869C7A0037B833 /* LLM */ = {
-			isa = PBXGroup;
-			children = (
-				92EBB3282CD014B800998339 /* Models */,
-				C36BEFAF2BBCBAC2002D4AFE /* Lora.swift */,
-				C36BEFBA2BBF02CC002D4AFE /* Lora+Data.swift */,
-				C34E48EF2B696E6500FCB841 /* Configuration.swift */,
-				C3A8B3AB2B9283150002EFB8 /* Models.swift */,
-				C38935C72B869C7A0037B833 /* LLM.h */,
-				C38935E02B869F420037B833 /* LLMModel.swift */,
-				C343B2772CC8091B00334888 /* SwitchLayers.swift */,
-				C34E48F62B69832600FCB841 /* README.md */,
-				C34E48ED2B696E6500FCB841 /* Load.swift */,
-				C3E786AA2B8D1AEC0004D037 /* Evaluate.swift */,
-				C373EB722C792DD1004E201E /* KVCache.swift */,
-				C3E786AC2B8D4AF50004D037 /* Tokenizer.swift */,
-				927C784D2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift */,
-			);
-			path = LLM;
-			sourceTree = "<group>";
-		};
 		C39273672B60697700368D5D = {
 			isa = PBXGroup;
 			children = (
@@ -691,7 +434,7 @@
 				F8D7023A2BB4E223003D7CF5 /* Package.swift */,
 				C3C36A6C2CA714600099FFA4 /* Configuration */,
 				C3056BA62BCD973400A31D04 /* Data */,
-				C39273822B606A9200368D5D /* Libraries */,
+				C397D92E2CD440EF00B87EE2 /* Libraries */,
 				C3A8B3AD2B9294E30002EFB8 /* Applications */,
 				C39273812B606A7400368D5D /* Tools */,
 				C39273752B606A0A00368D5D /* Products */,
@@ -704,14 +447,11 @@
 			children = (
 				C39273742B606A0A00368D5D /* Tutorial */,
 				C397C58B2B62C6A9004B084D /* llm-tool */,
-				C34E490D2B69A92900FCB841 /* MNIST.framework */,
 				C34E49212B6A026F00FCB841 /* mnist-tool */,
 				C3288D732B6D9313009FF608 /* LinearModelTraining */,
-				C38935C52B869C7A0037B833 /* LLM.framework */,
 				C3A8B3B22B9295090002EFB8 /* MNISTTrainer.app */,
 				C3A8B3DC2B92A29E0002EFB8 /* LLMEval.app */,
 				C3056BAB2BCD97B700A31D04 /* LoRATrainingExample.app */,
-				C36BEFC22BC098F3002D4AFE /* StableDiffusion.framework */,
 				C36BEFE02BC32988002D4AFE /* image-tool */,
 				C36BF0012BC5CE55002D4AFE /* StableDiffusionExample.app */,
 			);
@@ -743,16 +483,6 @@
 				C39273762B606A0A00368D5D /* Tutorial */,
 			);
 			path = Tools;
-			sourceTree = "<group>";
-		};
-		C39273822B606A9200368D5D /* Libraries */ = {
-			isa = PBXGroup;
-			children = (
-				C36BEFC32BC098F3002D4AFE /* StableDiffusion */,
-				C38935C62B869C7A0037B833 /* LLM */,
-				C34E490E2B69A92900FCB841 /* MNIST */,
-			);
-			path = Libraries;
 			sourceTree = "<group>";
 		};
 		C3A8B3AD2B9294E30002EFB8 /* Applications */ = {
@@ -821,32 +551,6 @@
 		};
 /* End PBXGroup section */
 
-/* Begin PBXHeadersBuildPhase section */
-		C34E49082B69A92900FCB841 /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C34E49102B69A92900FCB841 /* MNIST.h in Headers */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C36BEFBD2BC098F3002D4AFE /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C38935C02B869C7A0037B833 /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C38935C82B869C7A0037B833 /* LLM.h in Headers */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXHeadersBuildPhase section */
-
 /* Begin PBXNativeTarget section */
 		C3056BAA2BCD97B700A31D04 /* LoRATrainingExample */ = {
 			isa = PBXNativeTarget;
@@ -860,10 +564,10 @@
 			buildRules = (
 			);
 			dependencies = (
-				C3056BC02BCD984F00A31D04 /* PBXTargetDependency */,
 			);
 			name = LoRATrainingExample;
 			packageProductDependencies = (
+				C32A18062CFFD1AA0092A5B6 /* MLXLLM */,
 			);
 			productName = LoRATrainingExample;
 			productReference = C3056BAB2BCD97B700A31D04 /* LoRATrainingExample.app */;
@@ -884,37 +588,13 @@
 			name = LinearModelTraining;
 			packageProductDependencies = (
 				C3288D7A2B6D9339009FF608 /* ArgumentParser */,
-				C3FBCB2E2B8520F20007E490 /* MLX */,
-				C3FBCB302B8520F20007E490 /* MLXNN */,
-				C3FBCB322B8520F20007E490 /* MLXOptimizers */,
-				C3FBCB342B8520F20007E490 /* MLXRandom */,
+				C32A18472D00E1540092A5B6 /* MLX */,
+				C32A18492D00E1540092A5B6 /* MLXNN */,
+				C32A184B2D00E1540092A5B6 /* MLXOptimizers */,
 			);
 			productName = LinearFunctionModelTraining;
 			productReference = C3288D732B6D9313009FF608 /* LinearModelTraining */;
 			productType = "com.apple.product-type.tool";
-		};
-		C34E490C2B69A92900FCB841 /* MNIST */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = C34E49112B69A92900FCB841 /* Build configuration list for PBXNativeTarget "MNIST" */;
-			buildPhases = (
-				C34E49082B69A92900FCB841 /* Headers */,
-				C34E49092B69A92900FCB841 /* Sources */,
-				C34E490A2B69A92900FCB841 /* Frameworks */,
-				C34E490B2B69A92900FCB841 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = MNIST;
-			packageProductDependencies = (
-				C34E491B2B69C43600FCB841 /* Gzip */,
-				C3FBCB282B8520DA0007E490 /* MLX */,
-				C3FBCB2A2B8520DA0007E490 /* MLXNN */,
-			);
-			productName = MNIST;
-			productReference = C34E490D2B69A92900FCB841 /* MNIST.framework */;
-			productType = "com.apple.product-type.framework";
 		};
 		C34E49202B6A026F00FCB841 /* mnist-tool */ = {
 			isa = PBXNativeTarget;
@@ -928,40 +608,15 @@
 			buildRules = (
 			);
 			dependencies = (
-				C34E492D2B6A028800FCB841 /* PBXTargetDependency */,
 			);
 			name = "mnist-tool";
 			packageProductDependencies = (
 				C34E49282B6A028100FCB841 /* ArgumentParser */,
-				C3FBCB2C2B8520E80007E490 /* MLXOptimizers */,
+				C32A18002CFFD1810092A5B6 /* MLXMNIST */,
 			);
 			productName = "mnist-tool";
 			productReference = C34E49212B6A026F00FCB841 /* mnist-tool */;
 			productType = "com.apple.product-type.tool";
-		};
-		C36BEFC12BC098F3002D4AFE /* StableDiffusion */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = C36BEFC82BC098F3002D4AFE /* Build configuration list for PBXNativeTarget "StableDiffusion" */;
-			buildPhases = (
-				C36BEFBD2BC098F3002D4AFE /* Headers */,
-				C36BEFBE2BC098F3002D4AFE /* Sources */,
-				C36BEFBF2BC098F3002D4AFE /* Frameworks */,
-				C36BEFC02BC098F3002D4AFE /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = StableDiffusion;
-			packageProductDependencies = (
-				C36BEFCD2BC0A194002D4AFE /* MLX */,
-				C36BEFCF2BC0A194002D4AFE /* MLXNN */,
-				C36BEFD12BC0A194002D4AFE /* MLXRandom */,
-				C36BEFF92BC5B996002D4AFE /* Transformers */,
-			);
-			productName = Image;
-			productReference = C36BEFC22BC098F3002D4AFE /* StableDiffusion.framework */;
-			productType = "com.apple.product-type.framework";
 		};
 		C36BEFDF2BC32988002D4AFE /* image-tool */ = {
 			isa = PBXNativeTarget;
@@ -975,12 +630,12 @@
 			buildRules = (
 			);
 			dependencies = (
-				C36BEFEA2BC329AB002D4AFE /* PBXTargetDependency */,
 			);
 			name = "image-tool";
 			packageProductDependencies = (
 				C36BEFEE2BC329C5002D4AFE /* ArgumentParser */,
 				C36BEFF12BC32A9A002D4AFE /* Progress */,
+				C3E7D94C2CF6C9B20056C095 /* StableDiffusion */,
 			);
 			productName = "image-tool";
 			productReference = C36BEFE02BC32988002D4AFE /* image-tool */;
@@ -998,37 +653,11 @@
 			buildRules = (
 			);
 			dependencies = (
-				C36BF0132BC5CF17002D4AFE /* PBXTargetDependency */,
 			);
 			name = StableDiffusionExample;
 			productName = StableDiffusionEval;
 			productReference = C36BF0012BC5CE55002D4AFE /* StableDiffusionExample.app */;
 			productType = "com.apple.product-type.application";
-		};
-		C38935C42B869C7A0037B833 /* LLM */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = C38935C92B869C7A0037B833 /* Build configuration list for PBXNativeTarget "LLM" */;
-			buildPhases = (
-				C38935C02B869C7A0037B833 /* Headers */,
-				C38935C12B869C7A0037B833 /* Sources */,
-				C38935C22B869C7A0037B833 /* Frameworks */,
-				C38935C32B869C7A0037B833 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = LLM;
-			packageProductDependencies = (
-				C38935CF2B869CC40037B833 /* MLX */,
-				C38935D12B869CC40037B833 /* MLXNN */,
-				C38935D32B869CC40037B833 /* MLXRandom */,
-				C38935D52B869CC40037B833 /* Transformers */,
-				C36BEFB12BBDE9D0002D4AFE /* MLXOptimizers */,
-			);
-			productName = LLM;
-			productReference = C38935C52B869C7A0037B833 /* LLM.framework */;
-			productType = "com.apple.product-type.framework";
 		};
 		C39273732B606A0A00368D5D /* Tutorial */ = {
 			isa = PBXNativeTarget;
@@ -1044,7 +673,7 @@
 			);
 			name = Tutorial;
 			packageProductDependencies = (
-				C3FBCB202B8520B80007E490 /* MLX */,
+				C32A18452D00E1490092A5B6 /* MLX */,
 			);
 			productName = Tutorial;
 			productReference = C39273742B606A0A00368D5D /* Tutorial */;
@@ -1062,11 +691,12 @@
 			buildRules = (
 			);
 			dependencies = (
-				C38935DA2B869CCD0037B833 /* PBXTargetDependency */,
 			);
 			name = "llm-tool";
 			packageProductDependencies = (
 				C397C59B2B62C6D0004B084D /* ArgumentParser */,
+				C32A17FC2CFFB98A0092A5B6 /* MLXLLM */,
+				C32A17FE2CFFB98A0092A5B6 /* MLXVLM */,
 			);
 			productName = "mistral-tool";
 			productReference = C397C58B2B62C6A9004B084D /* llm-tool */;
@@ -1084,11 +714,10 @@
 			buildRules = (
 			);
 			dependencies = (
-				C3A8B3D62B92A0880002EFB8 /* PBXTargetDependency */,
 			);
 			name = MNISTTrainer;
 			packageProductDependencies = (
-				C3A8B3D12B92A0880002EFB8 /* MLXOptimizers */,
+				C32A18022CFFD1920092A5B6 /* MLXMNIST */,
 			);
 			productName = MNISTTrainer;
 			productReference = C3A8B3B22B9295090002EFB8 /* MNISTTrainer.app */;
@@ -1106,11 +735,11 @@
 			buildRules = (
 			);
 			dependencies = (
-				C3A8B3FB2B92A3360002EFB8 /* PBXTargetDependency */,
 			);
 			name = LLMEval;
 			packageProductDependencies = (
 				81695B402BA373D300F260D8 /* MarkdownUI */,
+				C32A18042CFFD19F0092A5B6 /* MLXLLM */,
 			);
 			productName = LLMEval;
 			productReference = C3A8B3DC2B92A29E0002EFB8 /* LLMEval.app */;
@@ -1132,25 +761,14 @@
 					C3288D722B6D9313009FF608 = {
 						CreatedOnToolsVersion = 15.0.1;
 					};
-					C34E490C2B69A92900FCB841 = {
-						CreatedOnToolsVersion = 15.0.1;
-						LastSwiftMigration = 1500;
-					};
 					C34E49202B6A026F00FCB841 = {
 						CreatedOnToolsVersion = 15.0.1;
-					};
-					C36BEFC12BC098F3002D4AFE = {
-						CreatedOnToolsVersion = 15.3;
-						LastSwiftMigration = 1530;
 					};
 					C36BEFDF2BC32988002D4AFE = {
 						CreatedOnToolsVersion = 15.3;
 					};
 					C36BF0002BC5CE55002D4AFE = {
 						CreatedOnToolsVersion = 15.3;
-					};
-					C38935C42B869C7A0037B833 = {
-						CreatedOnToolsVersion = 15.2;
 					};
 					C39273732B606A0A00368D5D = {
 						CreatedOnToolsVersion = 15.0.1;
@@ -1178,10 +796,10 @@
 			packageReferences = (
 				C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
 				C34E491A2B69C43600FCB841 /* XCRemoteSwiftPackageReference "GzipSwift" */,
-				C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */,
-				C38935BB2B866BFA0037B833 /* XCRemoteSwiftPackageReference "swift-transformers" */,
 				81695B3F2BA373D300F260D8 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				C36BEFF02BC32A8C002D4AFE /* XCRemoteSwiftPackageReference "Progress" */,
+				C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "." */,
+				C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */,
 			);
 			productRefGroup = C39273752B606A0A00368D5D /* Products */;
 			projectDirPath = "";
@@ -1189,10 +807,7 @@
 			targets = (
 				C39273732B606A0A00368D5D /* Tutorial */,
 				C397C58A2B62C6A9004B084D /* llm-tool */,
-				C38935C42B869C7A0037B833 /* LLM */,
-				C36BEFC12BC098F3002D4AFE /* StableDiffusion */,
 				C34E49202B6A026F00FCB841 /* mnist-tool */,
-				C34E490C2B69A92900FCB841 /* MNIST */,
 				C3288D722B6D9313009FF608 /* LinearModelTraining */,
 				C3A8B3B12B9295090002EFB8 /* MNISTTrainer */,
 				C3A8B3DB2B92A29D0002EFB8 /* LLMEval */,
@@ -1216,33 +831,12 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C34E490B2B69A92900FCB841 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C36BEFC02BC098F3002D4AFE /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		C36BEFFF2BC5CE55002D4AFE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				C36BF00C2BC5CE56002D4AFE /* Preview Assets.xcassets in Resources */,
 				C36BF0082BC5CE56002D4AFE /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C38935C32B869C7A0037B833 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1284,37 +878,11 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C34E49092B69A92900FCB841 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C34E49152B69C1E300FCB841 /* Files.swift in Sources */,
-				C3932D572B6A060B00A81055 /* MNIST.swift in Sources */,
-				C3932D592B6A0BE400A81055 /* Random.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		C34E491D2B6A026F00FCB841 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				C34E49242B6A026F00FCB841 /* MNISTTool.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C36BEFBE2BC098F3002D4AFE /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C36BEFD82BC0BD9B002D4AFE /* VAE.swift in Sources */,
-				C36BEFFC2BC5BA79002D4AFE /* Image.swift in Sources */,
-				C36BEFF42BC349FA002D4AFE /* Load.swift in Sources */,
-				C36BEFCC2BC09E53002D4AFE /* Sampler.swift in Sources */,
-				C36BEFD42BC0B4A9002D4AFE /* Clip.swift in Sources */,
-				C36BEFCA2BC09953002D4AFE /* Configuration.swift in Sources */,
-				C36BEFF82BC59CE1002D4AFE /* Tokenizer.swift in Sources */,
-				C36BEFDA2BC0BDDC002D4AFE /* UNet.swift in Sources */,
-				C36BEFF62BC34A46002D4AFE /* StableDiffusion.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1333,35 +901,6 @@
 			files = (
 				C36BF0062BC5CE55002D4AFE /* ContentView.swift in Sources */,
 				C36BF0042BC5CE55002D4AFE /* StableDiffusionExampleApp.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		C38935C12B869C7A0037B833 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C38935E12B869F420037B833 /* LLMModel.swift in Sources */,
-				C380FFF72C8F5053006428A3 /* Internlm2.swift in Sources */,
-				F24B083A2BAF1A65008C8D19 /* Cohere.swift in Sources */,
-				C38935E32B86C0FE0037B833 /* Gemma.swift in Sources */,
-				C373EB732C792DD1004E201E /* KVCache.swift in Sources */,
-				C38935CD2B869C870037B833 /* Configuration.swift in Sources */,
-				1CD79C702BD80DE100B6C06F /* Phi3.swift in Sources */,
-				525C1E9D2B9A011000B5C356 /* Starcoder2.swift in Sources */,
-				C36BEFBB2BBF02CC002D4AFE /* Lora+Data.swift in Sources */,
-				C36BEFB02BBCBAC2002D4AFE /* Lora.swift in Sources */,
-				927B80422C83769800500C13 /* PhiMoE.swift in Sources */,
-				7BBD0D6E2BE044A10019C5D7 /* OpenELM.swift in Sources */,
-				C38935DF2B869DD00037B833 /* Phi.swift in Sources */,
-				C38935CE2B869C870037B833 /* Load.swift in Sources */,
-				C3E786AD2B8D4AF50004D037 /* Tokenizer.swift in Sources */,
-				C3A8B3AC2B9283150002EFB8 /* Models.swift in Sources */,
-				1C55317A2C5AAB4E00B07ECD /* Gemma2.swift in Sources */,
-				C3E786AB2B8D1AEC0004D037 /* Evaluate.swift in Sources */,
-				C38935CC2B869C870037B833 /* Llama.swift in Sources */,
-				C343B2782CC8091B00334888 /* SwitchLayers.swift in Sources */,
-				927C784E2C7A578A001E5878 /* SuScaledRotaryEmbedding.swift in Sources */,
-				52A776182B94B5EE00AA6E80 /* Qwen2.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1404,44 +943,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		C3056BC02BCD984F00A31D04 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = C38935C42B869C7A0037B833 /* LLM */;
-			targetProxy = C3056BBF2BCD984F00A31D04 /* PBXContainerItemProxy */;
-		};
-		C34E492D2B6A028800FCB841 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = C34E490C2B69A92900FCB841 /* MNIST */;
-			targetProxy = C34E492C2B6A028800FCB841 /* PBXContainerItemProxy */;
-		};
-		C36BEFEA2BC329AB002D4AFE /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = C36BEFC12BC098F3002D4AFE /* StableDiffusion */;
-			targetProxy = C36BEFE92BC329AB002D4AFE /* PBXContainerItemProxy */;
-		};
-		C36BF0132BC5CF17002D4AFE /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = C36BEFC12BC098F3002D4AFE /* StableDiffusion */;
-			targetProxy = C36BF0122BC5CF17002D4AFE /* PBXContainerItemProxy */;
-		};
-		C38935DA2B869CCD0037B833 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = C38935C42B869C7A0037B833 /* LLM */;
-			targetProxy = C38935D92B869CCD0037B833 /* PBXContainerItemProxy */;
-		};
-		C3A8B3D62B92A0880002EFB8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = C34E490C2B69A92900FCB841 /* MNIST */;
-			targetProxy = C3A8B3D52B92A0880002EFB8 /* PBXContainerItemProxy */;
-		};
-		C3A8B3FB2B92A3360002EFB8 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = C38935C42B869C7A0037B833 /* LLM */;
-			targetProxy = C3A8B3FA2B92A3360002EFB8 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		C3056BB82BCD97B800A31D04 /* Debug */ = {
@@ -1752,187 +1253,6 @@
 			};
 			name = Release;
 		};
-		C34E49122B69A92900FCB841 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = YES;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.2;
-				MARKETING_VERSION = 1.0;
-				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
-				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = mlx.MNIST;
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
-				SUPPORTS_MACCATALYST = NO;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Debug;
-		};
-		C34E49132B69A92900FCB841 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = YES;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.2;
-				MARKETING_VERSION = 1.0;
-				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
-				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = mlx.MNIST;
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
-				SUPPORTS_MACCATALYST = NO;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Release;
-		};
 		C34E49262B6A026F00FCB841 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2057,187 +1377,6 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		C36BEFC62BC098F3002D4AFE /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = YES;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
-					"@executable_path/../Frameworks",
-					"@loader_path/Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
-				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = mlx.Image;
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SDKROOT = auto;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Debug;
-		};
-		C36BEFC72BC098F3002D4AFE /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = YES;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
-					"@executable_path/../Frameworks",
-					"@loader_path/Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
-				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = mlx.Image;
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SDKROOT = auto;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
 			};
 			name = Release;
 		};
@@ -2543,189 +1682,6 @@
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-			};
-			name = Release;
-		};
-		C38935CA2B869C7A0037B833 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = YES;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
-					"@executable_path/../Frameworks",
-					"@loader_path/Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
-				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = mlx.LLM;
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SDKROOT = auto;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Debug;
-		};
-		C38935CB2B869C7A0037B833 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = YES;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
-					"@executable_path/../Frameworks",
-					"@loader_path/Frameworks",
-				);
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
-				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = mlx.LLM;
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SDKROOT = auto;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
 			};
 			name = Release;
 		};
@@ -3440,29 +2396,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C34E49112B69A92900FCB841 /* Build configuration list for PBXNativeTarget "MNIST" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C34E49122B69A92900FCB841 /* Debug */,
-				C34E49132B69A92900FCB841 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		C34E49252B6A026F00FCB841 /* Build configuration list for PBXNativeTarget "mnist-tool" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C34E49262B6A026F00FCB841 /* Debug */,
 				C34E49272B6A026F00FCB841 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		C36BEFC82BC098F3002D4AFE /* Build configuration list for PBXNativeTarget "StableDiffusion" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C36BEFC62BC098F3002D4AFE /* Debug */,
-				C36BEFC72BC098F3002D4AFE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -3481,15 +2419,6 @@
 			buildConfigurations = (
 				C36BF00E2BC5CE56002D4AFE /* Debug */,
 				C36BF00F2BC5CE56002D4AFE /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		C38935C92B869C7A0037B833 /* Build configuration list for PBXNativeTarget "LLM" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C38935CA2B869C7A0037B833 /* Debug */,
-				C38935CB2B869C7A0037B833 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -3541,6 +2470,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "Source/..";
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		81695B3F2BA373D300F260D8 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -3548,6 +2484,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 2.3.1;
+			};
+		};
+		C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.21.0;
 			};
 		};
 		C34E491A2B69C43600FCB841 /* XCRemoteSwiftPackageReference "GzipSwift" */ = {
@@ -3566,28 +2510,12 @@
 				minimumVersion = 0.4.0;
 			};
 		};
-		C38935BB2B866BFA0037B833 /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/huggingface/swift-transformers";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.13;
-			};
-		};
 		C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-argument-parser.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.4.0;
-			};
-		};
-		C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ml-explore/mlx-swift";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.18.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -3603,35 +2531,65 @@
 			package = C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
 			productName = ArgumentParser;
 		};
-		C34E491B2B69C43600FCB841 /* Gzip */ = {
+		C32A17FC2CFFB98A0092A5B6 /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C34E491A2B69C43600FCB841 /* XCRemoteSwiftPackageReference "GzipSwift" */;
-			productName = Gzip;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			productName = MLXLLM;
+		};
+		C32A17FE2CFFB98A0092A5B6 /* MLXVLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			productName = MLXVLM;
+		};
+		C32A18002CFFD1810092A5B6 /* MLXMNIST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			productName = MLXMNIST;
+		};
+		C32A18022CFFD1920092A5B6 /* MLXMNIST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			productName = MLXMNIST;
+		};
+		C32A18042CFFD19F0092A5B6 /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			productName = MLXLLM;
+		};
+		C32A18062CFFD1AA0092A5B6 /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			productName = MLXLLM;
+		};
+		C32A18082CFFD1B70092A5B6 /* StableDiffusion */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			productName = StableDiffusion;
+		};
+		C32A18452D00E1490092A5B6 /* MLX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */;
+			productName = MLX;
+		};
+		C32A18472D00E1540092A5B6 /* MLX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */;
+			productName = MLX;
+		};
+		C32A18492D00E1540092A5B6 /* MLXNN */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */;
+			productName = MLXNN;
+		};
+		C32A184B2D00E1540092A5B6 /* MLXOptimizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */;
+			productName = MLXOptimizers;
 		};
 		C34E49282B6A028100FCB841 /* ArgumentParser */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
 			productName = ArgumentParser;
-		};
-		C36BEFB12BBDE9D0002D4AFE /* MLXOptimizers */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXOptimizers;
-		};
-		C36BEFCD2BC0A194002D4AFE /* MLX */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLX;
-		};
-		C36BEFCF2BC0A194002D4AFE /* MLXNN */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXNN;
-		};
-		C36BEFD12BC0A194002D4AFE /* MLXRandom */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXRandom;
 		};
 		C36BEFEE2BC329C5002D4AFE /* ArgumentParser */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -3643,80 +2601,15 @@
 			package = C36BEFF02BC32A8C002D4AFE /* XCRemoteSwiftPackageReference "Progress" */;
 			productName = Progress;
 		};
-		C36BEFF92BC5B996002D4AFE /* Transformers */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C38935BB2B866BFA0037B833 /* XCRemoteSwiftPackageReference "swift-transformers" */;
-			productName = Transformers;
-		};
-		C38935CF2B869CC40037B833 /* MLX */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLX;
-		};
-		C38935D12B869CC40037B833 /* MLXNN */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXNN;
-		};
-		C38935D32B869CC40037B833 /* MLXRandom */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXRandom;
-		};
-		C38935D52B869CC40037B833 /* Transformers */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C38935BB2B866BFA0037B833 /* XCRemoteSwiftPackageReference "swift-transformers" */;
-			productName = Transformers;
-		};
 		C397C59B2B62C6D0004B084D /* ArgumentParser */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
 			productName = ArgumentParser;
 		};
-		C3A8B3D12B92A0880002EFB8 /* MLXOptimizers */ = {
+		C3E7D94C2CF6C9B20056C095 /* StableDiffusion */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXOptimizers;
-		};
-		C3FBCB202B8520B80007E490 /* MLX */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLX;
-		};
-		C3FBCB282B8520DA0007E490 /* MLX */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLX;
-		};
-		C3FBCB2A2B8520DA0007E490 /* MLXNN */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXNN;
-		};
-		C3FBCB2C2B8520E80007E490 /* MLXOptimizers */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXOptimizers;
-		};
-		C3FBCB2E2B8520F20007E490 /* MLX */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLX;
-		};
-		C3FBCB302B8520F20007E490 /* MLXNN */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXNN;
-		};
-		C3FBCB322B8520F20007E490 /* MLXOptimizers */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXOptimizers;
-		};
-		C3FBCB342B8520F20007E490 /* MLXRandom */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C3FBCB1F2B8520B00007E490 /* XCRemoteSwiftPackageReference "mlx-swift" */;
-			productName = MLXRandom;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			productName = StableDiffusion;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

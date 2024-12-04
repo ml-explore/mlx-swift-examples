@@ -36,7 +36,7 @@ struct Bigram: Hashable {
 class CLIPTokenizer {
 
     let pattern =
-        /<\|startoftext\|>|<\|endoftext\|>|'s|'t|'re|'ve|'m|'ll|'d|[\p{L}]+|[\p{N}]|[^\s\p{L}\p{N}]+/
+        #/<\|startoftext\|>|<\|endoftext\|>|'s|'t|'re|'ve|'m|'ll|'d|[\p{L}]+|[\p{N}]|[^\s\p{L}\p{N}]+/#
     let bpeRanks: [Bigram: Int]
     let vocabulary: [String: Int]
 
@@ -121,7 +121,7 @@ class CLIPTokenizer {
         // a much more thorough job here but this should suffice for 95% of
         // cases.
 
-        let clean = text.lowercased().replacing(/\s+/, with: " ")
+        let clean = text.lowercased().replacing(#/\s+/#, with: " ")
         let tokens = clean.matches(of: pattern).map { $0.description }
 
         // Split the tokens according to the byte-pair merge file
