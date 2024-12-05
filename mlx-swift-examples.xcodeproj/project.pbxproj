@@ -798,7 +798,7 @@
 				C34E491A2B69C43600FCB841 /* XCRemoteSwiftPackageReference "GzipSwift" */,
 				81695B3F2BA373D300F260D8 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				C36BEFF02BC32A8C002D4AFE /* XCRemoteSwiftPackageReference "Progress" */,
-				C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "." */,
+				C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */,
 				C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */,
 			);
 			productRefGroup = C39273752B606A0A00368D5D /* Products */;
@@ -2473,7 +2473,7 @@
 /* Begin XCLocalSwiftPackageReference section */
 		C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "Source/..";
+			relativePath = Source/..;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -2491,7 +2491,7 @@
 			repositoryURL = "https://github.com/ml-explore/mlx-swift";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.21.0;
+				minimumVersion = 0.21.2;
 			};
 		};
 		C34E491A2B69C43600FCB841 /* XCRemoteSwiftPackageReference "GzipSwift" */ = {
