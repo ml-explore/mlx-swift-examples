@@ -3,8 +3,9 @@
 import ArgumentParser
 import Foundation
 import Hub
-import LLM
 import MLX
+import MLXLLM
+import MLXLMCommon
 import MLXNN
 import MLXOptimizers
 import MLXRandom
@@ -21,6 +22,8 @@ struct LoRACommand: AsyncParsableCommand {
     )
 }
 
+private let defaultModel = "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
+
 /// Common arguments for loading a LoRA mdoel with adapter weights
 struct LoRAModelArguments: ParsableArguments, Sendable {
 
@@ -35,26 +38,22 @@ struct LoRAModelArguments: ParsableArguments, Sendable {
     /// Load the model and apply the LoRA adapters.
     ///
     /// This does not load the adapter weights as they may not exist yet.
-    func load() async throws -> (ModelContainer, ModelConfiguration) {
-        let (modelContainer, modelConfiguration) = try await args.load()
+    func load(
+        defaultModel: String = defaultModel,
+        modelFactory: ModelFactory = LLMModelFactory.shared
+    ) async throws -> ModelContainer {
+        let modelContainer = try await args.load(
+            defaultModel: defaultModel, modelFactory: modelFactory)
 
         // convert some of the Linear layers to LoRALinear
-        await modelContainer.perform { model, _ in
-            LoRATrain.convert(model: model, layers: loraLayers(model: model))
+        await modelContainer.perform { context in
+            guard let lora = context.model as? LoRAModel else {
+                fatalError("Model \(modelContainer.configuration.name) is not a LoRAModel")
+            }
+            LoRATrain.convert(model: context.model, layers: lora.loraLinearLayers(loraLayers))
         }
 
-        return (modelContainer, modelConfiguration)
-    }
-
-    func loraLayers(model: Module) -> LoRALinearLayers {
-        guard let layerProvider = model as? LoRAModel else {
-            // the layerProvider will indicate which Linear layers need to be replaced
-            fatalError(
-                "Model \(type(of: model)) (\(args.model)) must implement the LoRALayerProvider protocol"
-            )
-        }
-
-        return Array(layerProvider.loraLinearLayers().suffix(loraLayers))
+        return modelContainer
     }
 
     func describe(model: Module) {
@@ -62,7 +61,7 @@ struct LoRAModelArguments: ParsableArguments, Sendable {
         let trainableParameterCount = model.trainableParameters()
             .flattenedValues().map { $0.size }.reduce(0, +)
 
-        print("Model: \(args.model)")
+        print("Model: \(args.model ?? defaultModel)")
         print("Total parameters: \((totalParameterCount / 1_000_000).formatted())M")
         print(
             "Trainable parameters: \((Float(trainableParameterCount) / 1_000_000).formatted(.number.precision(.significantDigits(1 ..< 4))))M"
@@ -122,17 +121,17 @@ struct LoRATrainCommand: AsyncParsableCommand {
 
     @MainActor
     mutating func run() async throws {
-        let (modelContainer, _) = try await args.load()
-        await modelContainer.perform { [args] model, _ in
-            args.describe(model: model)
+        let modelContainer = try await args.load()
+        await modelContainer.perform { [args] context in
+            args.describe(model: context.model)
         }
 
         memory.start()
 
         if resume {
             print("Loading pretrained adapters from \(args.adapter.path())")
-            try await modelContainer.perform { [args] model, _ in
-                try LoRATrain.loadLoRAWeights(model: model, url: args.adapter)
+            try await modelContainer.perform { [args] context in
+                try LoRATrain.loadLoRAWeights(model: context.model, url: args.adapter)
             }
         }
 
@@ -148,17 +147,17 @@ struct LoRATrainCommand: AsyncParsableCommand {
         }
 
         // train
-        try await modelContainer.perform { [args, parameters, learningRate] model, tokenizer in
+        try await modelContainer.perform { [args, parameters, learningRate] context in
             let optimizer = Adam(learningRate: learningRate)
             try LoRATrain.train(
-                model: model, train: train, validate: valid, optimizer: optimizer,
-                tokenizer: tokenizer,
+                model: context.model, train: train, validate: valid, optimizer: optimizer,
+                tokenizer: context.tokenizer,
                 parameters: parameters
             ) { progress in
                 print(progress)
                 return .more
             }
-            try LoRATrain.saveLoRAWeights(model: model, url: args.adapter)
+            try LoRATrain.saveLoRAWeights(model: context.model, url: args.adapter)
         }
     }
 }
@@ -188,22 +187,27 @@ struct LoRAFuseCommand: AsyncParsableCommand {
             outputURL = HubApi().localRepoLocation(repo)
         }
 
-        let (modelContainer, modelConfiguration) = try await args.load()
+        let modelContainer = try await args.load()
 
         // load the prepared weights
-        try await modelContainer.perform { [args] model, _ in
-            try LoRATrain.loadLoRAWeights(model: model, url: args.adapter)
+        try await modelContainer.perform { [args] context in
+            try LoRATrain.loadLoRAWeights(model: context.model, url: args.adapter)
         }
 
         // fuse them back into Linear/QuantizedLinear
-        await modelContainer.perform { [args, deQuantize] model, _ in
+        await modelContainer.perform { [args, deQuantize] context in
+            guard let lora = context.model as? LoRAModel else {
+                fatalError("Model \(modelContainer.configuration.name) is not a LoRAModel")
+            }
+
             LoRATrain.fuse(
-                model: model, layers: args.loraLayers(model: model), deQuantize: deQuantize)
+                model: context.model, layers: lora.loraLinearLayers(args.loraLayers),
+                deQuantize: deQuantize)
         }
 
         // make the new directory and copy files from source model
         try FileManager.default.createDirectory(at: outputURL, withIntermediateDirectories: true)
-        let inputURL = modelConfiguration.modelDirectory()
+        let inputURL = modelContainer.configuration.modelDirectory()
         let enumerator = FileManager.default.enumerator(
             at: inputURL, includingPropertiesForKeys: nil)!
         for case let url as URL in enumerator {
@@ -217,8 +221,8 @@ struct LoRAFuseCommand: AsyncParsableCommand {
         }
 
         // write them back out
-        try await modelContainer.perform { model, _ in
-            let weights = Dictionary(uniqueKeysWithValues: model.parameters().flattened())
+        try await modelContainer.perform { context in
+            let weights = Dictionary(uniqueKeysWithValues: context.model.parameters().flattened())
             try save(arrays: weights, url: outputURL.appending(component: "weights.safetensors"))
         }
 
@@ -246,20 +250,21 @@ struct LoRATestCommand: AsyncParsableCommand {
 
     @MainActor
     mutating func run() async throws {
-        let (modelContainer, _) = try await args.load()
-        await modelContainer.perform { [args] model, _ in
-            args.describe(model: model)
+        let modelContainer = try await args.load()
+        await modelContainer.perform { [args] context in
+            args.describe(model: context.model)
         }
-        try await modelContainer.perform { [args] model, _ in
-            try LoRATrain.loadLoRAWeights(model: model, url: args.adapter)
+        try await modelContainer.perform { [args] context in
+            try LoRATrain.loadLoRAWeights(model: context.model, url: args.adapter)
         }
 
         memory.start()
 
         let test = try loadLoRAData(directory: data, name: "test")
-        let loss = await modelContainer.perform { [batchSize] model, tokenizer in
+        let loss = await modelContainer.perform { [batchSize] context in
             LoRATrain.evaluate(
-                model: model, dataset: test, tokenizer: tokenizer, batchSize: batchSize,
+                model: context.model, dataset: test,
+                tokenizer: context.tokenizer, batchSize: batchSize,
                 batchCount: 0)
         }
 
@@ -281,21 +286,17 @@ struct LoRAEvalCommand: AsyncParsableCommand {
 
     @MainActor
     mutating func run() async throws {
-        let (modelContainer, modelConfiguration) = try await args.load()
-        await modelContainer.perform { [args] model, _ in
-            args.describe(model: model)
+        let modelContainer = try await args.load()
+        await modelContainer.perform { [args] context in
+            args.describe(model: context.model)
         }
-        try await modelContainer.perform { [args] model, _ in
-            try LoRATrain.loadLoRAWeights(model: model, url: args.adapter)
+        try await modelContainer.perform { [args] context in
+            try LoRATrain.loadLoRAWeights(model: context.model, url: args.adapter)
         }
 
         memory.start()
 
-        let prompt = generate.prompt ?? modelConfiguration.defaultPrompt
-        let messages = [["role": "user", "content": prompt]]
-        let promptTokens = try await modelContainer.perform { _, tokenizer in
-            try tokenizer.applyChatTemplate(messages: messages)
-        }
+        let prompt = generate.prompt ?? modelContainer.configuration.defaultPrompt
 
         if !generate.quiet {
             print("Starting generation ...")
@@ -303,11 +304,16 @@ struct LoRAEvalCommand: AsyncParsableCommand {
         }
 
         // generate and print the result
-        await modelContainer.perform { [generate] model, tokenizer in
-            let _ = generate.generate(
-                promptTokens: promptTokens, model: model, tokenizer: tokenizer,
-                extraEOSTokens: modelConfiguration.extraEOSTokens)
+        let result = try await modelContainer.perform { [generate] context in
+            let input = try await context.processor.prepare(input: .init(prompt: prompt))
+            return try generate.generate(input: input, context: context)
         }
-        print()
+
+        if !generate.quiet {
+            print("------")
+            print(result.summary())
+
+            memory.reportMemoryStatistics()
+        }
     }
 }

@@ -2,7 +2,9 @@
 
 See various READMEs:
 
-- [LLM](../../Libraries/LLM/README.md)
+- [MLXLMCommon](../../Libraries/MLXLMCommon/README.md) -- common LM code
+- [MLXLLM](../../Libraries/MLXLLM/README.md) -- large language models
+- [MLXVLM](../../Libraries/MLXVLM/README.md) -- vision language models
 
 ### Building
 
@@ -28,7 +30,7 @@ The model should be a path in the Hugging Face repository, e.g.:
 - `mlx-community/Mistral-7B-v0.1-hf-4bit-mlx`
 - `mlx-community/phi-2-hf-4bit-mlx`
 
-See [LLM](../../Libraries/LLM/README.md) for more info.
+See [LLM](../../Libraries/MLXLLM/README.md) for more info.
 
 ### Running: Command Line
 
