@@ -130,7 +130,7 @@ public class ModelRegistry: @unchecked Sendable {
     private let lock = NSLock()
     private var registry = Dictionary(uniqueKeysWithValues: all().map { ($0.name, $0) })
 
-    static public let paligemma3bMix4488bit = ModelConfiguration(
+    static public let paligemma3bMix448_8bit = ModelConfiguration(
         id: "mlx-community/paligemma-3b-mix-448-8bit",
         defaultPrompt: "Describe the image in English"
     )
