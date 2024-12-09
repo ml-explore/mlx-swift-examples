@@ -1,6 +1,7 @@
 // Copyright © 2024 Apple Inc.
 
 import CoreGraphics
+import CoreImage
 import Foundation
 import ImageIO
 import MLX
@@ -111,6 +112,23 @@ public struct Image {
                 releaseInfo: payload)!
             return context.makeImage()!
         }
+    }
+
+    /// Convert the image data to a CIImage
+    public func asCIImage() -> CIImage {
+        // we need 4 bytes per pixel
+        var raster = data
+        if data.dim(-1) == 3 {
+            raster = padded(raster, widths: [0, 0, [0, 1]], value: MLXArray(255))
+        }
+
+        let arrayData = raster.asData()
+        let (H, W, C) = raster.shape3
+        let cs = CGColorSpace(name: CGColorSpace.sRGB)!
+
+        return CIImage(
+            bitmapData: arrayData.data, bytesPerRow: W * 4, size: .init(width: W, height: H),
+            format: .RGBA8, colorSpace: cs)
     }
 
     /// Save the image

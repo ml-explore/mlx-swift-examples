@@ -1,7 +1,8 @@
 // Copyright © 2024 Apple Inc.
 
-import LLM
 import MLX
+import MLXLLM
+import MLXLMCommon
 import MLXNN
 import MLXOptimizers
 import MLXRandom
@@ -122,7 +123,7 @@ class LoRAEvaluator {
 
     var output = ""
 
-    private let modelConfiguration = ModelConfiguration.mistral7B4bit
+    private let modelConfiguration = ModelRegistry.mistral7B4bit
     private var model: ModelState = .idle
 
     private let loraLayers = 4
@@ -141,8 +142,9 @@ class LoRAEvaluator {
                 progress = .init(title: "Loading \(name)", current: 0, limit: 1)
             }
 
-            let modelContainer = try await LLM.loadModelContainer(configuration: modelConfiguration)
-            {
+            let modelContainer = try await LLMModelFactory.shared.loadContainer(
+                configuration: modelConfiguration
+            ) {
                 progress in
                 Task { @MainActor in
                     self.progress = .init(
@@ -160,7 +162,7 @@ class LoRAEvaluator {
 
     private func loadLoRAData(name: String) throws -> [String]? {
         if let url = Bundle.main.url(forResource: name, withExtension: "jsonl") {
-            return try LLM.loadLoRAData(url: url)
+            return try MLXLLM.loadLoRAData(url: url)
         }
         return nil
     }
@@ -196,9 +198,9 @@ class LoRAEvaluator {
         let modelContainer = try await loadModel()
 
         // apply LoRA adapters and train
-        await modelContainer.perform { model, _ in
+        await modelContainer.perform { context in
             LoRATrain.convert(
-                model: model, layers: loraLayers(model: model))
+                model: context.model, layers: loraLayers(model: context.model))
         }
 
         let train = try loadLoRAData(name: "train")
@@ -208,11 +210,11 @@ class LoRAEvaluator {
             return
         }
 
-        try await modelContainer.perform { model, tokenizer in
+        try await modelContainer.perform { context in
             let optimizer = Adam(learningRate: learningRate)
             try LoRATrain.train(
-                model: model, train: train, validate: valid, optimizer: optimizer,
-                tokenizer: tokenizer,
+                model: context.model, train: train, validate: valid, optimizer: optimizer,
+                tokenizer: context.tokenizer,
                 parameters: parameters
             ) { progress in
                 Task { @MainActor in
@@ -240,9 +242,10 @@ class LoRAEvaluator {
             return
         }
 
-        let loss = await modelContainer.perform { model, tokenizer in
+        let loss = await modelContainer.perform { context in
             LoRATrain.evaluate(
-                model: model, dataset: test, tokenizer: tokenizer, batchSize: 1, batchCount: 0)
+                model: context.model, dataset: test,
+                tokenizer: context.tokenizer, batchSize: 1, batchCount: 0)
         }
 
         self.progress = nil
@@ -269,26 +272,20 @@ class LoRAEvaluator {
 
         let modelContainer = try await loadModel()
 
-        let messages = [["role": "user", "content": prompt]]
-        let promptTokens = try await modelContainer.perform { _, tokenizer in
-            try tokenizer.applyChatTemplate(messages: messages)
-        }
-
         // evaluate
-        let result = await modelContainer.perform { model, tokenizer in
-            LLM.generate(
-                promptTokens: promptTokens, parameters: generateParameters, model: model,
-                tokenizer: tokenizer,
-                extraEOSTokens: modelConfiguration.extraEOSTokens,
-                didGenerate: { tokens in
-                    if tokens.count % evaluateShowEvery == 0 {
-                        let fullOutput = tokenizer.decode(tokens: tokens)
-                        Task { @MainActor in
-                            self.output = fullOutput
-                        }
+        let result = try await modelContainer.perform { context in
+            let input = try await context.processor.prepare(input: .init(prompt: prompt))
+            return try MLXLMCommon.generate(
+                input: input, parameters: generateParameters, context: context
+            ) { tokens in
+                if tokens.count % evaluateShowEvery == 0 {
+                    let fullOutput = context.tokenizer.decode(tokens: tokens)
+                    Task { @MainActor in
+                        self.output = fullOutput
                     }
-                    return tokens.count >= maxTokens ? .stop : .more
-                })
+                }
+                return tokens.count >= maxTokens ? .stop : .more
+            }
         }
 
         self.output = result.output
