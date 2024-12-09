@@ -21,10 +21,11 @@ import Tokenizers
 /// or:
 ///
 /// ```swift
+/// let userInput: UserInput
 /// let result = await modelContainer.perform { context in
-///     LLM.generate(
-///         promptTokens: promptTokens, parameters: generateParameters, model: context.model,
-///         tokenizer: context.tokenizer, extraEOSTokens: modelConfiguration.extraEOSTokens
+///     let input = try await context.processor.prepare(input: userInput)
+///     return generate(
+///         input: input, parameters: generateParameters, context: context
 ///     ) { tokens in
 ///     ...
 ///     }
