@@ -224,7 +224,6 @@ private enum Language {
         @ModuleInfo(key: "lm_head") var lmHead: Linear?
 
         var kvHeads: [Int]
-        var headDim: MLX.IntOrPair
 
         public init(_ args: Qwen2VLConfiguration.TextConfiguration) {
             self.model = Qwen2Model(args)
@@ -768,7 +767,6 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
 
     public var vocabularySize: Int { config.baseConfiguration.vocabularySize }
     public var kvHeads: [Int] { languageModel.kvHeads }
-    public var headDim: MLX.IntOrPair { languageModel.headDim }
 
     public func loraLinearLayers() -> MLXLMCommon.LoRALinearLayers {
         languageModel.model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }

@@ -15,7 +15,7 @@ import Tokenizers
 struct LLMTool: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Command line tool for generating text and manipulating LLMs",
-        subcommands: [EvaluateCommand.self, LoRACommand.self, VLMCommand.self],
+        subcommands: [EvaluateCommand.self, LoRACommand.self],
         defaultSubcommand: EvaluateCommand.self)
 }
 
@@ -204,69 +204,17 @@ struct EvaluateCommand: AsyncParsableCommand {
     @OptionGroup var memory: MemoryArguments
     @OptionGroup var generate: GenerateArguments
 
-    @MainActor
-    mutating func run() async throws {
-        let modelContainer = try await memory.start { [args] in
-            try await args.load(
-                defaultModel: MLXLLM.ModelRegistry.mistral7B4bit.name,
-                modelFactory: LLMModelFactory.shared)
-        }
-        let modelConfiguration = modelContainer.configuration
-
-        if !generate.quiet {
-            print("Model loaded -> \(modelConfiguration.id)")
-        }
-
-        let prompt = generate.prompt ?? modelConfiguration.defaultPrompt
-
-        if !generate.quiet {
-            print("Starting generation ...")
-            print(prompt, terminator: "")
-        }
-
-        let result = try await modelContainer.perform { [generate] context in
-            let input = try await context.processor.prepare(input: .init(prompt: prompt))
-            return try generate.generate(input: input, context: context)
-        }
-
-        if !generate.quiet {
-            print("------")
-            print(result.summary())
-
-            memory.reportMemoryStatistics()
-        }
-    }
-}
-
-struct VLMCommand: AsyncParsableCommand {
-
-    static let configuration = CommandConfiguration(
-        commandName: "vlm",
-        abstract: "evaluate prompt and images to generate text (VLM)"
-    )
-
-    @OptionGroup var args: ModelArguments
-    @OptionGroup var memory: MemoryArguments
-    @OptionGroup var generate: GenerateArguments
-
     @Option(parsing: .upToNextOption, help: "Resize images to this size (width, height)")
     var resize: [Int] = []
 
     @Option(parsing: .upToNextOption, help: "Paths or urls for input images")
     var image: [URL] = []
 
-    @MainActor
-    mutating func run() async throws {
-        let modelContainer = try await memory.start { [args] in
-            try await args.load(
-                defaultModel: MLXVLM.ModelRegistry.paligemma3bMix448_8bit.name,
-                modelFactory: VLMModelFactory.shared)
-        }
-        let modelConfiguration = modelContainer.configuration
-
+    private func userInput(modelConfiguration: ModelConfiguration) -> UserInput {
         // prompt and images
         let prompt = generate.prompt ?? modelConfiguration.defaultPrompt
-        var input = UserInput(prompt: prompt, images: image.map { .url($0) })
+        let images = image.map { UserInput.Image.url($0) }
+        var input = UserInput(prompt: prompt, images: images)
 
         // processing instructions
         if !resize.isEmpty {
@@ -283,9 +231,45 @@ struct VLMCommand: AsyncParsableCommand {
             input.processing.resize = size
         }
 
-        // inference
-        let result = try await modelContainer.perform { [generate, input] context in
-            let input = try await context.processor.prepare(input: input)
+        return input
+    }
+
+    @MainActor
+    mutating func run() async throws {
+        let modelFactory: ModelFactory
+        let defaultModel: ModelConfiguration
+
+        // switch between LLM and VLM
+        let vlm = image.count > 0
+        if vlm {
+            modelFactory = VLMModelFactory.shared
+            defaultModel = MLXVLM.ModelRegistry.paligemma3bMix448_8bit
+        } else {
+            modelFactory = LLMModelFactory.shared
+            defaultModel = MLXLLM.ModelRegistry.mistral7B4bit
+        }
+
+        // load the model
+        let modelContainer = try await memory.start { [args] in
+            try await args.load(defaultModel: defaultModel.name, modelFactory: modelFactory)
+        }
+
+        // get the resolved configuration (this has the default prompt)
+        let modelConfiguration = modelContainer.configuration
+
+        if !generate.quiet {
+            print("Model loaded -> \(modelConfiguration.id)")
+        }
+
+        let userInput = self.userInput(modelConfiguration: modelConfiguration)
+
+        if !generate.quiet {
+            print("Starting generation ...")
+            print(userInput.prompt, terminator: "")
+        }
+
+        let result = try await modelContainer.perform { [generate] context in
+            let input = try await context.processor.prepare(input: userInput)
             return try generate.generate(input: input, context: context)
         }
 

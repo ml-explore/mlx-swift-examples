@@ -142,7 +142,7 @@ public class ModelRegistry: @unchecked Sendable {
 
     static private func all() -> [ModelConfiguration] {
         [
-            paligemma3bMix4488bit,
+            paligemma3bMix448_8bit,
             qwen2VL2BInstruct4Bit,
         ]
     }

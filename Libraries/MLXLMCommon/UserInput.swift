@@ -11,7 +11,7 @@ import MLX
 public struct UserInput: Sendable {
 
     /// Representation of a prompt or series of messages (conversation).
-    public enum Prompt: Sendable {
+    public enum Prompt: Sendable, CustomStringConvertible {
         case text(String)
         case messages([[String: String]])
 
@@ -21,6 +21,15 @@ public struct UserInput: Sendable {
                 return [["role": "user", "content": text]]
             case .messages(let messages):
                 return messages
+            }
+        }
+
+        public var description: String {
+            switch self {
+            case .text(let text):
+                return text
+            case .messages(let messages):
+                return messages.map { $0.description }.joined(separator: "\n")
             }
         }
     }

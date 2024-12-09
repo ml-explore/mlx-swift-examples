@@ -190,7 +190,6 @@ private enum Language {
         @ModuleInfo var model: GemmaModel
 
         var kvHeads: [Int]
-        var headDim: MLX.IntOrPair
 
         public init(_ args: PaliGemmaConfiguration.TextConfiguration) {
             self.model = GemmaModel(args)
@@ -527,7 +526,6 @@ public class PaliGemma: Module, VLMModel, KVCacheDimensionProvider {
 
     public var vocabularySize: Int { config.vocabularySize }
     public var kvHeads: [Int] { languageModel.kvHeads }
-    public var headDim: MLX.IntOrPair { languageModel.headDim }
 
     public func loraLinearLayers() -> MLXLMCommon.LoRALinearLayers {
         languageModel.model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
