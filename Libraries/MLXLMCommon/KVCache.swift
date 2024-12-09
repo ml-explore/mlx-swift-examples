@@ -40,21 +40,13 @@ public func createAttentionMask(h: MLXArray, cache: [KVCache]?) -> MLXArray? {
 
 /// See https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/base.py#L11
 public class KVCacheSimple: KVCache, Evaluatable {
-    let kHeadDim: Int
-    let vHeadDim: Int
-    let kvHeads: Int
-
     var keys: MLXArray?
     var values: MLXArray?
 
     public var offset = 0
     var step = 256
 
-    public init(headDim: IntOrPair, kvHeads: Int) {
-        self.kHeadDim = headDim.first
-        self.vHeadDim = headDim.second
-        self.kvHeads = kvHeads
-    }
+    public init() {}
 
     public func innerState() -> [MLXArray] {
         [self.keys, self.values].compactMap { $0 }
@@ -71,6 +63,10 @@ public class KVCacheSimple: KVCache, Evaluatable {
             }
         if reset {
             let B = keys.dim(0)
+            let kvHeads = keys.dim(1)
+            let kHeadDim = keys.dim(3)
+            let vHeadDim = values.dim(3)
+
             let nSteps = (step + keys.dim(2) - 1) / step
             let kShape = [B, kvHeads, nSteps * step, kHeadDim]
             let vShape = [B, kvHeads, nSteps * step, vHeadDim]

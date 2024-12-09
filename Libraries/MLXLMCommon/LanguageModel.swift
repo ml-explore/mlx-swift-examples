@@ -177,13 +177,12 @@ extension LanguageModel {
 /// provide an automatic implementation of ``LanguageModel/newCache(parameters:)``
 public protocol KVCacheDimensionProvider {
     var kvHeads: [Int] { get }
-    var headDim: IntOrPair { get }
 }
 
 extension LanguageModel where Self: KVCacheDimensionProvider {
     public func newCache(parameters: GenerateParameters?) -> [KVCache] {
         kvHeads.map { n in
-            KVCacheSimple(headDim: headDim, kvHeads: n)
+            KVCacheSimple()
         }
     }
 }

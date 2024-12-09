@@ -196,7 +196,6 @@ private enum Language {
             self.model = GemmaModel(args)
 
             self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
-            self.headDim = .init(args.hiddenSize / args.attentionHeads)
         }
 
         public func callAsFunction(

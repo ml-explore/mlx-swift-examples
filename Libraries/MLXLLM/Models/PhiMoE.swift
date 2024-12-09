@@ -211,7 +211,6 @@ private class PhiMoEModelInner: Module {
 public class PhiMoEModel: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
     public let kvHeads: [Int]
-    public let headDim: IntOrPair
 
     fileprivate let model: PhiMoEModelInner
     @ModuleInfo(key: "lm_head") var lmHead: Linear
@@ -219,7 +218,6 @@ public class PhiMoEModel: Module, LLMModel, KVCacheDimensionProvider {
     public init(_ args: PhiMoEConfiguration) {
         self.vocabularySize = args.vocabularySize
         self.kvHeads = Array(repeating: args.kvHeads, count: args.hiddenLayers)
-        self.headDim = .init(args.hiddenSize / args.attentionHeads)
         self.model = PhiMoEModelInner(args)
         self._lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: true)
     }

@@ -145,8 +145,7 @@ private enum Language {
             self.model = YourModel(args)
 
             self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
-            self.headDim = .init(args.hiddenSize / args.attentionHeads)
-        }
+            }
 
         public func callAsFunction(
             _ inputs: MLXArray, cache: [KVCache]? = nil, inputEmbedding: MLXArray? = nil,

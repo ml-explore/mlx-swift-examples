@@ -150,7 +150,6 @@ public class CohereModel: Module, LLMModel, KVCacheDimensionProvider {
 
     public let vocabularySize: Int
     public let kvHeads: [Int]
-    public let headDim: IntOrPair
 
     let model: CohereModelInner
     let logitScale: Float
@@ -158,7 +157,6 @@ public class CohereModel: Module, LLMModel, KVCacheDimensionProvider {
     public init(_ args: CohereConfiguration) {
         self.vocabularySize = args.vocabularySize
         self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
-        self.headDim = .init(args.hiddenSize / args.attentionHeads)
         self.model = CohereModelInner(args)
         self.logitScale = args.logitScale
     }

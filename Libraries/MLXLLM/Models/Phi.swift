@@ -156,7 +156,6 @@ public class PhiModel: Module, LLMModel, KVCacheDimensionProvider {
 
     public let vocabularySize: Int
     public let kvHeads: [Int]
-    public let headDim: IntOrPair
 
     fileprivate let model: PhiModelInner
 
@@ -165,7 +164,6 @@ public class PhiModel: Module, LLMModel, KVCacheDimensionProvider {
     public init(_ args: PhiConfiguration) {
         self.vocabularySize = args.vocabularySize
         self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
-        self.headDim = .init(args.hiddenSize / args.attentionHeads)
         self.model = PhiModelInner(args)
         self._lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: true)
     }

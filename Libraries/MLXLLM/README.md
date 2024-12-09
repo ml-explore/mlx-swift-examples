@@ -87,7 +87,6 @@ structure something like this:
 public class YourModel: Module, LLMModel, KVCacheDimensionProvider, LoRAModel {
 
     public let kvHeads: [Int]
-    public let headDim: IntOrPair
 
     @ModuleInfo var model: YourModelInner
 
@@ -98,7 +97,6 @@ public class YourModel: Module, LLMModel, KVCacheDimensionProvider, LoRAModel {
 
     public init(_ args: YourModelConfiguration) {
         self.kvHeads = Array(repeating: args.kvHeads, count: args.hiddenLayers)
-        self.headDim = .init(args.headDimensions)
         self.model = YourModelInner(args)
     }
 

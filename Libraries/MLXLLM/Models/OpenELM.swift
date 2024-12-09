@@ -145,11 +145,7 @@ private class TransformerDecoderLayer: Module {
     }
 }
 
-class OpenELMModelInner: Module, KVCacheDimensionProvider {
-    let vocabularySize: Int
-    let kvHeads: [Int]
-    let headDim: IntOrPair
-
+class OpenELMModelInner: Module {
     @ModuleInfo(key: "token_embeddings") var embedTokens: Embedding
 
     fileprivate let layers: [TransformerDecoderLayer]
@@ -158,11 +154,8 @@ class OpenELMModelInner: Module, KVCacheDimensionProvider {
     public init(_ args: OpenElmConfiguration) {
         precondition(args.vocabularySize > 0)
 
-        self.vocabularySize = args.vocabularySize
-        self.kvHeads = args.kvHeads
-        self.headDim = .init(args.headDimensions)
         self._embedTokens.wrappedValue = Embedding(
-            embeddingCount: self.vocabularySize, dimensions: args.modelDim)
+            embeddingCount: args.vocabularySize, dimensions: args.modelDim)
 
         self.layers = (0 ..< args.numTransformerLayers)
             .map { layerId in
@@ -187,7 +180,6 @@ class OpenELMModelInner: Module, KVCacheDimensionProvider {
 public class OpenELMModel: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
     public let kvHeads: [Int]
-    public let headDim: IntOrPair
 
     let shareInputOutputLayers: Bool
     let transformer: OpenELMModelInner
@@ -197,7 +189,6 @@ public class OpenELMModel: Module, LLMModel, KVCacheDimensionProvider {
     public init(_ args: OpenElmConfiguration) {
         self.vocabularySize = args.vocabularySize
         self.kvHeads = args.kvHeads
-        self.headDim = .init(args.headDimensions)
 
         self.transformer = OpenELMModelInner(args)
         self.shareInputOutputLayers = args.shareInputOutputLayers

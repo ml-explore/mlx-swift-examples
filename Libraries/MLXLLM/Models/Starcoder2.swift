@@ -151,7 +151,6 @@ public class Starcoder2ModelInner: Module {
 public class Starcoder2Model: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
     public let kvHeads: [Int]
-    public let headDim: IntOrPair
 
     public let tieWordEmbeddings: Bool
     let model: Starcoder2ModelInner
@@ -161,7 +160,6 @@ public class Starcoder2Model: Module, LLMModel, KVCacheDimensionProvider {
     public init(_ args: Starcoder2Configuration) {
         self.vocabularySize = args.vocabularySize
         self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
-        self.headDim = .init(args.hiddenSize / args.attentionHeads)
         self.model = Starcoder2ModelInner(args)
         self.tieWordEmbeddings = args.tieWordEmbeddings
         if !self.tieWordEmbeddings {

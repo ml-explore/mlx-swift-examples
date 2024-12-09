@@ -180,7 +180,6 @@ private class GemmaModelInner: Module {
 public class GemmaModel: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
     public let kvHeads: [Int]
-    public let headDim: IntOrPair
 
     let modelType: String
     private let model: GemmaModelInner
@@ -189,7 +188,6 @@ public class GemmaModel: Module, LLMModel, KVCacheDimensionProvider {
         self.modelType = args.modelType
         self.vocabularySize = args.vocabularySize
         self.kvHeads = Array(repeating: args.kvHeads, count: args.hiddenLayers)
-        self.headDim = .init(args.headDimensions)
         self.model = GemmaModelInner(args)
     }
 

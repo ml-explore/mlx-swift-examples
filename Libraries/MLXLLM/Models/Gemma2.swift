@@ -196,7 +196,6 @@ public class ModelInner: Module {
 public class Gemma2Model: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
     public let kvHeads: [Int]
-    public let headDim: IntOrPair
 
     let model: ModelInner
     let logitSoftCap: Float
@@ -204,7 +203,6 @@ public class Gemma2Model: Module, LLMModel, KVCacheDimensionProvider {
     public init(_ args: Gemma2Configuration) {
         self.vocabularySize = args.vocabularySize
         self.kvHeads = Array(repeating: args.kvHeads, count: args.hiddenLayers)
-        self.headDim = .init(args.headDimensions)
         self.model = ModelInner(args)
         self.logitSoftCap = args.finalLogitSoftcapping
     }

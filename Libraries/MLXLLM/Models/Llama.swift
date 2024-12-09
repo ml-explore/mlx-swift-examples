@@ -287,7 +287,6 @@ public class LlamaModel: Module, LLMModel, KVCacheDimensionProvider {
 
     public let vocabularySize: Int
     public let kvHeads: [Int]
-    public let headDim: IntOrPair
 
     fileprivate let model: LlamaModelInner
 
@@ -296,7 +295,6 @@ public class LlamaModel: Module, LLMModel, KVCacheDimensionProvider {
     public init(_ args: LlamaConfiguration) {
         self.vocabularySize = args.vocabularySize
         self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
-        self.headDim = .init(args.resolvedHeadDimensions)
         self.model = LlamaModelInner(args)
         if !args.tieWordEmbeddings {
             self._lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)

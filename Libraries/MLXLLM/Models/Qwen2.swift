@@ -168,7 +168,6 @@ public class Qwen2ModelInner: Module {
 public class Qwen2Model: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
     public let kvHeads: [Int]
-    public let headDim: IntOrPair
 
     let model: Qwen2ModelInner
     let configuration: Qwen2Configuration
@@ -179,7 +178,6 @@ public class Qwen2Model: Module, LLMModel, KVCacheDimensionProvider {
         self.configuration = args
         self.vocabularySize = args.vocabularySize
         self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
-        self.headDim = .init(args.hiddenSize / args.attentionHeads)
         self.model = Qwen2ModelInner(args)
         _lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
     }
