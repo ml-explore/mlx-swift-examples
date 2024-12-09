@@ -122,7 +122,7 @@ public class ModelTypeRegistry: @unchecked Sendable {
         "yourModel": create(YourModelConfiguration.self, YourModel.init),
 ```
 
-Add a constant for the model in the ModelRegistry (not strictly required but useful
+Add a constant for the model in the `ModelRegistry` (not strictly required but useful
 for callers to refer to it in code):
 
 ```swift
