@@ -259,7 +259,7 @@ struct VLMCommand: AsyncParsableCommand {
     mutating func run() async throws {
         let modelContainer = try await memory.start { [args] in
             try await args.load(
-                defaultModel: MLXVLM.ModelRegistry.paligemma3bMix4488bit.name,
+                defaultModel: MLXVLM.ModelRegistry.paligemma3bMix448_8bit.name,
                 modelFactory: VLMModelFactory.shared)
         }
         let modelConfiguration = modelContainer.configuration
