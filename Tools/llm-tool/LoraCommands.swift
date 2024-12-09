@@ -22,7 +22,7 @@ struct LoRACommand: AsyncParsableCommand {
     )
 }
 
-private let defaultModel = "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
+private let defaultModel = MLXLLM.ModelRegistry.mistral7B4bit.name
 
 /// Common arguments for loading a LoRA mdoel with adapter weights
 struct LoRAModelArguments: ParsableArguments, Sendable {

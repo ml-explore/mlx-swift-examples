@@ -208,7 +208,7 @@ struct EvaluateCommand: AsyncParsableCommand {
     mutating func run() async throws {
         let modelContainer = try await memory.start { [args] in
             try await args.load(
-                defaultModel: "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx",
+                defaultModel: MLXLLM.ModelRegistry.mistral7B4bit.name,
                 modelFactory: LLMModelFactory.shared)
         }
         let modelConfiguration = modelContainer.configuration
