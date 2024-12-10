@@ -102,7 +102,9 @@ public struct UserInput: Sendable {
     public struct Processing: Sendable {
         public var resize: CGSize?
 
-        public init() {}
+        public init(resize: CGSize? = nil) {
+            self.resize = resize
+        }
     }
 
     public var prompt: Prompt
