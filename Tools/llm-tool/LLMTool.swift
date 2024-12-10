@@ -243,7 +243,7 @@ struct EvaluateCommand: AsyncParsableCommand {
         let vlm = image.count > 0
         if vlm {
             modelFactory = VLMModelFactory.shared
-            defaultModel = MLXVLM.ModelRegistry.paligemma3bMix448_8bit
+            defaultModel = MLXVLM.ModelRegistry.qwen2VL2BInstruct4Bit
         } else {
             modelFactory = LLMModelFactory.shared
             defaultModel = MLXLLM.ModelRegistry.mistral7B4bit
@@ -265,7 +265,7 @@ struct EvaluateCommand: AsyncParsableCommand {
 
         if !generate.quiet {
             print("Starting generation ...")
-            print(userInput.prompt, terminator: "")
+            print(userInput.prompt, terminator: " ")
         }
 
         let result = try await modelContainer.perform { [generate] context in
