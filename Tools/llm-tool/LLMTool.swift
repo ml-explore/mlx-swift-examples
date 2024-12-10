@@ -1,10 +1,14 @@
 // Copyright © 2024 Apple Inc.
 
 import ArgumentParser
+import CoreImage
 import Foundation
-import LLM
+import Hub
 import MLX
+import MLXLLM
+import MLXLMCommon
 import MLXRandom
+import MLXVLM
 import Tokenizers
 
 @main
@@ -19,21 +23,22 @@ struct LLMTool: AsyncParsableCommand {
 struct ModelArguments: ParsableArguments, Sendable {
 
     @Option(name: .long, help: "Name of the huggingface model or absolute path to directory")
-    var model: String = "mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
+    var model: String?
 
     @Sendable
-    func load() async throws -> (ModelContainer, ModelConfiguration) {
+    func load(defaultModel: String, modelFactory: ModelFactory) async throws -> ModelContainer {
         let modelConfiguration: ModelConfiguration
 
-        if self.model.hasPrefix("/") {
+        let modelName = self.model ?? defaultModel
+
+        if modelName.hasPrefix("/") {
             // path
-            modelConfiguration = ModelConfiguration(directory: URL(filePath: self.model))
+            modelConfiguration = ModelConfiguration(directory: URL(filePath: modelName))
         } else {
             // identifier
-            modelConfiguration = await ModelConfiguration.configuration(id: model)
+            modelConfiguration = modelFactory.configuration(id: modelName)
         }
-        let modelContainer = try await LLM.loadModelContainer(configuration: modelConfiguration)
-        return (modelContainer, modelConfiguration)
+        return try await modelFactory.loadContainer(configuration: modelConfiguration)
     }
 }
 
@@ -85,16 +90,14 @@ struct GenerateArguments: ParsableArguments, Sendable {
     }
 
     func generate(
-        promptTokens: [Int], model: LLMModel, tokenizer: Tokenizer,
-        extraEOSTokens: Set<String>? = nil
+        input: LMInput, context: ModelContext
     )
-        -> GenerateResult
+        throws -> GenerateResult
     {
-        var detokenizer = NaiveStreamingDetokenizer(tokenizer: tokenizer)
+        var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
 
-        return LLM.generate(
-            promptTokens: promptTokens, parameters: generateParameters,
-            model: model, tokenizer: tokenizer, extraEOSTokens: extraEOSTokens
+        return try MLXLMCommon.generate(
+            input: input, parameters: generateParameters, context: context
         ) { tokens in
 
             if let last = tokens.last {
@@ -129,7 +132,7 @@ struct MemoryArguments: ParsableArguments, Sendable {
 
     var startMemory: GPU.Snapshot?
 
-    mutating func start<L>(_ load: () async throws -> L) async throws -> L {
+    mutating func start<L>(_ load: @Sendable () async throws -> L) async throws -> L {
         if let cacheSize {
             GPU.set(cacheLimit: cacheSize * 1024 * 1024)
         }
@@ -201,31 +204,74 @@ struct EvaluateCommand: AsyncParsableCommand {
     @OptionGroup var memory: MemoryArguments
     @OptionGroup var generate: GenerateArguments
 
+    @Option(parsing: .upToNextOption, help: "Resize images to this size (width, height)")
+    var resize: [Int] = []
+
+    @Option(parsing: .upToNextOption, help: "Paths or urls for input images")
+    var image: [URL] = []
+
+    private func userInput(modelConfiguration: ModelConfiguration) -> UserInput {
+        // prompt and images
+        let prompt = generate.prompt ?? modelConfiguration.defaultPrompt
+        let images = image.map { UserInput.Image.url($0) }
+        var input = UserInput(prompt: prompt, images: images)
+
+        // processing instructions
+        if !resize.isEmpty {
+            let size: CGSize
+            if resize.count == 1 {
+                // single value represents width/height
+                let v = resize[0]
+                size = CGSize(width: v, height: v)
+            } else {
+                let v0 = resize[0]
+                let v1 = resize[0]
+                size = CGSize(width: v0, height: v1)
+            }
+            input.processing.resize = size
+        }
+
+        return input
+    }
+
     @MainActor
     mutating func run() async throws {
-        let (modelContainer, modelConfiguration) = try await memory.start(args.load)
+        let modelFactory: ModelFactory
+        let defaultModel: ModelConfiguration
+
+        // switch between LLM and VLM
+        let vlm = image.count > 0
+        if vlm {
+            modelFactory = VLMModelFactory.shared
+            defaultModel = MLXVLM.ModelRegistry.qwen2VL2BInstruct4Bit
+        } else {
+            modelFactory = LLMModelFactory.shared
+            defaultModel = MLXLLM.ModelRegistry.mistral7B4bit
+        }
+
+        // load the model
+        let modelContainer = try await memory.start { [args] in
+            try await args.load(defaultModel: defaultModel.name, modelFactory: modelFactory)
+        }
+
+        // get the resolved configuration (this has the default prompt)
+        let modelConfiguration = modelContainer.configuration
 
         if !generate.quiet {
             print("Model loaded -> \(modelConfiguration.id)")
         }
 
-        let prompt = generate.prompt ?? modelConfiguration.defaultPrompt
-        let messages = [["role": "user", "content": prompt]]
-        let promptTokens = try await modelContainer.perform { _, tokenizer in
-            try tokenizer.applyChatTemplate(messages: messages)
-        }
+        let userInput = self.userInput(modelConfiguration: modelConfiguration)
 
         if !generate.quiet {
             print("Starting generation ...")
-            print(prompt, terminator: "")
+            print(userInput.prompt, terminator: " ")
         }
 
-        let result = await modelContainer.perform { [generate] model, tokenizer in
-            generate.generate(
-                promptTokens: promptTokens, model: model, tokenizer: tokenizer,
-                extraEOSTokens: modelConfiguration.extraEOSTokens)
+        let result = try await modelContainer.perform { [generate] context in
+            let input = try await context.processor.prepare(input: userInput)
+            return try generate.generate(input: input, context: context)
         }
-        print()
 
         if !generate.quiet {
             print("------")

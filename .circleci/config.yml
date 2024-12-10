@@ -15,7 +15,7 @@ jobs:
 
   mac_build_and_test:
     macos:
-      xcode: 15.2.0
+      xcode: 16.0.0
     resource_class: macos.m1.medium.gen1
     steps:
       - checkout
@@ -35,8 +35,9 @@ jobs:
             xcrun --show-sdk-build-version
             swift --version
             find . -name Package.resolved -exec rm {} \;
-            xcodebuild -skipPackagePluginValidation -scheme llm-tool
-            xcodebuild -skipPackagePluginValidation -scheme mnist-tool
+            xcodebuild -scheme llm-tool
+            xcodebuild -scheme image-tool
+            xcodebuild -scheme mnist-tool
 
 workflows:
   build_and_test:

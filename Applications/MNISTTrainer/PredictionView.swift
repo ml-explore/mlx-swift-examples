@@ -6,8 +6,8 @@
 //
 
 import MLX
+import MLXMNIST
 import MLXNN
-import MNIST
 import SwiftUI
 
 struct Canvas: View {

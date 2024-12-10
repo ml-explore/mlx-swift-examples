@@ -51,13 +51,13 @@ Add the following dependency to your Package.swift
 .package(url: "https://github.com/ml-explore/mlx-swift-examples/", branch: "main"),
 ```
 
-Then add one library or both libraries to the target as a dependency. 
+Then add one or more libraries to the target as a dependency:
 
 ```swift
 .target(
     name: "YourTargetName",
     dependencies: [
-        .product(name: "LLM", package: "mlx-swift-examples")
+        .product(name: "MLXLLM", package: "mlx-swift-examples")
     ]),
 ```
 

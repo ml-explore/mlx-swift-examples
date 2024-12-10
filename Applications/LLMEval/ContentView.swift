@@ -1,7 +1,8 @@
 // Copyright © 2024 Apple Inc.
 
-import LLM
 import MLX
+import MLXLLM
+import MLXLMCommon
 import MLXRandom
 import MarkdownUI
 import Metal
@@ -159,7 +160,7 @@ class LLMEvaluator {
 
     /// This controls which model loads. `phi3_5_4bit` is one of the smaller ones, so this will fit on
     /// more devices.
-    let modelConfiguration = ModelConfiguration.phi3_5_4bit
+    let modelConfiguration = ModelRegistry.phi3_5_4bit
 
     /// parameters controlling the output
     let generateParameters = GenerateParameters(temperature: 0.6)
@@ -185,17 +186,17 @@ class LLMEvaluator {
             // limit the buffer cache
             MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
 
-            let modelContainer = try await LLM.loadModelContainer(configuration: modelConfiguration)
-            {
+            let modelContainer = try await LLMModelFactory.shared.loadContainer(
+                configuration: modelConfiguration
+            ) {
                 [modelConfiguration] progress in
                 Task { @MainActor in
                     self.modelInfo =
                         "Downloading \(modelConfiguration.name): \(Int(progress.fractionCompleted * 100))%"
                 }
             }
-            let numParams = await modelContainer.perform {
-                [] model, _ in
-                return model.numParameters()
+            let numParams = await modelContainer.perform { context in
+                context.model.numParameters()
             }
 
             self.modelInfo =
@@ -217,22 +218,17 @@ class LLMEvaluator {
         do {
             let modelContainer = try await load()
 
-            let messages = [["role": "user", "content": prompt]]
-            let promptTokens = try await modelContainer.perform { _, tokenizer in
-                try tokenizer.applyChatTemplate(messages: messages)
-            }
-
             // each time you generate you will get something new
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
-            let result = await modelContainer.perform { model, tokenizer in
-                LLM.generate(
-                    promptTokens: promptTokens, parameters: generateParameters, model: model,
-                    tokenizer: tokenizer, extraEOSTokens: modelConfiguration.extraEOSTokens
+            let result = try await modelContainer.perform { context in
+                let input = try await context.processor.prepare(input: .init(prompt: prompt))
+                return try MLXLMCommon.generate(
+                    input: input, parameters: generateParameters, context: context
                 ) { tokens in
                     // update the output -- this will make the view show the text as it generates
                     if tokens.count % displayEveryNTokens == 0 {
-                        let text = tokenizer.decode(tokens: tokens)
+                        let text = context.tokenizer.decode(tokens: tokens)
                         Task { @MainActor in
                             self.output = text
                         }

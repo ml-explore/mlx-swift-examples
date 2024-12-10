@@ -3,10 +3,10 @@
 import ArgumentParser
 import Foundation
 import MLX
+import MLXMNIST
 import MLXNN
 import MLXOptimizers
 import MLXRandom
-import MNIST
 
 @main
 struct MNISTTool: AsyncParsableCommand {
