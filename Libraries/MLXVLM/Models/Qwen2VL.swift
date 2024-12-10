@@ -274,15 +274,16 @@ private enum Vision {
     fileprivate class VisionRotaryEmbedding {
         let dimensions: Int
         let theta: Float
+        let inverseFreq: MLXArray
 
         init(dimensions: Int, theta: Float) {
             self.dimensions = dimensions
             self.theta = theta
+            let p = MLXArray(stride(from: 0, to: dimensions, by: 2)).asType(.float32) / dimensions
+            self.inverseFreq = 1.0 / pow(theta, p)
         }
 
         func callAsFunction(sequenceLength: Int) -> MLXArray {
-            let p = MLXArray(stride(from: 0, to: dimensions, by: 2)).asType(.float32) / dimensions
-            let inverseFreq = 1.0 / pow(theta, p)
             let seq = MLXArray(0 ..< sequenceLength).asType(inverseFreq.dtype)
             let freqs = outer(seq, inverseFreq)
             return freqs
@@ -746,7 +747,7 @@ public class Qwen2VLProcessor: UserInputProcessor {
         let prompt = prepare(prompt: input.prompt, imageTHW: image.imageGridThw)
         let promptTokens = try tokenizer.encode(text: prompt)
         let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
-        let mask = ones(like: promptArray)
+        let mask = ones(like: promptArray).asType(.int8)
 
         return LMInput(text: .init(tokens: promptArray, mask: mask), image: image)
     }

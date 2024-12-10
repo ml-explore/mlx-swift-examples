@@ -21,7 +21,7 @@ private enum Language {
         let eps: Float
 
         public init(dimensions: Int, eps: Float = 1e-5) {
-            self.weight = MLXArray.ones([dimensions])
+            self.weight = MLXArray.ones([dimensions]).asType(.float16)
             self.eps = eps
             super.init()
         }
@@ -488,7 +488,7 @@ public class PaligGemmaProcessor: UserInputProcessor {
 
         let promptTokens = try tokenizer.encode(text: prompt)
         let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
-        let mask = ones(like: promptArray)
+        let mask = ones(like: promptArray).asType(.int8)
 
         let pixels = try prepare(image: input.images[0].asCIImage(), processing: input.processing)
 
@@ -552,7 +552,7 @@ public class PaliGemma: Module, VLMModel, KVCacheDimensionProvider {
             outputHiddenStates: true
         )
 
-        var imageFeatures = hiddenState[.newAxis, .ellipsis].asType(pixelValues.dtype)
+        var imageFeatures = hiddenState[.newAxis, .ellipsis].asType(inputEmbedding.dtype)
         imageFeatures = multiModalProjector(imageFeatures)
 
         return prepareInputsForMultimodal(
@@ -567,7 +567,6 @@ public class PaliGemma: Module, VLMModel, KVCacheDimensionProvider {
         let embedDimension = imageFeatures.dim(2)
         let (batchSize, sequenceLength) = inputIds.shape2
         var scaledImageFeatures = imageFeatures / pow(Float(config.hiddenSize), 0.5)
-        var finalEmbedding = zeros([batchSize, sequenceLength, embedDimension])
 
         let textMask = (inputIds .!= config.imageTokenIndex) & (inputIds .!= config.padTokenId)
         let imageMask = inputIds .== config.imageTokenIndex
@@ -575,23 +574,20 @@ public class PaliGemma: Module, VLMModel, KVCacheDimensionProvider {
 
         // expand masks to match embedding dimension
         var textMaskExpanded = expandedDimensions(textMask, axis: -1)
-        textMaskExpanded = repeated(textMaskExpanded, count: embedDimension, axis: -1)
         var padMaskExpanded = expandedDimensions(padMask, axis: -1)
-        padMaskExpanded = repeated(padMaskExpanded, count: embedDimension, axis: -1)
 
         // insert padding and text token embeddings
-        finalEmbedding = which(textMaskExpanded, inputEmbedding, finalEmbedding)
-        finalEmbedding = which(padMaskExpanded, zeros(like: finalEmbedding), finalEmbedding)
+        var finalEmbedding = which(textMaskExpanded, inputEmbedding, 0)
+        finalEmbedding = which(padMaskExpanded, 0, finalEmbedding)
 
         let padSize = finalEmbedding.dim(1) - scaledImageFeatures.dim(1)
         scaledImageFeatures = padded(scaledImageFeatures, widths: [0, .init((0, padSize)), 0])
 
         // insert image embeddings - the image mask is always less or equal to the sentence in length
         var imageMaskExpanded = expandedDimensions(imageMask, axis: -1)
-        imageMaskExpanded = repeated(imageMaskExpanded, count: embedDimension, axis: -1)
         finalEmbedding = which(imageMaskExpanded, scaledImageFeatures, finalEmbedding)
 
-        finalEmbedding = which(padMaskExpanded, zeros(like: finalEmbedding), finalEmbedding)
+        finalEmbedding = which(padMaskExpanded, 0, finalEmbedding)
 
         let attentionMaskExpanded1 = expandedDimensions(attentionMask, axis: 1)
         let attentionMaskExpanded2 = expandedDimensions(attentionMask, axis: 2)
