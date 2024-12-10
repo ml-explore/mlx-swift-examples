@@ -39,9 +39,9 @@ See also:
 
 - [MLX troubleshooting](https://ml-explore.github.io/mlx-swift/MLX/documentation/mlx/troubleshooting)
 
-## Installation of MLXLLM and MLXMNIST libraries
+## Installation of libraries
 
-The MLXLLM, MLXMNIST and StableDiffusion libraries in the example repo are available
+The MLXLLM, MLXVLM, MLXLMCommon, MLXMNIST, MLXEmbedders, and StableDiffusion libraries in the example repo are available
 as Swift Packages.
 
 

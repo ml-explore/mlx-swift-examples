@@ -20,6 +20,9 @@ let package = Package(
             name: "MLXMNIST",
             targets: ["MLXMNIST"]),
         .library(
+            name: "MLXEmbedders",
+            targets: ["MLXEmbedders"]),
+        .library(
             name: "StableDiffusion",
             targets: ["StableDiffusion"]),
     ],
