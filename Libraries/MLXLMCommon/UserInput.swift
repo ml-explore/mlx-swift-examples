@@ -101,6 +101,8 @@ public struct UserInput: Sendable {
     /// Representation of processing to apply to media.
     public struct Processing: Sendable {
         public var resize: CGSize?
+
+        public init() {}
     }
 
     public var prompt: Prompt
@@ -117,9 +119,10 @@ public struct UserInput: Sendable {
         self.images = images
     }
 
-    public init(prompt: Prompt, images: [Image] = [Image]()) {
+    public init(prompt: Prompt, images: [Image] = [Image](), processing: Processing = .init()) {
         self.prompt = prompt
         self.images = images
+        self.processing = processing
     }
 }
 
