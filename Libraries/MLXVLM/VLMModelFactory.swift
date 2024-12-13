@@ -59,7 +59,7 @@ public class ModelTypeRegistry: @unchecked Sendable {
     private var creators: [String: @Sendable (URL) throws -> any LanguageModel] = [
         "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
         "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
-        "idefics3": create(Idefics3Configuration.self, Idefics3.init)
+        "idefics3": create(Idefics3Configuration.self, Idefics3.init),
     ]
 
     /// Add a new model to the type registry.
@@ -95,14 +95,14 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
     private let lock = NSLock()
 
     private var creators:
-    [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor] = [
-        "PaliGemmaProcessor": create(
-            PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
-        "Qwen2VLProcessor": create(
-            Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
-        "Idefics3Processor": create(
-            Idefics3ProcessorConfiguration.self, Idefics3Processor.init)
-    ]
+        [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor] = [
+            "PaliGemmaProcessor": create(
+                PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
+            "Qwen2VLProcessor": create(
+                Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
+            "Idefics3Processor": create(
+                Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
+        ]
 
     /// Add a new model to the type registry.
     public func registerProcessorType(
@@ -119,7 +119,7 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
 
     /// Given a `processorType` and configuration file instantiate a new `UserInputProcessor`.
     public func createModel(configuration: URL, processorType: String, tokenizer: any Tokenizer)
-    throws -> any UserInputProcessor
+        throws -> any UserInputProcessor
     {
         let creator = lock.withLock {
             creators[processorType]
@@ -142,7 +142,8 @@ public class ModelRegistry: @unchecked Sendable {
 
     private let lock = NSLock()
     private var registry = Dictionary(
-        uniqueKeysWithValues: all().map { ($0.name, $0)
+        uniqueKeysWithValues: all().map {
+            ($0.name, $0)
         })
 
     static public let paligemma3bMix448_8bit = ModelConfiguration(
@@ -154,7 +155,7 @@ public class ModelRegistry: @unchecked Sendable {
         id: "mlx-community/Qwen2-VL-2B-Instruct-4bit",
         defaultPrompt: "Describe the image in English"
     )
-    
+
     static public let smolvlminstruct4bit = ModelConfiguration(
         id: "mlx-community/SmolVLM-Instruct-4bit",
         defaultPrompt: "Describe the image in English"
