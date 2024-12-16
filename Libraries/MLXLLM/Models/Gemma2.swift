@@ -5,6 +5,7 @@ import MLX
 import MLXFast
 import MLXLMCommon
 import MLXNN
+import MLXRandom
 
 // Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/gemma2.py
 
@@ -33,10 +34,10 @@ private class Attention: Module {
     let nKVHeads: Int
     let repeats: Int
 
-    @ModuleInfo(key: "q_proj") var wq: Linear
-    @ModuleInfo(key: "k_proj") var wk: Linear
-    @ModuleInfo(key: "v_proj") var wv: Linear
-    @ModuleInfo(key: "o_proj") var wo: Linear
+    @ModuleInfo(key: "q_proj") var wq: UnaryLayer
+    @ModuleInfo(key: "k_proj") var wk: UnaryLayer
+    @ModuleInfo(key: "v_proj") var wv: UnaryLayer
+    @ModuleInfo(key: "o_proj") var wo: UnaryLayer
 
     let rope: RoPE
 
@@ -286,5 +287,122 @@ public struct Gemma2Configuration: Codable {
 extension Gemma2Model: LoRAModel {
     public func loraLinearLayers() -> LoRALinearLayers {
         model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
+    }
+}
+
+// TODO - notes
+//
+// - make UnaryLayer extend Module
+// - make a Quantized protocol that provides the groupSize and bits
+// - make the QuantizedLinear shape produce the expanded shape
+// - make `items()` open
+// - make `updateModule(key:_:)` open
+//
+// - evaluation and training should work as expected
+// - this flattens the weights and modules into one layer
+//      - to match the normal lora implementation
+//      - see items() and updateModule()
+
+// TODO: make UnaryLayer extend Module
+public protocol UnaryLayer2: Module {
+    func callAsFunction(_ x: MLXArray) -> MLXArray
+}
+
+/// LoRA layer that can wrap any UnaryLayer
+class LoRA: Module, UnaryLayer2 {
+
+    let adapts: UnaryLayer2
+    let scale: Float
+
+    @ParameterInfo(key: "lora_a") var loraA: MLXArray
+    @ParameterInfo(key: "lora_b") var loraB: MLXArray
+
+    public init(
+        adapts: UnaryLayer2, inputDimensions: Int, outputDimensions: Int, rank: Int = 8,
+        scale: Float = 20.0
+    ) {
+        self.adapts = adapts
+
+        self.scale = scale
+
+        let loraScale = 1 / sqrt(Float(inputDimensions))
+        self._loraA.wrappedValue = MLXRandom.uniform(
+            low: -loraScale, high: loraScale, [inputDimensions, rank])
+        self._loraB.wrappedValue = MLXArray.zeros([rank, outputDimensions])
+
+        freeze()
+    }
+
+    // TODO: in LoRALinear this is
+    // public static func from(linear: Linear, rank: Int = 8) -> LoRA
+    public convenience init(linear: Linear, rank: Int = 8, scale: Float = 20.0) {
+        var (outputDimensions, inputDimensions) = linear.shape
+
+        if let linear = linear as? QuantizedLinear {
+            // TODO Linear should probably have a property to return these directly
+            // rather than shape which represents the physical shape of the layers
+            inputDimensions = inputDimensions * 32 / linear.bits
+        }
+
+        self.init(
+            adapts: linear,
+            inputDimensions: inputDimensions, outputDimensions: outputDimensions,
+            rank: rank, scale: scale)
+    }
+
+    // produce a merged view of properties (flatten LoRA into adapts)
+    override func items() -> ModuleItems {
+        var result = adapts.items()
+        for (key, value) in super.items() {
+            if key == "adapts" { continue }
+            result[key] = value
+        }
+        return result
+    }
+
+    // forward module updates -> adapt
+    func updateModule(key: String, _ value: Any) throws {
+        try adapts.updateModule(key: key, value)
+    }
+
+    override func freeze(recursive: Bool = true, keys: [String]? = nil, strict: Bool = false) throws
+    {
+        try adapts.freeze(recursive: recursive, keys: keys, strict: strict)
+    }
+
+    // TODO: this requires knowledge of the innards of the adapted layer so it
+    // is specific to Linear (and QuantizedLinear).
+    public func toLinear(deQuantize: Bool = false) -> Linear {
+        // TODO throws?  failable?
+        guard let linear = adapts as? Linear else { fatalError("Not a Linear") }
+
+        var weight: MLXArray
+        if let quantized = linear as? QuantizedLinear {
+            weight = dequantized(
+                quantized.weight, scales: quantized.scales, biases: quantized.biases,
+                groupSize: quantized.groupSize, bits: quantized.bits)
+        } else {
+            weight = linear.weight
+        }
+
+        let loraB = (scale * loraB.T).asType(.float16)
+        let loraA = loraA.T.asType(.float16)
+        let mergedWeight = weight + matmul(loraB, loraA)
+
+        // TODO maybe add a protocol for Quanitzed
+        if let quantized = linear as? QuantizedLinear {
+            return QuantizedLinear(
+                weight: mergedWeight, bias: quantized.bias,
+                groupSize: quantized.groupSize, bits: quantized.bits)
+        } else {
+            return Linear(weight: mergedWeight, bias: linear.bias)
+        }
+    }
+
+    public func callAsFunction(_ x: MLXArray) -> MLXArray {
+        // TODO let y = super.callAsFunction(x.asType(scales.dtype)) -- ignoring the asType here
+        let y = adapts(x)
+        let z = matmul(matmul(x, self.loraA), self.loraB)
+        return y + scale * z
     }
 }
