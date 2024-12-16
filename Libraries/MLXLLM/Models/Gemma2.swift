@@ -297,6 +297,7 @@ extension Gemma2Model: LoRAModel {
 // - make the QuantizedLinear shape produce the expanded shape
 // - make `items()` open
 // - make `updateModule(key:_:)` open
+// - make `noGrad` overridable (turn into function?)
 //
 // - evaluation and training should work as expected
 // - this flattens the weights and modules into one layer
