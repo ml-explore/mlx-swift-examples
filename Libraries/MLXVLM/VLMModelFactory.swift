@@ -33,7 +33,11 @@ private func create<C: Codable, M>(
 }
 
 private func create<C: Codable, P>(
-    _ configurationType: C.Type, _ processorInit: @escaping (C, any Tokenizer) -> P
+    _ configurationType: C.Type,
+    _ processorInit: @escaping (
+        C,
+        any Tokenizer
+    ) -> P
 ) -> (URL, any Tokenizer) throws -> P {
     { url, tokenizer in
         let configuration = try JSONDecoder().decode(
@@ -55,11 +59,15 @@ public class ModelTypeRegistry: @unchecked Sendable {
     private var creators: [String: @Sendable (URL) throws -> any LanguageModel] = [
         "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
         "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
+        "idefics3": create(Idefics3Configuration.self, Idefics3.init),
     ]
 
     /// Add a new model to the type registry.
     public func registerModelType(
-        _ type: String, creator: @Sendable @escaping (URL) throws -> any LanguageModel
+        _ type: String,
+        creator: @Sendable @escaping (
+            URL
+        ) throws -> any LanguageModel
     ) {
         lock.withLock {
             creators[type] = creator
@@ -92,12 +100,17 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
                 PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
             "Qwen2VLProcessor": create(
                 Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
+            "Idefics3Processor": create(
+                Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
         ]
 
     /// Add a new model to the type registry.
     public func registerProcessorType(
         _ type: String,
-        creator: @Sendable @escaping (URL, any Tokenizer) throws -> any UserInputProcessor
+        creator: @Sendable @escaping (
+            URL,
+            any Tokenizer
+        ) throws -> any UserInputProcessor
     ) {
         lock.withLock {
             creators[type] = creator
@@ -128,7 +141,10 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
 public class ModelRegistry: @unchecked Sendable {
 
     private let lock = NSLock()
-    private var registry = Dictionary(uniqueKeysWithValues: all().map { ($0.name, $0) })
+    private var registry = Dictionary(
+        uniqueKeysWithValues: all().map {
+            ($0.name, $0)
+        })
 
     static public let paligemma3bMix448_8bit = ModelConfiguration(
         id: "mlx-community/paligemma-3b-mix-448-8bit",
@@ -137,6 +153,11 @@ public class ModelRegistry: @unchecked Sendable {
 
     static public let qwen2VL2BInstruct4Bit = ModelConfiguration(
         id: "mlx-community/Qwen2-VL-2B-Instruct-4bit",
+        defaultPrompt: "Describe the image in English"
+    )
+
+    static public let smolvlminstruct4bit = ModelConfiguration(
+        id: "mlx-community/SmolVLM-Instruct-4bit",
         defaultPrompt: "Describe the image in English"
     )
 
@@ -201,7 +222,9 @@ public class VLMModelFactory: ModelFactory {
             hub: hub, configuration: configuration, progressHandler: progressHandler)
 
         // load the generic config to unerstand which model and how to load the weights
-        let configurationURL = modelDirectory.appending(component: "config.json")
+        let configurationURL = modelDirectory.appending(
+            component: "config.json"
+        )
         let baseConfig = try JSONDecoder().decode(
             BaseConfiguration.self, from: Data(contentsOf: configurationURL))
 
@@ -212,11 +235,20 @@ public class VLMModelFactory: ModelFactory {
         try loadWeights(
             modelDirectory: modelDirectory, model: model, quantization: baseConfig.quantization)
 
-        let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
+        let tokenizer = try await loadTokenizer(
+            configuration: configuration,
+            hub: hub
+        )
 
-        let processorConfiguration = modelDirectory.appending(component: "preprocessor_config.json")
+        let processorConfiguration = modelDirectory.appending(
+            component: "preprocessor_config.json"
+        )
         let baseProcessorConfig = try JSONDecoder().decode(
-            BaseProcessorConfiguration.self, from: Data(contentsOf: processorConfiguration))
+            BaseProcessorConfiguration.self,
+            from: Data(
+                contentsOf: processorConfiguration
+            )
+        )
         let processor = try processorRegistry.createModel(
             configuration: processorConfiguration,
             processorType: baseProcessorConfig.processorClass, tokenizer: tokenizer)
