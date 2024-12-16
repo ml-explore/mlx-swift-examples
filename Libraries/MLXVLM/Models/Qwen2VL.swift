@@ -373,8 +373,8 @@ private enum Vision {
             let B = gridThw[0].t
             let L = sequenceLength / B
 
-            let qkv = qkv(x).reshaped(sequenceLength, 3, -1)
-            let s = split(qkv, parts: 3, axis: 1)
+            let qkv = qkv(x)
+            let s = split(qkv, parts: 3, axis: -1)
             var (q, k, v) = (s[0], s[1], s[2])
 
             q = q.reshaped(sequenceLength, numHeads, -1)
@@ -512,7 +512,7 @@ private enum Vision {
                     .flattened()
 
                 let stackedPosIds = stacked([hposIds, wposIds], axis: -1)
-                positionIds.append(repeated(stackedPosIds, count: t, axis: 0))
+                positionIds.append(tiled(stackedPosIds, repetitions: [t, 1]))
             }
 
             let indices = concatenated(positionIds, axis: 0)
