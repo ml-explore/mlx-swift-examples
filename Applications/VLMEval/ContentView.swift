@@ -5,23 +5,31 @@ import MLX
 import MLXLMCommon
 import MLXRandom
 import MLXVLM
-import MarkdownUI
+import PhotosUI
 import SwiftUI
+
+#if os(iOS)
+    typealias PlatformImage = UIImage
+#else
+    typealias PlatformImage = NSImage
+#endif
 
 struct ContentView: View {
     @State var prompt = ""
     @State var llm = VLMEvaluator()
     @Environment(DeviceStat.self) private var deviceStat
 
-    enum DisplayStyle: String, CaseIterable, Identifiable {
-        case plain, markdown
-        var id: Self { self }
-    }
+    @State private var selectedImage: PlatformImage? = nil
+    @State private var showingImagePicker = false
+    @State private var selectedItem: PhotosPickerItem? = nil
 
-    @State private var selectedDisplayStyle = DisplayStyle.markdown
-    private let imageURL = URL(
-        string:
-            "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/bee.jpg")!
+    private var currentImageURL: URL? {
+        selectedImage == nil
+            ? URL(
+                string:
+                    "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/bee.jpg"
+            ) : nil
+    }
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -35,21 +43,92 @@ struct ContentView: View {
                     Text(llm.stat)
                 }
 
-                // Image Display Section
-                AsyncImage(url: imageURL) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .cornerRadius(12)
-                            .frame(maxHeight: 300)
-                    case .failure:
-                        Image(systemName: "photo.badge.exclamationmark")
-                    @unknown default:
-                        EmptyView()
+                VStack {
+                    if let selectedImage {
+                        Group {
+                            #if os(iOS)
+                                Image(uiImage: selectedImage)
+                                    .resizable()
+                            #else
+                                Image(nsImage: selectedImage)
+                                    .resizable()
+                            #endif
+                        }
+                        .scaledToFit()
+                        .cornerRadius(12)
+                        .frame(height: 300)
+                    } else if let imageURL = currentImageURL {
+                        AsyncImage(url: imageURL) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .cornerRadius(12)
+                                    .frame(height: 200)
+                            case .failure:
+                                Image(systemName: "photo.badge.exclamationmark")
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                    }
+
+                    HStack {
+                        #if os(iOS)
+                            PhotosPicker(
+                                selection: $selectedItem,
+                                matching: .images
+                            ) {
+                                Label("Select Image", systemImage: "photo.badge.plus")
+                            }
+                            .onChange(of: selectedItem) {
+                                Task {
+                                    if let data = try? await selectedItem?.loadTransferable(
+                                        type: Data.self)
+                                    {
+                                        selectedImage = PlatformImage(data: data)
+                                    }
+                                }
+                            }
+                        #else
+                            Button("Select Image") {
+                                showingImagePicker = true
+                            }
+                            .fileImporter(
+                                isPresented: $showingImagePicker,
+                                allowedContentTypes: [.image]
+                            ) { result in
+                                switch result {
+                                case .success(let file):
+                                    Task { @MainActor in
+                                        do {
+                                            let data = try loadImage(from: file)
+                                            if let image = PlatformImage(data: data) {
+                                                selectedImage = image
+                                            } else {
+                                                print("Failed to create image from data")
+                                            }
+                                        } catch {
+                                            print(
+                                                "Failed to load image: \(error.localizedDescription)"
+                                            )
+                                        }
+                                    }
+                                case .failure(let error):
+                                    print(error.localizedDescription)
+                                }
+                            }
+                        #endif
+
+                        if selectedImage != nil {
+                            Button("Clear", role: .destructive) {
+                                selectedImage = nil
+                                selectedItem = nil
+                            }
+                        }
                     }
                 }
                 .padding()
@@ -61,35 +140,16 @@ struct ContentView: View {
                             .frame(maxHeight: 20)
                         Spacer()
                     }
-                    Picker("", selection: $selectedDisplayStyle) {
-                        ForEach(DisplayStyle.allCases) { option in
-                            Text(option.rawValue.capitalized)
-                                .tag(option)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    #if os(visionOS)
-                        .frame(maxWidth: 250)
-                    #else
-                        .frame(maxWidth: 150)
-                    #endif
                 }
             }
 
             ScrollView(.vertical) {
                 ScrollViewReader { sp in
-                    Group {
-                        if selectedDisplayStyle == .plain {
-                            Text(llm.output)
-                                .textSelection(.enabled)
-                        } else {
-                            Markdown(llm.output)
-                                .textSelection(.enabled)
+                    Text(llm.output)
+                        .textSelection(.enabled)
+                        .onChange(of: llm.output) { _, _ in
+                            sp.scrollTo("bottom")
                         }
-                    }
-                    .onChange(of: llm.output) { _, _ in
-                        sp.scrollTo("bottom")
-                    }
 
                     Spacer()
                         .frame(width: 1, height: 1)
@@ -151,11 +211,37 @@ struct ContentView: View {
 
     private func generate() {
         Task {
-            if let ciImage = await loadImageAsCIImage(from: imageURL) {
+            if let selectedImage = selectedImage {
+                #if os(iOS)
+                    let ciImage = CIImage(image: selectedImage)
+                    await llm.generate(prompt: prompt, image: ciImage ?? CIImage())
+                #else
+                    if let cgImage = selectedImage.cgImage(
+                        forProposedRect: nil, context: nil, hints: nil)
+                    {
+                        let ciImage = CIImage(cgImage: cgImage)
+                        await llm.generate(prompt: prompt, image: ciImage)
+                    }
+                #endif
+            } else if let imageURL = currentImageURL,
+                let ciImage = await loadImageAsCIImage(from: imageURL)
+            {
                 await llm.generate(prompt: prompt, image: ciImage)
             }
         }
     }
+
+    #if os(macOS)
+        private func loadImage(from url: URL) throws -> Data {
+            guard url.startAccessingSecurityScopedResource() else {
+                throw NSError(
+                    domain: "FileAccess", code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Failed to access the file."])
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+            return try Data(contentsOf: url)
+        }
+    #endif
 
     private func loadImageAsCIImage(from url: URL) async -> CIImage? {
         guard let data = try? await URLSession.shared.data(from: url).0 else {

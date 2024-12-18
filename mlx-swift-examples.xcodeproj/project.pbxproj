@@ -13,7 +13,6 @@
 		0AC74ED12D13622A003C90A7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC74ECC2D13622A003C90A7 /* ContentView.swift */; };
 		0AC74ED22D13622A003C90A7 /* VLMEvalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC74ECD2D13622A003C90A7 /* VLMEvalApp.swift */; };
 		0AC74ED32D136265003C90A7 /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
-		0AC74ED62D13635C003C90A7 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 0AC74ED52D13635C003C90A7 /* MarkdownUI */; };
 		12305EAF2B9D864400C92FEE /* PredictionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12305EAE2B9D864400C92FEE /* PredictionView.swift */; };
 		81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 81695B402BA373D300F260D8 /* MarkdownUI */; };
 		819BEFF82BAF8B4E0002CCEE /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
@@ -255,7 +254,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				0A8284222D13863900BEF338 /* MLXVLM in Frameworks */,
-				0AC74ED62D13635C003C90A7 /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -612,7 +610,6 @@
 			);
 			name = VLMEval;
 			packageProductDependencies = (
-				0AC74ED52D13635C003C90A7 /* MarkdownUI */,
 				0AC74ED92D136223003C90A7 /* MLXVLM */,
 			);
 			productName = VLMEval;
@@ -1082,7 +1079,7 @@
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = mlx.VLMEval;
+				PRODUCT_BUNDLE_IDENTIFIER = "mlx.VLMEval${DISAMBIGUATOR}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = NO;
 				SDKROOT = iphoneos;
@@ -1143,7 +1140,7 @@
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = mlx.VLMEval;
+				PRODUCT_BUNDLE_IDENTIFIER = "mlx.VLMEval${DISAMBIGUATOR}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = NO;
 				SDKROOT = iphoneos;
@@ -2744,11 +2741,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		0AC74ED52D13635C003C90A7 /* MarkdownUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 81695B3F2BA373D300F260D8 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
-			productName = MarkdownUI;
-		};
 		0AC74ED92D136223003C90A7 /* MLXVLM */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
