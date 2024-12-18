@@ -1,12 +1,12 @@
 // Copyright 2024 Apple Inc.
 
+import CoreImage
 import MLX
-import MLXVLM
 import MLXLMCommon
 import MLXRandom
+import MLXVLM
 import MarkdownUI
 import SwiftUI
-import CoreImage
 
 struct ContentView: View {
     @State var prompt = ""
@@ -19,7 +19,9 @@ struct ContentView: View {
     }
 
     @State private var selectedDisplayStyle = DisplayStyle.markdown
-    private let imageURL = URL(string: "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/bee.jpg")!
+    private let imageURL = URL(
+        string:
+            "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/bee.jpg")!
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -36,18 +38,18 @@ struct ContentView: View {
                 // Image Display Section
                 AsyncImage(url: imageURL) { phase in
                     switch phase {
-                        case .empty:
-                            ProgressView()
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFit()
-                                .cornerRadius(12)
-                                .frame(maxHeight: 300)
-                        case .failure:
-                            Image(systemName: "photo.badge.exclamationmark")
-                        @unknown default:
-                            EmptyView()
+                    case .empty:
+                        ProgressView()
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .cornerRadius(12)
+                            .frame(maxHeight: 300)
+                    case .failure:
+                        Image(systemName: "photo.badge.exclamationmark")
+                    @unknown default:
+                        EmptyView()
                     }
                 }
                 .padding()
@@ -66,11 +68,11 @@ struct ContentView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-#if os(visionOS)
-                    .frame(maxWidth: 250)
-#else
-                    .frame(maxWidth: 150)
-#endif
+                    #if os(visionOS)
+                        .frame(maxWidth: 250)
+                    #else
+                        .frame(maxWidth: 150)
+                    #endif
                 }
             }
 
@@ -99,18 +101,18 @@ struct ContentView: View {
                 TextField("prompt", text: $prompt)
                     .onSubmit(generate)
                     .disabled(llm.running)
-#if os(visionOS)
-                    .textFieldStyle(.roundedBorder)
-#endif
+                    #if os(visionOS)
+                        .textFieldStyle(.roundedBorder)
+                    #endif
                 Button("generate", action: generate)
                     .disabled(llm.running)
             }
         }
-#if os(visionOS)
-        .padding(40)
-#else
-        .padding()
-#endif
+        #if os(visionOS)
+            .padding(40)
+        #else
+            .padding()
+        #endif
         .toolbar {
             ToolbarItem {
                 Label(
@@ -160,23 +162,24 @@ struct ContentView: View {
             return nil
         }
 
-#if os(macOS)
-        guard let nsImage = NSImage(data: data) else { return nil }
-        guard let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
-        return CIImage(cgImage: cgImage)
-#else
-        guard let uiImage = UIImage(data: data) else { return nil }
-        return CIImage(image: uiImage)
-#endif
+        #if os(macOS)
+            guard let nsImage = NSImage(data: data) else { return nil }
+            guard let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil)
+            else { return nil }
+            return CIImage(cgImage: cgImage)
+        #else
+            guard let uiImage = UIImage(data: data) else { return nil }
+            return CIImage(image: uiImage)
+        #endif
     }
 
     private func copyToClipboard(_ string: String) {
-#if os(macOS)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(string, forType: .string)
-#else
-        UIPasteboard.general.string = string
-#endif
+        #if os(macOS)
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(string, forType: .string)
+        #else
+            UIPasteboard.general.string = string
+        #endif
     }
 }
 
@@ -214,28 +217,29 @@ class VLMEvaluator {
     /// just return the loaded model
     func load() async throws -> ModelContainer {
         switch loadState {
-            case .idle:
-                // limit the buffer cache
-                MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
+        case .idle:
+            // limit the buffer cache
+            MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
 
-                let modelContainer = try await VLMModelFactory.shared.loadContainer(
-                    configuration: modelConfiguration
-                ) { [modelConfiguration] progress in
-                    Task { @MainActor in
-                        self.modelInfo = "Downloading \(modelConfiguration.name): \(Int(progress.fractionCompleted * 100))%"
-                    }
+            let modelContainer = try await VLMModelFactory.shared.loadContainer(
+                configuration: modelConfiguration
+            ) { [modelConfiguration] progress in
+                Task { @MainActor in
+                    self.modelInfo =
+                        "Downloading \(modelConfiguration.name): \(Int(progress.fractionCompleted * 100))%"
                 }
+            }
 
-                let numParams = await modelContainer.perform { context in
-                    context.model.numParameters()
-                }
+            let numParams = await modelContainer.perform { context in
+                context.model.numParameters()
+            }
 
-                self.modelInfo = "Loaded \(modelConfiguration.id). Weights: \(numParams / (1024*1024))M"
-                loadState = .loaded(modelContainer)
-                return modelContainer
+            self.modelInfo = "Loaded \(modelConfiguration.id). Weights: \(numParams / (1024*1024))M"
+            loadState = .loaded(modelContainer)
+            return modelContainer
 
-            case .loaded(let modelContainer):
-                return modelContainer
+        case .loaded(let modelContainer):
+            return modelContainer
         }
     }
 
