@@ -4,7 +4,6 @@ An example that:
 
 - downloads a vision language model (Qwen-VL-2B)
 - processes an image with a prompt
-- displays the analyzed results in JSON format
 
 > Note: this _must_ be built Release, otherwise you will encounter
 stack overflows.
@@ -16,13 +15,7 @@ Some notes about the setup:
 
 - This downloads models from hugging face so VLMEval -> Signing & Capabilities has the "Outgoing Connections (Client)" set in the App Sandbox
 - VLM models are large so this uses significant memory
-- The Qwen-VL-2B 4-bit model is optimized for performance while maintaining quality
-- The example processes images and provides detailed analysis including:
-  - Description of the image
-  - List of main objects
-  - Dominant colors
-  - Lighting conditions
-  - Compositional analysis
+- The example processes images and provides detailed analysis
 
 ### Image Processing
 
@@ -53,10 +46,5 @@ Building in Release / optimizations will remove a lot of tail calls in the C++
 layer. These lead to the stack overflows.
 
 ### Performance
-
-The application is optimized for:
-- Efficient image processing
-- Token generation with a limit of 800 tokens
-- Real-time JSON parsing and display
 
 You may find that running outside the debugger boosts performance. You can do this in Xcode by pressing cmd-opt-r and unchecking "Debug Executable".
