@@ -223,10 +223,15 @@ struct ContentView: View {
                         await llm.generate(prompt: prompt, image: ciImage)
                     }
                 #endif
-            } else if let imageURL = currentImageURL,
-                let ciImage = await loadImageAsCIImage(from: imageURL)
-            {
-                await llm.generate(prompt: prompt, image: ciImage)
+            } else if let imageURL = currentImageURL {
+                do {
+                    let (data, _) = try await URLSession.shared.data(from: imageURL)
+                    if let ciImage = CIImage(data: data) {
+                        await llm.generate(prompt: prompt, image: ciImage)
+                    }
+                } catch {
+                    print("Failed to load image: \(error.localizedDescription)")
+                }
             }
         }
     }
@@ -242,22 +247,6 @@ struct ContentView: View {
             return try Data(contentsOf: url)
         }
     #endif
-
-    private func loadImageAsCIImage(from url: URL) async -> CIImage? {
-        guard let data = try? await URLSession.shared.data(from: url).0 else {
-            return nil
-        }
-
-        #if os(macOS)
-            guard let nsImage = NSImage(data: data) else { return nil }
-            guard let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil)
-            else { return nil }
-            return CIImage(cgImage: cgImage)
-        #else
-            guard let uiImage = UIImage(data: data) else { return nil }
-            return CIImage(image: uiImage)
-        #endif
-    }
 
     private func copyToClipboard(_ string: String) {
         #if os(macOS)
