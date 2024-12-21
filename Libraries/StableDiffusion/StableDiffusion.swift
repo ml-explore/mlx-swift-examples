@@ -255,7 +255,7 @@ open class StableDiffusion {
         xt: MLXArray, t: MLXArray, tPrev: MLXArray, conditioning: MLXArray, cfgWeight: Float,
         textTime: (MLXArray, MLXArray)?
     ) -> MLXArray {
-        let xtUnet = cfgWeight > 1 ? concatenated([xt, xt], axis: 0) : xt 
+        let xtUnet = cfgWeight > 1 ? concatenated([xt, xt], axis: 0) : xt
         let tUnet = broadcast(t, to: [xtUnet.count])
 
         var epsPred = unet(xtUnet, timestep: tUnet, encoderX: conditioning, textTime: textTime)
