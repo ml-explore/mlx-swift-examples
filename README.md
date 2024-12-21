@@ -9,6 +9,9 @@ Example [MLX Swift](https://github.com/ml-explore/mlx-swift) programs.
 - [LLMEval](Applications/LLMEval/README.md): An example that runs on both iOS
   and macOS that downloads an LLM and tokenizer from Hugging Face and 
   generates text from a given prompt. 
+  
+- [VLMEval](Applications/VLMEval/README.md): An example that runs on iOS, macOS and visionOS to download a VLM and tokenizer from Hugging Face and
+  analyzes the given image and describe it in text.
 
 - [LinearModelTraining](Tools/LinearModelTraining/README.md): An example that
   trains a simple linear model.

@@ -6,11 +6,7 @@ An example that:
 - evaluates a prompt
 - displays the output as it generates text
 
-> Note: this _must_ be built Release, otherwise you will encounter
-stack overflows.
-
-You will need to set the Team on the LLMEval target in order to build and
-run on iOS.
+You will need to set the Team on the LLMEval target in order to build and run on iOS.
 
 Some notes about the setup:
 
@@ -45,9 +41,6 @@ There are a couple options:
 - build Release
 - force the model evaluation to run on the main thread, e.g. using @MainActor
 - build `Cmlx` with optimizations by modifying `mlx/Package.swift` and adding `.unsafeOptions(["-O3"]),` around line 87
-
-Building in Release / optimizations will remove a lot of tail calls in the C++ 
-layer.  These lead to the stack overflows.
 
 See discussion here: https://github.com/ml-explore/mlx-swift-examples/issues/3
 
