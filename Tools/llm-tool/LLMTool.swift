@@ -225,7 +225,7 @@ struct EvaluateCommand: AsyncParsableCommand {
                 size = CGSize(width: v, height: v)
             } else {
                 let v0 = resize[0]
-                let v1 = resize[0]
+                let v1 = resize[1]
                 size = CGSize(width: v0, height: v1)
             }
             input.processing.resize = size
