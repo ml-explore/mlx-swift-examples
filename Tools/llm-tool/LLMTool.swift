@@ -212,7 +212,7 @@ struct EvaluateCommand: AsyncParsableCommand {
 
     private func userInput(modelConfiguration: ModelConfiguration) -> UserInput {
         // prompt and images
-        let prompt = generate.prompt ?? modelConfiguration.defaultPrompt
+        let prompt = try? generate.resolvePrompt(configuration: modelConfiguration) ?? modelConfiguration.defaultPrompt
         let images = image.map { UserInput.Image.url($0) }
         var input = UserInput(prompt: prompt, images: images)
 
