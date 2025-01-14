@@ -783,7 +783,7 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
         -> MLXArray
     {
         guard let pixelValues, let gridThw else {
-            return languageModel(inputIds).logits
+            return languageModel.model.embedTokens(inputIds[.newAxis, .ellipsis])
         }
 
         // Get the input embeddings from the language model
