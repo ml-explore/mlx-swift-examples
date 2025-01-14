@@ -155,7 +155,7 @@ private class TransformerBlock: Module {
 }
 
 // Uses Gemma2TransformerBlock, otherwise same as GemmaModelInner
-public class ModelInner: Module {
+private class ModelInner: Module {
     @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
 
     fileprivate let layers: [TransformerBlock]
@@ -197,7 +197,7 @@ public class Gemma2Model: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
     public let kvHeads: [Int]
 
-    let model: ModelInner
+    private let model: ModelInner
     let logitSoftCap: Float
 
     public init(_ args: Gemma2Configuration) {

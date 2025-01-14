@@ -283,6 +283,7 @@ private class LlamaModelInner: Module {
     }
 }
 
+/// Model for Llama and Mistral model types.
 public class LlamaModel: Module, LLMModel, KVCacheDimensionProvider {
 
     public let vocabularySize: Int
