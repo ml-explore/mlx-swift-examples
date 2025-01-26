@@ -11,6 +11,7 @@ public enum VLMError: Error {
     case maskRequired
     case singleImageAllowed
     case imageProcessingFailure(String)
+    case processing(String)
 }
 
 public struct BaseProcessorConfiguration: Codable, Sendable {
