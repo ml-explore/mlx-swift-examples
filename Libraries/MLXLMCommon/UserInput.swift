@@ -6,18 +6,19 @@ import Foundation
 import MLX
 import Tokenizers
 
+public typealias Message = [String: Any]
+
 /// Container for raw user input.
 ///
 /// A ``UserInputProcessor`` can convert this to ``LMInput``.
 /// See also ``ModelContext``.
 public struct UserInput: Sendable {
-
     /// Representation of a prompt or series of messages (conversation).
     public enum Prompt: Sendable, CustomStringConvertible {
         case text(String)
-        case messages([[String: String]])
+        case messages([Message])
 
-        public func asMessages() -> [[String: String]] {
+        public func asMessages() -> [Message] {
             switch self {
             case .text(let text):
                 return [["role": "user", "content": text]]
@@ -144,11 +145,13 @@ public struct UserInput: Sendable {
     }
 
     public init(
-        messages: [[String: String]], images: [Image] = [Image](), tools: [ToolSpec]? = nil,
+        messages: [Message], images: [Image] = [Image](), videos: [Video] = [Video](),
+        tools: [ToolSpec]? = nil,
         additionalContext: [String: Any]? = nil
     ) {
         self.prompt = .messages(messages)
         self.images = images
+        self.videos = videos
         self.tools = tools
         self.additionalContext = additionalContext
     }

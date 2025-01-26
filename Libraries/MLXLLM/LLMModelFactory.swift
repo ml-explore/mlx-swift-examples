@@ -249,7 +249,7 @@ private struct LLMUserInputProcessor: UserInputProcessor {
             // but that is not public so just fall back to text
             let prompt = input.prompt
                 .asMessages()
-                .compactMap { $0["content"] }
+                .compactMap { $0["content"] as? String }
                 .joined(separator: ". ")
             let promptTokens = tokenizer.encode(text: prompt)
             return LMInput(tokens: MLXArray(promptTokens))

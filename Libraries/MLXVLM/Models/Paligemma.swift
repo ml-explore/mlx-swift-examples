@@ -478,7 +478,7 @@ public class PaligGemmaProcessor: UserInputProcessor {
         }
 
         // this doesn't have a chat template so just use the last message.
-        var prompt = input.prompt.asMessages().last?["content"] ?? ""
+        var prompt = input.prompt.asMessages().last?["content"] as? String ?? ""
 
         // based on transformers/processing_paligemma
         let count = input.images.count * config.imageSequenceLength

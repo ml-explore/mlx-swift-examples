@@ -69,14 +69,16 @@ public struct LMInput {
     /// Representation of prepared input image(s).
     public struct ProcessedImage {
 
+        /// Concatenated pixels from one or more images
         public let pixels: MLXArray
-        public let imageGridThw: [THW]?
+        /// Time, height, and width of the images
+        public let frames: [THW]?
 
         public init(
-            pixels: MLXArray, imageGridThw: [THW]? = nil
+            pixels: MLXArray, frames: [THW]? = nil
         ) {
             self.pixels = pixels
-            self.imageGridThw = imageGridThw
+            self.frames = frames
         }
     }
 
@@ -85,13 +87,13 @@ public struct LMInput {
     public struct ProcessedVideo {
 
         public let pixels: MLXArray
-        public let videoGridThw: [THW]?
+        public let frames: [THW]?
 
         public init(
-            pixels: MLXArray, videoGridThw: [THW]? = nil
+            pixels: MLXArray, frames: [THW]? = nil
         ) {
             self.pixels = pixels
-            self.videoGridThw = videoGridThw
+            self.frames = frames
         }
     }
 
