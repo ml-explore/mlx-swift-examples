@@ -805,7 +805,7 @@ public class Idefics3Processor: UserInputProcessor {
     }
 
     public func prepare(input: UserInput) throws -> LMInput {
-        let prompt = input.prompt.asMessages().last?["content"] ?? ""
+        let prompt = input.prompt.asMessages().last?["content"] as? String ?? ""
 
         if input.images.isEmpty {
             // No image scenario

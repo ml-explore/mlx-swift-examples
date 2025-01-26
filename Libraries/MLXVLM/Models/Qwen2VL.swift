@@ -367,10 +367,10 @@ private enum Vision {
         }
 
         public func callAsFunction(
-            _ x: MLXArray, gridThw: [THW], rotaryPositionEmbedding: MLXArray
+            _ x: MLXArray, frames: [THW], rotaryPositionEmbedding: MLXArray
         ) -> MLXArray {
             let sequenceLength = x.dim(0)
-            let B = gridThw[0].t
+            let B = frames[0].t
             let L = sequenceLength / B
 
             let qkv = qkv(x)
@@ -435,13 +435,13 @@ private enum Vision {
         }
 
         func callAsFunction(
-            _ hiddenStates: MLXArray, gridThw: [THW], rotaryPositionEmbedding: MLXArray
+            _ hiddenStates: MLXArray, frames: [THW], rotaryPositionEmbedding: MLXArray
         ) -> MLXArray {
             var hiddenStates =
                 hiddenStates
                 + attention(
                     norm1(hiddenStates),
-                    gridThw: gridThw,
+                    frames: frames,
                     rotaryPositionEmbedding: rotaryPositionEmbedding
                 )
             hiddenStates = hiddenStates + mlp(norm2(hiddenStates))
@@ -479,10 +479,10 @@ private enum Vision {
                 spatialMergeSize: 2)
         }
 
-        func rotaryPositionEmbedding(_ gridThw: [THW]) -> MLXArray {
+        func rotaryPositionEmbedding(_ frames: [THW]) -> MLXArray {
             var positionIds = [MLXArray]()
 
-            for row in gridThw {
+            for row in frames {
                 let (t, h, w) = row.values
 
                 var hposIds = expandedDimensions(MLXArray(0 ..< h), axis: 1)
@@ -516,22 +516,22 @@ private enum Vision {
             }
 
             let indices = concatenated(positionIds, axis: 0)
-            let maxGridSize = gridThw.lazy.map { max($0.h, $0.w) }.max() ?? 0
-            let rotaryPositionEmbedFull = rotaryPositionEmbedding(sequenceLength: maxGridSize)[
+            let maxFrameSize = frames.lazy.map { max($0.h, $0.w) }.max() ?? 0
+            let rotaryPositionEmbedFull = rotaryPositionEmbedding(sequenceLength: maxFrameSize)[
                 indices]
 
             return rotaryPositionEmbedFull.reshaped(indices.dim(0), -1)
         }
 
-        public func callAsFunction(_ hiddenStates: MLXArray, gridThw: [THW]) -> MLXArray {
+        public func callAsFunction(_ hiddenStates: MLXArray, frames: [THW]) -> MLXArray {
             var hiddenStates = patchEmbed(hiddenStates)
-            let rotaryPositionEmbedding = rotaryPositionEmbedding(gridThw)
+            let rotaryPositionEmbedding = rotaryPositionEmbedding(frames)
 
-            let batchSize = gridThw.count
+            let batchSize = frames.count
 
             for block in blocks {
                 hiddenStates = block(
-                    hiddenStates, gridThw: gridThw,
+                    hiddenStates, frames: frames,
                     rotaryPositionEmbedding: rotaryPositionEmbedding)
             }
 
@@ -584,6 +584,10 @@ private enum Vision {
 ///
 /// This is meant to be used with ``Qwen2VL`` and is typically created by ``VLMModelFactory``.
 public class Qwen2VLProcessor: UserInputProcessor {
+
+    enum Qwen2VLProcessorError: Error {
+        case framesIsNil
+    }
 
     private let config: Qwen2VLProcessorConfiguration
     private let tokenizer: any Tokenizer
@@ -739,61 +743,116 @@ public class Qwen2VLProcessor: UserInputProcessor {
             + "\n<|im_start|>assistant\n"
     }
 
-    public func prepare(input: UserInput) async throws -> LMInput {
-        if input.images.isEmpty && input.videos.isEmpty {
-            // just a straight text prompt
-            let prompt = prepare(prompt: input.prompt, imageTHW: nil, videoTHW: nil)
-            let promptTokens = try tokenizer.encode(text: prompt)
+    private func prepareMessages(_ messages: [Message]) -> [Message] {
+        var messages = messages
+        // Add system message if not present
+        if let role = messages[0]["role"] as? String, role != "system" {
+            messages.insert(["role": "system", "content": "You are a helpful assistant."], at: 0)
+        }
+        return messages
+    }
+
+    //    public func prepare(prompt: UserInput.Prompt, frames: [THW]?) throws -> String {
+    //        let messages = prepareMessages(prompt.asMessages())
+    //        let tokens = try tokenizer.applyChatTemplate(messages: messages)
+    //        return tokenizer.decode(tokens: tokens)
+    //    }
+
+    public func prepare(input: UserInput) throws -> LMInput {
+        // Text-only input
+        if input.images.isEmpty {
+            let messages = input.prompt.asMessages()
+            let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
             return LMInput(tokens: MLXArray(promptTokens))
         }
-
-        // image_processing_qwen2_vl.preprocess
-        let images = try input.images.map {
+        // Input with images
+        let pixelsAndFrames = try input.images.map {
             try preprocess(images: [$0.asCIImage()], processing: input.processing)
         }
 
-        var videosAsImageSequences = [[CIImage]]()
-        for video in input.videos {
-            if let imageSequence = try? await MediaProcessing.asCIImageSequence(
-                video.asAVAsset(), samplesPerSecond: 2)
-            {
-                videosAsImageSequences.append(imageSequence)
-            }
-        }
-        let videos = try videosAsImageSequences.map {
-            try preprocess(images: $0, processing: input.processing)
-        }
+        // var videosAsImageSequences = [[CIImage]]()
+        // for video in input.videos {
+        //     if let imageSequence = try? await MediaProcessing.asCIImageSequence(
+        //         video.asAVAsset(), samplesPerSecond: 2)
+        //     {
+        //         videosAsImageSequences.append(imageSequence)
+        //     }
+        // }
+        // let videos = try videosAsImageSequences.map {
+        //     try preprocess(images: $0, processing: input.processing)
+        // }
 
-        let imagePixels: MLXArray?
-        let image: LMInput.ProcessedImage?
-        if !images.isEmpty {
-            imagePixels = concatenated(images.map { $0.0 })
-            image = LMInput.ProcessedImage(pixels: imagePixels!, imageGridThw: images.map { $0.1 })
-        } else {
-            imagePixels = nil
-            image = nil
-        }
+        // let imagePixels: MLXArray?
+        // let image: LMInput.ProcessedImage?
+        // if !images.isEmpty {
+        //     imagePixels = concatenated(images.map { $0.0 })
+        //     image = LMInput.ProcessedImage(pixels: imagePixels!, imageGridThw: images.map { $0.1 })
+        // } else {
+        //     imagePixels = nil
+        //     image = nil
+        // }
 
-        let videoPixels: MLXArray?
-        let video: LMInput.ProcessedVideo?
-        if !videos.isEmpty {
-            videoPixels = concatenated(videos.map { $0.0 })
-            video = LMInput.ProcessedVideo(pixels: videoPixels!, videoGridThw: videos.map { $0.1 })
-        } else {
-            videoPixels = nil
-            video = nil
-        }
+        // let videoPixels: MLXArray?
+        // let video: LMInput.ProcessedVideo?
+        // if !videos.isEmpty {
+        //     videoPixels = concatenated(videos.map { $0.0 })
+        //     video = LMInput.ProcessedVideo(pixels: videoPixels!, videoGridThw: videos.map { $0.1 })
+        // } else {
+        //     videoPixels = nil
+        //     video = nil
+        // }
 
-        // processing_qwen2_vl.Qwen2VLProcessor
-        let prompt = prepare(
-            prompt: input.prompt, imageTHW: image?.imageGridThw, videoTHW: video?.videoGridThw)
-        let promptTokens = try tokenizer.encode(text: prompt)
+        // // processing_qwen2_vl.Qwen2VLProcessor
+        // let prompt = prepare(
+        //     prompt: input.prompt, imageTHW: image?.imageGridThw, videoTHW: video?.videoGridThw)
+        // let promptTokens = try tokenizer.encode(text: prompt)
+        // let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
+        // let mask = ones(like: promptArray).asType(.int8)
+
+        // return LMInput(text: .init(tokens: promptArray, mask: mask), image: image, video: video)
+        let pixelsConcatenated = concatenated(pixelsAndFrames.map { $0.0 })
+        let image = LMInput.ProcessedImage(
+            pixels: pixelsConcatenated, frames: pixelsAndFrames.map { $0.1 })
+        let messages = prepareMessages(input.prompt.asMessages())
+        var promptTokens = try tokenizer.applyChatTemplate(messages: messages)
+        // Replace single image pad token with correct number for each image
+        let mergeLength = config.mergeSize * config.mergeSize
+        let imagePlaceholderTokens = try tokenizer.encode(
+            text: "<|vision_start|><|image_pad|><|vision_end|>")
+        guard let frames = image.frames else {
+            throw Qwen2VLProcessorError.framesIsNil
+        }
+        let placeholderRanges = promptTokens.ranges(of: imagePlaceholderTokens)
+        guard placeholderRanges.count == frames.count else {
+            throw VLMError.processing(
+                "Number of image placeholders does not match number of frames")
+        }
+        let replacementSequences = try frames.map { thw in
+            let paddingCount = thw.product / mergeLength
+            return try tokenizer.encode(
+                text:
+                    "<|vision_start|>\(Array(repeating: "<|image_pad|>", count: paddingCount).joined())<|vision_end|>"
+            )
+        }
+        // Build the final array
+        var result: [Int] = []
+        var currentIndex = promptTokens.startIndex
+        for (range, replacement) in zip(placeholderRanges, replacementSequences) {
+            // Add tokens before the placeholder
+            result.append(contentsOf: promptTokens[currentIndex ..< range.lowerBound])
+            // Add replacement sequence
+            result.append(contentsOf: replacement)
+            currentIndex = range.upperBound
+        }
+        // Add any remaining tokens after the last replacement
+        if currentIndex < promptTokens.endIndex {
+            result.append(contentsOf: promptTokens[currentIndex...])
+        }
+        promptTokens = result
         let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
         let mask = ones(like: promptArray).asType(.int8)
-
-        return LMInput(text: .init(tokens: promptArray, mask: mask), image: image, video: video)
+        return LMInput(text: .init(tokens: promptArray, mask: mask), image: image)
     }
-
 }
 
 // MARK: - Model
@@ -821,10 +880,10 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
         self._languageModel.wrappedValue = Language.LanguageModel(config.textConfiguration)
     }
 
-    private func inputEmbeddings(inputIds: MLXArray, pixelValues: MLXArray?, gridThw: [THW]?)
+    private func inputEmbeddings(inputIds: MLXArray, pixelValues: MLXArray?, frames: [THW]?)
         -> MLXArray
     {
-        guard let pixelValues, let gridThw else {
+        guard let pixelValues, let frames else {
             return languageModel.model.embedTokens(inputIds[.newAxis, .ellipsis])
         }
 
@@ -832,7 +891,7 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
         let inputEmbeds = languageModel.model.embedTokens(inputIds)
 
         // Get the ouptut hidden states from the vision model
-        var hiddenStates = self.visionModel(pixelValues, gridThw: gridThw)
+        var hiddenStates = self.visionModel(pixelValues, frames: frames)
 
         if hiddenStates.ndim == 2 {
             hiddenStates = hiddenStates[.newAxis, 0..., 0...]
@@ -871,6 +930,8 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
     public func prepare(_ input: LMInput, cache: [any KVCache], windowSize: Int?) throws
         -> PrepareResult
     {
+        let frames = input.image?.frames
+
         let dtype = visionModel.patchEmbed.proj.weight.dtype
 
         let imageGridThw = input.image?.imageGridThw
@@ -891,7 +952,7 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
         }
 
         let inputEmbeddings = self.inputEmbeddings(
-            inputIds: input.text.tokens, pixelValues: pixels, gridThw: gridThw)
+            inputIds: input.text.tokens, pixelValues: pixels, frames: frames)
 
         let result = languageModel(nil, cache: cache, inputEmbedding: inputEmbeddings)
 
