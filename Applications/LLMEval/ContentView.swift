@@ -160,7 +160,11 @@ class LLMEvaluator {
 
     /// This controls which model loads. `phi3_5_4bit` is one of the smaller ones, so this will fit on
     /// more devices.
-    let modelConfiguration = ModelRegistry.phi3_5_4bit
+    //    let modelConfiguration = ModelRegistry.phi3_5_4bit
+    //    let modelConfiguration = ModelRegistry.llama3_2_3B_4bit
+    //  let modelConfiguration = ModelRegistry.llama3_1_8B_4bit
+    //  let modelConfiguration = ModelRegistry.mistral7B4bit
+    let modelConfiguration = ModelRegistry.qwen2_5_7b
 
     /// parameters controlling the output
     let generateParameters = GenerateParameters(temperature: 0.6)
@@ -222,7 +226,12 @@ class LLMEvaluator {
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
             let result = try await modelContainer.perform { context in
-                let input = try await context.processor.prepare(input: .init(prompt: prompt))
+                //                let input = try await context.processor.prepare(input: .init(prompt: prompt))
+                let input = try await context.processor.prepare(
+                    input: .init(messages: [
+                        ["role": "system", "content": "You are a helpful assistant."],
+                        ["role": "user", "content": prompt],
+                    ]))
                 return try MLXLMCommon.generate(
                     input: input, parameters: generateParameters, context: context
                 ) { tokens in
