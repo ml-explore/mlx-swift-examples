@@ -133,7 +133,7 @@ private class TransformerBlock: Module {
     }
 }
 
-public class Qwen2ModelInner: Module {
+private class Qwen2ModelInner: Module {
     @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
 
     fileprivate let layers: [TransformerBlock]
@@ -169,7 +169,7 @@ public class Qwen2Model: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
     public let kvHeads: [Int]
 
-    let model: Qwen2ModelInner
+    private let model: Qwen2ModelInner
     let configuration: Qwen2Configuration
 
     @ModuleInfo(key: "lm_head") var lmHead: Linear

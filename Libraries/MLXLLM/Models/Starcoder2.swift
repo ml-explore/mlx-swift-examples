@@ -116,7 +116,7 @@ private class TransformerBlock: Module {
     }
 }
 
-public class Starcoder2ModelInner: Module {
+private class Starcoder2ModelInner: Module {
     @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
 
     fileprivate let layers: [TransformerBlock]
@@ -153,7 +153,7 @@ public class Starcoder2Model: Module, LLMModel, KVCacheDimensionProvider {
     public let kvHeads: [Int]
 
     public let tieWordEmbeddings: Bool
-    let model: Starcoder2ModelInner
+    private let model: Starcoder2ModelInner
 
     @ModuleInfo(key: "lm_head") var lmHead: Linear
 

@@ -151,7 +151,7 @@ private class TransformerBlock: Module {
     }
 }
 
-public class Phi3ModelInner: Module {
+private class Phi3ModelInner: Module {
 
     @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
 
@@ -189,7 +189,7 @@ public class Phi3Model: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
     public let kvHeads: [Int]
 
-    let model: Phi3ModelInner
+    private let model: Phi3ModelInner
 
     @ModuleInfo(key: "lm_head") var lmHead: Linear
 
