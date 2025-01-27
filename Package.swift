@@ -27,10 +27,12 @@ let package = Package(
             targets: ["StableDiffusion"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/ml-explore/mlx-swift", from: "0.21.2"),
-        .package(url: "https://github.com/huggingface/swift-transformers", from: "0.1.13"),
-        .package(url: "https://github.com/1024jp/GzipSwift", "6.0.1" ... "6.0.1"),
-        .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
+        .package(url: "https://github.com/ml-explore/mlx-swift", .upToNextMinor(from: "0.21.2")),
+        .package(
+            url: "https://github.com/huggingface/swift-transformers", .upToNextMinor(from: "0.1.13")
+        ),
+        .package(
+            url: "https://github.com/apple/swift-async-algorithms", .upToNextMinor(from: "1.0.0")),
     ],
     targets: [
         .target(
@@ -139,6 +141,13 @@ let package = Package(
         ),
     ]
 )
+
+// Add GzipSwift dependency only when building MLXMNIST
+if package.targets.contains(where: { $0.name == "MLXMNIST" }) {
+    package.dependencies.append(
+        .package(url: "https://github.com/1024jp/GzipSwift", "6.0.1" ... "6.0.1")
+    )
+}
 
 if Context.environment["MLX_SWIFT_BUILD_DOC"] == "1"
     || Context.environment["SPI_GENERATE_DOCS"] == "1"
