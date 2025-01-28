@@ -1,5 +1,6 @@
 // Copyright © 2024 Apple Inc.
 
+import AVFoundation
 import CoreImage.CIFilterBuiltins
 import MLX
 import MLXLMCommon
@@ -153,5 +154,48 @@ public enum MediaProcessing {
         }
 
         return image
+    }
+
+    static func asCIImageSequence(_ asset: AVAsset, samplesPerSecond: Int) async throws -> [CIImage] {
+        // Use AVAssetImageGenerator to extract frames
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+
+        // Calculate the time values we want to sample
+        guard let duration = try? await asset.load(.duration) else {
+            throw NSError(
+                domain: "MediaProcessing", code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to load the asset's duration"])
+        }
+
+        let durationInSeconds = duration.seconds
+        let samplesPerSecond = Double(samplesPerSecond)
+        let secondsPerSample = 1.0 / samplesPerSecond
+        let totalFramesToSample = durationInSeconds * samplesPerSecond
+        let durationTimeValue = duration.value
+        let sampledTimeValues = MLXArray.linspace(0, durationTimeValue, count: Int(totalFramesToSample)).asArray(Int64.self)
+
+        // Construct a CMTime using the sampled CMTimeValue's and the asset's timescale
+        let timescale = duration.timescale
+        let sampledTimes = sampledTimeValues.map { CMTime(value: $0, timescale: timescale) }
+
+        // Collect the frames
+        var ciImages: [CIImage] = []
+        for sampledTime in sampledTimes {
+            guard let generatedImage = try? await generator.image(at: sampledTime) else {
+                continue
+            }
+            guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB), let convertedImage = generatedImage.image.copy(colorSpace: colorSpace) else {
+                throw NSError(
+                    domain: "MediaProcessing", code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Failed to convert the color space of the video frame"])
+            }
+            let ciImage = CIImage(cgImage: convertedImage)
+            ciImages.append(ciImage)
+        }
+        
+        return ciImages
     }
 }
