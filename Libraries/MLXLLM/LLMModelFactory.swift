@@ -96,6 +96,11 @@ public class ModelRegistry: @unchecked Sendable {
         defaultPrompt: "func sortArray(_ array: [Int]) -> String { <FILL_ME> }"
     )
 
+    static public let deepSeekR1_7B_4bit = ModelConfiguration(
+        id: "mlx-community/DeepSeek-R1-Distill-Qwen-7B-4bit",
+        defaultPrompt: "Is 9.9 greater or 9.11?"
+    )
+
     static public let phi4bit = ModelConfiguration(
         id: "mlx-community/phi-2-hf-4bit-mlx",
         // https://www.promptingguide.ai/models/phi-2
@@ -173,6 +178,7 @@ public class ModelRegistry: @unchecked Sendable {
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
+            deepSeekR1_7B_4bit,
             gemma2bQuantized,
             gemma_2_2b_it_4bit,
             gemma_2_9b_it_4bit,
