@@ -657,8 +657,11 @@ public class Qwen2VLProcessor: UserInputProcessor {
             }
 
         var patches = concatenated(processedImages)
-        if patches.dim(0) != config.temporalPatchSize {
-            patches = tiled(patches, repetitions: [config.temporalPatchSize, 1, 1, 1])
+        let mod = patches.dim(0) % config.temporalPatchSize
+        if mod != 0 {
+            let lastPatch = patches[-1, .ellipsis]
+            let lastPatchRepeated = tiled(lastPatch, repetitions: [config.temporalPatchSize - mod, 1, 1, 1])
+            patches = concatenated([patches, lastPatchRepeated])
         }
         let channel = patches.dim(1)
         let gridT = patches.dim(0) / self.config.temporalPatchSize
@@ -686,7 +689,7 @@ public class Qwen2VLProcessor: UserInputProcessor {
         return (flattenedPatches, .init(gridT, gridH, gridW))
     }
 
-    public func prepare(prompt: UserInput.Prompt, imageTHW: [THW]?) -> String {
+    public func prepare(prompt: UserInput.Prompt, imageTHW: [THW]?, videoTHW: [THW]?) -> String {
         // the tokenizer does have a chat template and it expects messages
         // like this:
         //
@@ -717,6 +720,13 @@ public class Qwen2VLProcessor: UserInputProcessor {
             lastMessage += "<|vision_end|>"
         }
 
+        for thw in videoTHW ?? [] {
+            lastMessage += "<|vision_start|>"
+            lastMessage += Array(repeating: "<|video_pad|>", count: thw.product / mergeLength)
+                .joined()
+            lastMessage += "<|vision_end|>"
+        }
+
         messages[lastIndex]["content"] = lastMessage
 
         return
@@ -728,10 +738,10 @@ public class Qwen2VLProcessor: UserInputProcessor {
             + "\n<|im_start|>assistant\n"
     }
 
-    public func prepare(input: UserInput) throws -> LMInput {
-        if input.images.isEmpty {
+    public func prepare(input: UserInput) async throws -> LMInput {
+        if input.images.isEmpty && input.videos.isEmpty {
             // just a straight text prompt
-            let prompt = prepare(prompt: input.prompt, imageTHW: nil)
+            let prompt = prepare(prompt: input.prompt, imageTHW: nil, videoTHW: nil)
             let promptTokens = try tokenizer.encode(text: prompt)
             return LMInput(tokens: MLXArray(promptTokens))
         }
@@ -740,16 +750,44 @@ public class Qwen2VLProcessor: UserInputProcessor {
         let images = try input.images.map {
             try preprocess(images: [$0.asCIImage()], processing: input.processing)
         }
-        let pixels = concatenated(images.map { $0.0 })
-        let image = LMInput.ProcessedImage(pixels: pixels, imageGridThw: images.map { $0.1 })
+
+        var videosAsImageSequences = [[CIImage]]()
+        for video in input.videos {
+            if let imageSequence = try? await MediaProcessing.asCIImageSequence(video.asAVAsset(), samplesPerSecond: 2) {
+                videosAsImageSequences.append(imageSequence)
+            }
+        }
+        let videos = try videosAsImageSequences.map {
+            try preprocess(images: $0, processing: input.processing)
+        }
+
+        let imagePixels: MLXArray?
+        let image: LMInput.ProcessedImage?
+        if !images.isEmpty {
+            imagePixels = concatenated(images.map { $0.0 })
+            image = LMInput.ProcessedImage(pixels: imagePixels!, imageGridThw: images.map { $0.1 })
+        } else {
+            imagePixels = nil
+            image = nil
+        }
+
+        let videoPixels: MLXArray?
+        let video: LMInput.ProcessedVideo?
+        if !videos.isEmpty {
+            videoPixels = concatenated(videos.map { $0.0 })
+            video = LMInput.ProcessedVideo(pixels: videoPixels!, videoGridThw: videos.map { $0.1 })
+        } else {
+            videoPixels = nil
+            video = nil
+        }
 
         // processing_qwen2_vl.Qwen2VLProcessor
-        let prompt = prepare(prompt: input.prompt, imageTHW: image.imageGridThw)
+        let prompt = prepare(prompt: input.prompt, imageTHW: image?.imageGridThw, videoTHW: video?.videoGridThw)
         let promptTokens = try tokenizer.encode(text: prompt)
         let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
         let mask = ones(like: promptArray).asType(.int8)
 
-        return LMInput(text: .init(tokens: promptArray, mask: mask), image: image)
+        return LMInput(text: .init(tokens: promptArray, mask: mask), image: image, video: video)
     }
 
 }
@@ -786,6 +824,11 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
             return languageModel.model.embedTokens(inputIds[.newAxis, .ellipsis])
         }
 
+        print("thw: \(gridThw)")
+        print("pixel vaues, size and actual:")
+        print(pixelValues.size)
+        print(pixelValues)
+
         // Get the input embeddings from the language model
         let inputEmbeds = languageModel.model.embedTokens(inputIds)
 
@@ -805,11 +848,20 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
         inputIds: MLXArray, inputEmbeds: MLXArray, imageFeatures: MLXArray
     ) -> MLXArray {
         let imageTokenIndex = config.baseConfiguration.imageTokenId
+        let videoTokenIndex = config.baseConfiguration.videoTokenId
 
         var imageIndices = [Int]()
         for (i, v) in inputIds.asArray(Int.self).enumerated() {
             if v == imageTokenIndex {
                 imageIndices.append(i)
+            }
+        }
+
+        if imageIndices.isEmpty {
+            for (i, v) in inputIds.asArray(Int.self).enumerated() {
+                if v == videoTokenIndex {
+                    imageIndices.append(i)
+                }
             }
         }
 
@@ -820,10 +872,24 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
     public func prepare(_ input: LMInput, cache: [any KVCache], windowSize: Int?) throws
         -> PrepareResult
     {
-        let gridThw = input.image?.imageGridThw
-
         let dtype = visionModel.patchEmbed.proj.weight.dtype
-        let pixels = input.image?.pixels.asType(dtype)
+
+        let imageGridThw = input.image?.imageGridThw
+        let imagePixels = input.image?.pixels.asType(dtype)
+
+        let videoGridThw = input.video?.videoGridThw
+        let videoPixels = input.video?.pixels.asType(dtype)
+
+        let gridThw: [THW]?
+        let pixels: MLXArray?
+
+        if videoGridThw == nil {
+            gridThw = imageGridThw
+            pixels = imagePixels
+        } else {
+            gridThw = videoGridThw
+            pixels = videoPixels
+        }
 
         let inputEmbeddings = self.inputEmbeddings(
             inputIds: input.text.tokens, pixelValues: pixels, gridThw: gridThw)
@@ -936,12 +1002,14 @@ public struct Qwen2VLConfiguration: Codable, Sendable {
         public let modelType: String
         public let vocabularySize: Int
         public let imageTokenId: Int
+        public let videoTokenId: Int
         public let hiddenSize: Int
 
         enum CodingKeys: String, CodingKey {
             case modelType = "model_type"
             case vocabularySize = "vocab_size"
             case imageTokenId = "image_token_id"
+            case videoTokenId = "video_token_id"
             case hiddenSize = "hidden_size"
         }
     }
