@@ -69,13 +69,13 @@ public struct LMInput {
     public struct ProcessedImage {
 
         public let pixels: MLXArray
-        public let imageGridThw: [THW]?
+        public let frames: [THW]?
 
         public init(
-            pixels: MLXArray, imageGridThw: [THW]? = nil
+            pixels: MLXArray, frames: [THW]? = nil
         ) {
             self.pixels = pixels
-            self.imageGridThw = imageGridThw
+            self.frames = frames
         }
     }
 

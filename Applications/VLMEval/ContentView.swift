@@ -331,7 +331,16 @@ class VLMEvaluator {
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
             let result = try await modelContainer.perform { context in
-                var userInput = UserInput(prompt: prompt, images: [.ciImage(image)])
+                var userInput = UserInput(
+                    messages: [
+                        [
+                            "role": "user",
+                            "content": [
+                                ["type": "text", "text": prompt],
+                                ["type": "image"],
+                            ],
+                        ]
+                    ], images: [.ciImage(image)])
                 userInput.processing.resize = .init(width: 448, height: 448)
 
                 let input = try await context.processor.prepare(input: userInput)

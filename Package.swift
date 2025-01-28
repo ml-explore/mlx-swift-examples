@@ -28,9 +28,11 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ml-explore/mlx-swift", .upToNextMinor(from: "0.21.2")),
+        //        .package(
+        //            url: "https://github.com/huggingface/swift-transformers", .upToNextMinor(from: "0.1.13")
+        //        ),
         .package(
-            url: "https://github.com/huggingface/swift-transformers", .upToNextMinor(from: "0.1.13")
-        ),
+            url: "https://github.com/DePasqualeOrg/swift-transformers", branch: "images-and-tools"),
         .package(
             url: "https://github.com/apple/swift-async-algorithms", .upToNextMinor(from: "1.0.0")),
         .package(url: "https://github.com/1024jp/GzipSwift", "6.0.1" ... "6.0.1"),  // Only needed by MLXMNIST
