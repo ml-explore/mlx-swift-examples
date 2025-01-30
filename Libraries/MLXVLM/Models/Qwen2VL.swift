@@ -610,8 +610,8 @@ public class Qwen2VLProcessor: UserInputProcessor {
                 "absolute aspect ratio must be smaller than 200: \(width)x\(height)")
         }
 
-        var hBar = Int(round(Float(height) / Float(factor))) * factor
-        var wBar = Int(round(Float(width) / Float(factor))) * factor
+        var hBar = max(factor, Int(round(Float(height) / Float(factor))) * factor)
+        var wBar = max(factor, Int(round(Float(width) / Float(factor))) * factor)
 
         if hBar * wBar > maxPixels {
             let beta = sqrt(Float(height * width) / Float(maxPixels))
@@ -619,8 +619,8 @@ public class Qwen2VLProcessor: UserInputProcessor {
             wBar = Int(floor(Float(width) / beta / Float(factor))) * factor
         } else if hBar * wBar < minPixels {
             let beta = sqrt(Float(minPixels) / Float(height * width))
-            hBar = Int(floor(Float(height) * beta / Float(factor))) * factor
-            wBar = Int(floor(Float(width) * beta / Float(factor))) * factor
+            hBar = Int(ceil(Float(height) * beta / Float(factor))) * factor
+            wBar = Int(ceil(Float(width) * beta / Float(factor))) * factor
         }
         return (hBar, wBar)
     }
@@ -660,7 +660,8 @@ public class Qwen2VLProcessor: UserInputProcessor {
         let mod = patches.dim(0) % config.temporalPatchSize
         if mod != 0 {
             let lastPatch = patches[-1, .ellipsis]
-            let lastPatchRepeated = tiled(lastPatch, repetitions: [config.temporalPatchSize - mod, 1, 1, 1])
+            let lastPatchRepeated = tiled(
+                lastPatch, repetitions: [config.temporalPatchSize - mod, 1, 1, 1])
             patches = concatenated([patches, lastPatchRepeated])
         }
         let channel = patches.dim(1)
@@ -753,7 +754,9 @@ public class Qwen2VLProcessor: UserInputProcessor {
 
         var videosAsImageSequences = [[CIImage]]()
         for video in input.videos {
-            if let imageSequence = try? await MediaProcessing.asCIImageSequence(video.asAVAsset(), samplesPerSecond: 2) {
+            if let imageSequence = try? await MediaProcessing.asCIImageSequence(
+                video.asAVAsset(), samplesPerSecond: 2)
+            {
                 videosAsImageSequences.append(imageSequence)
             }
         }
@@ -782,7 +785,8 @@ public class Qwen2VLProcessor: UserInputProcessor {
         }
 
         // processing_qwen2_vl.Qwen2VLProcessor
-        let prompt = prepare(prompt: input.prompt, imageTHW: image?.imageGridThw, videoTHW: video?.videoGridThw)
+        let prompt = prepare(
+            prompt: input.prompt, imageTHW: image?.imageGridThw, videoTHW: video?.videoGridThw)
         let promptTokens = try tokenizer.encode(text: prompt)
         let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
         let mask = ones(like: promptArray).asType(.int8)
@@ -823,11 +827,6 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
         guard let pixelValues, let gridThw else {
             return languageModel.model.embedTokens(inputIds[.newAxis, .ellipsis])
         }
-
-        print("thw: \(gridThw)")
-        print("pixel vaues, size and actual:")
-        print(pixelValues.size)
-        print(pixelValues)
 
         // Get the input embeddings from the language model
         let inputEmbeds = languageModel.model.embedTokens(inputIds)

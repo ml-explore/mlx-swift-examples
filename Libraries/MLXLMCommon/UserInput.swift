@@ -1,9 +1,9 @@
 // Copyright © 2024 Apple Inc.
 
+import AVFoundation
 import CoreImage
 import Foundation
 import MLX
-import AVFoundation
 
 /// Container for raw user input.
 ///

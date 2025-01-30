@@ -99,7 +99,10 @@ public struct LMInput {
         self.init(text: .init(tokens: tokens, mask: mask))
     }
 
-    public init(text: LMInput.Text, image: LMInput.ProcessedImage? = nil, video: LMInput.ProcessedVideo? = nil) {
+    public init(
+        text: LMInput.Text, image: LMInput.ProcessedImage? = nil,
+        video: LMInput.ProcessedVideo? = nil
+    ) {
         self.text = text
         self.image = image
         self.video = video

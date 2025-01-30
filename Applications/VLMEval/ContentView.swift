@@ -63,13 +63,13 @@ struct ContentView: View {
                 VStack {
                     if let selectedImage {
                         Group {
-#if os(iOS)
-                            Image(uiImage: selectedImage)
-                                .resizable()
-#else
-                            Image(nsImage: selectedImage)
-                                .resizable()
-#endif
+                            #if os(iOS)
+                                Image(uiImage: selectedImage)
+                                    .resizable()
+                            #else
+                                Image(nsImage: selectedImage)
+                                    .resizable()
+                            #endif
                         }
                         .scaledToFit()
                         .cornerRadius(12)
@@ -99,57 +99,66 @@ struct ContentView: View {
                     }
 
                     HStack {
-#if os(iOS)
-                        PhotosPicker(
-                            selection: $selectedItem,
-                            matching: PHPickerFilter.any(of: [PHPickerFilter.images, PHPickerFilter.videos])
-                        ) {
-                            Label("Select Image/Video", systemImage: "photo.badge.plus")
-                        }
-                        .onChange(of: selectedItem) {
-                            Task {
-                                if let video = try? await selectedItem?.loadTransferable(type: TransferableVideo.self) {
-                                    selectedVideoURL = video.url
-                                } else if let data = try? await selectedItem?.loadTransferable(
-                                    type: Data.self)
-                                {
-                                    selectedImage = PlatformImage(data: data)
-                                }
+                        #if os(iOS)
+                            PhotosPicker(
+                                selection: $selectedItem,
+                                matching: PHPickerFilter.any(of: [
+                                    PHPickerFilter.images, PHPickerFilter.videos,
+                                ])
+                            ) {
+                                Label("Select Image/Video", systemImage: "photo.badge.plus")
                             }
-                        }
-#else
-                        Button("Select Image/Video") {
-                            showingImagePicker = true
-                        }
-                        .fileImporter(
-                            isPresented: $showingImagePicker,
-                            allowedContentTypes: [.image, .movie]
-                        ) { result in
-                            switch result {
-                            case .success(let file):
-                                Task { @MainActor in
-                                    do {
-                                        let data = try loadData(from: file)
-                                        if let image = PlatformImage(data: data) {
-                                            selectedImage = image
-                                        } else if let fileType = UTType(filenameExtension: file.pathExtension), fileType.conforms(to: .movie) {
-                                            if let sandboxURL = try? loadVideoToSandbox(from: file) {
-                                                selectedVideoURL = sandboxURL
-                                            }
-                                        } else {
-                                            print("Failed to create image from data")
-                                        }
-                                    } catch {
-                                        print(
-                                            "Failed to load image: \(error.localizedDescription)"
-                                        )
+                            .onChange(of: selectedItem) {
+                                Task {
+                                    if let video = try? await selectedItem?.loadTransferable(
+                                        type: TransferableVideo.self)
+                                    {
+                                        selectedVideoURL = video.url
+                                    } else if let data = try? await selectedItem?.loadTransferable(
+                                        type: Data.self)
+                                    {
+                                        selectedImage = PlatformImage(data: data)
                                     }
                                 }
-                            case .failure(let error):
-                                print(error.localizedDescription)
                             }
-                        }
-#endif
+                        #else
+                            Button("Select Image/Video") {
+                                showingImagePicker = true
+                            }
+                            .fileImporter(
+                                isPresented: $showingImagePicker,
+                                allowedContentTypes: [.image, .movie]
+                            ) { result in
+                                switch result {
+                                case .success(let file):
+                                    Task { @MainActor in
+                                        do {
+                                            let data = try loadData(from: file)
+                                            if let image = PlatformImage(data: data) {
+                                                selectedImage = image
+                                            } else if let fileType = UTType(
+                                                filenameExtension: file.pathExtension),
+                                                fileType.conforms(to: .movie)
+                                            {
+                                                if let sandboxURL = try? loadVideoToSandbox(
+                                                    from: file)
+                                                {
+                                                    selectedVideoURL = sandboxURL
+                                                }
+                                            } else {
+                                                print("Failed to create image from data")
+                                            }
+                                        } catch {
+                                            print(
+                                                "Failed to load image: \(error.localizedDescription)"
+                                            )
+                                        }
+                                    }
+                                case .failure(let error):
+                                    print(error.localizedDescription)
+                                }
+                            }
+                        #endif
 
                         if selectedImage != nil {
                             Button("Clear", role: .destructive) {
@@ -189,18 +198,18 @@ struct ContentView: View {
                 TextField("prompt", text: $prompt)
                     .onSubmit(generate)
                     .disabled(llm.running)
-#if os(visionOS)
-                    .textFieldStyle(.roundedBorder)
-#endif
+                    #if os(visionOS)
+                        .textFieldStyle(.roundedBorder)
+                    #endif
                 Button("generate", action: generate)
                     .disabled(llm.running)
             }
         }
-#if os(visionOS)
-        .padding(40)
-#else
-        .padding()
-#endif
+        #if os(visionOS)
+            .padding(40)
+        #else
+            .padding()
+        #endif
         .toolbar {
             ToolbarItem {
                 Label(
@@ -211,11 +220,11 @@ struct ContentView: View {
                 .padding(.horizontal)
                 .help(
                     Text(
-                    """
-                    Active Memory: \(deviceStat.gpuUsage.activeMemory.formatted(.byteCount(style: .memory)))/\(GPU.memoryLimit.formatted(.byteCount(style: .memory)))
-                    Cache Memory: \(deviceStat.gpuUsage.cacheMemory.formatted(.byteCount(style: .memory)))/\(GPU.cacheLimit.formatted(.byteCount(style: .memory)))
-                    Peak Memory: \(deviceStat.gpuUsage.peakMemory.formatted(.byteCount(style: .memory)))
-                    """
+                        """
+                        Active Memory: \(deviceStat.gpuUsage.activeMemory.formatted(.byteCount(style: .memory)))/\(GPU.memoryLimit.formatted(.byteCount(style: .memory)))
+                        Cache Memory: \(deviceStat.gpuUsage.cacheMemory.formatted(.byteCount(style: .memory)))/\(GPU.cacheLimit.formatted(.byteCount(style: .memory)))
+                        Peak Memory: \(deviceStat.gpuUsage.peakMemory.formatted(.byteCount(style: .memory)))
+                        """
                     )
                 )
             }
@@ -242,7 +251,7 @@ struct ContentView: View {
             if let selectedImage = selectedImage {
                 #if os(iOS)
                     let ciImage = CIImage(image: selectedImage)
-                await llm.generate(prompt: prompt, image: ciImage ?? CIImage(), videoURL: nil)
+                    await llm.generate(prompt: prompt, image: ciImage ?? CIImage(), videoURL: nil)
                 #else
                     if let cgImage = selectedImage.cgImage(
                         forProposedRect: nil, context: nil, hints: nil)
@@ -279,16 +288,16 @@ struct ContentView: View {
             return try Data(contentsOf: url)
         }
 
-    private func loadVideoToSandbox(from url: URL) throws -> URL {
-        guard url.startAccessingSecurityScopedResource() else {
-            throw NSError(
-                domain: "FileAccess", code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Failed to access the file."])
+        private func loadVideoToSandbox(from url: URL) throws -> URL {
+            guard url.startAccessingSecurityScopedResource() else {
+                throw NSError(
+                    domain: "FileAccess", code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Failed to access the file."])
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+            let sandboxURL = try SandboxFileTransfer.transferFileToTemp(from: url)
+            return sandboxURL
         }
-        defer { url.stopAccessingSecurityScopedResource() }
-        let sandboxURL = try SandboxFileTransfer.transferFileToTemp(from: url)
-        return sandboxURL
-    }
     #endif
 
     private func copyToClipboard(_ string: String) {
@@ -417,18 +426,18 @@ class VLMEvaluator {
 }
 
 #if os(iOS)
-struct TransferableVideo: Transferable {
-    let url: URL
+    struct TransferableVideo: Transferable {
+        let url: URL
 
-    static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(contentType: .movie) { movie in
-            SentTransferredFile(movie.url)
-        } importing: { received in
-            let sandboxURL = try SandboxFileTransfer.transferFileToTemp(from: received.file)
-            return .init(url: sandboxURL)
+        static var transferRepresentation: some TransferRepresentation {
+            FileRepresentation(contentType: .movie) { movie in
+                SentTransferredFile(movie.url)
+            } importing: { received in
+                let sandboxURL = try SandboxFileTransfer.transferFileToTemp(from: received.file)
+                return .init(url: sandboxURL)
+            }
         }
     }
-}
 #endif
 
 struct SandboxFileTransfer {
