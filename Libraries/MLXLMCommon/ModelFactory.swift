@@ -89,5 +89,33 @@ extension ModelFactory {
             hub: hub, configuration: configuration, progressHandler: progressHandler)
         return ModelContainer(context: context)
     }
-
+    
+    /// Loads a model and produces a ``ModelContainer``, allowing a custom Hub endpoint to be specified.
+    ///
+    /// This method allows users to specify a custom Hub endpoint, which is useful for addressing network quality issues.
+    /// By default, the Hub endpoint is set to "https://hf-mirror.com".
+    ///
+    /// - Parameters:
+    ///   - endpoint: The custom Hub endpoint, defaulting to "https://hf-mirror.com".
+    ///   - configuration: The model configuration identifying the model to be loaded.
+    ///   - progressHandler: A progress handler closure, defaulting to a no-op.
+    /// - Returns: A ``ModelContainer`` containing the model context.
+    public func loadContainer(
+        endpoint: String = "https://hf-mirror.com",
+        configuration: ModelConfiguration,
+        progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
+    ) async throws -> ModelContainer {
+        // Create a custom HubApi instance
+        let customHub = HubApi(endpoint: endpoint)
+        
+        // Directly call the _load method, bypassing the default implementation of _loadContainer
+        let context = try await _load(
+            hub: customHub,
+            configuration: configuration,
+            progressHandler: progressHandler
+        )
+        
+        // Manually create a ModelContainer
+        return ModelContainer(context: context)
+    }
 }
