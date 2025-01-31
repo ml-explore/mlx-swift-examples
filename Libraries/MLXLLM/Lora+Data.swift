@@ -40,9 +40,26 @@ public func loadLoRAData(url: URL) throws -> [String] {
 
 func loadJSONL(url: URL) throws -> [String] {
 
-    struct Line: Codable {
-        let text: String?
+    struct ChatStructure: Codable {
+        struct Message: Codable {
+            let role: String
+            let content: String
+        }
+        let messages: [Message]
     }
+    
+    // TODO: Add tools
+
+    struct CompletionStructure: Codable {
+        let prompt: String
+        let completion: String
+    }
+        
+    struct TextStructure: Codable {
+        let text: String
+    }
+
+
 
     return try String(contentsOf: url)
         .components(separatedBy: .newlines)
@@ -50,7 +67,7 @@ func loadJSONL(url: URL) throws -> [String] {
             $0.first == "{"
         }
         .compactMap {
-            try JSONDecoder().decode(Line.self, from: $0.data(using: .utf8)!).text
+            try JSONDecoder().decode(TextStructure.self, from: $0.data(using: .utf8)!).text
         }
 }
 
