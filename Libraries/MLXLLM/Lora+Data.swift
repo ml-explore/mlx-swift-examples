@@ -48,7 +48,7 @@ func loadJSONL(url: URL) throws -> [String] {
         let messages: [Message]
     }
     
-    struct ToolsStructure: Codable {
+    struct ToolStructure: Codable {
         let type: String
         let function: Function
 
