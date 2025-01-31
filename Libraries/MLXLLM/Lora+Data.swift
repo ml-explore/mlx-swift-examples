@@ -1,4 +1,4 @@
-// Copyright © 2024 Apple Inc.
+// Copyright 2024 Apple Inc.
 
 import Foundation
 
@@ -48,8 +48,35 @@ func loadJSONL(url: URL) throws -> [String] {
         let messages: [Message]
     }
     
-    // TODO: Add tools
+    struct ToolsStructure: Codable {
+        let type: String
+        let function: Function
 
+        struct Function: Codable {
+            let name: String
+            let description: String
+            let parameters: Parameters
+        }
+
+        struct Parameters: Codable {
+            let type: String
+            let properties: [String: Property]
+            let required: [String]
+        }
+
+        struct Property: Codable {
+            let type: String
+            let description: String?
+            let `enum`: [String]?
+
+            enum CodingKeys: String, CodingKey {
+                case type
+                case description
+                case `enum` = "enum"
+            }
+        }
+    }
+    
     struct CompletionStructure: Codable {
         let prompt: String
         let completion: String
@@ -58,8 +85,6 @@ func loadJSONL(url: URL) throws -> [String] {
     struct TextStructure: Codable {
         let text: String
     }
-
-
 
     return try String(contentsOf: url)
         .components(separatedBy: .newlines)
