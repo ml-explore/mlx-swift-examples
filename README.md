@@ -51,7 +51,7 @@ the command line:
 
 See also:
 
-- [MLX troubleshooting](https://ml-explore.github.io/mlx-swift/MLX/documentation/mlx/troubleshooting)
+- [MLX troubleshooting](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx/troubleshooting)
 
 ## Installation of libraries
 
