@@ -1,5 +1,6 @@
 // Copyright 2024 Apple Inc.
 
+import AVKit
 import CoreImage
 import MLX
 import MLXLMCommon
@@ -19,12 +20,28 @@ struct ContentView: View {
     @State var llm = VLMEvaluator()
     @Environment(DeviceStat.self) private var deviceStat
 
-    @State private var selectedImage: PlatformImage? = nil
+    @State private var selectedImage: PlatformImage? = nil {
+        didSet {
+            if selectedImage != nil {
+                selectedVideoURL = nil
+                player = nil
+            }
+        }
+    }
+    @State private var selectedVideoURL: URL? = nil {
+        didSet {
+            if let selectedVideoURL {
+                player = AVPlayer(url: selectedVideoURL)
+                selectedImage = nil
+            }
+        }
+    }
     @State private var showingImagePicker = false
     @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var player: AVPlayer? = nil
 
     private var currentImageURL: URL? {
-        selectedImage == nil
+        selectedImage == nil && selectedVideoURL == nil
             ? URL(
                 string:
                     "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/bee.jpg"
@@ -74,19 +91,30 @@ struct ContentView: View {
                                 EmptyView()
                             }
                         }
+                    } else if let player {
+                        VideoPlayer(player: player)
+                            .scaledToFit()
+                            .frame(maxHeight: 300)
+                            .cornerRadius(12)
                     }
 
                     HStack {
                         #if os(iOS)
                             PhotosPicker(
                                 selection: $selectedItem,
-                                matching: .images
+                                matching: PHPickerFilter.any(of: [
+                                    PHPickerFilter.images, PHPickerFilter.videos,
+                                ])
                             ) {
-                                Label("Select Image", systemImage: "photo.badge.plus")
+                                Label("Select Image/Video", systemImage: "photo.badge.plus")
                             }
                             .onChange(of: selectedItem) {
                                 Task {
-                                    if let data = try? await selectedItem?.loadTransferable(
+                                    if let video = try? await selectedItem?.loadTransferable(
+                                        type: TransferableVideo.self)
+                                    {
+                                        selectedVideoURL = video.url
+                                    } else if let data = try? await selectedItem?.loadTransferable(
                                         type: Data.self)
                                     {
                                         selectedImage = PlatformImage(data: data)
@@ -94,20 +122,29 @@ struct ContentView: View {
                                 }
                             }
                         #else
-                            Button("Select Image") {
+                            Button("Select Image/Video") {
                                 showingImagePicker = true
                             }
                             .fileImporter(
                                 isPresented: $showingImagePicker,
-                                allowedContentTypes: [.image]
+                                allowedContentTypes: [.image, .movie]
                             ) { result in
                                 switch result {
                                 case .success(let file):
                                     Task { @MainActor in
                                         do {
-                                            let data = try loadImage(from: file)
+                                            let data = try loadData(from: file)
                                             if let image = PlatformImage(data: data) {
                                                 selectedImage = image
+                                            } else if let fileType = UTType(
+                                                filenameExtension: file.pathExtension),
+                                                fileType.conforms(to: .movie)
+                                            {
+                                                if let sandboxURL = try? loadVideoToSandbox(
+                                                    from: file)
+                                                {
+                                                    selectedVideoURL = sandboxURL
+                                                }
                                             } else {
                                                 print("Failed to create image from data")
                                             }
@@ -214,30 +251,34 @@ struct ContentView: View {
             if let selectedImage = selectedImage {
                 #if os(iOS)
                     let ciImage = CIImage(image: selectedImage)
-                    await llm.generate(prompt: prompt, image: ciImage ?? CIImage())
+                    await llm.generate(prompt: prompt, image: ciImage ?? CIImage(), videoURL: nil)
                 #else
                     if let cgImage = selectedImage.cgImage(
                         forProposedRect: nil, context: nil, hints: nil)
                     {
                         let ciImage = CIImage(cgImage: cgImage)
-                        await llm.generate(prompt: prompt, image: ciImage)
+                        await llm.generate(prompt: prompt, image: ciImage, videoURL: nil)
                     }
                 #endif
             } else if let imageURL = currentImageURL {
                 do {
                     let (data, _) = try await URLSession.shared.data(from: imageURL)
                     if let ciImage = CIImage(data: data) {
-                        await llm.generate(prompt: prompt, image: ciImage)
+                        await llm.generate(prompt: prompt, image: ciImage, videoURL: nil)
                     }
                 } catch {
                     print("Failed to load image: \(error.localizedDescription)")
+                }
+            } else {
+                if let videoURL = selectedVideoURL {
+                    await llm.generate(prompt: prompt, image: nil, videoURL: videoURL)
                 }
             }
         }
     }
 
     #if os(macOS)
-        private func loadImage(from url: URL) throws -> Data {
+        private func loadData(from url: URL) throws -> Data {
             guard url.startAccessingSecurityScopedResource() else {
                 throw NSError(
                     domain: "FileAccess", code: -1,
@@ -245,6 +286,17 @@ struct ContentView: View {
             }
             defer { url.stopAccessingSecurityScopedResource() }
             return try Data(contentsOf: url)
+        }
+
+        private func loadVideoToSandbox(from url: URL) throws -> URL {
+            guard url.startAccessingSecurityScopedResource() else {
+                throw NSError(
+                    domain: "FileAccess", code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Failed to access the file."])
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+            let sandboxURL = try SandboxFileTransfer.transferFileToTemp(from: url)
+            return sandboxURL
         }
     #endif
 
@@ -318,7 +370,7 @@ class VLMEvaluator {
         }
     }
 
-    func generate(prompt: String, image: CIImage) async {
+    func generate(prompt: String, image: CIImage?, videoURL: URL?) async {
         guard !running else { return }
 
         running = true
@@ -331,7 +383,9 @@ class VLMEvaluator {
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
             let result = try await modelContainer.perform { context in
-                var userInput = UserInput(prompt: prompt, images: [.ciImage(image)])
+                let images: [UserInput.Image] = image != nil ? [.ciImage(image!)] : []
+                let videos: [UserInput.Video] = videoURL != nil ? [.url(videoURL!)] : []
+                var userInput = UserInput(prompt: prompt, images: images, videos: videos)
                 userInput.processing.resize = .init(width: 448, height: 448)
 
                 let input = try await context.processor.prepare(input: userInput)
@@ -368,5 +422,34 @@ class VLMEvaluator {
         }
 
         running = false
+    }
+}
+
+#if os(iOS)
+    struct TransferableVideo: Transferable {
+        let url: URL
+
+        static var transferRepresentation: some TransferRepresentation {
+            FileRepresentation(contentType: .movie) { movie in
+                SentTransferredFile(movie.url)
+            } importing: { received in
+                let sandboxURL = try SandboxFileTransfer.transferFileToTemp(from: received.file)
+                return .init(url: sandboxURL)
+            }
+        }
+    }
+#endif
+
+struct SandboxFileTransfer {
+    static func transferFileToTemp(from sourceURL: URL) throws -> URL {
+        let tempDir = FileManager.default.temporaryDirectory
+        let sandboxURL = tempDir.appendingPathComponent(sourceURL.lastPathComponent)
+
+        if FileManager.default.fileExists(atPath: sandboxURL.path()) {
+            try FileManager.default.removeItem(at: sandboxURL)
+        }
+
+        try FileManager.default.copyItem(at: sourceURL, to: sandboxURL)
+        return sandboxURL
     }
 }

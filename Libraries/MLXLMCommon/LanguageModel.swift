@@ -37,6 +37,7 @@ public struct THW: Sendable {
 public struct LMInput {
     public let text: Text
     public let image: ProcessedImage?
+    public let video: ProcessedVideo?
 
     /// Representation of tokenized input text.
     public struct Text {
@@ -79,13 +80,32 @@ public struct LMInput {
         }
     }
 
+    /// Representation of prepared input video(s).
+    /// For now, this is virtually identical to ProcessedImage.
+    public struct ProcessedVideo {
+
+        public let pixels: MLXArray
+        public let videoGridThw: [THW]?
+
+        public init(
+            pixels: MLXArray, videoGridThw: [THW]? = nil
+        ) {
+            self.pixels = pixels
+            self.videoGridThw = videoGridThw
+        }
+    }
+
     public init(tokens: MLXArray, mask: MLXArray? = nil) {
         self.init(text: .init(tokens: tokens, mask: mask))
     }
 
-    public init(text: LMInput.Text, image: LMInput.ProcessedImage? = nil) {
+    public init(
+        text: LMInput.Text, image: LMInput.ProcessedImage? = nil,
+        video: LMInput.ProcessedVideo? = nil
+    ) {
         self.text = text
         self.image = image
+        self.video = video
     }
 }
 

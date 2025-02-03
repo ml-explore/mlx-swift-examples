@@ -1,5 +1,6 @@
 // Copyright © 2024 Apple Inc.
 
+import AVFoundation
 import CoreImage
 import Foundation
 import MLX
@@ -30,6 +31,20 @@ public struct UserInput: Sendable {
                 return text
             case .messages(let messages):
                 return messages.map { $0.description }.joined(separator: "\n")
+            }
+        }
+    }
+
+    public enum Video: Sendable {
+        case avAsset(AVAsset)
+        case url(URL)
+
+        public func asAVAsset() -> AVAsset {
+            switch self {
+            case .avAsset(let asset):
+                return asset
+            case .url(let url):
+                return AVAsset(url: url)
             }
         }
     }
@@ -109,11 +124,13 @@ public struct UserInput: Sendable {
 
     public var prompt: Prompt
     public var images = [Image]()
+    public var videos = [Video]()
     public var processing: Processing = .init()
 
-    public init(prompt: String, images: [Image] = [Image]()) {
+    public init(prompt: String, images: [Image] = [Image](), videos: [Video] = [Video]()) {
         self.prompt = .text(prompt)
         self.images = images
+        self.videos = videos
     }
 
     public init(messages: [[String: String]], images: [Image] = [Image]()) {
