@@ -4,6 +4,7 @@ import AVFoundation
 import CoreImage
 import Foundation
 import MLX
+import Tokenizers
 
 /// Container for raw user input.
 ///
@@ -125,23 +126,42 @@ public struct UserInput: Sendable {
     public var prompt: Prompt
     public var images = [Image]()
     public var videos = [Video]()
+    public var tools: [ToolSpec]?
+    /// Additional values provided for the chat template rendering context
+    public var additionalContext: [String: Any]?
     public var processing: Processing = .init()
 
-    public init(prompt: String, images: [Image] = [Image](), videos: [Video] = [Video]()) {
+    public init(
+        prompt: String, images: [Image] = [Image](), videos: [Video] = [Video](),
+        tools: [ToolSpec]? = nil,
+        additionalContext: [String: Any]? = nil
+    ) {
         self.prompt = .text(prompt)
         self.images = images
         self.videos = videos
+        self.tools = tools
+        self.additionalContext = additionalContext
     }
 
-    public init(messages: [[String: String]], images: [Image] = [Image]()) {
+    public init(
+        messages: [[String: String]], images: [Image] = [Image](), tools: [ToolSpec]? = nil,
+        additionalContext: [String: Any]? = nil
+    ) {
         self.prompt = .messages(messages)
         self.images = images
+        self.tools = tools
+        self.additionalContext = additionalContext
     }
 
-    public init(prompt: Prompt, images: [Image] = [Image](), processing: Processing = .init()) {
+    public init(
+        prompt: Prompt, images: [Image] = [Image](), processing: Processing = .init(),
+        tools: [ToolSpec]? = nil, additionalContext: [String: Any]? = nil
+    ) {
         self.prompt = prompt
         self.images = images
         self.processing = processing
+        self.tools = tools
+        self.additionalContext = additionalContext
     }
 }
 

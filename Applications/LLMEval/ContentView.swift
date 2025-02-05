@@ -10,10 +10,10 @@ import SwiftUI
 import Tokenizers
 
 struct ContentView: View {
-
-    @State var prompt = ""
-    @State var llm = LLMEvaluator()
     @Environment(DeviceStat.self) private var deviceStat
+
+    @State var llm = LLMEvaluator()
+    @State var prompt = "What's the current weather in Paris?"
 
     enum displayStyle: String, CaseIterable, Identifiable {
         case plain, markdown
@@ -34,6 +34,10 @@ struct ContentView: View {
                     Text(llm.stat)
                 }
                 HStack {
+                    Toggle(isOn: $llm.includeWeatherTool) {
+                        Text("Include \"get current weather\" tool")
+                    }
+                    .frame(maxWidth: 350, alignment: .leading)
                     Spacer()
                     if llm.running {
                         ProgressView()
@@ -127,7 +131,6 @@ struct ContentView: View {
         }
         .task {
             self.prompt = llm.modelConfiguration.defaultPrompt
-
             // pre-load the weights on launch to speed up the first generation
             _ = try? await llm.load()
         }
@@ -154,13 +157,15 @@ class LLMEvaluator {
 
     var running = false
 
+    var includeWeatherTool = false
+
     var output = ""
     var modelInfo = ""
     var stat = ""
 
-    /// This controls which model loads. `phi3_5_4bit` is one of the smaller ones, so this will fit on
+    /// This controls which model loads. `qwen2_5_1_5b` is one of the smaller ones, so this will fit on
     /// more devices.
-    let modelConfiguration = ModelRegistry.phi3_5_4bit
+    let modelConfiguration = ModelRegistry.qwen2_5_1_5b
 
     /// parameters controlling the output
     let generateParameters = GenerateParameters(temperature: 0.6)
@@ -177,6 +182,29 @@ class LLMEvaluator {
     }
 
     var loadState = LoadState.idle
+
+    let currentWeatherToolSpec: [String: any Sendable] =
+        [
+            "type": "function",
+            "function": [
+                "name": "get_current_weather",
+                "description": "Get the current weather in a given location",
+                "parameters": [
+                    "type": "object",
+                    "properties": [
+                        "location": [
+                            "type": "string",
+                            "description": "The city and state, e.g. San Francisco, CA",
+                        ] as [String: String],
+                        "unit": [
+                            "type": "string",
+                            "enum": ["celsius", "fahrenheit"],
+                        ] as [String: any Sendable],
+                    ] as [String: [String: any Sendable]],
+                    "required": ["location"],
+                ] as [String: any Sendable],
+            ] as [String: any Sendable],
+        ] as [String: any Sendable]
 
     /// load and return the model -- can be called multiple times, subsequent calls will
     /// just return the loaded model
@@ -222,18 +250,22 @@ class LLMEvaluator {
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
             let result = try await modelContainer.perform { context in
-                let input = try await context.processor.prepare(input: .init(prompt: prompt))
+                let input = try await context.processor.prepare(
+                    input: .init(
+                        messages: [
+                            ["role": "system", "content": "You are a helpful assistant."],
+                            ["role": "user", "content": prompt],
+                        ], tools: includeWeatherTool ? [currentWeatherToolSpec] : nil))
                 return try MLXLMCommon.generate(
                     input: input, parameters: generateParameters, context: context
                 ) { tokens in
-                    // update the output -- this will make the view show the text as it generates
+                    // Show the text in the view as it generates
                     if tokens.count % displayEveryNTokens == 0 {
                         let text = context.tokenizer.decode(tokens: tokens)
                         Task { @MainActor in
                             self.output = text
                         }
                     }
-
                     if tokens.count >= maxTokens {
                         return .stop
                     } else {

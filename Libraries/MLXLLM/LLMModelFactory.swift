@@ -149,6 +149,16 @@ public class ModelRegistry: @unchecked Sendable {
         defaultPrompt: "why is the sky blue?"
     )
 
+    static public let qwen2_5_7b = ModelConfiguration(
+        id: "mlx-community/Qwen2.5-7B-Instruct-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let qwen2_5_1_5b = ModelConfiguration(
+        id: "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
     static public let openelm270m4bit = ModelConfiguration(
         id: "mlx-community/OpenELM-270M-Instruct",
         // https://huggingface.co/apple/OpenELM
@@ -193,6 +203,8 @@ public class ModelRegistry: @unchecked Sendable {
             phi3_5_4bit,
             phi4bit,
             qwen205b4bit,
+            qwen2_5_7b,
+            qwen2_5_1_5b,
             smolLM_135M_4bit,
         ]
     }
@@ -229,7 +241,8 @@ private struct LLMUserInputProcessor: UserInputProcessor {
     func prepare(input: UserInput) throws -> LMInput {
         do {
             let messages = input.prompt.asMessages()
-            let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
+            let promptTokens = try tokenizer.applyChatTemplate(
+                messages: messages, tools: input.tools, additionalContext: input.additionalContext)
             return LMInput(tokens: MLXArray(promptTokens))
         } catch {
             // #150 -- it might be a TokenizerError.chatTemplate("No chat template was specified")
