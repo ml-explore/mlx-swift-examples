@@ -134,9 +134,10 @@ public struct UserInput: Sendable {
         self.videos = videos
     }
 
-    public init(messages: [Message], images: [Image] = [Image]()) {
+    public init(messages: [Message], images: [Image] = [Image](), videos: [Video] = [Video]()) {
         self.prompt = .messages(messages)
         self.images = images
+        self.videos = videos
     }
 
     public init(prompt: Prompt, images: [Image] = [Image](), processing: Processing = .init()) {

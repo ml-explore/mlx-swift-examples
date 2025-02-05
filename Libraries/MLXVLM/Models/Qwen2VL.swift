@@ -694,58 +694,57 @@ public class Qwen2VLProcessor: UserInputProcessor {
         return (flattenedPatches, .init(gridT, gridH, gridW))
     }
 
-    public func prepare(prompt: UserInput.Prompt, imageTHW: [THW]?, videoTHW: [THW]?) -> String {
-        // the tokenizer does have a chat template and it expects messages
-        // like this:
-        //
-        // [{'role': 'user', 'content': [{'type': 'text', 'text': 'What are these?'},
-        //  {'type': 'image'}, {'type': 'image'}, {'type': 'image'}]}]
-        //
-        // The output of the prompt template is fed into
-        // image_processing_qwen2_vl.preprocess where it is further augmented
-        // by replacing tokens according to imageTHW.
-        //
-        // Neither the structured content nor the postprocessing of the template
-        // are supported in current Tokenizer/Jinja (swift) so handle that here.
+    //    public func prepare(prompt: UserInput.Prompt, imageTHW: [THW]?, videoTHW: [THW]?) -> String {
+    //        // the tokenizer does have a chat template and it expects messages
+    //        // like this:
+    //        //
+    //        // [{'role': 'user', 'content': [{'type': 'text', 'text': 'What are these?'},
+    //        //  {'type': 'image'}, {'type': 'image'}, {'type': 'image'}]}]
+    //        //
+    //        // The output of the prompt template is fed into
+    //        // image_processing_qwen2_vl.preprocess where it is further augmented
+    //        // by replacing tokens according to imageTHW.
+    //        //
+    //        // Neither the structured content nor the postprocessing of the template
+    //        // are supported in current Tokenizer/Jinja (swift) so handle that here.
+    //
+    //        var messages = prompt.asMessages()
+    //        if messages[0]["role"] != "system" {
+    //            messages.insert(["role": "system", "content": "You are a helpful assistant."], at: 0)
+    //        }
+    //
+    //        let lastIndex = messages.count - 1
+    //        var lastMessage = messages[lastIndex]["content"] ?? ""
+    //
+    //        // image_processing_qwen2_vl.preprocess -- inject image_pad tokens for each image
+    //        let mergeLength = config.mergeSize * config.mergeSize
+    //        for thw in imageTHW ?? [] {
+    //            lastMessage += "<|vision_start|>"
+    //            lastMessage += Array(repeating: "<|image_pad|>", count: thw.product / mergeLength)
+    //                .joined()
+    //            lastMessage += "<|vision_end|>"
+    //        }
+    //
+    //        for thw in videoTHW ?? [] {
+    //            lastMessage += "<|vision_start|>"
+    //            lastMessage += Array(repeating: "<|video_pad|>", count: thw.product / mergeLength)
+    //                .joined()
+    //            lastMessage += "<|vision_end|>"
+    //        }
+    //
+    //        messages[lastIndex]["content"] = lastMessage
+    //
+    //        return
+    //            messages
+    //            .map {
+    //                "<|im_start|>\($0["role"] ?? "user")\n\($0["content"] ?? "")<|im_end|>"
+    //            }
+    //            .joined(separator: "\n")
+    //            + "\n<|im_start|>assistant\n"
+    //    }
 
-        var messages = prompt.asMessages()
-        if messages[0]["role"] != "system" {
-            messages.insert(["role": "system", "content": "You are a helpful assistant."], at: 0)
-        }
-
-        let lastIndex = messages.count - 1
-        var lastMessage = messages[lastIndex]["content"] ?? ""
-
-        // image_processing_qwen2_vl.preprocess -- inject image_pad tokens for each image
-        let mergeLength = config.mergeSize * config.mergeSize
-        for thw in imageTHW ?? [] {
-            lastMessage += "<|vision_start|>"
-            lastMessage += Array(repeating: "<|image_pad|>", count: thw.product / mergeLength)
-                .joined()
-            lastMessage += "<|vision_end|>"
-        }
-
-        for thw in videoTHW ?? [] {
-            lastMessage += "<|vision_start|>"
-            lastMessage += Array(repeating: "<|video_pad|>", count: thw.product / mergeLength)
-                .joined()
-            lastMessage += "<|vision_end|>"
-        }
-
-        messages[lastIndex]["content"] = lastMessage
-
-        return
-            messages
-            .map {
-                "<|im_start|>\($0["role"] ?? "user")\n\($0["content"] ?? "")<|im_end|>"
-            }
-            .joined(separator: "\n")
-            + "\n<|im_start|>assistant\n"
-    }
-
-    private func prepareMessages(_ messages: [Message]) -> [Message] {
+    private func addSystemPrompt(to messages: [Message]) -> [Message] {
         var messages = messages
-        // Add system message if not present
         if let role = messages[0]["role"] as? String, role != "system" {
             messages.insert(["role": "system", "content": "You are a helpful assistant."], at: 0)
         }
@@ -753,54 +752,46 @@ public class Qwen2VLProcessor: UserInputProcessor {
     }
 
     //    public func prepare(prompt: UserInput.Prompt, frames: [THW]?) throws -> String {
-    //        let messages = prepareMessages(prompt.asMessages())
+    //        let messages = addSystemPrompt(to: prompt.asMessages())
     //        let tokens = try tokenizer.applyChatTemplate(messages: messages)
     //        return tokenizer.decode(tokens: tokens)
     //    }
 
-    public func prepare(input: UserInput) throws -> LMInput {
+    public func prepare(input: UserInput) async throws -> LMInput {
         // Text-only input
-        if input.images.isEmpty {
+        if input.images.isEmpty, input.videos.isEmpty {
             let messages = input.prompt.asMessages()
             let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
             return LMInput(tokens: MLXArray(promptTokens))
         }
-        // Input with images
-        let pixelsAndFrames = try input.images.map {
+
+        // Input with images and/or videos
+
+        let imagePixelsAndFrames = try input.images.map {
             try preprocess(images: [$0.asCIImage()], processing: input.processing)
         }
 
-        // var videosAsImageSequences = [[CIImage]]()
-        // for video in input.videos {
-        //     if let imageSequence = try? await MediaProcessing.asCIImageSequence(
-        //         video.asAVAsset(), samplesPerSecond: 2)
-        //     {
-        //         videosAsImageSequences.append(imageSequence)
-        //     }
-        // }
-        // let videos = try videosAsImageSequences.map {
-        //     try preprocess(images: $0, processing: input.processing)
-        // }
-
-        // let imagePixels: MLXArray?
-        // let image: LMInput.ProcessedImage?
-        // if !images.isEmpty {
-        //     imagePixels = concatenated(images.map { $0.0 })
-        //     image = LMInput.ProcessedImage(pixels: imagePixels!, imageGridThw: images.map { $0.1 })
-        // } else {
-        //     imagePixels = nil
-        //     image = nil
-        // }
-
-        // let videoPixels: MLXArray?
-        // let video: LMInput.ProcessedVideo?
-        // if !videos.isEmpty {
-        //     videoPixels = concatenated(videos.map { $0.0 })
-        //     video = LMInput.ProcessedVideo(pixels: videoPixels!, videoGridThw: videos.map { $0.1 })
-        // } else {
-        //     videoPixels = nil
-        //     video = nil
-        // }
+        var videosAsImageSequences = [[CIImage]]()
+        for video in input.videos {
+            if let imageSequence = try? await MediaProcessing.asCIImageSequence(
+                video.asAVAsset(), samplesPerSecond: 2)
+            {
+                videosAsImageSequences.append(imageSequence)
+            }
+        }
+        let videoPixelsAndFrames = try videosAsImageSequences.map {
+            try preprocess(images: $0, processing: input.processing)
+        }
+        let videoPixelsConcatenated: MLXArray?
+        let video: LMInput.ProcessedVideo?
+        if !videoPixelsAndFrames.isEmpty {
+            videoPixelsConcatenated = concatenated(videoPixelsAndFrames.map { $0.0 })
+            video = LMInput.ProcessedVideo(
+                pixels: videoPixelsConcatenated!, videoGridThw: videoPixelsAndFrames.map { $0.1 })
+        } else {
+            videoPixelsConcatenated = nil
+            video = nil
+        }
 
         // // processing_qwen2_vl.Qwen2VLProcessor
         // let prompt = prepare(
@@ -808,36 +799,39 @@ public class Qwen2VLProcessor: UserInputProcessor {
         // let promptTokens = try tokenizer.encode(text: prompt)
         // let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
         // let mask = ones(like: promptArray).asType(.int8)
-
         // return LMInput(text: .init(tokens: promptArray, mask: mask), image: image, video: video)
-        let pixelsConcatenated = concatenated(pixelsAndFrames.map { $0.0 })
-        let image = LMInput.ProcessedImage(
-            pixels: pixelsConcatenated, frames: pixelsAndFrames.map { $0.1 })
-        let messages = prepareMessages(input.prompt.asMessages())
+
+        let messages = addSystemPrompt(to: input.prompt.asMessages())
         var promptTokens = try tokenizer.applyChatTemplate(messages: messages)
         // Replace single image pad token with correct number for each image
         let mergeLength = config.mergeSize * config.mergeSize
         let imagePlaceholderTokens = try tokenizer.encode(
             text: "<|vision_start|><|image_pad|><|vision_end|>")
-        guard let frames = image.frames else {
+
+        let imagePixelsConcatenated = concatenated(imagePixelsAndFrames.map { $0.0 })
+        let processedImageForImage = LMInput.ProcessedImage(
+            pixels: imagePixelsConcatenated, frames: imagePixelsAndFrames.map { $0.1 })
+        guard let imageFrames = processedImageForImage.frames else {
             throw Qwen2VLProcessorError.framesIsNil
         }
+
         let placeholderRanges = promptTokens.ranges(of: imagePlaceholderTokens)
-        guard placeholderRanges.count == frames.count else {
+        guard placeholderRanges.count == imageFrames.count else {
             throw VLMError.processing(
                 "Number of image placeholders does not match number of frames")
         }
-        let replacementSequences = try frames.map { thw in
+        let imageReplacementSequences = try imageFrames.map { thw in
             let paddingCount = thw.product / mergeLength
             return try tokenizer.encode(
                 text:
                     "<|vision_start|>\(Array(repeating: "<|image_pad|>", count: paddingCount).joined())<|vision_end|>"
             )
         }
+
         // Build the final array
         var result: [Int] = []
         var currentIndex = promptTokens.startIndex
-        for (range, replacement) in zip(placeholderRanges, replacementSequences) {
+        for (range, replacement) in zip(placeholderRanges, imageReplacementSequences) {
             // Add tokens before the placeholder
             result.append(contentsOf: promptTokens[currentIndex ..< range.lowerBound])
             // Add replacement sequence
@@ -851,7 +845,7 @@ public class Qwen2VLProcessor: UserInputProcessor {
         promptTokens = result
         let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
         let mask = ones(like: promptArray).asType(.int8)
-        return LMInput(text: .init(tokens: promptArray, mask: mask), image: image)
+        return LMInput(text: .init(tokens: promptArray, mask: mask), image: processedImageForImage)
     }
 }
 
@@ -934,7 +928,7 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
 
         let dtype = visionModel.patchEmbed.proj.weight.dtype
 
-        let imageGridThw = input.image?.imageGridThw
+        let imageFrames = input.image?.frames
         let imagePixels = input.image?.pixels.asType(dtype)
 
         let videoGridThw = input.video?.videoGridThw
@@ -944,7 +938,7 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
         let pixels: MLXArray?
 
         if videoGridThw == nil {
-            gridThw = imageGridThw
+            gridThw = imageFrames
             pixels = imagePixels
         } else {
             gridThw = videoGridThw

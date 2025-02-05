@@ -69,7 +69,9 @@ public struct LMInput {
     /// Representation of prepared input image(s).
     public struct ProcessedImage {
 
+        /// Concatenated pixels from one or more images
         public let pixels: MLXArray
+        /// Time, height, and width of the images
         public let frames: [THW]?
 
         public init(

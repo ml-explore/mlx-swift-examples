@@ -383,17 +383,33 @@ class VLMEvaluator {
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
             let result = try await modelContainer.perform { context in
-                let videos: [UserInput.Video] = videoURL != nil ? [.url(videoURL!)] : []
+                let images: [UserInput.Image] =
+                    if let image {
+                        [UserInput.Image.ciImage(image)]
+                    } else {
+                        []
+                    }
+                let videos: [UserInput.Video] =
+                    if let videoURL {
+                        [.url(videoURL)]
+                    } else {
+                        []
+                    }
                 var userInput = UserInput(
                     messages: [
                         [
                             "role": "user",
                             "content": [
-                                ["type": "text", "text": prompt],
-                                ["type": "image"],
-                            ],
+                                ["type": "text", "text": prompt]
+                            ]
+                                + images.map { _ in
+                                    ["type": "image"]
+                                }
+                                + videos.map { _ in
+                                    ["type": "video"]
+                                },
                         ]
-                    ], images: [.ciImage(image)], videos: videos)
+                    ], images: images, videos: videos)
                 userInput.processing.resize = .init(width: 448, height: 448)
 
                 let input = try await context.processor.prepare(input: userInput)
