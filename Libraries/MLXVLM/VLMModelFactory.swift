@@ -60,6 +60,7 @@ public class ModelTypeRegistry: @unchecked Sendable {
     private var creators: [String: @Sendable (URL) throws -> any LanguageModel] = [
         "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
         "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
+        "qwen2_5_vl": create(Qwen25VLConfiguration.self, Qwen25VL.init),
         "idefics3": create(Idefics3Configuration.self, Idefics3.init),
     ]
 
@@ -101,6 +102,8 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
                 PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
             "Qwen2VLProcessor": create(
                 Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
+            "Qwen2_5_VLProcessor": create(
+                Qwen25VLProcessorConfiguration.self, Qwen25VLProcessor.init),
             "Idefics3Processor": create(
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
         ]
@@ -157,6 +160,11 @@ public class ModelRegistry: @unchecked Sendable {
         defaultPrompt: "Describe the image in English"
     )
 
+    static public let qwen25VL3BInstruct4Bit = ModelConfiguration(
+        id: "mlx-community/Qwen2.5-VL-3B-Instruct-4bit",
+        defaultPrompt: "Describe the image in English"
+    )
+
     static public let smolvlminstruct4bit = ModelConfiguration(
         id: "mlx-community/SmolVLM-Instruct-4bit",
         defaultPrompt: "Describe the image in English"
@@ -166,6 +174,7 @@ public class ModelRegistry: @unchecked Sendable {
         [
             paligemma3bMix448_8bit,
             qwen2VL2BInstruct4Bit,
+            qwen25VL3BInstruct4Bit,
         ]
     }
 
