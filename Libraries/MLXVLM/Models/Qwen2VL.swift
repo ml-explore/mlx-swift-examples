@@ -584,11 +584,6 @@ private enum Vision {
 ///
 /// This is meant to be used with ``Qwen2VL`` and is typically created by ``VLMModelFactory``.
 public class Qwen2VLProcessor: UserInputProcessor {
-
-    enum Qwen2VLProcessorError: Error {
-        case framesIsNil
-    }
-
     private let config: Qwen2VLProcessorConfiguration
     private let tokenizer: any Tokenizer
 
