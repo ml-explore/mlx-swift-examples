@@ -77,10 +77,14 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--prompt &apos;def quick_sort(arr, left=None, right=None):&apos;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--model mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--prompt &apos;Describe the image in English.&apos; --image https://www.gstatic.com/webp/gallery/1.webp"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
