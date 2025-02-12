@@ -145,7 +145,7 @@ public enum MediaProcessing {
     }
 
     /// Apply `UserInput.Processing`, if needed, to the image.
-    static func apply(_ image: CIImage, processing: UserInput.Processing?) -> CIImage {
+    static public func apply(_ image: CIImage, processing: UserInput.Processing?) -> CIImage {
         var image = image
 
         if let resize = processing?.resize {
@@ -156,7 +156,7 @@ public enum MediaProcessing {
         return image
     }
 
-    static func asCIImageSequence(_ asset: AVAsset, samplesPerSecond: Int) async throws -> [CIImage]
+    static public func asCIImageSequence(_ asset: AVAsset, samplesPerSecond: Int) async throws -> [CIImage]
     {
         // Use AVAssetImageGenerator to extract frames
         let generator = AVAssetImageGenerator(asset: asset)
