@@ -99,7 +99,7 @@ struct ContentView: View {
                     }
 
                     HStack {
-                        #if os(iOS)  || os(visionOS)
+                        #if os(iOS) || os(visionOS)
                             PhotosPicker(
                                 selection: $selectedItem,
                                 matching: PHPickerFilter.any(of: [
@@ -249,7 +249,7 @@ struct ContentView: View {
     private func generate() {
         Task {
             if let selectedImage = selectedImage {
-                #if os(iOS)  || os(visionOS)
+                #if os(iOS) || os(visionOS)
                     let ciImage = CIImage(image: selectedImage)
                     await llm.generate(prompt: prompt, image: ciImage ?? CIImage(), videoURL: nil)
                 #else
@@ -425,7 +425,7 @@ class VLMEvaluator {
     }
 }
 
-#if os(iOS)  || os(visionOS)
+#if os(iOS) || os(visionOS)
     struct TransferableVideo: Transferable {
         let url: URL
 
