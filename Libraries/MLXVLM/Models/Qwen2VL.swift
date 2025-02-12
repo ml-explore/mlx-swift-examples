@@ -841,21 +841,25 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
 
         var imageIndices = [Int]()
         for (i, v) in inputIds.asArray(Int.self).enumerated() {
-            if v == imageTokenIndex {
+            if v == imageTokenIndex || v == videoTokenIndex {
                 imageIndices.append(i)
             }
         }
 
-        if imageIndices.isEmpty {
-            for (i, v) in inputIds.asArray(Int.self).enumerated() {
-                if v == videoTokenIndex {
-                    imageIndices.append(i)
-                }
-            }
+        // Make sure shapes match before assignment
+        var result = inputEmbeds
+        if result.ndim == 2 {
+            result = result[.newAxis, 0..., 0...]
         }
 
-        inputEmbeds[0..., MLXArray(imageIndices), 0...] = imageFeatures
-        return inputEmbeds
+        if imageFeatures.ndim == 2 {
+            let reshapedFeatures = imageFeatures[.newAxis, 0..., 0...]
+            result[0..., MLXArray(imageIndices), 0...] = reshapedFeatures
+        } else {
+            result[0..., MLXArray(imageIndices), 0...] = imageFeatures
+        }
+
+        return result
     }
 
     public func prepare(_ input: LMInput, cache: [any KVCache], windowSize: Int?) throws
@@ -863,25 +867,27 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
     {
         let dtype = visionModel.patchEmbed.proj.weight.dtype
 
-        // Process both images and videos if present
-        var allPixels: [MLXArray] = []
+        // Process both images and videos together
+        var allPixels: MLXArray?
         var allFrames: [THW] = []
 
         if let imagePixels = input.image?.pixels, let imageFrames = input.image?.frames {
-            allPixels.append(imagePixels.asType(dtype))
+            allPixels = imagePixels.asType(dtype)
             allFrames.append(contentsOf: imageFrames)
         }
 
         if let videoPixels = input.video?.pixels, let videoFrames = input.video?.frames {
-            allPixels.append(videoPixels.asType(dtype))
+            if allPixels == nil {
+                allPixels = videoPixels.asType(dtype)
+            } else {
+                allPixels = concatenated([allPixels!, videoPixels.asType(dtype)])
+            }
             allFrames.append(contentsOf: videoFrames)
         }
 
-        let pixels = allPixels.isEmpty ? nil : concatenated(allPixels)
-        let frames = allFrames.isEmpty ? nil : allFrames
-
         let inputEmbeddings = self.inputEmbeddings(
-            inputIds: input.text.tokens, pixelValues: pixels, frames: frames)
+            inputIds: input.text.tokens, pixelValues: allPixels,
+            frames: allFrames.isEmpty ? nil : allFrames)
 
         let result = languageModel(nil, cache: cache, inputEmbedding: inputEmbeddings)
 
