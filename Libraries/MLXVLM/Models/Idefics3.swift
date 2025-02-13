@@ -21,21 +21,25 @@ public struct Idefics3Configuration: Codable, Sendable {
     public struct TextConfiguration: Codable, Sendable {
         public let modelType: String
         public let hiddenSize: Int
-        public let numHiddenLayers: Int
+        public var numHiddenLayers: Int { _numHiddenLayers ?? 32 }
         public let intermediateSize: Int
         public let numAttentionHeads: Int
         public let rmsNormEps: Float
         public let vocabSize: Int
         public let numKeyValueHeads: Int
         public let ropeTheta: Float
-        private let _ropeTraditional: Bool?
         public var ropeTraditional: Bool { _ropeTraditional ?? false }
-        public let tieWordEmbeddings: Bool
+        public var tieWordEmbeddings: Bool { _tieWordEmbeddings ?? false }
+
+        private let _numHiddenLayers: Int?
+        private let _ropeTraditional: Bool?
+        private let _tieWordEmbeddings: Bool?
+
 
         enum CodingKeys: String, CodingKey {
             case modelType = "model_type"
             case hiddenSize = "hidden_size"
-            case numHiddenLayers = "num_hidden_layers"
+            case _numHiddenLayers = "num_hidden_layers"
             case intermediateSize = "intermediate_size"
             case numAttentionHeads = "num_attention_heads"
             case rmsNormEps = "rms_norm_eps"
@@ -43,30 +47,36 @@ public struct Idefics3Configuration: Codable, Sendable {
             case numKeyValueHeads = "num_key_value_heads"
             case ropeTheta = "rope_theta"
             case _ropeTraditional = "rope_traditional"
-            case tieWordEmbeddings = "tie_word_embeddings"
+            case _tieWordEmbeddings = "tie_word_embeddings"
         }
     }
 
     public struct VisionConfiguration: Codable, Sendable {
         public let modelType: String
-        public let numHiddenLayers: Int
+        public var numHiddenLayers: Int { _numHiddenLayers ?? 12 }
         public let hiddenSize: Int
-        public let intermediateSize: Int
+        public var intermediateSize: Int { _intermediateSize ?? 3072 }
         public let numAttentionHeads: Int
         public let patchSize: Int
         public let imageSize: Int
-        public let numChannels: Int
-        public let layerNormEps: Float
+        public var numChannels: Int { _numChannels ?? 3 }
+        public var layerNormEps: Float { _layerNormEps ?? 1e-6 }
+
+        private let _numHiddenLayers: Int?
+        private let _intermediateSize: Int?
+        private let _numChannels: Int?
+        private let _layerNormEps: Float?
+
         enum CodingKeys: String, CodingKey {
             case modelType = "model_type"
-            case numHiddenLayers = "num_hidden_layers"
+            case _numHiddenLayers = "num_hidden_layers"
             case hiddenSize = "hidden_size"
-            case intermediateSize = "intermediate_size"
+            case _intermediateSize = "intermediate_size"
             case numAttentionHeads = "num_attention_heads"
             case patchSize = "patch_size"
             case imageSize = "image_size"
-            case numChannels = "num_channels"
-            case layerNormEps = "layer_norm_eps"
+            case _numChannels = "num_channels"
+            case _layerNormEps = "layer_norm_eps"
         }
     }
 
