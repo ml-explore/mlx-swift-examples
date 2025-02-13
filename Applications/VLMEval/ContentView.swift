@@ -322,7 +322,7 @@ class VLMEvaluator {
 
     /// This controls which model loads. `qwen2VL2BInstruct4Bit` is one of the smaller ones, so this will fit on
     /// more devices.
-    let modelConfiguration = ModelRegistry.qwen2VL2BInstruct4Bit
+    let modelConfiguration = ModelRegistry.smolvlm2
 
     /// parameters controlling the output
     let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.6)
@@ -395,19 +395,19 @@ class VLMEvaluator {
                     } else {
                         []
                     }
+                // Note: the image order is different for smolvlm
                 var userInput = UserInput(
                     messages: [
                         [
                             "role": "user",
-                            "content": [
-                                ["type": "text", "text": prompt]
-                            ]
+                            "content": []
                                 + images.map { _ in
                                     ["type": "image"]
                                 }
                                 + videos.map { _ in
                                     ["type": "video"]
-                                },
+                                }
+                                + [["type": "text", "text": prompt]]
                         ]
                     ], images: images, videos: videos)
                 userInput.processing.resize = .init(width: 448, height: 448)

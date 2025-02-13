@@ -157,15 +157,16 @@ public class ModelRegistry: @unchecked Sendable {
         defaultPrompt: "Describe the image in English"
     )
 
-    static public let smolvlminstruct4bit = ModelConfiguration(
-        id: "mlx-community/SmolVLM-Instruct-4bit",
-        defaultPrompt: "Describe the image in English"
+    static public let smolvlm2 = ModelConfiguration(
+        id: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct-mlx",
+        defaultPrompt: "Can you describe this image?"
     )
 
     static private func all() -> [ModelConfiguration] {
         [
             paligemma3bMix448_8bit,
             qwen2VL2BInstruct4Bit,
+            smolvlm2,
         ]
     }
 

@@ -786,6 +786,7 @@ public struct Idefics3ProcessorConfiguration: Codable, Sendable {
 }
 
 // MARK: - Processor
+// TODO: provide SmolVLM classes eventually
 
 public class Idefics3Processor: UserInputProcessor {
     private let config: Idefics3ProcessorConfiguration
@@ -794,7 +795,19 @@ public class Idefics3Processor: UserInputProcessor {
 
     // From the Python code and default config, we know image_token_id is usually 49153.
     // Hardcode this since we can't pass it in or rely on it from the processor config.
-    private let imageTokenId = 49153
+    // Using 49190 for smolvlm
+    private let imageTokenId = 49190
+
+    // FIXME: hardcoded values for now
+//    let fakeImageTokenId = 49189   // <fake_token_around_image>
+//    let globalImageTokenId = 49152 // <global-img>
+    let imageToken = "<image>"
+    let fakeImageToken = "<fake_token_around_image>"
+    let globalImageToken = "<global-img>"
+
+    let imageRows = 3
+    let imageCols = 4
+    let imageSequenceLength = 64
 
     public init(
         _ config: Idefics3ProcessorConfiguration,
@@ -804,13 +817,41 @@ public class Idefics3Processor: UserInputProcessor {
         self.tokenizer = tokenizer
     }
 
+    func getImagePromptString(rows: Int, cols: Int, seqLen: Int, fakeToken: String, imageToken: String, globalImageToken: String) -> String {
+        /// Prompt with expanded image tokens for when the image is split into patches.
+        /// This applies to image processing, not video (I think).
+        /// This just transliterates this: https://github.com/huggingface/transformers/blob/6a1ab634b6886b6560b0502e7a305c8cd881732e/src/transformers/models/idefics3/processing_idefics3.py#L44
+        var textSplitImages = ""
+        for h in 0..<rows {
+            for w in 0..<cols {
+                textSplitImages += (
+                    fakeToken
+                    + "<row_\(h + 1)_col_\(w + 1)>"
+                    + String(repeating: imageToken, count: seqLen)
+                )
+            }
+            textSplitImages += "\n"
+        }
+        textSplitImages += (
+            "\n"
+            + fakeToken
+            + globalImageToken
+            + String(repeating: imageToken, count: seqLen)
+            + fakeToken
+        )
+        return textSplitImages
+    }
+
     public func prepare(input: UserInput) throws -> LMInput {
-        let prompt = input.prompt.asMessages().last?["content"] as? String ?? ""
+        let messages = input.prompt.asMessages()
+
+        // Unfortunately we don't have a "render" option in Tokenizers yet, so decoding
+        let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
+        let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
 
         if input.images.isEmpty {
             // No image scenario
-            let tokens = try tokenizer.encode(text: prompt)
-            let tokensArray = MLXArray(tokens).expandedDimensions(axis: 0)
+            let tokensArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
             let mask = ones(like: tokensArray)
             return LMInput(text: .init(tokens: tokensArray, mask: mask), image: nil)
         } else {
@@ -821,13 +862,20 @@ public class Idefics3Processor: UserInputProcessor {
 
             let count = config.imageSequenceLength ?? 1
 
-            // Encode only the text part of the prompt, without <image>
-            var promptTokens = try tokenizer.encode(text: prompt)
+            let imagePromptString = getImagePromptString(
+                rows: imageRows,
+                cols: imageCols,
+                seqLen: imageSequenceLength,
+                fakeToken: fakeImageToken,
+                imageToken: imageToken,
+                globalImageToken: globalImageToken
+            )
 
-            let imageTokenIndex = promptTokens.count / 2
-            promptTokens.insert(imageTokenId, at: imageTokenIndex)
+            let splitPrompt = decoded.split(by: imageToken)
+            let prompt = splitPrompt.joined(separator: imagePromptString)
+            let finalPromptTokens = try tokenizer.encode(text: prompt)
 
-            let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
+            let promptArray = MLXArray(finalPromptTokens).expandedDimensions(axis: 0)
             let mask = ones(like: promptArray)
 
             var image = try input.images[0].asCIImage()
