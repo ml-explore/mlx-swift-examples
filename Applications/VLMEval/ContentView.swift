@@ -9,7 +9,7 @@ import MLXVLM
 import PhotosUI
 import SwiftUI
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
     typealias PlatformImage = UIImage
 #else
     typealias PlatformImage = NSImage
@@ -63,7 +63,7 @@ struct ContentView: View {
                 VStack {
                     if let selectedImage {
                         Group {
-                            #if os(iOS)
+                            #if os(iOS) || os(visionOS)
                                 Image(uiImage: selectedImage)
                                     .resizable()
                             #else
@@ -99,7 +99,7 @@ struct ContentView: View {
                     }
 
                     HStack {
-                        #if os(iOS)
+                        #if os(iOS) || os(visionOS)
                             PhotosPicker(
                                 selection: $selectedItem,
                                 matching: PHPickerFilter.any(of: [
@@ -249,7 +249,7 @@ struct ContentView: View {
     private func generate() {
         Task {
             if let selectedImage = selectedImage {
-                #if os(iOS)
+                #if os(iOS) || os(visionOS)
                     let ciImage = CIImage(image: selectedImage)
                     await llm.generate(prompt: prompt, image: ciImage ?? CIImage(), videoURL: nil)
                 #else
@@ -383,9 +383,33 @@ class VLMEvaluator {
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
             let result = try await modelContainer.perform { context in
-                let images: [UserInput.Image] = image != nil ? [.ciImage(image!)] : []
-                let videos: [UserInput.Video] = videoURL != nil ? [.url(videoURL!)] : []
-                var userInput = UserInput(prompt: prompt, images: images, videos: videos)
+                let images: [UserInput.Image] =
+                    if let image {
+                        [UserInput.Image.ciImage(image)]
+                    } else {
+                        []
+                    }
+                let videos: [UserInput.Video] =
+                    if let videoURL {
+                        [.url(videoURL)]
+                    } else {
+                        []
+                    }
+                var userInput = UserInput(
+                    messages: [
+                        [
+                            "role": "user",
+                            "content": [
+                                ["type": "text", "text": prompt]
+                            ]
+                                + images.map { _ in
+                                    ["type": "image"]
+                                }
+                                + videos.map { _ in
+                                    ["type": "video"]
+                                },
+                        ]
+                    ], images: images, videos: videos)
                 userInput.processing.resize = .init(width: 448, height: 448)
 
                 let input = try await context.processor.prepare(input: userInput)
@@ -425,7 +449,7 @@ class VLMEvaluator {
     }
 }
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
     struct TransferableVideo: Transferable {
         let url: URL
 

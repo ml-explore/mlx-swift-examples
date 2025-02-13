@@ -22,7 +22,7 @@ struct LLMTool: AsyncParsableCommand {
 /// Command line arguments for loading a model.
 struct ModelArguments: ParsableArguments, Sendable {
 
-    @Option(name: .long, help: "Name of the huggingface model or absolute path to directory")
+    @Option(name: .long, help: "Name of the Hugging Face model or absolute path to directory")
     var model: String?
 
     @Sendable
@@ -194,7 +194,6 @@ struct MemoryArguments: ParsableArguments, Sendable {
 }
 
 struct EvaluateCommand: AsyncParsableCommand {
-
     static let configuration = CommandConfiguration(
         commandName: "eval",
         abstract: "evaluate prompt and generate text"
@@ -207,22 +206,42 @@ struct EvaluateCommand: AsyncParsableCommand {
     @Option(parsing: .upToNextOption, help: "Resize images to this size (width, height)")
     var resize: [Int] = []
 
-    @Option(parsing: .upToNextOption, help: "Paths or urls for input images")
+    @Option(parsing: .upToNextOption, help: "Paths or URLs for input images")
     var image: [URL] = []
 
+    @Option(parsing: .upToNextOption, help: "Paths or URLs for input videos")
+    var video: [URL] = []
+
     private func userInput(modelConfiguration: ModelConfiguration) -> UserInput {
-        // prompt and images
         let prompt =
             (try? generate.resolvePrompt(configuration: modelConfiguration))
             ?? modelConfiguration.defaultPrompt
-        let images = image.map { UserInput.Image.url($0) }
-        var input = UserInput(prompt: prompt, images: images)
 
-        // processing instructions
+        let images = image.map { UserInput.Image.url($0) }
+        let videos = video.map { UserInput.Video.url($0) }
+
+        let messages: [[String: Any]] = [
+            [
+                "role": "user",
+                "content": [
+                    ["type": "text", "text": prompt]
+                ]
+                    // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
+                    + images.map { _ in ["type": "image"] }
+                    + videos.map { _ in ["type": "video"] },
+            ]
+        ]
+
+        var input = UserInput(
+            messages: messages,
+            images: images,
+            videos: videos
+        )
+
         if !resize.isEmpty {
             let size: CGSize
             if resize.count == 1 {
-                // single value represents width/height
+                // Single value represents width/height
                 let v = resize[0]
                 size = CGSize(width: v, height: v)
             } else {
@@ -241,8 +260,8 @@ struct EvaluateCommand: AsyncParsableCommand {
         let modelFactory: ModelFactory
         let defaultModel: ModelConfiguration
 
-        // switch between LLM and VLM
-        let vlm = image.count > 0
+        // Switch between LLM and VLM based on presence of media
+        let vlm = !image.isEmpty || !video.isEmpty
         if vlm {
             modelFactory = VLMModelFactory.shared
             defaultModel = MLXVLM.ModelRegistry.qwen2VL2BInstruct4Bit
@@ -251,12 +270,12 @@ struct EvaluateCommand: AsyncParsableCommand {
             defaultModel = MLXLLM.ModelRegistry.mistral7B4bit
         }
 
-        // load the model
+        // Load the model
         let modelContainer = try await memory.start { [args] in
             try await args.load(defaultModel: defaultModel.name, modelFactory: modelFactory)
         }
 
-        // get the resolved configuration (this has the default prompt)
+        // Get the resolved configuration (this has the default prompt)
         let modelConfiguration = modelContainer.configuration
 
         if !generate.quiet {
