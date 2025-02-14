@@ -709,16 +709,13 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
                 if pos > start_idx {
                     segments.append(inputs_embeds[0, start_idx ..< pos])
                 }
-                segments.append(inputs_embeds[0, i ..< i+1])
+                segments.append(currentImage[i ..< i+1])
                 start_idx = pos + 1
             }
         }
 
         if start_idx < inputs_embeds.dim(1) {
-            let remain = inputs_embeds[0, start_idx...]
-            if remain.dim(1) > 0 {
-                segments.append(remain)
-            }
+            segments.append(inputs_embeds[0, start_idx...])
         }
 
         let finalEmbeds = concatenated(segments, axis: 0)
