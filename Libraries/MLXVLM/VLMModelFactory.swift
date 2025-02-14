@@ -10,6 +10,8 @@ public enum VLMError: Error {
     case imageRequired
     case maskRequired
     case singleImageAllowed
+    case singleVideoAllowed
+    case onlySingleMediaTypeAllowed
     case imageProcessingFailure(String)
     case processing(String)
 }
@@ -61,6 +63,7 @@ public class ModelTypeRegistry: @unchecked Sendable {
         "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
         "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
         "idefics3": create(Idefics3Configuration.self, Idefics3.init),
+        "smolvlm": create(Idefics3Configuration.self, Idefics3.init),
     ]
 
     /// Add a new model to the type registry.
@@ -103,6 +106,8 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
                 Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
             "Idefics3Processor": create(
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
+            "SmolVLMProcessor": create(
+                Idefics3ProcessorConfiguration.self, SmolVLMProcessor.init),
         ]
 
     /// Add a new model to the type registry.
@@ -157,15 +162,16 @@ public class ModelRegistry: @unchecked Sendable {
         defaultPrompt: "Describe the image in English"
     )
 
-    static public let smolvlminstruct4bit = ModelConfiguration(
-        id: "mlx-community/SmolVLM-Instruct-4bit",
-        defaultPrompt: "Describe the image in English"
+    static public let smolvlm = ModelConfiguration(
+        id: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct-mlx",
+        defaultPrompt: "Can you describe this image?"
     )
 
     static private func all() -> [ModelConfiguration] {
         [
             paligemma3bMix448_8bit,
             qwen2VL2BInstruct4Bit,
+            smolvlm,
         ]
     }
 

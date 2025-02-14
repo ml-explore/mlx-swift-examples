@@ -17,25 +17,29 @@ import Tokenizers
 // MARK: - Configuration
 
 public struct Idefics3Configuration: Codable, Sendable {
-
+    
     public struct TextConfiguration: Codable, Sendable {
         public let modelType: String
         public let hiddenSize: Int
-        public let numHiddenLayers: Int
+        public var numHiddenLayers: Int { _numHiddenLayers ?? 32 }
         public let intermediateSize: Int
         public let numAttentionHeads: Int
         public let rmsNormEps: Float
         public let vocabSize: Int
         public let numKeyValueHeads: Int
         public let ropeTheta: Float
-        private let _ropeTraditional: Bool?
         public var ropeTraditional: Bool { _ropeTraditional ?? false }
-        public let tieWordEmbeddings: Bool
-
+        public var tieWordEmbeddings: Bool { _tieWordEmbeddings ?? false }
+        
+        private let _numHiddenLayers: Int?
+        private let _ropeTraditional: Bool?
+        private let _tieWordEmbeddings: Bool?
+        
+        
         enum CodingKeys: String, CodingKey {
             case modelType = "model_type"
             case hiddenSize = "hidden_size"
-            case numHiddenLayers = "num_hidden_layers"
+            case _numHiddenLayers = "num_hidden_layers"
             case intermediateSize = "intermediate_size"
             case numAttentionHeads = "num_attention_heads"
             case rmsNormEps = "rms_norm_eps"
@@ -43,33 +47,39 @@ public struct Idefics3Configuration: Codable, Sendable {
             case numKeyValueHeads = "num_key_value_heads"
             case ropeTheta = "rope_theta"
             case _ropeTraditional = "rope_traditional"
-            case tieWordEmbeddings = "tie_word_embeddings"
+            case _tieWordEmbeddings = "tie_word_embeddings"
         }
     }
-
+    
     public struct VisionConfiguration: Codable, Sendable {
         public let modelType: String
-        public let numHiddenLayers: Int
+        public var numHiddenLayers: Int { _numHiddenLayers ?? 12 }
         public let hiddenSize: Int
-        public let intermediateSize: Int
+        public var intermediateSize: Int { _intermediateSize ?? 3072 }
         public let numAttentionHeads: Int
         public let patchSize: Int
         public let imageSize: Int
-        public let numChannels: Int
-        public let layerNormEps: Float
+        public var numChannels: Int { _numChannels ?? 3 }
+        public var layerNormEps: Float { _layerNormEps ?? 1e-6 }
+        
+        private let _numHiddenLayers: Int?
+        private let _intermediateSize: Int?
+        private let _numChannels: Int?
+        private let _layerNormEps: Float?
+        
         enum CodingKeys: String, CodingKey {
             case modelType = "model_type"
-            case numHiddenLayers = "num_hidden_layers"
+            case _numHiddenLayers = "num_hidden_layers"
             case hiddenSize = "hidden_size"
-            case intermediateSize = "intermediate_size"
+            case _intermediateSize = "intermediate_size"
             case numAttentionHeads = "num_attention_heads"
             case patchSize = "patch_size"
             case imageSize = "image_size"
-            case numChannels = "num_channels"
-            case layerNormEps = "layer_norm_eps"
+            case _numChannels = "num_channels"
+            case _layerNormEps = "layer_norm_eps"
         }
     }
-
+    
     public let textConfig: TextConfiguration
     public let visionConfig: VisionConfiguration
     public let modelType: String
@@ -78,7 +88,7 @@ public struct Idefics3Configuration: Codable, Sendable {
     public let scaleFactor: Int
     public let imageTokenId: Int
     public let imageTokenIndex: Int
-
+    
     enum CodingKeys: String, CodingKey {
         case textConfig = "text_config"
         case visionConfig = "vision_config"
@@ -89,15 +99,15 @@ public struct Idefics3Configuration: Codable, Sendable {
         case imageTokenId = "image_token_id"
         case imageTokenIndex = "image_token_index"
     }
-
+    
     public init(from decoder: any Swift.Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-
+        
         self.textConfig =
-            try container
+        try container
             .decode(TextConfiguration.self, forKey: .textConfig)
         self.visionConfig =
-            try container
+        try container
             .decode(VisionConfiguration.self, forKey: .visionConfig)
         self.modelType = try container.decode(String.self, forKey: .modelType)
         self.ignoreIndex = (try? container.decode(Int.self, forKey: .ignoreIndex)) ?? -100
@@ -105,7 +115,7 @@ public struct Idefics3Configuration: Codable, Sendable {
         self.scaleFactor = (try? container.decode(Int.self, forKey: .scaleFactor)) ?? 2
         self.imageTokenId = (try? container.decode(Int.self, forKey: .imageTokenId)) ?? 49153
         self.imageTokenIndex =
-            (try? container.decode(Int.self, forKey: .imageTokenIndex)) ?? self.imageTokenId
+        (try? container.decode(Int.self, forKey: .imageTokenIndex)) ?? self.imageTokenId
     }
 }
 
@@ -118,7 +128,7 @@ private class Idefics3MLP: Module, UnaryLayer {
         let outputSize = config.textConfig.hiddenSize
         self._proj.wrappedValue = Linear(inputSize, outputSize, bias: false)
     }
-
+    
     func callAsFunction(_ x: MLXArray) -> MLXArray {
         let out = proj(x)
         return out
@@ -128,25 +138,25 @@ private class Idefics3MLP: Module, UnaryLayer {
 private class Idefics3Connector: Module {
     let scaleFactor: Int
     @ModuleInfo(key: "modality_projection") var modalityProjection: Idefics3MLP
-
+    
     init(_ config: Idefics3Configuration) {
         self.scaleFactor = config.scaleFactor
         self._modalityProjection.wrappedValue = Idefics3MLP(config)
     }
-
+    
     func pixelShuffle(_ x: MLXArray, scaleFactor: Int) -> MLXArray {
         let B = x.dim(0)
         let seq = x.dim(1)
         let embed_dim = x.dim(2)
         let side = Int(Double(seq).squareRoot())
-
+        
         var reshaped = x.reshaped(B, side, side, embed_dim)
         reshaped =
-            reshaped
+        reshaped
             .reshaped(B, side, side / scaleFactor, embed_dim * scaleFactor)
         reshaped = reshaped.transposed(0, 2, 1, 3)
         reshaped =
-            reshaped
+        reshaped
             .reshaped(
                 B,
                 side / scaleFactor,
@@ -155,7 +165,7 @@ private class Idefics3Connector: Module {
             )
         reshaped = reshaped.transposed(0, 2, 1, 3)
         reshaped =
-            reshaped
+        reshaped
             .reshaped(
                 B,
                 seq / (scaleFactor * scaleFactor),
@@ -163,7 +173,7 @@ private class Idefics3Connector: Module {
             )
         return reshaped
     }
-
+    
     func callAsFunction(_ imageHiddenStates: MLXArray) -> MLXArray {
         let shuffled = pixelShuffle(imageHiddenStates, scaleFactor: scaleFactor)
         let out = modalityProjection(shuffled)
@@ -183,14 +193,14 @@ private enum Language {
         @ModuleInfo(key: "v_proj") var v_proj: Linear
         @ModuleInfo(key: "o_proj") var o_proj: Linear
         @ModuleInfo(key: "rope") var ropeEmbed: RoPE
-
+        
         init(_ config: Idefics3Configuration.TextConfiguration) {
             let dim = config.hiddenSize
             self.nHeads = config.numAttentionHeads
             self.nKVHeads = config.numKeyValueHeads
             let headDim = dim / nHeads
             self.scale = pow(Float(headDim), -0.5)
-
+            
             self._q_proj.wrappedValue = Linear(dim, nHeads * headDim, bias: false)
             self._k_proj.wrappedValue = Linear(
                 dim,
@@ -203,14 +213,14 @@ private enum Language {
                 bias: false
             )
             self._o_proj.wrappedValue = Linear(nHeads * headDim, dim, bias: false)
-
+            
             self._ropeEmbed.wrappedValue = RoPE(
                 dimensions: headDim,
                 traditional: config.ropeTraditional,
                 base: config.ropeTheta
             )
         }
-
+        
         func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache? = nil) -> MLXArray
         {
             let B = x.dim(0)
@@ -218,21 +228,21 @@ private enum Language {
             var q = q_proj(x)
             var k = k_proj(x)
             var v = v_proj(x)
-
+            
             q = q.reshaped(B, L, nHeads, -1).transposed(0, 2, 1, 3)
             k = k.reshaped(B, L, nKVHeads, -1).transposed(0, 2, 1, 3)
             v = v.reshaped(B, L, nKVHeads, -1).transposed(0, 2, 1, 3)
-
+            
             let offset = cache?.offset ?? 0
             q = ropeEmbed(q, offset: offset)
             k = ropeEmbed(k, offset: offset)
-
+            
             if let cache {
                 let (nk, nv) = cache.update(keys: k, values: v)
                 k = nk
                 v = nv
             }
-
+            
             let out = MLXFast.scaledDotProductAttention(
                 queries: q,
                 keys: k,
@@ -240,12 +250,12 @@ private enum Language {
                 scale: scale,
                 mask: mask
             )
-            .transposed(0, 2, 1, 3).reshaped(B, L, -1)
+                .transposed(0, 2, 1, 3).reshaped(B, L, -1)
             let final = o_proj(out)
             return final
         }
     }
-
+    
     fileprivate class MLP: Module, UnaryLayer {
         @ModuleInfo(key: "gate_proj") var gate_proj: Linear
         @ModuleInfo(key: "down_proj") var down_proj: Linear
@@ -255,14 +265,14 @@ private enum Language {
             self._down_proj.wrappedValue = Linear(hiddenDim, dim, bias: false)
             self._up_proj.wrappedValue = Linear(dim, hiddenDim, bias: false)
         }
-
+        
         func callAsFunction(_ x: MLXArray) -> MLXArray {
             let g = gate_proj(x)
             let r = down_proj(silu(g) * up_proj(x))
             return r
         }
     }
-
+    
     fileprivate class TransformerBlock: Module {
         @ModuleInfo(key: "self_attn") var selfAttn: Attention
         @ModuleInfo(key: "input_layernorm") var inputLayerNorm: RMSNorm
@@ -270,7 +280,7 @@ private enum Language {
             key: "post_attention_layernorm"
         ) var postAttentionLayerNorm: RMSNorm
         let mlp: MLP
-
+        
         init(_ config: Idefics3Configuration.TextConfiguration) {
             self._selfAttn.wrappedValue = Attention(config)
             self._inputLayerNorm.wrappedValue = RMSNorm(
@@ -286,7 +296,7 @@ private enum Language {
                 hiddenDim: config.intermediateSize
             )
         }
-
+        
         func callAsFunction(_ x: MLXArray, mask: MLXArray?, cache: KVCache?) -> MLXArray {
             let a = selfAttn(inputLayerNorm(x), mask: mask, cache: cache)
             let h = x + a
@@ -295,21 +305,21 @@ private enum Language {
             return out
         }
     }
-
+    
     fileprivate class LanguageModel: Module, KVCacheDimensionProvider {
         @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
         var layers: [TransformerBlock]
         let norm: RMSNorm
         let config: Idefics3Configuration.TextConfiguration
         @ModuleInfo(key: "lm_head") var lmHead: Linear?
-
+        
         var kvHeads: [Int] {
             (0 ..< config.numHiddenLayers).map { _ in config.numKeyValueHeads }
         }
         var headDim: MLX.IntOrPair {
             .init(config.hiddenSize / config.numAttentionHeads)
         }
-
+        
         init(_ config: Idefics3Configuration.TextConfiguration) {
             self.config = config
             self._embedTokens.wrappedValue = Embedding(
@@ -331,12 +341,12 @@ private enum Language {
                 )
             }
         }
-
+        
         func getEmbeddings(for inputIds: MLXArray) -> MLXArray {
             let e = embedTokens(inputIds)
             return e
         }
-
+        
         func callAsFunction(
             _ inputs: MLXArray?, cache: [KVCache]? = nil, inputs_embeds: MLXArray? = nil
         ) -> LMOutput {
@@ -350,23 +360,23 @@ private enum Language {
                     "At least one of inputs or inputs_embeds must be provided."
                 )
             }
-
+            
             let mask = createAttentionMask(h: h, cache: cache)
             var x = h
             for (i, layer) in layers.enumerated() {
                 let c = i < (cache?.count ?? 0) ? cache![i] : nil
                 x = layer(x, mask: mask, cache: c)
             }
-
+            
             x = norm(x)
             let out = lmHead != nil ? lmHead!(x) : embedTokens.asLinear(x)
             return LMOutput(logits: out)
         }
-
+        
         func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
             // filter out rotary_emb.inv_freq
             return
-                weights
+            weights
                 .filter { !$0.key.contains("self_attn.rotary_emb.inv_freq") }
         }
     }
@@ -380,7 +390,7 @@ private enum Vision {
         let (o, h, w, _) = (arr.dim(0), arr.dim(1), arr.dim(2), arr.dim(3))
         return (o >= h && o >= w && h == w)
     }
-
+    
     fileprivate class Attention: Module {
         let numHeads: Int
         let scale: Float
@@ -388,7 +398,7 @@ private enum Vision {
         @ModuleInfo(key: "k_proj") var k_proj: Linear
         @ModuleInfo(key: "v_proj") var v_proj: Linear
         @ModuleInfo(key: "out_proj") var o_proj: Linear
-
+        
         init(_ config: Idefics3Configuration.VisionConfiguration) {
             self.numHeads = config.numAttentionHeads
             let headDim = config.hiddenSize / config.numAttentionHeads
@@ -414,7 +424,7 @@ private enum Vision {
                 bias: true
             )
         }
-
+        
         func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil) -> MLXArray {
             let (B, L, D) = (x.dim(0), x.dim(1), x.dim(2))
             let q = q_proj(x).reshaped(B, L, numHeads, D / numHeads).transposed(
@@ -435,7 +445,7 @@ private enum Vision {
                 1,
                 3
             )
-
+            
             let out = MLXFast.scaledDotProductAttention(
                 queries: q,
                 keys: k,
@@ -443,17 +453,17 @@ private enum Vision {
                 scale: scale,
                 mask: mask
             )
-            .transposed(0, 2, 1, 3).reshaped(B, L, D)
+                .transposed(0, 2, 1, 3).reshaped(B, L, D)
             let final = o_proj(out)
             return final
         }
     }
-
+    
     fileprivate class MLP: Module, UnaryLayer {
         @ModuleInfo var fc1: Linear
         @ModuleInfo var fc2: Linear
         let activation = GELU(approximation: .precise)
-
+        
         init(_ config: Idefics3Configuration.VisionConfiguration) {
             self.fc1 = Linear(
                 config.hiddenSize,
@@ -466,19 +476,19 @@ private enum Vision {
                 bias: true
             )
         }
-
+        
         func callAsFunction(_ x: MLXArray) -> MLXArray {
             let out = fc2(activation(fc1(x)))
             return out
         }
     }
-
+    
     fileprivate class EncoderLayer: Module {
         @ModuleInfo(key: "self_attn") var self_attn: Attention
         @ModuleInfo(key: "layer_norm1") var layerNorm1: LayerNorm
         @ModuleInfo var mlp: MLP
         @ModuleInfo(key: "layer_norm2") var layerNorm2: LayerNorm
-
+        
         init(_ config: Idefics3Configuration.VisionConfiguration) {
             self._self_attn.wrappedValue = Attention(config)
             self._layerNorm1.wrappedValue = LayerNorm(
@@ -491,26 +501,26 @@ private enum Vision {
                 eps: config.layerNormEps
             )
         }
-
+        
         func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil) -> MLXArray {
             let h = x + self_attn(layerNorm1(x), mask: mask)
             let out = h + mlp(layerNorm2(h))
             return out
         }
     }
-
+    
     fileprivate class Encoder: Module {
         var layers: [EncoderLayer]
         init(_ config: Idefics3Configuration.VisionConfiguration) {
             self.layers = (0 ..< config.numHiddenLayers)
                 .map { _ in EncoderLayer(config) }
         }
-
+        
         func callAsFunction(_ x: MLXArray, outputHiddenStates: Bool = false, mask: MLXArray? = nil)
-            -> (
-                MLXArray,
-                [MLXArray]?
-            )
+        -> (
+            MLXArray,
+            [MLXArray]?
+        )
         {
             var encoderStates: [MLXArray]? = outputHiddenStates ? [x] : nil
             var h = x
@@ -523,12 +533,12 @@ private enum Vision {
             return (h, encoderStates)
         }
     }
-
+    
     fileprivate class VisionEmbeddings: Module, UnaryLayer {
         @ModuleInfo(key: "patch_embedding") var patchEmbedding: Conv2d
         @ModuleInfo(key: "position_embedding") var positionEmbedding: Embedding
         let numPositions: Int
-
+        
         init(_ config: Idefics3Configuration.VisionConfiguration) {
             self._patchEmbedding.wrappedValue = Conv2d(
                 inputChannels: config.numChannels,
@@ -537,14 +547,14 @@ private enum Vision {
                 stride: .init(config.patchSize)
             )
             let numPatches =
-                (config.imageSize / config.patchSize) * (config.imageSize / config.patchSize)
+            (config.imageSize / config.patchSize) * (config.imageSize / config.patchSize)
             self.numPositions = numPatches
             self._positionEmbedding.wrappedValue = Embedding(
                 embeddingCount: numPatches,
                 dimensions: config.hiddenSize
             )
         }
-
+        
         func callAsFunction(_ x: MLXArray) -> MLXArray {
             var patchEmbeddings = patchEmbedding(x)
             patchEmbeddings = patchEmbeddings.flattened(start: 1, end: 2)
@@ -554,13 +564,13 @@ private enum Vision {
             return embeddings
         }
     }
-
+    
     fileprivate class VisionModel: Module {
         @ModuleInfo(key: "embeddings") var embeddings: VisionEmbeddings
         @ModuleInfo(key: "encoder") var encoder: Encoder
         @ModuleInfo(key: "post_layernorm") var postLayernorm: LayerNorm
         let config: Idefics3Configuration.VisionConfiguration
-
+        
         init(_ config: Idefics3Configuration.VisionConfiguration) {
             self.config = config
             self._embeddings.wrappedValue = VisionEmbeddings(config)
@@ -570,7 +580,7 @@ private enum Vision {
                 eps: config.layerNormEps
             )
         }
-
+        
         func callAsFunction(_ x: MLXArray, outputHiddenStates: Bool = true) -> (
             MLXArray,
             MLXArray,
@@ -584,7 +594,7 @@ private enum Vision {
             let pooler_output = postLayernorm(encoded)
             return (pooler_output, e, hiddenStates)
         }
-
+        
         func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
             var sanitizedWeights = [String: MLXArray]()
             for (k, v) in weights {
@@ -614,24 +624,24 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
     ) private var languageModel: Language.LanguageModel
     @ModuleInfo(key: "connector") private var connector: Idefics3Connector
     public let config: Idefics3Configuration
-
+    
     public var vocabularySize: Int { config.vocabSize }
     public var kvHeads: [Int] { languageModel.kvHeads }
     public var headDim: MLX.IntOrPair { languageModel.headDim }
-
+    
     public func loraLinearLayers() -> LoRALinearLayers {
         languageModel.layers.map { ($0.selfAttn, ["q_proj", "v_proj"]) }
     }
-
+    
     public init(_ config: Idefics3Configuration) {
         self.config = config
         self._visionModel.wrappedValue = Vision.VisionModel(config.visionConfig)
         self._languageModel.wrappedValue =
-            Language
+        Language
             .LanguageModel(config.textConfig)
         self._connector.wrappedValue = Idefics3Connector(config)
     }
-
+    
     private func getInputEmbeddings(inputIds: MLXArray?, pixelValues: MLXArray?) -> MLXArray {
         if pixelValues == nil {
             guard let inputIds = inputIds else {
@@ -640,11 +650,11 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
             let inputs_embeds = languageModel.getEmbeddings(for: inputIds)
             return inputs_embeds
         }
-
+        
         guard let inputIds = inputIds, let pixelValues = pixelValues else {
             fatalError("inputIds and pixelValues required")
         }
-
+        
         let inputs_embeds = languageModel.getEmbeddings(for: inputIds)
         let (pooler_output, _, _) = visionModel(
             pixelValues,
@@ -654,7 +664,7 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
         let image_features = connector(
             pooler_output.asType(inputs_embeds.dtype)
         )
-
+        
         let final = prepareInputsForMultimodal(
             imageFeatures: image_features,
             inputs_embeds: inputs_embeds,
@@ -662,52 +672,58 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
         )
         return final
     }
-
+    
+    // inputs_merger
+    // TODO: why did we need to do changes here? Do we need a new modelling class, or did this never work (for tiling)?
     private func prepareInputsForMultimodal(
         imageFeatures: MLXArray, inputs_embeds: MLXArray, inputIds: MLXArray
     ) -> MLXArray {
+        // Assumes bs == 1
         // inputIds shape: (1, seq_len)
         // asArray(Int.self) -> [[Int]], take [0] to get [Int]
         let ids: [[Int]] = [inputIds.asArray(Int.self)]
-
+        
         let inputIdArray: [Int] = ids[0]
-
+        
         let imageTokenIndex = config.imageTokenIndex
         let imagePositions = inputIdArray.enumerated().compactMap {
             $1 == imageTokenIndex ? $0 : nil
         }
-
+        
+        
         var segments = [MLXArray]()
         var start_idx = 0
-
-        for pos in imagePositions {
-            if pos > start_idx {
-                let textSegment = inputs_embeds[0..., start_idx ..< pos, 0...]
-                if textSegment.dim(1) > 0 {
-                    segments.append(textSegment)
+        
+        let chunkSize = imageFeatures.shape[1]                  // 64
+        let chunkCount = imagePositions.count / chunkSize       // Should be imageFeatures.shape[0]
+        let chunks = (0..<chunkCount).map { startIndex in
+            let start = startIndex * chunkSize
+            let end = start + chunkSize
+            return Array(imagePositions[start..<end])
+        }
+        
+        for (chunkIndex, chunk) in chunks.enumerated() {
+            let currentImage = imageFeatures[chunkIndex]
+            
+            for (i, pos) in chunk.enumerated() {
+                if pos > start_idx {
+                    segments.append(inputs_embeds[0, start_idx ..< pos])
                 }
+                segments.append(currentImage[i ..< i+1])
+                start_idx = pos + 1
             }
-            start_idx = pos + 1
-            segments.append(imageFeatures)
         }
-
+        
         if start_idx < inputs_embeds.dim(1) {
-            let remain = inputs_embeds[0..., start_idx..., 0...]
-            if remain.dim(1) > 0 {
-                segments.append(remain)
-            }
+            segments.append(inputs_embeds[0, start_idx...])
         }
-
-        var finalEmbeds = segments[0]
-        for seg in segments.dropFirst() {
-            finalEmbeds = concatenated([finalEmbeds, seg], axis: 1)
-        }
-
-        return finalEmbeds
+        
+        let finalEmbeds = concatenated(segments, axis: 0)
+        return finalEmbeds.expandedDimensions(axis: 0)
     }
-
+    
     public func prepare(_ input: LMInput, cache: [any KVCache], windowSize: Int?) throws
-        -> PrepareResult
+    -> PrepareResult
     {
         let inputIds = input.text.tokens
         let pixelValues = input.image?.pixels
@@ -718,12 +734,12 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
         let result = languageModel(nil, cache: cache, inputs_embeds: embeddings)
         return .logits(result)
     }
-
+    
     public func callAsFunction(_ inputs: MLXArray, cache: [any KVCache]?) -> MLXArray {
         let out = languageModel(inputs, cache: cache).logits
         return out
     }
-
+    
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
         // Rename keys to match Python logic
         var renamed = [String: MLXArray]()
@@ -736,7 +752,7 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
             }
             renamed[newKey] = v
         }
-
+        
         var final = [String: MLXArray]()
         for (k, v) in renamed {
             if k.hasPrefix("text_model.") {
@@ -746,12 +762,12 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
                 final[k] = v
             }
         }
-
+        
         // Remove rotary_emb.inv_freq
         final = final.filter {
             !$0.key.contains("self_attn.rotary_emb.inv_freq")
         }
-
+        
         return final
     }
 }
@@ -764,19 +780,19 @@ public struct Idefics3ProcessorConfiguration: Codable, Sendable {
             case longestEdge = "longest_edge"
         }
     }
-
+    
     public let imageMean: [CGFloat]
     public let imageStd: [CGFloat]
     public let size: Size
     public let imageSequenceLength: Int?
-
+    
     public var imageMeanTuple: (CGFloat, CGFloat, CGFloat) {
         (imageMean[0], imageMean[1], imageMean[2])
     }
     public var imageStdTuple: (CGFloat, CGFloat, CGFloat) {
         (imageStd[0], imageStd[1], imageStd[2])
     }
-
+    
     enum CodingKeys: String, CodingKey {
         case imageMean = "image_mean"
         case imageStd = "image_std"
@@ -791,11 +807,11 @@ public class Idefics3Processor: UserInputProcessor {
     private let config: Idefics3ProcessorConfiguration
     private let tokenizer: any Tokenizer
     private let fixedImageSize = 384
-
+    
     // From the Python code and default config, we know image_token_id is usually 49153.
     // Hardcode this since we can't pass it in or rely on it from the processor config.
     private let imageTokenId = 49153
-
+    
     public init(
         _ config: Idefics3ProcessorConfiguration,
         tokenizer: any Tokenizer
@@ -803,10 +819,11 @@ public class Idefics3Processor: UserInputProcessor {
         self.config = config
         self.tokenizer = tokenizer
     }
-
+    
     public func prepare(input: UserInput) throws -> LMInput {
+        
         let prompt = input.prompt.asMessages().last?["content"] as? String ?? ""
-
+        
         if input.images.isEmpty {
             // No image scenario
             let tokens = try tokenizer.encode(text: prompt)
@@ -818,18 +835,18 @@ public class Idefics3Processor: UserInputProcessor {
             guard input.images.count == 1 else {
                 throw VLMError.singleImageAllowed
             }
-
+            
             let count = config.imageSequenceLength ?? 1
-
+            
             // Encode only the text part of the prompt, without <image>
             var promptTokens = try tokenizer.encode(text: prompt)
-
+            
             let imageTokenIndex = promptTokens.count / 2
             promptTokens.insert(imageTokenId, at: imageTokenIndex)
-
+            
             let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
             let mask = ones(like: promptArray)
-
+            
             var image = try input.images[0].asCIImage()
             image = MediaProcessing.inSRGBToneCurveSpace(image)
             let targetSize = CGSize(
@@ -844,30 +861,267 @@ public class Idefics3Processor: UserInputProcessor {
                 std: config.imageStdTuple
             )
             var pixels = MediaProcessing.asMLXArray(image)
-
+            
             if pixels.ndim == 2 {
                 pixels = pixels.expandedDimensions(axis: -1)
             }
-
+            
             if pixels.ndim == 3 {
                 pixels = pixels.expandedDimensions(axis: 0)
             }
-
+            
             // If shape is (B,C,H,W), transpose to (B,H,W,C)
             if pixels
                 .dim(1) == 3
                 && pixels
-                    .dim(2) == fixedImageSize
+                .dim(2) == fixedImageSize
                 && pixels
-                    .dim(3) == fixedImageSize
+                .dim(3) == fixedImageSize
             {
                 pixels = pixels.transposed(0, 2, 3, 1)
             }
-
+            
             return LMInput(
                 text: .init(tokens: promptArray, mask: mask),
                 image: .init(pixels: pixels)
             )
+        }
+    }
+}
+
+
+public class SmolVLMProcessor: UserInputProcessor {
+    private let config: Idefics3ProcessorConfiguration
+    private let tokenizer: any Tokenizer
+    
+    // From the Python code and default config, we know image_token_id is usually 49153.
+    // Hardcode this since we can't pass it in or rely on it from the processor config.
+    // Using 49190 for smolvlm
+    private let imageTokenId = 49190
+    
+    // FIXME: hardcoded values for now
+    
+    private let maxProcessingImageSize: CGFloat = 2048
+    private let fixedImageSize: CGFloat = 512        // 384 for big models and 512 for small models (200-500M)
+    
+    //    let fakeImageTokenId = 49189   // <fake_token_around_image>
+    //    let globalImageTokenId = 49152 // <global-img>
+    let imageToken = "<image>"
+    let fakeImageToken = "<fake_token_around_image>"
+    let globalImageToken = "<global-img>"
+    let imageSequenceLength = 64
+    
+    
+    public init(
+        _ config: Idefics3ProcessorConfiguration,
+        tokenizer: any Tokenizer
+    ) {
+        self.config = config
+        self.tokenizer = tokenizer
+    }
+    
+    func getVideoPromptString(frameCount: Int, timeStamps: [String], videoDuration: String, seqLen: Int, fakeToken: String, imageToken: String) -> String {
+        var textSplitFrames = "You are provided the following series of \(frameCount) frames from a \(videoDuration) [H:MM:SS] video.\n"
+        for frameIndex in 0..<frameCount {
+            textSplitFrames += "\nFrame from \(timeStamps[frameIndex]):"
+            textSplitFrames += (
+                fakeToken
+                + String(repeating: imageToken, count: seqLen)
+                + fakeToken
+            )
+        }
+        textSplitFrames += "\n\n"
+        return textSplitFrames
+    }
+    
+    func getImagePromptString(rows: Int, cols: Int, seqLen: Int, fakeToken: String, imageToken: String, globalImageToken: String) -> String {
+        /// Prompt with expanded image tokens for when the image is split into patches.
+        /// This applies to image processing, not video (I think).
+        /// This just transliterates this: https://github.com/huggingface/transformers/blob/6a1ab634b6886b6560b0502e7a305c8cd881732e/src/transformers/models/idefics3/processing_idefics3.py#L44
+        var textSplitImages = ""
+        for h in 0..<rows {
+            for w in 0..<cols {
+                textSplitImages += (
+                    fakeToken
+                    + "<row_\(h + 1)_col_\(w + 1)>"
+                    + String(repeating: imageToken, count: seqLen)
+                )
+            }
+            textSplitImages += "\n"
+        }
+        textSplitImages += (
+            "\n"
+            + fakeToken
+            + globalImageToken
+            + String(repeating: imageToken, count: seqLen)
+            + fakeToken
+        )
+        return textSplitImages
+    }
+    
+    /// Compute the resize size with `longestEdge` for the given size
+    /// If `multiple` is not nil, ensures each side is a multiple of that value
+    func aspectRatioSize(for size: CGSize, longestEdge: CGFloat, multiple: CGFloat? = nil) -> CGSize {
+        var targetSize = MediaProcessing.bestFit(size, in: CGSize(width: longestEdge, height: longestEdge))
+        guard let multiple = multiple else { return targetSize }
+        let aspectRatio = targetSize.width / targetSize.height
+        if size.width >= size.height {
+            let width = ceil(targetSize.width / multiple) * multiple
+            var height = width / aspectRatio
+            height = ceil(height / multiple) * multiple
+            return CGSize(width: width, height: height)
+        } else {
+            let height = ceil(targetSize.height / multiple) * multiple
+            var width = height * aspectRatio
+            width = ceil(width / multiple) * multiple
+            return CGSize(width: width, height: height)
+        }
+    }
+    
+    /// Compute the resize size with `longestEdge` for the given size
+    /// If `multiple` is not nil, ensures each side is a multiple of that value
+    func aspectRatioSize(for size: CGSize, longestEdge: Int, multiple: Int? = nil) -> CGSize {
+        return aspectRatioSize(for: size, longestEdge: CGFloat(longestEdge), multiple: multiple.flatMap(CGFloat.init))
+    }
+    
+    /// Tile image if it's larger than the maxProcessingImageSize, so the model gets to see more of it
+    /// TODO: disable in video mode
+    func tiles(from originalImage: CIImage) -> (tiles: [CIImage], rows: Int, cols: Int) {
+        guard originalImage.extent.size.width > CGFloat(maxProcessingImageSize) || originalImage.extent.size.height > CGFloat(maxProcessingImageSize) else {
+            return ([], 1, 1)
+        }
+        
+        var tiles: [CIImage] = []
+        let processingSize = aspectRatioSize(for: originalImage.extent.size, longestEdge: maxProcessingImageSize, multiple: fixedImageSize)
+        let image = MediaProcessing.resampleLanczos(originalImage, to: processingSize)
+        
+        // Crop nRows x nCols tiles
+        let nRows = Int(ceil(image.extent.size.height / CGFloat(fixedImageSize)))
+        let nCols = Int(ceil(image.extent.size.width / CGFloat(fixedImageSize)))
+        
+        // Warning: in CIImage, y=0 is the bottom side. We reverse the rows to match the transformers processor
+        let tileEdge = Int(fixedImageSize)
+        for row in (0..<nRows).reversed() {
+            for col in 0..<nCols {
+                let x0 = col * tileEdge
+                let y0 = row * tileEdge
+                let x1 = min(x0 + tileEdge, Int(image.extent.size.width))
+                let y1 = min(y0 + tileEdge, Int(image.extent.size.height))
+                
+                let tile = image.cropped(to: CGRect(x: x0, y: y0, width: x1-x0, height: y1-y0))
+                tiles.append(tile)
+            }
+        }
+        
+        return (tiles, nRows, nCols)
+    }
+    
+    
+    public func prepare(input: UserInput) async throws -> LMInput {
+        let messages = input.prompt.asMessages()
+        // Unfortunately we don't have a "render" option in Tokenizers yet, so decoding
+        let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
+        let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
+        
+        if input.images.isEmpty && input.videos.isEmpty {
+            // No image scenario
+            let tokensArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
+            let mask = ones(like: tokensArray)
+            return LMInput(text: .init(tokens: tokensArray, mask: mask), image: nil)
+        } else if input.images.count > 0  && input.videos.isEmpty {
+            // Single image scenario
+            guard input.images.count == 1 else {
+                throw VLMError.singleImageAllowed
+            }
+            
+            // FIXME: hmmm I'm not sure we need to apply a linearToSRGB filter
+            // or maybe we do, because the model expects sRGB inputs
+            // we could solve it with the CIContext
+            // but how does normalization work?
+            var image = try input.images[0].asCIImage()
+            image = MediaProcessing.inSRGBToneCurveSpace(image)
+            
+            let (tiles, imageRows, imageCols) = tiles(from: image)
+            
+            // Append the resized global image
+            // TODO: something like `image.resampled(size, .lanczos)`
+            // TODO: note we are resampling from the original (potentially larger), not the processing size. It shouldn't make much difference.
+            let images = tiles + [MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize))]
+            
+            let pixelsForImages = images.map {
+                let normalized = MediaProcessing.normalize($0, mean: config.imageMeanTuple, std: config.imageStdTuple)
+                return MediaProcessing.asMLXArray(normalized)
+            }
+            
+            // TODO: assuming pixels has shape like [13, 3, 512, 512]
+            // TODO: expand but take a view when entering the model
+            let pixels = concatenated(pixelsForImages, axis: 0).transposed(0, 2, 3, 1)//.expandedDimensions(axis: 0)
+            
+            let imagePromptString = getImagePromptString(
+                rows: imageRows,
+                cols: imageCols,
+                seqLen: imageSequenceLength,
+                fakeToken: fakeImageToken,
+                imageToken: imageToken,
+                globalImageToken: globalImageToken
+            )
+            
+            let splitPrompt = decoded.split(by: imageToken)
+            let prompt = splitPrompt.joined(separator: imagePromptString)
+            let finalPromptTokens = try tokenizer.encode(text: prompt)
+            
+            let promptArray = MLXArray(finalPromptTokens).expandedDimensions(axis: 0)
+            let mask = ones(like: promptArray)
+            
+            return LMInput(
+                text: .init(tokens: promptArray, mask: mask),
+                image: .init(pixels: pixels)
+            )
+        } else {
+            // Single video scenario
+            guard input.images.count == 0 else {
+                throw VLMError.onlySingleMediaTypeAllowed
+            }
+            guard input.videos.count == 1 else {
+                throw VLMError.singleVideoAllowed
+            }
+            
+            var video = try input.videos[0].asAVAsset()
+            
+            // TODO: Hardcoded for now but should get from config
+            // TODO: Should be a function. Should replace image processing above.
+            // TODO: Batch? This seems inefficient but it's only 64 frames so TBD
+            //            Task {
+            var videoFrameResult = await try MediaProcessing.asCIImageSequence(video, maxFrames: 64, targetFPS: 1)
+            print(videoFrameResult.frames.count, videoFrameResult.totalDuration, videoFrameResult.timestamps)
+            
+            let thwFrames = (0..<videoFrameResult.frames.count).map { THW($0, Int(fixedImageSize), Int(fixedImageSize)) }
+            
+            var processedFrames: [MLXArray] = []
+            for frame in videoFrameResult.frames {
+                var image = MediaProcessing.inSRGBToneCurveSpace(frame)
+                image = MediaProcessing.inSRGBToneCurveSpace(image)
+                image = MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize))
+                let normalized = MediaProcessing.asMLXArray(MediaProcessing.normalize(image, mean: config.imageMeanTuple, std: config.imageStdTuple))
+                processedFrames.append(normalized)
+            }
+            
+            let stackedFrames = concatenated(processedFrames, axis: 0)
+            let transposedFrames = stackedFrames.transposed(0, 2, 3, 1)
+            
+            let videoPromptString = getVideoPromptString(frameCount: videoFrameResult.frames.count, timeStamps: videoFrameResult.timestamps, videoDuration: videoFrameResult.totalDuration, seqLen: imageSequenceLength, fakeToken: fakeImageToken, imageToken: imageToken)
+            print(videoPromptString)
+            
+            let splitPrompt = decoded.split(by: imageToken)
+            let prompt = splitPrompt.joined(separator: videoPromptString)
+            let finalPromptTokens = try tokenizer.encode(text: prompt)
+            
+            let promptArray = MLXArray(finalPromptTokens).expandedDimensions(axis: 0)
+            print("Text input shape", promptArray.shape, "\n")
+            print("Video inout shape", transposedFrames.shape, "\n")
+            let mask = ones(like: promptArray)
+            return LMInput(text: .init(tokens: promptArray, mask: mask),
+                           video: .init(pixels: transposedFrames, frames: thwFrames))
         }
     }
 }
