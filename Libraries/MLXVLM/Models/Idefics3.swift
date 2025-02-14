@@ -673,9 +673,11 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
         return final
     }
 
+    // inputs_merger
     private func prepareInputsForMultimodal(
         imageFeatures: MLXArray, inputs_embeds: MLXArray, inputIds: MLXArray
     ) -> MLXArray {
+        // Assumes bs == 1
         // inputIds shape: (1, seq_len)
         // asArray(Int.self) -> [[Int]], take [0] to get [Int]
         let ids: [[Int]] = [inputIds.asArray(Int.self)]
@@ -687,33 +689,39 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
             $1 == imageTokenIndex ? $0 : nil
         }
 
+
         var segments = [MLXArray]()
         var start_idx = 0
 
-        for pos in imagePositions {
-            if pos > start_idx {
-                let textSegment = inputs_embeds[0..., start_idx ..< pos, 0...]
-                if textSegment.dim(1) > 0 {
-                    segments.append(textSegment)
+        let chunkSize = imageFeatures.shape[1]                  // 64
+        let chunkCount = imagePositions.count / chunkSize       // Should be imageFeatures.shape[0]
+        let chunks = (0..<chunkCount).map { startIndex in
+            let start = startIndex * chunkSize
+            let end = start + chunkSize
+            return Array(imagePositions[start..<end])
+        }
+
+        for (chunkIndex, chunk) in chunks.enumerated() {
+            let currentImage = imageFeatures[chunkIndex]
+
+            for (i, pos) in chunk.enumerated() {
+                if pos > start_idx {
+                    segments.append(inputs_embeds[0, start_idx ..< pos])
                 }
+                segments.append(inputs_embeds[0, i ..< i+1])
+                start_idx = pos + 1
             }
-            start_idx = pos + 1
-            segments.append(imageFeatures)
         }
 
         if start_idx < inputs_embeds.dim(1) {
-            let remain = inputs_embeds[0..., start_idx..., 0...]
+            let remain = inputs_embeds[0, start_idx...]
             if remain.dim(1) > 0 {
                 segments.append(remain)
             }
         }
 
-        var finalEmbeds = segments[0]
-        for seg in segments.dropFirst() {
-            finalEmbeds = concatenated([finalEmbeds, seg], axis: 1)
-        }
-
-        return finalEmbeds
+        let finalEmbeds = concatenated(segments, axis: 0)
+        return finalEmbeds.expandedDimensions(axis: 0)
     }
 
     public func prepare(_ input: LMInput, cache: [any KVCache], windowSize: Int?) throws
@@ -961,7 +969,8 @@ public class Idefics3Processor: UserInputProcessor {
             var pixels = concatenated(pixelsForImages, axis: 0)
 
             // TODO: assuming pixels has shape like [13, 3, 512, 512]
-            pixels = pixels.transposed(0, 2, 3, 1).expandedDimensions(axis: 0)
+            // TODO: expand but take a view when entering the model
+            pixels = pixels.transposed(0, 2, 3, 1)//.expandedDimensions(axis: 0)
 
 //            if pixels.ndim == 2 {
 //                pixels = pixels.expandedDimensions(axis: -1)
