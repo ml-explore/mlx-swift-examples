@@ -104,6 +104,8 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
                 Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
             "Idefics3Processor": create(
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
+            "SmolVLMProcessor": create(
+                Idefics3ProcessorConfiguration.self, SmolVLMProcessor.init),
         ]
 
     /// Add a new model to the type registry.

@@ -674,6 +674,7 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
     }
 
     // inputs_merger
+    // TODO: why did we need to do changes here? Do we need a new modelling class, or did this never work (for tiling)?
     private func prepareInputsForMultimodal(
         imageFeatures: MLXArray, inputs_embeds: MLXArray, inputIds: MLXArray
     ) -> MLXArray {
@@ -804,9 +805,94 @@ public struct Idefics3ProcessorConfiguration: Codable, Sendable {
 }
 
 // MARK: - Processor
-// TODO: provide SmolVLM classes eventually
 
 public class Idefics3Processor: UserInputProcessor {
+    private let config: Idefics3ProcessorConfiguration
+    private let tokenizer: any Tokenizer
+    private let fixedImageSize = 384
+
+    // From the Python code and default config, we know image_token_id is usually 49153.
+    // Hardcode this since we can't pass it in or rely on it from the processor config.
+    private let imageTokenId = 49153
+
+    public init(
+        _ config: Idefics3ProcessorConfiguration,
+        tokenizer: any Tokenizer
+    ) {
+        self.config = config
+        self.tokenizer = tokenizer
+    }
+
+    public func prepare(input: UserInput) throws -> LMInput {
+        let prompt = input.prompt.asMessages().last?["content"] as? String ?? ""
+
+        if input.images.isEmpty {
+            // No image scenario
+            let tokens = try tokenizer.encode(text: prompt)
+            let tokensArray = MLXArray(tokens).expandedDimensions(axis: 0)
+            let mask = ones(like: tokensArray)
+            return LMInput(text: .init(tokens: tokensArray, mask: mask), image: nil)
+        } else {
+            // Single image scenario
+            guard input.images.count == 1 else {
+                throw VLMError.singleImageAllowed
+            }
+
+            let count = config.imageSequenceLength ?? 1
+
+            // Encode only the text part of the prompt, without <image>
+            var promptTokens = try tokenizer.encode(text: prompt)
+
+            let imageTokenIndex = promptTokens.count / 2
+            promptTokens.insert(imageTokenId, at: imageTokenIndex)
+
+            let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
+            let mask = ones(like: promptArray)
+
+            var image = try input.images[0].asCIImage()
+            image = MediaProcessing.inSRGBToneCurveSpace(image)
+            let targetSize = CGSize(
+                width: fixedImageSize,
+                height: fixedImageSize
+            )
+            image = MediaProcessing.apply(image, processing: input.processing)
+            image = MediaProcessing.resampleBicubic(image, to: targetSize)
+            image = MediaProcessing.normalize(
+                image,
+                mean: config.imageMeanTuple,
+                std: config.imageStdTuple
+            )
+            var pixels = MediaProcessing.asMLXArray(image)
+
+            if pixels.ndim == 2 {
+                pixels = pixels.expandedDimensions(axis: -1)
+            }
+
+            if pixels.ndim == 3 {
+                pixels = pixels.expandedDimensions(axis: 0)
+            }
+
+            // If shape is (B,C,H,W), transpose to (B,H,W,C)
+            if pixels
+                .dim(1) == 3
+                && pixels
+                    .dim(2) == fixedImageSize
+                && pixels
+                    .dim(3) == fixedImageSize
+            {
+                pixels = pixels.transposed(0, 2, 3, 1)
+            }
+
+            return LMInput(
+                text: .init(tokens: promptArray, mask: mask),
+                image: .init(pixels: pixels)
+            )
+        }
+    }
+}
+
+
+public class SmolVLMProcessor: UserInputProcessor {
     private let config: Idefics3ProcessorConfiguration
     private let tokenizer: any Tokenizer
 
