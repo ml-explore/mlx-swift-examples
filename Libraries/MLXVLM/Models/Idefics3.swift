@@ -911,10 +911,6 @@ public class SmolVLMProcessor: UserInputProcessor {
     let imageToken = "<image>"
     let fakeImageToken = "<fake_token_around_image>"
     let globalImageToken = "<global-img>"
-
-    // FIXME: take from number of tiles
-    let imageRows = 3
-    let imageCols = 4
     let imageSequenceLength = 64
 
     public init(
@@ -1027,6 +1023,29 @@ public class SmolVLMProcessor: UserInputProcessor {
             }
 
             let count = config.imageSequenceLength ?? 1
+            var image = try input.images[0].asCIImage()
+
+            // FIXME: hmmm I'm not sure we need to apply a linearToSRGB filter
+            // or maybe we do, because the model expects sRGB inputs
+            // we could solve it with the CIContext
+            // but how does normalization work?
+            image = MediaProcessing.inSRGBToneCurveSpace(image)
+
+            let (tiles, imageRows, imageCols) = tiles(from: image)
+
+            // Append the resized global image
+            // TODO: something like `image.resampled(size, .lanczos)`
+            // TODO: note we are resampling from the original (potentially larger), not the processing size. It shouldn't make much difference.
+            let images = tiles + [MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize))]
+
+            let pixelsForImages = images.map {
+                let normalized = MediaProcessing.normalize($0, mean: config.imageMeanTuple, std: config.imageStdTuple)
+                return MediaProcessing.asMLXArray(normalized)
+            }
+
+            // TODO: assuming pixels has shape like [13, 3, 512, 512]
+            // TODO: expand but take a view when entering the model
+            let pixels = concatenated(pixelsForImages, axis: 0).transposed(0, 2, 3, 1)//.expandedDimensions(axis: 0)
 
             let imagePromptString = getImagePromptString(
                 rows: imageRows,
@@ -1043,30 +1062,6 @@ public class SmolVLMProcessor: UserInputProcessor {
 
             let promptArray = MLXArray(finalPromptTokens).expandedDimensions(axis: 0)
             let mask = ones(like: promptArray)
-
-            var image = try input.images[0].asCIImage()
-
-            // FIXME: hmmm I'm not sure we need to apply a linearToSRGB filter
-            // or maybe we do, because the model expects sRGB inputs
-            // we could solve it with the CIContext
-            // but how does normalization work?
-            image = MediaProcessing.inSRGBToneCurveSpace(image)
-
-            let (tiles, numRows, numCols) = tiles(from: image)
-
-            // Append the resized global image
-            // TODO: something like `image.resampled(size, .lanczos)`
-            // TODO: note we are resampling from the original (potentially larger), not the processing size. It shouldn't make much difference.
-            let images = tiles + [MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize))]
-
-            let pixelsForImages = images.map {
-                let normalized = MediaProcessing.normalize($0, mean: config.imageMeanTuple, std: config.imageStdTuple)
-                return MediaProcessing.asMLXArray(normalized)
-            }
-
-            // TODO: assuming pixels has shape like [13, 3, 512, 512]
-            // TODO: expand but take a view when entering the model
-            let pixels = concatenated(pixelsForImages, axis: 0).transposed(0, 2, 3, 1)//.expandedDimensions(axis: 0)
 
             return LMInput(
                 text: .init(tokens: promptArray, mask: mask),
