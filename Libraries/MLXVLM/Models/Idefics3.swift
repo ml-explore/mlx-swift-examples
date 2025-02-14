@@ -1022,13 +1022,11 @@ public class SmolVLMProcessor: UserInputProcessor {
                 throw VLMError.singleImageAllowed
             }
 
-            let count = config.imageSequenceLength ?? 1
-            var image = try input.images[0].asCIImage()
-
             // FIXME: hmmm I'm not sure we need to apply a linearToSRGB filter
             // or maybe we do, because the model expects sRGB inputs
             // we could solve it with the CIContext
             // but how does normalization work?
+            var image = try input.images[0].asCIImage()
             image = MediaProcessing.inSRGBToneCurveSpace(image)
 
             let (tiles, imageRows, imageCols) = tiles(from: image)
