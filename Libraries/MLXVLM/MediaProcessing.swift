@@ -87,6 +87,35 @@ public enum MediaProcessing {
         return rescaled.cropped(to: CGRect(origin: .zero, size: size))
     }
 
+    /// Resample the image using Lanczos interpolation.
+    static public func resampleLanczos(_ image: CIImage, to size: CGSize) -> CIImage {
+        let filter = CIFilter.lanczosScaleTransform()
+        let extent = image.extent.size
+
+        filter.inputImage = image
+
+        // set the aspect ratio to match the aspect ratio of the target
+        let inputAspectRatio = extent.width / extent.height
+        let desiredAspectRatio = size.width / size.height
+        filter.aspectRatio = Float(1 / inputAspectRatio * desiredAspectRatio)
+
+        // that image is now the aspect ratio of the target and the size
+        // of the shorter dimension
+        let scale: CGFloat
+        if extent.width < extent.height {
+            scale = size.width / extent.width
+        } else {
+            scale = size.height / extent.height
+        }
+        filter.scale = Float(scale)
+
+        let rescaled = filter.outputImage!
+
+        // the image has a DoD larger than the requested size so crop
+        // it to the desired size
+        return rescaled.cropped(to: CGRect(origin: .zero, size: size))
+    }
+
     /// Normalize the image using the given mean and standard deviation parameters.
     static public func normalize(
         _ image: CIImage, mean: (CGFloat, CGFloat, CGFloat), std: (CGFloat, CGFloat, CGFloat)

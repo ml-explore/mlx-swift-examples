@@ -801,7 +801,6 @@ public struct Idefics3ProcessorConfiguration: Codable, Sendable {
 public class Idefics3Processor: UserInputProcessor {
     private let config: Idefics3ProcessorConfiguration
     private let tokenizer: any Tokenizer
-    private let fixedImageSize = 384
 
     // From the Python code and default config, we know image_token_id is usually 49153.
     // Hardcode this since we can't pass it in or rely on it from the processor config.
@@ -809,12 +808,17 @@ public class Idefics3Processor: UserInputProcessor {
     private let imageTokenId = 49190
 
     // FIXME: hardcoded values for now
+
+    private let maxProcessingImageSize: CGFloat = 2048
+    private let fixedImageSize: CGFloat = 512        // 384?
+
 //    let fakeImageTokenId = 49189   // <fake_token_around_image>
 //    let globalImageTokenId = 49152 // <global-img>
     let imageToken = "<image>"
     let fakeImageToken = "<fake_token_around_image>"
     let globalImageToken = "<global-img>"
 
+    // FIXME: take from number of tiles
     let imageRows = 3
     let imageCols = 4
     let imageSequenceLength = 64
@@ -850,6 +854,31 @@ public class Idefics3Processor: UserInputProcessor {
             + fakeToken
         )
         return textSplitImages
+    }
+
+    /// Compute the resize size with `longestEdge` for the given size
+    /// If `multiple` is not nil, ensures each side is a multiple of that value
+    func aspectRatioSize(for size: CGSize, longestEdge: CGFloat, multiple: CGFloat? = nil) -> CGSize {
+        var targetSize = MediaProcessing.bestFit(size, in: CGSize(width: longestEdge, height: longestEdge))
+        guard let multiple = multiple else { return targetSize }
+        let aspectRatio = targetSize.width / targetSize.height
+        if size.width >= size.height {
+            let width = ceil(targetSize.width / multiple) * multiple
+            var height = width / aspectRatio
+            height = ceil(height / multiple) * multiple
+            return CGSize(width: width, height: height)
+        } else {
+            let height = ceil(targetSize.height / multiple) * multiple
+            var width = height * aspectRatio
+            width = ceil(width / multiple) * multiple
+            return CGSize(width: width, height: height)
+        }
+    }
+
+    /// Compute the resize size with `longestEdge` for the given size
+    /// If `multiple` is not nil, ensures each side is a multiple of that value
+    func aspectRatioSize(for size: CGSize, longestEdge: Int, multiple: Int? = nil) -> CGSize {
+        return aspectRatioSize(for: size, longestEdge: CGFloat(longestEdge), multiple: multiple.flatMap(CGFloat.init))
     }
 
     public func prepare(input: UserInput) throws -> LMInput {
@@ -889,38 +918,69 @@ public class Idefics3Processor: UserInputProcessor {
             let mask = ones(like: promptArray)
 
             var image = try input.images[0].asCIImage()
+
+            // FIXME: hmmm I'm not sure we need to apply a linearToSRGB filter
+            // or maybe we do, because the model expects sRGB inputs
+            // we could solve it with the CIContext
+            // but how does normalization work?
             image = MediaProcessing.inSRGBToneCurveSpace(image)
-            let targetSize = CGSize(
-                width: fixedImageSize,
-                height: fixedImageSize
-            )
-            image = MediaProcessing.apply(image, processing: input.processing)
-            image = MediaProcessing.resampleBicubic(image, to: targetSize)
-            image = MediaProcessing.normalize(
-                image,
-                mean: config.imageMeanTuple,
-                std: config.imageStdTuple
-            )
-            var pixels = MediaProcessing.asMLXArray(image)
 
-            if pixels.ndim == 2 {
-                pixels = pixels.expandedDimensions(axis: -1)
+            var images: [CIImage] = []
+            if image.extent.size.width > CGFloat(maxProcessingImageSize) || image.extent.size.height > CGFloat(maxProcessingImageSize) {
+                let processingSize = aspectRatioSize(for: image.extent.size, longestEdge: maxProcessingImageSize, multiple: fixedImageSize)
+                image = MediaProcessing.resampleLanczos(image, to: processingSize)
+
+                // Crop tiles
+                let nRows = Int(ceil(image.extent.size.height / CGFloat(fixedImageSize)))
+                let nCols = Int(ceil(image.extent.size.width / CGFloat(fixedImageSize)))
+
+                // Warning: in CIImage, y=0 is the bottom side. We reverse the rows to match the transformers processor
+                let tileEdge = Int(fixedImageSize)
+                for row in (0..<nRows).reversed() {
+                    for col in 0..<nCols {
+                        let x0 = col * tileEdge
+                        let y0 = row * tileEdge
+                        let x1 = min(x0 + tileEdge, Int(image.extent.size.width))
+                        let y1 = min(y0 + tileEdge, Int(image.extent.size.height))
+
+                        let tile = image.cropped(to: CGRect(x: x0, y: y0, width: x1-x0, height: y1-y0))
+                        images.append(tile)
+                    }
+                }
+
+                // Append the resized global image
+                // TODO: something like `image.resampled(size, .lanczos)`
+                images.append(MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize)))
+            } else {
+                // TODO: verify scaling if the input is smaller
+                images.append(image)
             }
 
-            if pixels.ndim == 3 {
-                pixels = pixels.expandedDimensions(axis: 0)
-            }
+            images = images.map { MediaProcessing.normalize($0, mean: config.imageMeanTuple, std: config.imageStdTuple) }
+            let pixelsForImages = images.map { MediaProcessing.asMLXArray($0) }
+            var pixels = concatenated(pixelsForImages, axis: 0)
 
-            // If shape is (B,C,H,W), transpose to (B,H,W,C)
-            if pixels
-                .dim(1) == 3
-                && pixels
-                    .dim(2) == fixedImageSize
-                && pixels
-                    .dim(3) == fixedImageSize
-            {
-                pixels = pixels.transposed(0, 2, 3, 1)
-            }
+            // TODO: assuming pixels has shape like [13, 3, 512, 512]
+            pixels = pixels.transposed(0, 2, 3, 1).expandedDimensions(axis: 0)
+
+//            if pixels.ndim == 2 {
+//                pixels = pixels.expandedDimensions(axis: -1)
+//            }
+//
+//            if pixels.ndim == 3 {
+//                pixels = pixels.expandedDimensions(axis: 0)
+//            }
+//
+//            // If shape is (B,C,H,W), transpose to (B,H,W,C)
+//            if pixels
+//                .dim(1) == 3
+//                && pixels
+//                    .dim(2) == Int(fixedImageSize)
+//                && pixels
+//                    .dim(3) == Int(fixedImageSize)
+//            {
+//                pixels = pixels.transposed(0, 2, 3, 1)
+//            }
 
             return LMInput(
                 text: .init(tokens: promptArray, mask: mask),
