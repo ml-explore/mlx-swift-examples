@@ -975,6 +975,39 @@ public class SmolVLMProcessor: UserInputProcessor {
         return aspectRatioSize(for: size, longestEdge: CGFloat(longestEdge), multiple: multiple.flatMap(CGFloat.init))
     }
 
+    /// Tile image if it's larger than the maxProcessingImageSize, so the model gets to see more of it
+    /// TODO: disable in video mode
+    func tiles(from originalImage: CIImage) -> (tiles: [CIImage], rows: Int, cols: Int) {
+        guard originalImage.extent.size.width > CGFloat(maxProcessingImageSize) || originalImage.extent.size.height > CGFloat(maxProcessingImageSize) else {
+            return ([], 1, 1)
+        }
+
+        var tiles: [CIImage] = []
+        let processingSize = aspectRatioSize(for: originalImage.extent.size, longestEdge: maxProcessingImageSize, multiple: fixedImageSize)
+        let image = MediaProcessing.resampleLanczos(originalImage, to: processingSize)
+
+        // Crop nRows x nCols tiles
+        let nRows = Int(ceil(image.extent.size.height / CGFloat(fixedImageSize)))
+        let nCols = Int(ceil(image.extent.size.width / CGFloat(fixedImageSize)))
+
+        // Warning: in CIImage, y=0 is the bottom side. We reverse the rows to match the transformers processor
+        let tileEdge = Int(fixedImageSize)
+        for row in (0..<nRows).reversed() {
+            for col in 0..<nCols {
+                let x0 = col * tileEdge
+                let y0 = row * tileEdge
+                let x1 = min(x0 + tileEdge, Int(image.extent.size.width))
+                let y1 = min(y0 + tileEdge, Int(image.extent.size.height))
+
+                let tile = image.cropped(to: CGRect(x: x0, y: y0, width: x1-x0, height: y1-y0))
+                tiles.append(tile)
+            }
+        }
+
+        return (tiles, nRows, nCols)
+    }
+
+
     public func prepare(input: UserInput) throws -> LMInput {
         let messages = input.prompt.asMessages()
 
@@ -1019,63 +1052,21 @@ public class SmolVLMProcessor: UserInputProcessor {
             // but how does normalization work?
             image = MediaProcessing.inSRGBToneCurveSpace(image)
 
-            var images: [CIImage] = []
-            if image.extent.size.width > CGFloat(maxProcessingImageSize) || image.extent.size.height > CGFloat(maxProcessingImageSize) {
-                let processingSize = aspectRatioSize(for: image.extent.size, longestEdge: maxProcessingImageSize, multiple: fixedImageSize)
-                image = MediaProcessing.resampleLanczos(image, to: processingSize)
+            let (tiles, numRows, numCols) = tiles(from: image)
 
-                // Crop tiles
-                let nRows = Int(ceil(image.extent.size.height / CGFloat(fixedImageSize)))
-                let nCols = Int(ceil(image.extent.size.width / CGFloat(fixedImageSize)))
+            // Append the resized global image
+            // TODO: something like `image.resampled(size, .lanczos)`
+            // TODO: note we are resampling from the original (potentially larger), not the processing size. It shouldn't make much difference.
+            let images = tiles + [MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize))]
 
-                // Warning: in CIImage, y=0 is the bottom side. We reverse the rows to match the transformers processor
-                let tileEdge = Int(fixedImageSize)
-                for row in (0..<nRows).reversed() {
-                    for col in 0..<nCols {
-                        let x0 = col * tileEdge
-                        let y0 = row * tileEdge
-                        let x1 = min(x0 + tileEdge, Int(image.extent.size.width))
-                        let y1 = min(y0 + tileEdge, Int(image.extent.size.height))
-
-                        let tile = image.cropped(to: CGRect(x: x0, y: y0, width: x1-x0, height: y1-y0))
-                        images.append(tile)
-                    }
-                }
-
-                // Append the resized global image
-                // TODO: something like `image.resampled(size, .lanczos)`
-                images.append(MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize)))
-            } else {
-                // TODO: verify scaling if the input is smaller
-                images.append(image)
+            let pixelsForImages = images.map {
+                let normalized = MediaProcessing.normalize($0, mean: config.imageMeanTuple, std: config.imageStdTuple)
+                return MediaProcessing.asMLXArray(normalized)
             }
-
-            images = images.map { MediaProcessing.normalize($0, mean: config.imageMeanTuple, std: config.imageStdTuple) }
-            let pixelsForImages = images.map { MediaProcessing.asMLXArray($0) }
-            var pixels = concatenated(pixelsForImages, axis: 0)
 
             // TODO: assuming pixels has shape like [13, 3, 512, 512]
             // TODO: expand but take a view when entering the model
-            pixels = pixels.transposed(0, 2, 3, 1)//.expandedDimensions(axis: 0)
-
-//            if pixels.ndim == 2 {
-//                pixels = pixels.expandedDimensions(axis: -1)
-//            }
-//
-//            if pixels.ndim == 3 {
-//                pixels = pixels.expandedDimensions(axis: 0)
-//            }
-//
-//            // If shape is (B,C,H,W), transpose to (B,H,W,C)
-//            if pixels
-//                .dim(1) == 3
-//                && pixels
-//                    .dim(2) == Int(fixedImageSize)
-//                && pixels
-//                    .dim(3) == Int(fixedImageSize)
-//            {
-//                pixels = pixels.transposed(0, 2, 3, 1)
-//            }
+            let pixels = concatenated(pixelsForImages, axis: 0).transposed(0, 2, 3, 1)//.expandedDimensions(axis: 0)
 
             return LMInput(
                 text: .init(tokens: promptArray, mask: mask),
