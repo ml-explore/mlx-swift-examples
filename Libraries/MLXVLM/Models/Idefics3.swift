@@ -920,12 +920,13 @@ public class SmolVLMProcessor: UserInputProcessor {
         self.tokenizer = tokenizer
     }
     
-    func getVideoPromptString(frameCount: Int, timeStamps: [String], videoDuration: String, seqLen: Int, fakeToken: String, imageToken: String) -> String {
+    func getVideoPromptString(frameCount: Int, timeStamps: [String], videoDuration: String, seqLen: Int, fakeToken: String, imageToken: String, globalImageToken: String) -> String {
         var textSplitFrames = "You are provided the following series of \(frameCount) frames from a \(videoDuration) [H:MM:SS] video.\n"
         for frameIndex in 0..<frameCount {
             textSplitFrames += "\nFrame from \(timeStamps[frameIndex]):"
             textSplitFrames += (
                 fakeToken
+                + globalImageToken
                 + String(repeating: imageToken, count: seqLen)
                 + fakeToken
             )
@@ -1109,7 +1110,7 @@ public class SmolVLMProcessor: UserInputProcessor {
             let stackedFrames = concatenated(processedFrames, axis: 0)
             let transposedFrames = stackedFrames.transposed(0, 2, 3, 1)
             
-            let videoPromptString = getVideoPromptString(frameCount: videoFrameResult.frames.count, timeStamps: videoFrameResult.timestamps, videoDuration: videoFrameResult.totalDuration, seqLen: imageSequenceLength, fakeToken: fakeImageToken, imageToken: imageToken)
+            let videoPromptString = getVideoPromptString(frameCount: videoFrameResult.frames.count, timeStamps: videoFrameResult.timestamps, videoDuration: videoFrameResult.totalDuration, seqLen: imageSequenceLength, fakeToken: fakeImageToken, imageToken: imageToken, globalImageToken: globalImageToken)
             print(videoPromptString)
             
             let splitPrompt = decoded.split(by: imageToken)
