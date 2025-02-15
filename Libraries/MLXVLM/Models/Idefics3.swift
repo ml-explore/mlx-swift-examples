@@ -907,9 +907,12 @@ public class SmolVLMProcessor: UserInputProcessor {
     //    let fakeImageTokenId = 49189   // <fake_token_around_image>
     //    let globalImageTokenId = 49152 // <global-img>
     let imageToken = "<image>"
+    let userTurnStartToken = "<|im_start|>"
     let fakeImageToken = "<fake_token_around_image>"
     let globalImageToken = "<global-img>"
     let imageSequenceLength = 64
+
+    let defaultVideoSystemMessage = "You are a helpful assistant that can understand videos. Describe what type of video this is and what's happening in it."
 
     public init(
         _ config: Idefics3ProcessorConfiguration,
@@ -1019,12 +1022,10 @@ public class SmolVLMProcessor: UserInputProcessor {
     
     public func prepare(input: UserInput) async throws -> LMInput {
         let messages = input.prompt.asMessages()
-        // Unfortunately we don't have a "render" option in Tokenizers yet, so decoding
-        let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
-        let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
-        
+
         if input.images.isEmpty && input.videos.isEmpty {
             // No image scenario
+            let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
             let tokensArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
             let mask = ones(like: tokensArray)
             return LMInput(text: .init(tokens: tokensArray, mask: mask), image: nil)
@@ -1033,6 +1034,10 @@ public class SmolVLMProcessor: UserInputProcessor {
             guard input.images.count == 1 else {
                 throw VLMError.singleImageAllowed
             }
+
+            // Unfortunately we don't have a "render" option in Tokenizers yet, so decoding
+            let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
+            let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
 
             // FIXME: hmmm I'm not sure we need to apply a linearToSRGB filter
             // or maybe we do, because the model expects sRGB inputs
@@ -1085,7 +1090,21 @@ public class SmolVLMProcessor: UserInputProcessor {
             guard input.videos.count == 1 else {
                 throw VLMError.singleVideoAllowed
             }
-            
+
+            // Insert a default system message if the input doesn't have one
+            func messagesWithSystem(_ messages: [Message]) -> [Message] {
+                guard messages.filter { $0["role"] as? String == "system" }.isEmpty else { return messages }
+
+                var messagesWithSystem = messages
+                messagesWithSystem.insert(["role": "system", "content": defaultVideoSystemMessage], at: 0)
+                return messagesWithSystem
+            }
+
+            // Unfortunately we don't have a "render" option in Tokenizers yet, so decoding
+            let finalMessages = messagesWithSystem(messages)
+            let promptTokens = try tokenizer.applyChatTemplate(messages: messagesWithSystem(finalMessages))
+            let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
+
             var video = try input.videos[0].asAVAsset()
             
             // TODO: Hardcoded for now but should get from config
@@ -1100,7 +1119,6 @@ public class SmolVLMProcessor: UserInputProcessor {
             var processedFrames: [MLXArray] = []
             for frame in videoFrameResult.frames {
                 var image = MediaProcessing.inSRGBToneCurveSpace(frame)
-                image = MediaProcessing.inSRGBToneCurveSpace(image)
                 image = MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize))
                 let normalized = MediaProcessing.asMLXArray(MediaProcessing.normalize(image, mean: config.imageMeanTuple, std: config.imageStdTuple))
                 processedFrames.append(normalized)
@@ -1111,9 +1129,12 @@ public class SmolVLMProcessor: UserInputProcessor {
             
             let videoPromptString = getVideoPromptString(frameCount: videoFrameResult.frames.count, timeStamps: videoFrameResult.timestamps, videoDuration: videoFrameResult.totalDuration, seqLen: imageSequenceLength, fakeToken: fakeImageToken, imageToken: imageToken, globalImageToken: globalImageToken)
             print(videoPromptString)
-            
-            let splitPrompt = decoded.split(by: imageToken)
-            let prompt = splitPrompt.joined(separator: videoPromptString)
+
+            // We need to insert after the system message, potentially
+            // With system message we have "<|im_start|>system_message<end_of_utterance>\nUser: ", without we have "<|im_start|>User: "
+            // For now we'll detect 'User'. We can improve with a regexp later
+            let splitPrompt = decoded.split(by: "User: ", options: .literal)
+            let prompt = splitPrompt[0] + "User: " + videoPromptString + splitPrompt[1]
             let finalPromptTokens = try tokenizer.encode(text: prompt)
             
             let promptArray = MLXArray(finalPromptTokens).expandedDimensions(axis: 0)
@@ -1121,7 +1142,7 @@ public class SmolVLMProcessor: UserInputProcessor {
             print("Video inout shape", transposedFrames.shape, "\n")
             let mask = ones(like: promptArray)
             return LMInput(text: .init(tokens: promptArray, mask: mask),
-                           video: .init(pixels: transposedFrames, frames: thwFrames))
+                           image: .init(pixels: transposedFrames, frames: thwFrames))
         }
     }
 }
