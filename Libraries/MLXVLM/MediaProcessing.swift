@@ -5,6 +5,12 @@ import CoreImage.CIFilterBuiltins
 import MLX
 import MLXLMCommon
 
+public struct VideoFrameResult {
+    let frames: [CIImage]
+    let timestamps: [String]
+    let totalDuration: String
+}
+
 private let context = CIContext()
 
 /// Collection of methods for processing media (images, video, etc.).
@@ -227,5 +233,68 @@ public enum MediaProcessing {
         }
 
         return ciImages
+    }
+    
+    static public func asCIImageSequence(_ asset: AVAsset, maxFrames: Int, targetFPS: Double, skipSeconds: CMTime = .zero) async throws -> VideoFrameResult {
+        // Use AVAssetImageGenerator to extract frames
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+        
+        guard let duration = try? await asset.load(.duration) else {
+            throw NSError(
+                domain: "MediaProcessing", code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to load the asset's duration"])
+        }
+        let estimatedFrames = Int(round(targetFPS * duration.seconds))
+        var desiredFrames = min(estimatedFrames, maxFrames)
+        let finalFrameCount = max(desiredFrames, 1)
+        
+        let durationTimeValue = duration.value
+        let timescale = duration.timescale
+        let startTimeValue = skipSeconds.seconds > 0 ? Int64(skipSeconds.seconds * Double(timescale)) : 0
+        let endTimeValue = skipSeconds.seconds > 0 ?
+            Int64(duration.seconds * Double(timescale) - skipSeconds.seconds * Double(timescale)) :
+            duration.value
+        let sampledTimeValues = MLXArray.linspace(
+            startTimeValue, endTimeValue, count: Int(finalFrameCount)
+        ).asArray(Int64.self)
+        
+        
+        let sampledTimes = sampledTimeValues.map { CMTime(value: $0, timescale: timescale) }
+
+        // Collect the frames
+        var ciImages: [CIImage] = []
+        var timestamps: [String] = []
+        
+        for await result in await generator.images(for: sampledTimes) {
+            switch result {
+            case .success(requestedTime: let requested, let image, actualTime: let actual):
+                let ciImage = CIImage(
+                    cgImage: image, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
+                ciImages.append(ciImage)
+                timestamps.append(formatTimestamp(actual))
+            case .failure(requestedTime: let requested, let error):
+                break
+            }
+        }
+        
+        let totalDuration = formatTimestamp(duration)
+        
+        return VideoFrameResult(
+            frames: ciImages,
+            timestamps: timestamps,
+            totalDuration: totalDuration
+        )
+    }
+    
+    private static func formatTimestamp(_ time: CMTime) -> String {
+        let totalSeconds = Int(ceil(time.seconds))
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
+        
+        return String(format: "%d:%02d:%02d", hours, minutes, seconds)
     }
 }

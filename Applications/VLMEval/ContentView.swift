@@ -28,7 +28,7 @@ struct ContentView: View {
             }
         }
     }
-    @State private var selectedVideoURL: URL? = nil {
+    @State private var selectedVideoURL: URL? {
         didSet {
             if let selectedVideoURL {
                 player = AVPlayer(url: selectedVideoURL)
@@ -61,7 +61,11 @@ struct ContentView: View {
                 }
 
                 VStack {
-                    if let selectedImage {
+                    if let player {
+                        VideoPlayer(player: player)
+                            .frame(height: 300)
+                            .cornerRadius(12)
+                    } else if let selectedImage {
                         Group {
                             #if os(iOS) || os(visionOS)
                                 Image(uiImage: selectedImage)
@@ -91,11 +95,6 @@ struct ContentView: View {
                                 EmptyView()
                             }
                         }
-                    } else if let player {
-                        VideoPlayer(player: player)
-                            .scaledToFit()
-                            .frame(maxHeight: 300)
-                            .cornerRadius(12)
                     }
 
                     HStack {
@@ -193,6 +192,7 @@ struct ContentView: View {
                         .id("bottom")
                 }
             }
+            .frame(minHeight: 200)
 
             HStack {
                 TextField("prompt", text: $prompt)
@@ -204,6 +204,9 @@ struct ContentView: View {
                 Button("generate", action: generate)
                     .disabled(llm.running)
             }
+        }
+        .onAppear {
+            selectedVideoURL = Bundle.main.url(forResource: "test", withExtension: "mp4")!
         }
         #if os(visionOS)
             .padding(40)
@@ -413,7 +416,7 @@ class VLMEvaluator {
                 userInput.processing.resize = .init(width: 448, height: 448)
 
                 let input = try await context.processor.prepare(input: userInput)
-
+                
                 return try MLXLMCommon.generate(
                     input: input,
                     parameters: generateParameters,

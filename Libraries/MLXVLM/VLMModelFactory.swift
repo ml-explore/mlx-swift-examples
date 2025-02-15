@@ -10,6 +10,8 @@ public enum VLMError: Error {
     case imageRequired
     case maskRequired
     case singleImageAllowed
+    case singleVideoAllowed
+    case onlySingleMediaTypeAllowed
     case imageProcessingFailure(String)
     case processing(String)
 }
