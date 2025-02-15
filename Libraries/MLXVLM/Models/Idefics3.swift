@@ -30,12 +30,12 @@ public struct Idefics3Configuration: Codable, Sendable {
         public let ropeTheta: Float
         public var ropeTraditional: Bool { _ropeTraditional ?? false }
         public var tieWordEmbeddings: Bool { _tieWordEmbeddings ?? false }
-        
+
         private let _numHiddenLayers: Int?
         private let _ropeTraditional: Bool?
         private let _tieWordEmbeddings: Bool?
-        
-        
+
+
         enum CodingKeys: String, CodingKey {
             case modelType = "model_type"
             case hiddenSize = "hidden_size"
@@ -61,12 +61,12 @@ public struct Idefics3Configuration: Codable, Sendable {
         public let imageSize: Int
         public var numChannels: Int { _numChannels ?? 3 }
         public var layerNormEps: Float { _layerNormEps ?? 1e-6 }
-        
+
         private let _numHiddenLayers: Int?
         private let _intermediateSize: Int?
         private let _numChannels: Int?
         private let _layerNormEps: Float?
-        
+
         enum CodingKeys: String, CodingKey {
             case modelType = "model_type"
             case _numHiddenLayers = "num_hidden_layers"
@@ -672,7 +672,7 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
         )
         return final
     }
-    
+
     // inputs_merger
     // TODO: why did we need to do changes here? Do we need a new modelling class, or did this never work (for tiling)?
     private func prepareInputsForMultimodal(
@@ -689,11 +689,11 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
         let imagePositions = inputIdArray.enumerated().compactMap {
             $1 == imageTokenIndex ? $0 : nil
         }
-        
-        
+
+
         var segments = [MLXArray]()
         var start_idx = 0
-        
+
         let chunkSize = imageFeatures.shape[1]                  // 64
         let chunkCount = imagePositions.count / chunkSize       // Should be imageFeatures.shape[0]
         let chunks = (0..<chunkCount).map { startIndex in
@@ -701,10 +701,10 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
             let end = start + chunkSize
             return Array(imagePositions[start..<end])
         }
-        
+
         for (chunkIndex, chunk) in chunks.enumerated() {
             let currentImage = imageFeatures[chunkIndex]
-            
+
             for (i, pos) in chunk.enumerated() {
                 if pos > start_idx {
                     segments.append(inputs_embeds[0, start_idx ..< pos])
@@ -717,7 +717,7 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
         if start_idx < inputs_embeds.dim(1) {
             segments.append(inputs_embeds[0, start_idx...])
         }
-        
+
         let finalEmbeds = concatenated(segments, axis: 0)
         return finalEmbeds.expandedDimensions(axis: 0)
     }
@@ -893,7 +893,7 @@ public class Idefics3Processor: UserInputProcessor {
 public class SmolVLMProcessor: UserInputProcessor {
     private let config: Idefics3ProcessorConfiguration
     private let tokenizer: any Tokenizer
-    
+
     // From the Python code and default config, we know image_token_id is usually 49153.
     // Hardcode this since we can't pass it in or rely on it from the processor config.
     // Using 49190 for smolvlm
@@ -907,11 +907,13 @@ public class SmolVLMProcessor: UserInputProcessor {
     //    let fakeImageTokenId = 49189   // <fake_token_around_image>
     //    let globalImageTokenId = 49152 // <global-img>
     let imageToken = "<image>"
+    let userTurnStartToken = "<|im_start|>"
     let fakeImageToken = "<fake_token_around_image>"
     let globalImageToken = "<global-img>"
     let imageSequenceLength = 64
-    
-    
+
+    let defaultVideoSystemMessage = "You are a helpful assistant that can understand videos. Describe what type of video this is and what's happening in it."
+
     public init(
         _ config: Idefics3ProcessorConfiguration,
         tokenizer: any Tokenizer
@@ -959,7 +961,7 @@ public class SmolVLMProcessor: UserInputProcessor {
         )
         return textSplitImages
     }
-    
+
     /// Compute the resize size with `longestEdge` for the given size
     /// If `multiple` is not nil, ensures each side is a multiple of that value
     func aspectRatioSize(for size: CGSize, longestEdge: CGFloat, multiple: CGFloat? = nil) -> CGSize {
@@ -978,28 +980,28 @@ public class SmolVLMProcessor: UserInputProcessor {
             return CGSize(width: width, height: height)
         }
     }
-    
+
     /// Compute the resize size with `longestEdge` for the given size
     /// If `multiple` is not nil, ensures each side is a multiple of that value
     func aspectRatioSize(for size: CGSize, longestEdge: Int, multiple: Int? = nil) -> CGSize {
         return aspectRatioSize(for: size, longestEdge: CGFloat(longestEdge), multiple: multiple.flatMap(CGFloat.init))
     }
-    
+
     /// Tile image if it's larger than the maxProcessingImageSize, so the model gets to see more of it
     /// TODO: disable in video mode
     func tiles(from originalImage: CIImage) -> (tiles: [CIImage], rows: Int, cols: Int) {
         guard originalImage.extent.size.width > CGFloat(maxProcessingImageSize) || originalImage.extent.size.height > CGFloat(maxProcessingImageSize) else {
             return ([], 1, 1)
         }
-        
+
         var tiles: [CIImage] = []
         let processingSize = aspectRatioSize(for: originalImage.extent.size, longestEdge: maxProcessingImageSize, multiple: fixedImageSize)
         let image = MediaProcessing.resampleLanczos(originalImage, to: processingSize)
-        
+
         // Crop nRows x nCols tiles
         let nRows = Int(ceil(image.extent.size.height / CGFloat(fixedImageSize)))
         let nCols = Int(ceil(image.extent.size.width / CGFloat(fixedImageSize)))
-        
+
         // Warning: in CIImage, y=0 is the bottom side. We reverse the rows to match the transformers processor
         let tileEdge = Int(fixedImageSize)
         for row in (0..<nRows).reversed() {
@@ -1008,7 +1010,7 @@ public class SmolVLMProcessor: UserInputProcessor {
                 let y0 = row * tileEdge
                 let x1 = min(x0 + tileEdge, Int(image.extent.size.width))
                 let y1 = min(y0 + tileEdge, Int(image.extent.size.height))
-                
+
                 let tile = image.cropped(to: CGRect(x: x0, y: y0, width: x1-x0, height: y1-y0))
                 tiles.append(tile)
             }
@@ -1020,12 +1022,10 @@ public class SmolVLMProcessor: UserInputProcessor {
     
     public func prepare(input: UserInput) async throws -> LMInput {
         let messages = input.prompt.asMessages()
-        // Unfortunately we don't have a "render" option in Tokenizers yet, so decoding
-        let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
-        let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
-        
+
         if input.images.isEmpty && input.videos.isEmpty {
             // No image scenario
+            let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
             let tokensArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
             let mask = ones(like: tokensArray)
             return LMInput(text: .init(tokens: tokensArray, mask: mask), image: nil)
@@ -1034,30 +1034,34 @@ public class SmolVLMProcessor: UserInputProcessor {
             guard input.images.count == 1 else {
                 throw VLMError.singleImageAllowed
             }
-            
+
+            // Unfortunately we don't have a "render" option in Tokenizers yet, so decoding
+            let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
+            let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
+
             // FIXME: hmmm I'm not sure we need to apply a linearToSRGB filter
             // or maybe we do, because the model expects sRGB inputs
             // we could solve it with the CIContext
             // but how does normalization work?
             var image = try input.images[0].asCIImage()
             image = MediaProcessing.inSRGBToneCurveSpace(image)
-            
+
             let (tiles, imageRows, imageCols) = tiles(from: image)
-            
+
             // Append the resized global image
             // TODO: something like `image.resampled(size, .lanczos)`
             // TODO: note we are resampling from the original (potentially larger), not the processing size. It shouldn't make much difference.
             let images = tiles + [MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize))]
-            
+
             let pixelsForImages = images.map {
                 let normalized = MediaProcessing.normalize($0, mean: config.imageMeanTuple, std: config.imageStdTuple)
                 return MediaProcessing.asMLXArray(normalized)
             }
-            
+
             // TODO: assuming pixels has shape like [13, 3, 512, 512]
             // TODO: expand but take a view when entering the model
             let pixels = concatenated(pixelsForImages, axis: 0).transposed(0, 2, 3, 1)//.expandedDimensions(axis: 0)
-            
+
             let imagePromptString = getImagePromptString(
                 rows: imageRows,
                 cols: imageCols,
@@ -1066,14 +1070,14 @@ public class SmolVLMProcessor: UserInputProcessor {
                 imageToken: imageToken,
                 globalImageToken: globalImageToken
             )
-            
+
             let splitPrompt = decoded.split(by: imageToken)
             let prompt = splitPrompt.joined(separator: imagePromptString)
             let finalPromptTokens = try tokenizer.encode(text: prompt)
-            
+
             let promptArray = MLXArray(finalPromptTokens).expandedDimensions(axis: 0)
             let mask = ones(like: promptArray)
-            
+
             return LMInput(
                 text: .init(tokens: promptArray, mask: mask),
                 image: .init(pixels: pixels)
@@ -1086,7 +1090,21 @@ public class SmolVLMProcessor: UserInputProcessor {
             guard input.videos.count == 1 else {
                 throw VLMError.singleVideoAllowed
             }
-            
+
+            // Insert a default system message if the input doesn't have one
+            func messagesWithSystem(_ messages: [Message]) -> [Message] {
+                guard messages.filter { $0["role"] as? String == "system" }.isEmpty else { return messages }
+
+                var messagesWithSystem = messages
+                messagesWithSystem.insert(["role": "system", "content": defaultVideoSystemMessage], at: 0)
+                return messagesWithSystem
+            }
+
+            // Unfortunately we don't have a "render" option in Tokenizers yet, so decoding
+            let finalMessages = messagesWithSystem(messages)
+            let promptTokens = try tokenizer.applyChatTemplate(messages: messagesWithSystem(finalMessages))
+            let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
+
             var video = try input.videos[0].asAVAsset()
             
             // TODO: Hardcoded for now but should get from config
@@ -1101,7 +1119,6 @@ public class SmolVLMProcessor: UserInputProcessor {
             var processedFrames: [MLXArray] = []
             for frame in videoFrameResult.frames {
                 var image = MediaProcessing.inSRGBToneCurveSpace(frame)
-                image = MediaProcessing.inSRGBToneCurveSpace(image)
                 image = MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize))
                 let normalized = MediaProcessing.asMLXArray(MediaProcessing.normalize(image, mean: config.imageMeanTuple, std: config.imageStdTuple))
                 processedFrames.append(normalized)
@@ -1112,9 +1129,12 @@ public class SmolVLMProcessor: UserInputProcessor {
             
             let videoPromptString = getVideoPromptString(frameCount: videoFrameResult.frames.count, timeStamps: videoFrameResult.timestamps, videoDuration: videoFrameResult.totalDuration, seqLen: imageSequenceLength, fakeToken: fakeImageToken, imageToken: imageToken, globalImageToken: globalImageToken)
             print(videoPromptString)
-            
-            let splitPrompt = decoded.split(by: imageToken)
-            let prompt = splitPrompt.joined(separator: videoPromptString)
+
+            // We need to insert after the system message, potentially
+            // With system message we have "<|im_start|>system_message<end_of_utterance>\nUser: ", without we have "<|im_start|>User: "
+            // For now we'll detect 'User'. We can improve with a regexp later
+            let splitPrompt = decoded.split(by: "User: ", options: .literal)
+            let prompt = splitPrompt[0] + "User: " + videoPromptString + splitPrompt[1]
             let finalPromptTokens = try tokenizer.encode(text: prompt)
             
             let promptArray = MLXArray(finalPromptTokens).expandedDimensions(axis: 0)
@@ -1122,7 +1142,7 @@ public class SmolVLMProcessor: UserInputProcessor {
             print("Video inout shape", transposedFrames.shape, "\n")
             let mask = ones(like: promptArray)
             return LMInput(text: .init(tokens: promptArray, mask: mask),
-                           video: .init(pixels: transposedFrames, frames: thwFrames))
+                           image: .init(pixels: transposedFrames, frames: thwFrames))
         }
     }
 }

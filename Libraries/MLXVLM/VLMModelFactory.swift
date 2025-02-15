@@ -164,7 +164,7 @@ public class ModelRegistry: @unchecked Sendable {
 
     static public let smolvlm = ModelConfiguration(
         id: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct-mlx",
-        defaultPrompt: "Can you describe this image?"
+        defaultPrompt: "Describe this video in detail"
     )
 
     static private func all() -> [ModelConfiguration] {
