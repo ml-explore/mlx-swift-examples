@@ -889,6 +889,7 @@ public class Idefics3Processor: UserInputProcessor {
     }
 }
 
+// MARK: - SmolVLMProcessor
 
 public class SmolVLMProcessor: UserInputProcessor {
     private let config: Idefics3ProcessorConfiguration
@@ -900,14 +901,12 @@ public class SmolVLMProcessor: UserInputProcessor {
     private let imageTokenId = 49190
     
     // FIXME: hardcoded values for now
-    
+
+    // These depend on the model, we need to pass somehow
     private let maxProcessingImageSize: CGFloat = 2048
     private let fixedImageSize: CGFloat = 512        // 384 for big models and 512 for small models (200-500M)
     
-    //    let fakeImageTokenId = 49189   // <fake_token_around_image>
-    //    let globalImageTokenId = 49152 // <global-img>
     let imageToken = "<image>"
-    let userTurnStartToken = "<|im_start|>"
     let fakeImageToken = "<fake_token_around_image>"
     let globalImageToken = "<global-img>"
     let imageSequenceLength = 64
@@ -1039,10 +1038,6 @@ public class SmolVLMProcessor: UserInputProcessor {
             let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
             let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
 
-            // FIXME: hmmm I'm not sure we need to apply a linearToSRGB filter
-            // or maybe we do, because the model expects sRGB inputs
-            // we could solve it with the CIContext
-            // but how does normalization work?
             var image = try input.images[0].asCIImage()
             image = MediaProcessing.inSRGBToneCurveSpace(image)
 
@@ -1058,9 +1053,9 @@ public class SmolVLMProcessor: UserInputProcessor {
                 return MediaProcessing.asMLXArray(normalized)
             }
 
-            // TODO: assuming pixels has shape like [13, 3, 512, 512]
-            // TODO: expand but take a view when entering the model
-            let pixels = concatenated(pixelsForImages, axis: 0).transposed(0, 2, 3, 1)//.expandedDimensions(axis: 0)
+            // In transformers we have a batch dim plus the number of images per batch, and they get collapsed inside the model.
+            // Here we provide the compact version.
+            let pixels = concatenated(pixelsForImages, axis: 0).transposed(0, 2, 3, 1)
 
             let imagePromptString = getImagePromptString(
                 rows: imageRows,
@@ -1071,7 +1066,7 @@ public class SmolVLMProcessor: UserInputProcessor {
                 globalImageToken: globalImageToken
             )
 
-            let splitPrompt = decoded.split(by: imageToken)
+            let splitPrompt = decoded.split(by: imageToken, options: .literal)
             let prompt = splitPrompt.joined(separator: imagePromptString)
             let finalPromptTokens = try tokenizer.encode(text: prompt)
 
@@ -1130,9 +1125,6 @@ public class SmolVLMProcessor: UserInputProcessor {
             let videoPromptString = getVideoPromptString(frameCount: videoFrameResult.frames.count, timeStamps: videoFrameResult.timestamps, videoDuration: videoFrameResult.totalDuration, seqLen: imageSequenceLength, fakeToken: fakeImageToken, imageToken: imageToken, globalImageToken: globalImageToken)
             print(videoPromptString)
 
-            // We need to insert after the system message, potentially
-            // With system message we have "<|im_start|>system_message<end_of_utterance>\nUser: ", without we have "<|im_start|>User: "
-            // For now we'll detect 'User'. We can improve with a regexp later
             let splitPrompt = decoded.split(by: "User: ", options: .literal)
             let prompt = splitPrompt[0] + "User: " + videoPromptString + splitPrompt[1]
             let finalPromptTokens = try tokenizer.encode(text: prompt)
