@@ -1091,19 +1091,15 @@ public class SmolVLMProcessor: UserInputProcessor {
             let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
             let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
 
-            var image = try input.images[0].asCIImage()
-            image = MediaProcessing.inSRGBToneCurveSpace(image)
-
+            let image = try input.images[0].asCIImage().toSRGB()
             let (tiles, imageRows, imageCols) = tiles(from: image)
 
             // Append the resized global image
-            // TODO: something like `image.resampled(size, .lanczos)`
             // TODO: note we are resampling from the original (potentially larger), not the processing size. It shouldn't make much difference.
-            let images = tiles + [MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize))]
+            let images = tiles + [image.resampled(to: CGSize(width: fixedImageSize, height: fixedImageSize), method: .lanczos)]
 
             let pixelsForImages = images.map {
-                let normalized = MediaProcessing.normalize($0, mean: config.imageMeanTuple, std: config.imageStdTuple)
-                return MediaProcessing.asMLXArray(normalized)
+                $0.normalized(mean: config.imageMeanTuple, std: config.imageStdTuple).asMLXArray()
             }
 
             // In transformers we have a batch dim plus the number of images per batch, and they get collapsed inside the model.
@@ -1164,10 +1160,12 @@ public class SmolVLMProcessor: UserInputProcessor {
             
             var processedFrames: [MLXArray] = []
             for frame in videoFrameResult.frames {
-                var image = MediaProcessing.inSRGBToneCurveSpace(frame)
-                image = MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize))
-                let normalized = MediaProcessing.asMLXArray(MediaProcessing.normalize(image, mean: config.imageMeanTuple, std: config.imageStdTuple))
-                processedFrames.append(normalized)
+                let image = frame
+                    .toSRGB()
+                    .resampled(to: CGSize(width: fixedImageSize, height: fixedImageSize), method: .lanczos)
+                    .normalized(mean: config.imageMeanTuple, std: config.imageStdTuple)
+                    .asMLXArray()
+                processedFrames.append(image)
             }
             
             let stackedFrames = concatenated(processedFrames, axis: 0)
