@@ -950,21 +950,19 @@ public class SmolVLMProcessor: UserInputProcessor {
     private let config: SmolVLMProcessorConfiguration
     private let tokenizer: any Tokenizer
 
-    // From the Python code and default config, we know image_token_id is usually 49153.
-    // Hardcode this since we can't pass it in or rely on it from the processor config.
-    // Using 49190 for smolvlm
-    private let imageTokenId = 49190
-    
     // FIXME: hardcoded values for now
 
-    // These depend on the model, we need to pass somehow
-    private let maxProcessingImageSize: CGFloat = 2048
-    private let fixedImageSize: CGFloat = 512        // 384 for big models and 512 for small models (200-500M)
-    
+    // Hardcode this since we can't pass it in or rely on it from the preprocessor config.
+    let imageTokenId = 49190
     let imageToken = "<image>"
     let fakeImageToken = "<fake_token_around_image>"
     let globalImageToken = "<global-img>"
-    let imageSequenceLength = 64
+
+    var maxProcessingImageSize: CGFloat { CGFloat(config.size.longestEdge) }     // 2048
+    var fixedImageSize: CGFloat { CGFloat(config.maxImageSize.longestEdge) }     // 384 for big models, 512 for small models (200-500M)
+    var imageSequenceLength: Int { config.imageSequenceLength }
+    var maxVideoFrames: Int { config.videoSampling.maxFrames }
+    var targetVideoFPS: Double { Double(config.videoSampling.fps) }
 
     let defaultVideoSystemMessage = "You are a helpful assistant that can understand videos. Describe what type of video this is and what's happening in it."
 
@@ -1157,11 +1155,10 @@ public class SmolVLMProcessor: UserInputProcessor {
 
             var video = try input.videos[0].asAVAsset()
             
-            // TODO: Hardcoded for now but should get from config
             // TODO: Should be a function. Should replace image processing above.
             // TODO: Batch? This seems inefficient but it's only 64 frames so TBD
             //            Task {
-            var videoFrameResult = await try MediaProcessing.asCIImageSequence(video, maxFrames: 64, targetFPS: 1)
+            var videoFrameResult = await try MediaProcessing.asCIImageSequence(video, maxFrames: maxVideoFrames, targetFPS: targetVideoFPS)
             print(videoFrameResult.frames.count, videoFrameResult.totalDuration, videoFrameResult.timestamps)
             
             let thwFrames = (0..<videoFrameResult.frames.count).map { THW($0, Int(fixedImageSize), Int(fixedImageSize)) }
