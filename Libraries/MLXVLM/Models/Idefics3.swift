@@ -1159,8 +1159,7 @@ public class SmolVLMProcessor: UserInputProcessor {
             // TODO: Batch? This seems inefficient but it's only 64 frames so TBD
             //            Task {
             var videoFrameResult = await try MediaProcessing.asCIImageSequence(video, maxFrames: maxVideoFrames, targetFPS: targetVideoFPS)
-            print(videoFrameResult.frames.count, videoFrameResult.totalDuration, videoFrameResult.timestamps)
-            
+
             let thwFrames = (0..<videoFrameResult.frames.count).map { THW($0, Int(fixedImageSize), Int(fixedImageSize)) }
             
             var processedFrames: [MLXArray] = []
@@ -1175,15 +1174,12 @@ public class SmolVLMProcessor: UserInputProcessor {
             let transposedFrames = stackedFrames.transposed(0, 2, 3, 1)
             
             let videoPromptString = getVideoPromptString(frameCount: videoFrameResult.frames.count, timeStamps: videoFrameResult.timestamps, videoDuration: videoFrameResult.totalDuration, seqLen: imageSequenceLength, fakeToken: fakeImageToken, imageToken: imageToken, globalImageToken: globalImageToken)
-            print(videoPromptString)
 
             let splitPrompt = decoded.split(by: "User: ", options: .literal)
             let prompt = splitPrompt[0] + "User: " + videoPromptString + splitPrompt[1]
             let finalPromptTokens = try tokenizer.encode(text: prompt)
             
             let promptArray = MLXArray(finalPromptTokens).expandedDimensions(axis: 0)
-            print("Text input shape", promptArray.shape, "\n")
-            print("Video inout shape", transposedFrames.shape, "\n")
             let mask = ones(like: promptArray)
             return LMInput(text: .init(tokens: promptArray, mask: mask),
                            image: .init(pixels: transposedFrames, frames: thwFrames))
