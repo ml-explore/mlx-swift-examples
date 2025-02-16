@@ -889,10 +889,65 @@ public class Idefics3Processor: UserInputProcessor {
     }
 }
 
-// MARK: - SmolVLMProcessor
+// MARK: - SmolVLMProcessor and configuration
+
+public struct SmolVLMProcessorConfiguration: Codable, Sendable {
+    public struct Size: Codable, Sendable {
+        public let longestEdge: Int
+        enum CodingKeys: String, CodingKey {
+            case longestEdge = "longest_edge"
+        }
+    }
+
+    public struct VideoSampling: Codable, Sendable {
+        public let fps: Int
+        public let maxFrames: Int
+        // Intentionally ignoring videoSize because I believe it's still wrong in the config files
+//        public let videoSize: Size
+
+        enum CodingKeys: String, CodingKey {
+            case fps
+            case maxFrames = "max_frames"
+        }
+    }
+
+    public let imageMean: [CGFloat]
+    public let imageStd: [CGFloat]
+    public let size: Size
+    public let maxImageSize: Size
+    public let videoSampling: VideoSampling
+    private let _imageSequenceLength: Int?
+    // TODO: this does not come in preprocessor_config.json, verify where transformers gets it from
+    public var imageSequenceLength: Int { _imageSequenceLength ?? 64 }
+
+    init(imageMean: [CGFloat], imageStd: [CGFloat], size: Size, maxImageSize: Size, videoSampling: VideoSampling, imageSequenceLength: Int?) {
+        self.imageMean = imageMean
+        self.imageStd = imageStd
+        self.size = size
+        self.maxImageSize = maxImageSize
+        self.videoSampling = videoSampling
+        self._imageSequenceLength = imageSequenceLength
+    }
+
+    public var imageMeanTuple: (CGFloat, CGFloat, CGFloat) {
+        (imageMean[0], imageMean[1], imageMean[2])
+    }
+    public var imageStdTuple: (CGFloat, CGFloat, CGFloat) {
+        (imageStd[0], imageStd[1], imageStd[2])
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case imageMean = "image_mean"
+        case imageStd = "image_std"
+        case size
+        case maxImageSize = "max_image_size"
+        case videoSampling = "video_sampling"
+        case _imageSequenceLength = "image_seq_len"
+    }
+}
 
 public class SmolVLMProcessor: UserInputProcessor {
-    private let config: Idefics3ProcessorConfiguration
+    private let config: SmolVLMProcessorConfiguration
     private let tokenizer: any Tokenizer
 
     // From the Python code and default config, we know image_token_id is usually 49153.
@@ -914,7 +969,7 @@ public class SmolVLMProcessor: UserInputProcessor {
     let defaultVideoSystemMessage = "You are a helpful assistant that can understand videos. Describe what type of video this is and what's happening in it."
 
     public init(
-        _ config: Idefics3ProcessorConfiguration,
+        _ config: SmolVLMProcessorConfiguration,
         tokenizer: any Tokenizer
     ) {
         self.config = config
