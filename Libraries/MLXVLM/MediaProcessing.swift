@@ -11,6 +11,7 @@ public struct VideoFrameResult {
     let totalDuration: String
 }
 
+// TODO: verify working color space, rendering color space
 private let context = CIContext()
 
 /// Collection of methods for processing media (images, video, etc.).
@@ -296,5 +297,39 @@ public enum MediaProcessing {
         let seconds = totalSeconds % 60
         
         return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+    }
+}
+
+// MARK: - Convenience
+
+extension CIImage {
+    public enum ResamplingMethod {
+        case bicubic
+        case lanczos
+    }
+
+    public func resampled(to size: CGSize, method: ResamplingMethod = .bicubic) -> CIImage {
+        switch method {
+            case .bicubic:
+                return MediaProcessing.resampleBicubic(self, to: size)
+            case .lanczos:
+                return MediaProcessing.resampleLanczos(self, to: size)
+        }
+    }
+
+    public func toSRGB() -> CIImage {
+        return MediaProcessing.inSRGBToneCurveSpace(self)
+    }
+
+    public func toLinear() -> CIImage {
+        return MediaProcessing.inLinearToneCurveSpace(self)
+    }
+
+    public func normalized(mean: (CGFloat, CGFloat, CGFloat), std: (CGFloat, CGFloat, CGFloat)) -> CIImage {
+        return MediaProcessing.normalize(self, mean: mean, std: std)
+    }
+
+    public func asMLXArray(colorSpace: CGColorSpace? = nil) -> MLXArray {
+        return MediaProcessing.asMLXArray(self, colorSpace: colorSpace)
     }
 }

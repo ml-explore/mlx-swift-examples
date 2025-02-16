@@ -889,33 +889,85 @@ public class Idefics3Processor: UserInputProcessor {
     }
 }
 
+// MARK: - SmolVLMProcessor and configuration
+
+public struct SmolVLMProcessorConfiguration: Codable, Sendable {
+    public struct Size: Codable, Sendable {
+        public let longestEdge: Int
+        enum CodingKeys: String, CodingKey {
+            case longestEdge = "longest_edge"
+        }
+    }
+
+    public struct VideoSampling: Codable, Sendable {
+        public let fps: Int
+        public let maxFrames: Int
+        // Intentionally ignoring videoSize because I believe it's still wrong in the config files
+//        public let videoSize: Size
+
+        enum CodingKeys: String, CodingKey {
+            case fps
+            case maxFrames = "max_frames"
+        }
+    }
+
+    public let imageMean: [CGFloat]
+    public let imageStd: [CGFloat]
+    public let size: Size
+    public let maxImageSize: Size
+    public let videoSampling: VideoSampling
+    private let _imageSequenceLength: Int?
+    // TODO: this does not come in preprocessor_config.json, verify where transformers gets it from
+    public var imageSequenceLength: Int { _imageSequenceLength ?? 64 }
+
+    init(imageMean: [CGFloat], imageStd: [CGFloat], size: Size, maxImageSize: Size, videoSampling: VideoSampling, imageSequenceLength: Int?) {
+        self.imageMean = imageMean
+        self.imageStd = imageStd
+        self.size = size
+        self.maxImageSize = maxImageSize
+        self.videoSampling = videoSampling
+        self._imageSequenceLength = imageSequenceLength
+    }
+
+    public var imageMeanTuple: (CGFloat, CGFloat, CGFloat) {
+        (imageMean[0], imageMean[1], imageMean[2])
+    }
+    public var imageStdTuple: (CGFloat, CGFloat, CGFloat) {
+        (imageStd[0], imageStd[1], imageStd[2])
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case imageMean = "image_mean"
+        case imageStd = "image_std"
+        case size
+        case maxImageSize = "max_image_size"
+        case videoSampling = "video_sampling"
+        case _imageSequenceLength = "image_seq_len"
+    }
+}
 
 public class SmolVLMProcessor: UserInputProcessor {
-    private let config: Idefics3ProcessorConfiguration
+    private let config: SmolVLMProcessorConfiguration
     private let tokenizer: any Tokenizer
 
-    // From the Python code and default config, we know image_token_id is usually 49153.
-    // Hardcode this since we can't pass it in or rely on it from the processor config.
-    // Using 49190 for smolvlm
-    private let imageTokenId = 49190
-    
     // FIXME: hardcoded values for now
-    
-    private let maxProcessingImageSize: CGFloat = 2048
-    private let fixedImageSize: CGFloat = 512        // 384 for big models and 512 for small models (200-500M)
-    
-    //    let fakeImageTokenId = 49189   // <fake_token_around_image>
-    //    let globalImageTokenId = 49152 // <global-img>
+
+    // Hardcode this since we can't pass it in or rely on it from the preprocessor config.
+    let imageTokenId = 49190
     let imageToken = "<image>"
-    let userTurnStartToken = "<|im_start|>"
     let fakeImageToken = "<fake_token_around_image>"
     let globalImageToken = "<global-img>"
-    let imageSequenceLength = 64
+
+    var maxProcessingImageSize: CGFloat { CGFloat(config.size.longestEdge) }     // 2048
+    var fixedImageSize: CGFloat { CGFloat(config.maxImageSize.longestEdge) }     // 384 for big models, 512 for small models (200-500M)
+    var imageSequenceLength: Int { config.imageSequenceLength }
+    var maxVideoFrames: Int { config.videoSampling.maxFrames }
+    var targetVideoFPS: Double { Double(config.videoSampling.fps) }
 
     let defaultVideoSystemMessage = "You are a helpful assistant that can understand videos. Describe what type of video this is and what's happening in it."
 
     public init(
-        _ config: Idefics3ProcessorConfiguration,
+        _ config: SmolVLMProcessorConfiguration,
         tokenizer: any Tokenizer
     ) {
         self.config = config
@@ -1039,28 +1091,20 @@ public class SmolVLMProcessor: UserInputProcessor {
             let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
             let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
 
-            // FIXME: hmmm I'm not sure we need to apply a linearToSRGB filter
-            // or maybe we do, because the model expects sRGB inputs
-            // we could solve it with the CIContext
-            // but how does normalization work?
-            var image = try input.images[0].asCIImage()
-            image = MediaProcessing.inSRGBToneCurveSpace(image)
-
+            let image = try input.images[0].asCIImage().toSRGB()
             let (tiles, imageRows, imageCols) = tiles(from: image)
 
             // Append the resized global image
-            // TODO: something like `image.resampled(size, .lanczos)`
             // TODO: note we are resampling from the original (potentially larger), not the processing size. It shouldn't make much difference.
-            let images = tiles + [MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize))]
+            let images = tiles + [image.resampled(to: CGSize(width: fixedImageSize, height: fixedImageSize), method: .lanczos)]
 
             let pixelsForImages = images.map {
-                let normalized = MediaProcessing.normalize($0, mean: config.imageMeanTuple, std: config.imageStdTuple)
-                return MediaProcessing.asMLXArray(normalized)
+                $0.normalized(mean: config.imageMeanTuple, std: config.imageStdTuple).asMLXArray()
             }
 
-            // TODO: assuming pixels has shape like [13, 3, 512, 512]
-            // TODO: expand but take a view when entering the model
-            let pixels = concatenated(pixelsForImages, axis: 0).transposed(0, 2, 3, 1)//.expandedDimensions(axis: 0)
+            // In transformers we have a batch dim plus the number of images per batch, and they get collapsed inside the model.
+            // Here we provide the compact version.
+            let pixels = concatenated(pixelsForImages, axis: 0).transposed(0, 2, 3, 1)
 
             let imagePromptString = getImagePromptString(
                 rows: imageRows,
@@ -1071,7 +1115,7 @@ public class SmolVLMProcessor: UserInputProcessor {
                 globalImageToken: globalImageToken
             )
 
-            let splitPrompt = decoded.split(by: imageToken)
+            let splitPrompt = decoded.split(by: imageToken, options: .literal)
             let prompt = splitPrompt.joined(separator: imagePromptString)
             let finalPromptTokens = try tokenizer.encode(text: prompt)
 
@@ -1107,39 +1151,33 @@ public class SmolVLMProcessor: UserInputProcessor {
 
             var video = try input.videos[0].asAVAsset()
             
-            // TODO: Hardcoded for now but should get from config
             // TODO: Should be a function. Should replace image processing above.
             // TODO: Batch? This seems inefficient but it's only 64 frames so TBD
             //            Task {
-            var videoFrameResult = await try MediaProcessing.asCIImageSequence(video, maxFrames: 64, targetFPS: 1)
-            print(videoFrameResult.frames.count, videoFrameResult.totalDuration, videoFrameResult.timestamps)
-            
+            var videoFrameResult = await try MediaProcessing.asCIImageSequence(video, maxFrames: maxVideoFrames, targetFPS: targetVideoFPS)
+
             let thwFrames = (0..<videoFrameResult.frames.count).map { THW($0, Int(fixedImageSize), Int(fixedImageSize)) }
             
             var processedFrames: [MLXArray] = []
             for frame in videoFrameResult.frames {
-                var image = MediaProcessing.inSRGBToneCurveSpace(frame)
-                image = MediaProcessing.resampleLanczos(image, to: CGSize(width: fixedImageSize, height: fixedImageSize))
-                let normalized = MediaProcessing.asMLXArray(MediaProcessing.normalize(image, mean: config.imageMeanTuple, std: config.imageStdTuple))
-                processedFrames.append(normalized)
+                let image = frame
+                    .toSRGB()
+                    .resampled(to: CGSize(width: fixedImageSize, height: fixedImageSize), method: .lanczos)
+                    .normalized(mean: config.imageMeanTuple, std: config.imageStdTuple)
+                    .asMLXArray()
+                processedFrames.append(image)
             }
             
             let stackedFrames = concatenated(processedFrames, axis: 0)
             let transposedFrames = stackedFrames.transposed(0, 2, 3, 1)
             
             let videoPromptString = getVideoPromptString(frameCount: videoFrameResult.frames.count, timeStamps: videoFrameResult.timestamps, videoDuration: videoFrameResult.totalDuration, seqLen: imageSequenceLength, fakeToken: fakeImageToken, imageToken: imageToken, globalImageToken: globalImageToken)
-            print(videoPromptString)
 
-            // We need to insert after the system message, potentially
-            // With system message we have "<|im_start|>system_message<end_of_utterance>\nUser: ", without we have "<|im_start|>User: "
-            // For now we'll detect 'User'. We can improve with a regexp later
             let splitPrompt = decoded.split(by: "User: ", options: .literal)
             let prompt = splitPrompt[0] + "User: " + videoPromptString + splitPrompt[1]
             let finalPromptTokens = try tokenizer.encode(text: prompt)
             
             let promptArray = MLXArray(finalPromptTokens).expandedDimensions(axis: 0)
-            print("Text input shape", promptArray.shape, "\n")
-            print("Video inout shape", transposedFrames.shape, "\n")
             let mask = ones(like: promptArray)
             return LMInput(text: .init(tokens: promptArray, mask: mask),
                            image: .init(pixels: transposedFrames, frames: thwFrames))
