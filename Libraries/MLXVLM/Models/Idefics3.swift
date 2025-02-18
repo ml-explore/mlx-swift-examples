@@ -1042,13 +1042,12 @@ public class SmolVLMProcessor: UserInputProcessor {
     /// Tile image if it's larger than the maxProcessingImageSize, so the model gets to see more of it
     /// TODO: disable in video mode
     func tiles(from originalImage: CIImage) -> (tiles: [CIImage], rows: Int, cols: Int) {
-        guard originalImage.extent.size.width > CGFloat(maxProcessingImageSize) || originalImage.extent.size.height > CGFloat(maxProcessingImageSize) else {
-            return ([], 1, 1)
-        }
-
-        var tiles: [CIImage] = []
+        // The original code resizes to maxProcessingImageSize, then resizes again ensuring multiples of fixedImageSize
+        // We do both resizes in one go
         let processingSize = aspectRatioSize(for: originalImage.extent.size, longestEdge: maxProcessingImageSize, multiple: fixedImageSize)
         let image = MediaProcessing.resampleLanczos(originalImage, to: processingSize)
+
+        var tiles: [CIImage] = []
 
         // Crop nRows x nCols tiles
         let nRows = Int(ceil(image.extent.size.height / CGFloat(fixedImageSize)))
