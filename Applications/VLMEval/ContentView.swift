@@ -332,7 +332,7 @@ class VLMEvaluator {
 
     /// parameters controlling the output
     let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.7, topP: 0.9)
-    let maxTokens = 400
+    let maxTokens = 800
 
     /// update the display every N tokens -- 4 looks like it updates continuously
     /// and is low overhead.  observed ~15% reduction in tokens/s when updating
