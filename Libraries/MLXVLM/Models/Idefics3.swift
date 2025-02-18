@@ -1140,13 +1140,13 @@ public class SmolVLMProcessor: UserInputProcessor {
                 guard messages.filter { $0["role"] as? String == "system" }.isEmpty else { return messages }
 
                 var messagesWithSystem = messages
-                messagesWithSystem.insert(["role": "system", "content": defaultVideoSystemMessage], at: 0)
+                messagesWithSystem.insert(["role": "system", "content": [["type": "text", "text": defaultVideoSystemMessage]]], at: 0)
                 return messagesWithSystem
             }
 
             // Unfortunately we don't have a "render" option in Tokenizers yet, so decoding
             let finalMessages = messagesWithSystem(messages)
-            let promptTokens = try tokenizer.applyChatTemplate(messages: messagesWithSystem(finalMessages))
+            let promptTokens = try tokenizer.applyChatTemplate(messages: messagesWithSystem(messages))
             let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
 
             var video = try input.videos[0].asAVAsset()
