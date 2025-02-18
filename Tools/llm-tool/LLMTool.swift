@@ -220,15 +220,29 @@ struct EvaluateCommand: AsyncParsableCommand {
         let images = image.map { UserInput.Image.url($0) }
         let videos = video.map { UserInput.Video.url($0) }
 
+//        let messages: [[String: Any]] = [
+//            [
+//                "role": "user",
+//                "content": [
+//                    ["type": "text", "text": prompt]
+//                ]
+//                    // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
+//                    + images.map { _ in ["type": "image"] }
+//                    + videos.map { _ in ["type": "video"] },
+//            ]
+//        ]
+
         let messages: [[String: Any]] = [
             [
                 "role": "user",
-                "content": [
-                    ["type": "text", "text": prompt]
-                ]
-                    // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
-                    + images.map { _ in ["type": "image"] }
-                    + videos.map { _ in ["type": "video"] },
+                "content": []
+                    + images.map { _ in
+                        ["type": "image"]
+                    }
+                    + videos.map { _ in
+                        ["type": "video"]
+                    }
+                    + [["type": "text", "text": prompt]]
             ]
         ]
 
