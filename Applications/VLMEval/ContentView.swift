@@ -15,6 +15,9 @@ import SwiftUI
     typealias PlatformImage = NSImage
 #endif
 
+let videoSystemPrompt = "Focus only on describing the key dramatic action or notable event occurring in this video segment. Skip general context or scene-setting details unless they are crucial to understanding the main action."
+let imageSystemPrompt = "You are an image understanding model capable of describing the salient features of any image."
+
 struct ContentView: View {
     @State var prompt = ""
     @State var llm = VLMEvaluator()
@@ -328,8 +331,8 @@ class VLMEvaluator {
     let modelConfiguration = ModelRegistry.smolvlm
 
     /// parameters controlling the output
-    let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.6)
-    let maxTokens = 800
+    let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.7, topP: 0.9)
+    let maxTokens = 400
 
     /// update the display every N tokens -- 4 looks like it updates continuously
     /// and is low overhead.  observed ~15% reduction in tokens/s when updating
@@ -398,23 +401,31 @@ class VLMEvaluator {
                     } else {
                         []
                     }
-                // Note: the image order is different for smolvlm
-                var userInput = UserInput(
-                    messages: [
-                        [
-                            "role": "user",
-                            "content": []
-                                + images.map { _ in
-                                    ["type": "image"]
-                                }
-                                + videos.map { _ in
-                                    ["type": "video"]
-                                }
-                                + [["type": "text", "text": prompt]]
-                        ]
-                    ], images: images, videos: videos)
-                userInput.processing.resize = .init(width: 448, height: 448)
 
+                // Note: the image order is different for smolvlm
+                let messages: [Message] = [
+                    [
+                        "role": "system",
+                        "content": [
+                            [
+                                "type": "text",
+                                "text": videoURL != nil ? videoSystemPrompt : imageSystemPrompt,
+                            ],
+                        ]
+                    ],
+                    [
+                        "role": "user",
+                        "content": []
+                            + images.map { _ in
+                                ["type": "image"]
+                            }
+                            + videos.map { _ in
+                                ["type": "video"]
+                            }
+                            + [["type": "text", "text": prompt]]
+                    ]
+                ]
+                let userInput = UserInput(messages: messages, images: images, videos: videos)
                 let input = try await context.processor.prepare(input: userInput)
                 
                 return try MLXLMCommon.generate(
