@@ -248,7 +248,9 @@ public enum MediaProcessing {
                 domain: "MediaProcessing", code: -1,
                 userInfo: [NSLocalizedDescriptionKey: "Failed to load the asset's duration"])
         }
-        let estimatedFrames = Int(round(targetFPS * duration.seconds))
+        // 1 fps for duration >= 10s, apply a multiplier if smaller
+        let adjustedFPS = max((10 - 0.9 * duration.seconds) * targetFPS, 1)
+        let estimatedFrames = Int(round(adjustedFPS * duration.seconds))
         var desiredFrames = min(estimatedFrames, maxFrames)
         let finalFrameCount = max(desiredFrames, 1)
         
