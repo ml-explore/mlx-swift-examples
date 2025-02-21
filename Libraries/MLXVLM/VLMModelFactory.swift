@@ -175,47 +175,68 @@ public class VLMModelFactory: ModelFactory {
     public let modelRegistry: AbstractModelRegistry
 
     public func _load(
-        hub: HubApi, configuration: ModelConfiguration,
-        progressHandler: @Sendable @escaping (Progress) -> Void
-    ) async throws -> ModelContext {
-        // download weights and config
-        let modelDirectory = try await downloadModel(
-            hub: hub, configuration: configuration, progressHandler: progressHandler)
+            hub: HubApi, configuration: ModelConfiguration,
+            progressHandler: @Sendable @escaping (Progress) -> Void
+        ) async throws -> ModelContext {
 
-        // load the generic config to unerstand which model and how to load the weights
-        let configurationURL = modelDirectory.appending(
-            component: "config.json"
-        )
-        let baseConfig = try JSONDecoder().decode(
-            BaseConfiguration.self, from: Data(contentsOf: configurationURL))
+            // Create progress tracker
+            let progress = Progress(totalUnitCount: 100)
 
-        let model = try typeRegistry.createModel(
-            configuration: configurationURL, modelType: baseConfig.modelType)
+            // Step 1: Download model (0-30%)
+            progressHandler(progress)
+            let modelDirectory = try await downloadModel(
+                hub: hub,
+                configuration: configuration) { _ in
+                    progress.completedUnitCount = 30
+                    progressHandler(progress)
+                }
 
-        // apply the weights to the bare model
-        try loadWeights(
-            modelDirectory: modelDirectory, model: model, quantization: baseConfig.quantization)
+            // Step 2: Load config and create model (30-60%)
+            let configurationURL = modelDirectory.appending(component: "config.json")
+            let baseConfig = try JSONDecoder().decode(
+                BaseConfiguration.self, from: Data(contentsOf: configurationURL))
 
-        let tokenizer = try await loadTokenizer(
-            configuration: configuration,
-            hub: hub
-        )
+            let model = try typeRegistry.createModel(
+                configuration: configurationURL, modelType: baseConfig.modelType)
 
-        let processorConfiguration = modelDirectory.appending(
-            component: "preprocessor_config.json"
-        )
-        let baseProcessorConfig = try JSONDecoder().decode(
-            BaseProcessorConfiguration.self,
-            from: Data(
-                contentsOf: processorConfiguration
+            progress.completedUnitCount = 60
+            progressHandler(progress)
+
+            // Step 3: Load weights (60-80%)
+            try loadWeights(
+                modelDirectory: modelDirectory,
+                model: model,
+                quantization: baseConfig.quantization)
+
+            progress.completedUnitCount = 80
+            progressHandler(progress)
+
+            // Step 4: Load tokenizer and processor (80-100%)
+            let tokenizer = try await loadTokenizer(
+                configuration: configuration,
+                hub: hub
             )
-        )
-        let processor = try processorRegistry.createModel(
-            configuration: processorConfiguration,
-            processorType: baseProcessorConfig.processorClass, tokenizer: tokenizer)
 
-        return .init(
-            configuration: configuration, model: model, processor: processor, tokenizer: tokenizer)
-    }
+            let processorConfiguration = modelDirectory.appending(
+                component: "preprocessor_config.json"
+            )
+            let baseProcessorConfig = try JSONDecoder().decode(
+                BaseProcessorConfiguration.self,
+                from: Data(contentsOf: processorConfiguration)
+            )
+            let processor = try processorRegistry.createModel(
+                configuration: processorConfiguration,
+                processorType: baseProcessorConfig.processorClass,
+                tokenizer: tokenizer)
+
+            progress.completedUnitCount = 100
+            progressHandler(progress)
+
+            return .init(
+                configuration: configuration,
+                model: model,
+                processor: processor,
+                tokenizer: tokenizer)
+        }
 
 }
