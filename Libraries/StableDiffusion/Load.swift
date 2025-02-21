@@ -85,35 +85,78 @@ enum FileKey {
 /// Stable diffusion configuration -- this selects the model to load.
 ///
 /// Use the preset values:
-/// - ``presetSDXLTurbo``
-/// - ``presetStableDiffusion21Base``
+/// - presetSDXLTurbo
+/// - presetStableDiffusion21Base
 ///
 /// or use the enum (convenient for command line tools):
 ///
-/// - ``Preset/sdxlTurbo``
-/// - ``Preset/sdxlTurbo``
+/// - Preset/sdxlTurbo
+/// - Preset/sdxlTurbo
 ///
-/// Call ``download(hub:progressHandler:)`` to download the weights, then
-/// ``textToImageGenerator(hub:configuration:)`` or
-/// ``imageToImageGenerator(hub:configuration:)`` to produce the ``ImageGenerator``.
+/// For custom model locations, use:
+/// swift /// let config = StableDiffusionConfiguration.custom( ///     baseURL: URL(fileURLWithPath: "/path/to/model"), ///     isXL: true  // true for SDXL, false for base model /// ) ///
 ///
-/// The ``ImageGenerator`` has a method to generate the latents:
-/// - ``TextToImageGenerator/generateLatents(parameters:)``
-/// - ``ImageToImageGenerator/generateLatents(image:parameters:strength:)``
+/// When using presets, call download(hub:progressHandler:) to download the weights.
+/// Then use textToImageGenerator(hub:configuration:) or
+/// imageToImageGenerator(hub:configuration:) to produce the ImageGenerator.
+///
+/// The ImageGenerator has a method to generate the latents:
+/// - TextToImageGenerator/generateLatents(parameters:)
+/// - ImageToImageGenerator/generateLatents(image:parameters:strength:)
 ///
 /// Evaluate each of the latents from that iterator and use the decoder to turn the last latent
 /// into an image:
 ///
-/// - ``ImageGenerator/decode(xt:)``
+/// - ImageGenerator/decode(xt:)
 ///
-/// Finally use ``Image`` to save it to a file or convert to a CGImage for display.
+/// Finally use Image to save it to a file or convert to a CGImage for display.
+///
+/// Note: When using a custom configuration, ensure your model directory structure matches
+/// the expected paths (unet/config.json, text_encoder/config.json, etc.).
 public struct StableDiffusionConfiguration: Sendable {
     public let id: String
     let files: [FileKey: String]
     public let defaultParameters: @Sendable () -> EvaluateParameters
-    let factory:
-        @Sendable (HubApi, StableDiffusionConfiguration, LoadConfiguration) throws ->
-            StableDiffusion
+    let factory: @Sendable (HubApi, StableDiffusionConfiguration, LoadConfiguration) throws -> StableDiffusion
+
+    let directURL: URL?
+
+    private init(
+        id: String,
+        files: [FileKey: String],
+        defaultParameters: @escaping @Sendable () -> EvaluateParameters,
+        factory: @escaping @Sendable (HubApi, StableDiffusionConfiguration, LoadConfiguration) throws -> StableDiffusion,
+        directURL: URL? = nil
+    ) {
+        self.id = id
+        self.files = files
+        self.defaultParameters = defaultParameters
+        self.factory = factory
+        self.directURL = directURL
+    }
+
+    public static func custom(
+        baseURL: URL,
+        isXL: Bool
+    ) -> StableDiffusionConfiguration {
+        if isXL {
+            return StableDiffusionConfiguration(
+                id: baseURL.lastPathComponent,
+                files: Self.presetSDXLTurbo.files,
+                defaultParameters: Self.presetSDXLTurbo.defaultParameters,
+                factory: Self.presetSDXLTurbo.factory,
+                directURL: baseURL
+            )
+        } else {
+            return StableDiffusionConfiguration(
+                id: baseURL.lastPathComponent,
+                files: Self.presetStableDiffusion21Base.files,
+                defaultParameters: Self.presetStableDiffusion21Base.defaultParameters,
+                factory: Self.presetStableDiffusion21Base.factory,
+                directURL: baseURL
+            )
+        }
+    }
 
     public func download(
         hub: HubApi = HubApi(), progressHandler: @escaping (Progress) -> Void = { _ in }
@@ -376,9 +419,14 @@ func loadWeights(
 func resolve(hub: HubApi, configuration: StableDiffusionConfiguration, key: FileKey) -> URL {
     precondition(
         configuration.files[key] != nil, "configuration \(configuration.id) missing key: \(key)")
-    let repo = Hub.Repo(id: configuration.id)
-    let directory = hub.localRepoLocation(repo)
-    return directory.appending(component: configuration.files[key]!)
+
+    if let directURL = configuration.directURL {
+        return directURL.appendingPathComponent(configuration.files[key]!)
+    } else {
+        let repo = Hub.Repo(id: configuration.id)
+        let directory = hub.localRepoLocation(repo)
+        return directory.appending(component: configuration.files[key]!)
+    }
 }
 
 func loadConfiguration<T: Decodable>(
