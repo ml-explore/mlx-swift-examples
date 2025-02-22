@@ -164,7 +164,8 @@ public class ModelRegistry: @unchecked Sendable {
 
     static public let smolvlm = ModelConfiguration(
         id: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct-mlx",
-        defaultPrompt: "What is the main action or notable event happening in this segment? Describe it in one brief sentence."
+        defaultPrompt:
+            "What is the main action or notable event happening in this segment? Describe it in one brief sentence."
     )
 
     static private func all() -> [ModelConfiguration] {

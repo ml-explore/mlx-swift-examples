@@ -15,8 +15,10 @@ import SwiftUI
     typealias PlatformImage = NSImage
 #endif
 
-let videoSystemPrompt = "Focus only on describing the key dramatic action or notable event occurring in this video segment. Skip general context or scene-setting details unless they are crucial to understanding the main action."
-let imageSystemPrompt = "You are an image understanding model capable of describing the salient features of any image."
+let videoSystemPrompt =
+    "Focus only on describing the key dramatic action or notable event occurring in this video segment. Skip general context or scene-setting details unless they are crucial to understanding the main action."
+let imageSystemPrompt =
+    "You are an image understanding model capable of describing the salient features of any image."
 
 struct ContentView: View {
     @State var prompt = ""
@@ -410,8 +412,8 @@ class VLMEvaluator {
                             [
                                 "type": "text",
                                 "text": videoURL != nil ? videoSystemPrompt : imageSystemPrompt,
-                            ],
-                        ]
+                            ]
+                        ],
                     ],
                     [
                         "role": "user",
@@ -422,12 +424,12 @@ class VLMEvaluator {
                             + videos.map { _ in
                                 ["type": "video"]
                             }
-                            + [["type": "text", "text": prompt]]
-                    ]
+                            + [["type": "text", "text": prompt]],
+                    ],
                 ]
                 let userInput = UserInput(messages: messages, images: images, videos: videos)
                 let input = try await context.processor.prepare(input: userInput)
-                
+
                 return try MLXLMCommon.generate(
                     input: input,
                     parameters: generateParameters,
