@@ -962,7 +962,7 @@ public class SmolVLMProcessor: UserInputProcessor {
     var maxProcessingImageSize: CGFloat { CGFloat(config.size.longestEdge) }  // 2048
     var fixedImageSize: CGFloat { CGFloat(config.maxImageSize.longestEdge) }  // 384 for big models, 512 for small models (200-500M)
     var imageSequenceLength: Int { config.imageSequenceLength }
-    var maxVideoFrames: Int { config.videoSampling.maxFrames }
+    var maxVideoFrames: Int { 20 /*config.videoSampling.maxFrames*/ }
     var targetVideoFPS: Double { Double(config.videoSampling.fps) }
 
     let defaultVideoSystemMessage =
