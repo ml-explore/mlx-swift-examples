@@ -234,8 +234,8 @@ struct EvaluateCommand: AsyncParsableCommand {
                     [
                         "type": "text",
                         "text": generate.system,
-                    ],
-                ]
+                    ]
+                ],
             ],
             [
                 "role": "user",
@@ -246,8 +246,8 @@ struct EvaluateCommand: AsyncParsableCommand {
                     + videos.map { _ in
                         ["type": "video"]
                     }
-                    + [["type": "text", "text": prompt]]
-            ]
+                    + [["type": "text", "text": prompt]],
+            ],
         ]
 
         var input = UserInput(

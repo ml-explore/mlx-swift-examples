@@ -192,7 +192,8 @@ public enum MediaProcessing {
         return image
     }
 
-    static public func asCIImageSequence(_ asset: AVAsset, samplesPerSecond: Int) async throws -> [CIImage]
+    static public func asCIImageSequence(_ asset: AVAsset, samplesPerSecond: Int) async throws
+        -> [CIImage]
     {
         // Use AVAssetImageGenerator to extract frames
         let generator = AVAssetImageGenerator(asset: asset)
@@ -235,14 +236,16 @@ public enum MediaProcessing {
 
         return ciImages
     }
-    
-    static public func asCIImageSequence(_ asset: AVAsset, maxFrames: Int, targetFPS: Double, skipSeconds: CMTime = .zero) async throws -> VideoFrameResult {
+
+    static public func asCIImageSequence(
+        _ asset: AVAsset, maxFrames: Int, targetFPS: Double, skipSeconds: CMTime = .zero
+    ) async throws -> VideoFrameResult {
         // Use AVAssetImageGenerator to extract frames
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
         generator.requestedTimeToleranceBefore = .zero
         generator.requestedTimeToleranceAfter = .zero
-        
+
         guard let duration = try? await asset.load(.duration) else {
             throw NSError(
                 domain: "MediaProcessing", code: -1,
@@ -253,24 +256,25 @@ public enum MediaProcessing {
         let estimatedFrames = Int(round(adjustedFPS * duration.seconds))
         var desiredFrames = min(estimatedFrames, maxFrames)
         let finalFrameCount = max(desiredFrames, 1)
-        
+
         let durationTimeValue = duration.value
         let timescale = duration.timescale
-        let startTimeValue = skipSeconds.seconds > 0 ? Int64(skipSeconds.seconds * Double(timescale)) : 0
-        let endTimeValue = skipSeconds.seconds > 0 ?
-            Int64(duration.seconds * Double(timescale) - skipSeconds.seconds * Double(timescale)) :
-            duration.value
+        let startTimeValue =
+            skipSeconds.seconds > 0 ? Int64(skipSeconds.seconds * Double(timescale)) : 0
+        let endTimeValue =
+            skipSeconds.seconds > 0
+            ? Int64(duration.seconds * Double(timescale) - skipSeconds.seconds * Double(timescale))
+            : duration.value
         let sampledTimeValues = MLXArray.linspace(
             startTimeValue, endTimeValue, count: Int(finalFrameCount)
         ).asArray(Int64.self)
-        
-        
+
         let sampledTimes = sampledTimeValues.map { CMTime(value: $0, timescale: timescale) }
 
         // Collect the frames
         var ciImages: [CIImage] = []
         var timestamps: [String] = []
-        
+
         for await result in await generator.images(for: sampledTimes) {
             switch result {
             case .success(requestedTime: let requested, let image, actualTime: let actual):
@@ -282,22 +286,22 @@ public enum MediaProcessing {
                 break
             }
         }
-        
+
         let totalDuration = formatTimestamp(duration)
-        
+
         return VideoFrameResult(
             frames: ciImages,
             timestamps: timestamps,
             totalDuration: totalDuration
         )
     }
-    
+
     private static func formatTimestamp(_ time: CMTime) -> String {
         let totalSeconds = Int(ceil(time.seconds))
         let hours = totalSeconds / 3600
         let minutes = (totalSeconds % 3600) / 60
         let seconds = totalSeconds % 60
-        
+
         return String(format: "%d:%02d:%02d", hours, minutes, seconds)
     }
 }
@@ -312,10 +316,10 @@ extension CIImage {
 
     public func resampled(to size: CGSize, method: ResamplingMethod = .bicubic) -> CIImage {
         switch method {
-            case .bicubic:
-                return MediaProcessing.resampleBicubic(self, to: size)
-            case .lanczos:
-                return MediaProcessing.resampleLanczos(self, to: size)
+        case .bicubic:
+            return MediaProcessing.resampleBicubic(self, to: size)
+        case .lanczos:
+            return MediaProcessing.resampleLanczos(self, to: size)
         }
     }
 
@@ -327,7 +331,9 @@ extension CIImage {
         return MediaProcessing.inLinearToneCurveSpace(self)
     }
 
-    public func normalized(mean: (CGFloat, CGFloat, CGFloat), std: (CGFloat, CGFloat, CGFloat)) -> CIImage {
+    public func normalized(mean: (CGFloat, CGFloat, CGFloat), std: (CGFloat, CGFloat, CGFloat))
+        -> CIImage
+    {
         return MediaProcessing.normalize(self, mean: mean, std: std)
     }
 
