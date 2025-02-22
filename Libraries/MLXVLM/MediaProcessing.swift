@@ -5,6 +5,13 @@ import CoreImage.CIFilterBuiltins
 import MLX
 import MLXLMCommon
 
+public struct VideoFrameResult {
+    let frames: [CIImage]
+    let timestamps: [String]
+    let totalDuration: String
+}
+
+// TODO: verify working color space, rendering color space
 private let context = CIContext()
 
 /// Collection of methods for processing media (images, video, etc.).
@@ -61,6 +68,35 @@ public enum MediaProcessing {
     /// Resample the image using bicubic interpolation.
     static public func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
         let filter = CIFilter.bicubicScaleTransform()
+        let extent = image.extent.size
+
+        filter.inputImage = image
+
+        // set the aspect ratio to match the aspect ratio of the target
+        let inputAspectRatio = extent.width / extent.height
+        let desiredAspectRatio = size.width / size.height
+        filter.aspectRatio = Float(1 / inputAspectRatio * desiredAspectRatio)
+
+        // that image is now the aspect ratio of the target and the size
+        // of the shorter dimension
+        let scale: CGFloat
+        if extent.width < extent.height {
+            scale = size.width / extent.width
+        } else {
+            scale = size.height / extent.height
+        }
+        filter.scale = Float(scale)
+
+        let rescaled = filter.outputImage!
+
+        // the image has a DoD larger than the requested size so crop
+        // it to the desired size
+        return rescaled.cropped(to: CGRect(origin: .zero, size: size))
+    }
+
+    /// Resample the image using Lanczos interpolation.
+    static public func resampleLanczos(_ image: CIImage, to size: CGSize) -> CIImage {
+        let filter = CIFilter.lanczosScaleTransform()
         let extent = image.extent.size
 
         filter.inputImage = image
@@ -145,7 +181,7 @@ public enum MediaProcessing {
     }
 
     /// Apply `UserInput.Processing`, if needed, to the image.
-    static func apply(_ image: CIImage, processing: UserInput.Processing?) -> CIImage {
+    static public func apply(_ image: CIImage, processing: UserInput.Processing?) -> CIImage {
         var image = image
 
         if let resize = processing?.resize {
@@ -156,7 +192,8 @@ public enum MediaProcessing {
         return image
     }
 
-    static func asCIImageSequence(_ asset: AVAsset, samplesPerSecond: Int) async throws -> [CIImage]
+    static public func asCIImageSequence(_ asset: AVAsset, samplesPerSecond: Int) async throws
+        -> [CIImage]
     {
         // Use AVAssetImageGenerator to extract frames
         let generator = AVAssetImageGenerator(asset: asset)
@@ -198,5 +235,109 @@ public enum MediaProcessing {
         }
 
         return ciImages
+    }
+
+    static public func asCIImageSequence(
+        _ asset: AVAsset, maxFrames: Int, targetFPS: Double, skipSeconds: CMTime = .zero
+    ) async throws -> VideoFrameResult {
+        // Use AVAssetImageGenerator to extract frames
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+
+        guard let duration = try? await asset.load(.duration) else {
+            throw NSError(
+                domain: "MediaProcessing", code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to load the asset's duration"])
+        }
+        // 1 fps for duration >= 10s, apply a multiplier if smaller
+        let adjustedFPS = max((10 - 0.9 * duration.seconds) * targetFPS, 1)
+        let estimatedFrames = Int(round(adjustedFPS * duration.seconds))
+        var desiredFrames = min(estimatedFrames, maxFrames)
+        let finalFrameCount = max(desiredFrames, 1)
+
+        let durationTimeValue = duration.value
+        let timescale = duration.timescale
+        let startTimeValue =
+            skipSeconds.seconds > 0 ? Int64(skipSeconds.seconds * Double(timescale)) : 0
+        let endTimeValue =
+            skipSeconds.seconds > 0
+            ? Int64(duration.seconds * Double(timescale) - skipSeconds.seconds * Double(timescale))
+            : duration.value
+        let sampledTimeValues = MLXArray.linspace(
+            startTimeValue, endTimeValue, count: Int(finalFrameCount)
+        ).asArray(Int64.self)
+
+        let sampledTimes = sampledTimeValues.map { CMTime(value: $0, timescale: timescale) }
+
+        // Collect the frames
+        var ciImages: [CIImage] = []
+        var timestamps: [String] = []
+
+        for await result in await generator.images(for: sampledTimes) {
+            switch result {
+            case .success(requestedTime: let requested, let image, actualTime: let actual):
+                let ciImage = CIImage(
+                    cgImage: image, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
+                ciImages.append(ciImage)
+                timestamps.append(formatTimestamp(actual))
+            case .failure(requestedTime: let requested, let error):
+                break
+            }
+        }
+
+        let totalDuration = formatTimestamp(duration)
+
+        return VideoFrameResult(
+            frames: ciImages,
+            timestamps: timestamps,
+            totalDuration: totalDuration
+        )
+    }
+
+    private static func formatTimestamp(_ time: CMTime) -> String {
+        let totalSeconds = Int(ceil(time.seconds))
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
+
+        return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+    }
+}
+
+// MARK: - Convenience
+
+extension CIImage {
+    public enum ResamplingMethod {
+        case bicubic
+        case lanczos
+    }
+
+    public func resampled(to size: CGSize, method: ResamplingMethod = .bicubic) -> CIImage {
+        switch method {
+        case .bicubic:
+            return MediaProcessing.resampleBicubic(self, to: size)
+        case .lanczos:
+            return MediaProcessing.resampleLanczos(self, to: size)
+        }
+    }
+
+    public func toSRGB() -> CIImage {
+        return MediaProcessing.inSRGBToneCurveSpace(self)
+    }
+
+    public func toLinear() -> CIImage {
+        return MediaProcessing.inLinearToneCurveSpace(self)
+    }
+
+    public func normalized(mean: (CGFloat, CGFloat, CGFloat), std: (CGFloat, CGFloat, CGFloat))
+        -> CIImage
+    {
+        return MediaProcessing.normalize(self, mean: mean, std: std)
+    }
+
+    public func asMLXArray(colorSpace: CGColorSpace? = nil) -> MLXArray {
+        return MediaProcessing.asMLXArray(self, colorSpace: colorSpace)
     }
 }
