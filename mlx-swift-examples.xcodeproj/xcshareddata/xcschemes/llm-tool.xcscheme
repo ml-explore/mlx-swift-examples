@@ -56,6 +56,14 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--prompt &apos;Describe the image in English.&apos; --image https://www.gstatic.com/webp/gallery/1.webp"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--model mlx-community/Qwen2-VL-2B-Instruct-4bit"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--repetition-penalty 1.2"
             isEnabled = "NO">
          </CommandLineArgument>
@@ -80,16 +88,16 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--prompt &apos;Why is the sky blue?&apos;"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--model mlx-community/Mistral-7B-v0.1-hf-4bit-mlx"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--prompt &apos;Describe the image in English.&apos; --image https://www.gstatic.com/webp/gallery/1.webp"
+            argument = "--model mlx-community/Llama-3.2-1B-Instruct-4bit"
             isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "--model mlx-community/quantized-gemma-2b-it"
-            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--model mlx-community/phi-2-hf-4bit-mlx"

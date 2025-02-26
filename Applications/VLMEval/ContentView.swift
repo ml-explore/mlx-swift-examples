@@ -395,25 +395,34 @@ class VLMEvaluator {
                     } else {
                         []
                     }
-                var userInput = UserInput(
-                    messages: [
+                let messages: [[String: Any]] =
+                    if !images.isEmpty || !videos.isEmpty {
                         [
-                            "role": "user",
-                            "content": [
-                                ["type": "text", "text": prompt]
+                            [
+                                "role": "user",
+                                "content": [
+                                    ["type": "text", "text": prompt]
+                                ]
+                                    // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
+                                    + images.map { _ in
+                                        ["type": "image"]
+                                    }
+                                    + videos.map { _ in
+                                        ["type": "video"]
+                                    },
                             ]
-                                + images.map { _ in
-                                    ["type": "image"]
-                                }
-                                + videos.map { _ in
-                                    ["type": "video"]
-                                },
                         ]
-                    ], images: images, videos: videos)
+                    } else {
+                        [
+                            [
+                                "role": "user",
+                                "content": prompt,
+                            ]
+                        ]
+                    }
+                var userInput = UserInput(messages: messages, images: images, videos: videos)
                 userInput.processing.resize = .init(width: 448, height: 448)
-
                 let input = try await context.processor.prepare(input: userInput)
-
                 return try MLXLMCommon.generate(
                     input: input,
                     parameters: generateParameters,
