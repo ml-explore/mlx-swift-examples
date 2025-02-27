@@ -211,11 +211,13 @@ public class Phi3Model: Module, LLMModel, KVCacheDimensionProvider {
 
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
         let out = model(inputs, cache: cache)
-
         if args.tieWordEmbeddings {
             return model.embedTokens.asLinear(out)
+        } else if let lmHead {
+            return lmHead(out)
         } else {
-            return lmHead!(out)
+            fatalError(
+                "Model configuration error: Neither tied embeddings nor lm_head is available")
         }
     }
 }
