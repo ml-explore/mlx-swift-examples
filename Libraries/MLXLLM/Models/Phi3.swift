@@ -14,6 +14,7 @@ private class Attention: Module {
     let heads: Int
     let kvHeads: Int
     let headDim: Int
+    let ropeDim: Int
 
     @ModuleInfo(key: "qkv_proj") var wqkv: Linear
     @ModuleInfo(key: "o_proj") var wo: Linear
@@ -42,6 +43,7 @@ private class Attention: Module {
         self.kvHeads = args.kvHeads
 
         self.headDim = args.hiddenSize / heads
+        self.ropeDim = Int(Float(headDim) * args.partialRotaryFactor)
         self.scale = pow(Float(headDim), -0.5)
 
         self._wqkv.wrappedValue = Linear(dim, (heads + 2 * kvHeads) * headDim, bias: false)
@@ -63,7 +65,7 @@ private class Attention: Module {
         {
             self.rope = .suScaledRotaryEmbedding(
                 SuScaledRotaryEmbedding(
-                    dimensions: headDim, base: args.ropeTheta,
+                    dimensions: ropeDim, base: args.ropeTheta,
                     maxPositionEmbeddings: args.maxPositionEmbeddings,
                     originalMaxPositionEmbeddings: args.originalMaxPositionEmbeddings,
                     longFactor: longFactor))
@@ -71,7 +73,7 @@ private class Attention: Module {
         } else {
             self.rope = .rope(
                 RoPE(
-                    dimensions: headDim, traditional: args.ropeTraditional, base: args.ropeTheta,
+                    dimensions: ropeDim, traditional: args.ropeTraditional, base: args.ropeTheta,
                     scale: ropeScale))
         }
     }
@@ -157,9 +159,11 @@ private class Phi3ModelInner: Module {
 
     fileprivate let layers: [TransformerBlock]
     let norm: RMSNorm
+    let args: Phi3Configuration
 
     public init(_ args: Phi3Configuration) {
         precondition(args.vocabularySize > 0)
+        self.args = args
 
         self._embedTokens.wrappedValue = Embedding(
             embeddingCount: args.vocabularySize, dimensions: args.hiddenSize)
@@ -190,19 +194,31 @@ public class Phi3Model: Module, LLMModel, KVCacheDimensionProvider {
     public let kvHeads: [Int]
 
     private let model: Phi3ModelInner
+    private let args: Phi3Configuration
 
-    @ModuleInfo(key: "lm_head") var lmHead: Linear
+    @ModuleInfo(key: "lm_head") var lmHead: Linear?
 
     public init(_ args: Phi3Configuration) {
         self.vocabularySize = args.vocabularySize
         self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
         self.model = Phi3ModelInner(args)
-        self._lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
+        self.args = args
+
+        if !args.tieWordEmbeddings {
+            self._lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
+        }
     }
 
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
         let out = model(inputs, cache: cache)
-        return lmHead(out)
+        if args.tieWordEmbeddings {
+            return model.embedTokens.asLinear(out)
+        } else if let lmHead {
+            return lmHead(out)
+        } else {
+            fatalError(
+                "Model configuration error: Neither tied embeddings nor lm_head is available")
+        }
     }
 }
 
@@ -235,8 +251,10 @@ public struct Phi3Configuration: Codable, Sendable {
     var ropeTheta: Float = 10_000
     var ropeTraditional: Bool = false
     var ropeScaling: RopeScalingWithFactorArrays?
+    var partialRotaryFactor: Float = 1.0
     var maxPositionEmbeddings: Int
     var originalMaxPositionEmbeddings: Int
+    var tieWordEmbeddings: Bool = false
 
     enum CodingKeys: String, CodingKey {
         case hiddenSize = "hidden_size"
@@ -249,8 +267,10 @@ public struct Phi3Configuration: Codable, Sendable {
         case ropeTheta = "rope_theta"
         case ropeTraditional = "rope_traditional"
         case ropeScaling = "rope_scaling"
+        case partialRotaryFactor = "partial_rotary_factor"
         case maxPositionEmbeddings = "max_position_embeddings"
         case originalMaxPositionEmbeddings = "original_max_position_embeddings"
+        case tieWordEmbeddings = "tie_word_embeddings"
     }
 
     public init(from decoder: Decoder) throws {
@@ -278,10 +298,15 @@ public struct Phi3Configuration: Codable, Sendable {
                 Bool.self, forKey: Phi3Configuration.CodingKeys.ropeTraditional) ?? false
         ropeScaling = try container.decodeIfPresent(
             RopeScalingWithFactorArrays.self, forKey: .ropeScaling)
+        partialRotaryFactor =
+            try container.decodeIfPresent(
+                Float.self, forKey: .partialRotaryFactor) ?? 1.0
         maxPositionEmbeddings = try container.decode(Int.self, forKey: .maxPositionEmbeddings)
         originalMaxPositionEmbeddings = try container.decode(
             Int.self, forKey: .originalMaxPositionEmbeddings)
-
+        tieWordEmbeddings =
+            try container.decodeIfPresent(
+                Bool.self, forKey: .tieWordEmbeddings) ?? false
     }
 }
 
