@@ -172,22 +172,25 @@ public class Qwen2Model: Module, LLMModel, KVCacheDimensionProvider {
     private let model: Qwen2ModelInner
     let configuration: Qwen2Configuration
 
-    @ModuleInfo(key: "lm_head") var lmHead: Linear
+    @ModuleInfo(key: "lm_head") var lmHead: Linear?
 
     public init(_ args: Qwen2Configuration) {
         self.configuration = args
         self.vocabularySize = args.vocabularySize
         self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
         self.model = Qwen2ModelInner(args)
-        _lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
+
+        if !args.tieWordEmbeddings {
+            _lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
+        }
     }
 
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
         var out = model(inputs, cache: cache)
-        if configuration.tieWordEmbeddings {
-            out = model.embedTokens.asLinear(out)
-        } else {
+        if let lmHead {
             out = lmHead(out)
+        } else {
+            out = model.embedTokens.asLinear(out)
         }
         return out
     }
