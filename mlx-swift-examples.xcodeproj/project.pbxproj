@@ -20,9 +20,9 @@
 		C3056BB02BCD97B700A31D04 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAF2BCD97B700A31D04 /* ContentView.swift */; };
 		C3056BB22BCD97B800A31D04 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3056BB12BCD97B800A31D04 /* Assets.xcassets */; };
 		C3056BB62BCD97B800A31D04 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3056BB52BCD97B800A31D04 /* Preview Assets.xcassets */; };
-		C3056BBA2BCD981900A31D04 /* train.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA22BCD973400A31D04 /* train.jsonl */; };
-		C3056BBB2BCD981900A31D04 /* test.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA12BCD973400A31D04 /* test.jsonl */; };
-		C3056BBC2BCD981900A31D04 /* valid.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA32BCD973400A31D04 /* valid.jsonl */; };
+		C3056BBA2BCD981900A31D04 /* train-text.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA22BCD973400A31D04 /* train-text.jsonl */; };
+		C3056BBB2BCD981900A31D04 /* test-text.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA12BCD973400A31D04 /* test-text.jsonl */; };
+		C3056BBC2BCD981900A31D04 /* valid-text.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA32BCD973400A31D04 /* valid-text.jsonl */; };
 		C3288D762B6D9313009FF608 /* LinearModelTraining.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3288D752B6D9313009FF608 /* LinearModelTraining.swift */; };
 		C3288D7B2B6D9339009FF608 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C3288D7A2B6D9339009FF608 /* ArgumentParser */; };
 		C32A17FD2CFFB98A0092A5B6 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FC2CFFB98A0092A5B6 /* MLXLLM */; };
@@ -60,6 +60,9 @@
 		C3A8B3F52B92A2A90002EFB8 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3EF2B92A2A90002EFB8 /* Preview Assets.xcassets */; };
 		C3A8B3F72B92A2A90002EFB8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3F22B92A2A90002EFB8 /* ContentView.swift */; };
 		C3E7D94D2CF6C9B20056C095 /* StableDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = C3E7D94C2CF6C9B20056C095 /* StableDiffusion */; };
+		F8F6124D2D4C448E0054FA01 /* test-completion.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = F8F6124C2D4C448E0054FA01 /* test-completion.jsonl */; };
+		F8F6124F2D4C449C0054FA01 /* train-completion.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = F8F6124E2D4C449C0054FA01 /* train-completion.jsonl */; };
+		F8F612512D4C44A90054FA01 /* valid-completion.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = F8F612502D4C44A90054FA01 /* valid-completion.jsonl */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -190,9 +193,9 @@
 		0AC74F282D1376F1003C90A7 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		12305EAE2B9D864400C92FEE /* PredictionView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PredictionView.swift; sourceTree = "<group>"; };
 		819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceStat.swift; sourceTree = "<group>"; };
-		C3056BA12BCD973400A31D04 /* test.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = test.jsonl; sourceTree = "<group>"; };
-		C3056BA22BCD973400A31D04 /* train.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = train.jsonl; sourceTree = "<group>"; };
-		C3056BA32BCD973400A31D04 /* valid.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = valid.jsonl; sourceTree = "<group>"; };
+		C3056BA12BCD973400A31D04 /* test-text.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = "test-text.jsonl"; sourceTree = "<group>"; };
+		C3056BA22BCD973400A31D04 /* train-text.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = "train-text.jsonl"; sourceTree = "<group>"; };
+		C3056BA32BCD973400A31D04 /* valid-text.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = "valid-text.jsonl"; sourceTree = "<group>"; };
 		C3056BA42BCD973400A31D04 /* wikisql.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = wikisql.py; sourceTree = "<group>"; };
 		C3056BAB2BCD97B700A31D04 /* LoRATrainingExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LoRATrainingExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3056BAD2BCD97B700A31D04 /* LoRATrainingExampleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoRATrainingExampleApp.swift; sourceTree = "<group>"; };
@@ -242,6 +245,9 @@
 		C3C36A6B2CA714600099FFA4 /* Build.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Build.xcconfig; sourceTree = "<group>"; };
 		C3D573052C40701E00857A35 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		F8D7023A2BB4E223003D7CF5 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
+		F8F6124C2D4C448E0054FA01 /* test-completion.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = "test-completion.jsonl"; sourceTree = "<group>"; };
+		F8F6124E2D4C449C0054FA01 /* train-completion.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = "train-completion.jsonl"; sourceTree = "<group>"; };
+		F8F612502D4C44A90054FA01 /* valid-completion.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = "valid-completion.jsonl"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -373,10 +379,13 @@
 		C3056BA52BCD973400A31D04 /* lora */ = {
 			isa = PBXGroup;
 			children = (
-				C3056BA12BCD973400A31D04 /* test.jsonl */,
-				C3056BA22BCD973400A31D04 /* train.jsonl */,
-				C3056BA32BCD973400A31D04 /* valid.jsonl */,
+				C3056BA12BCD973400A31D04 /* test-text.jsonl */,
+				C3056BA22BCD973400A31D04 /* train-text.jsonl */,
+				C3056BA32BCD973400A31D04 /* valid-text.jsonl */,
 				C3056BA42BCD973400A31D04 /* wikisql.py */,
+				F8F6124C2D4C448E0054FA01 /* test-completion.jsonl */,
+				F8F6124E2D4C449C0054FA01 /* train-completion.jsonl */,
+				F8F612502D4C44A90054FA01 /* valid-completion.jsonl */,
 			);
 			path = lora;
 			sourceTree = "<group>";
@@ -897,9 +906,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3056BBA2BCD981900A31D04 /* train.jsonl in Resources */,
-				C3056BBB2BCD981900A31D04 /* test.jsonl in Resources */,
-				C3056BBC2BCD981900A31D04 /* valid.jsonl in Resources */,
+				F8F6124D2D4C448E0054FA01 /* test-completion.jsonl in Resources */,
+				F8F612512D4C44A90054FA01 /* valid-completion.jsonl in Resources */,
+				C3056BBA2BCD981900A31D04 /* train-text.jsonl in Resources */,
+				C3056BBB2BCD981900A31D04 /* test-text.jsonl in Resources */,
+				F8F6124F2D4C449C0054FA01 /* train-completion.jsonl in Resources */,
+				C3056BBC2BCD981900A31D04 /* valid-text.jsonl in Resources */,
 				C3056BB62BCD97B800A31D04 /* Preview Assets.xcassets in Resources */,
 				C3056BB22BCD97B800A31D04 /* Assets.xcassets in Resources */,
 			);
@@ -1198,7 +1210,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_ASSET_PATHS = "\"Applications/LoRATrainingExample/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = TPKP4XK352;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1292,7 +1304,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"Applications/LoRATrainingExample/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = TPKP4XK352;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -2010,6 +2022,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = TPKP4XK352;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -2078,6 +2091,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = TPKP4XK352;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
