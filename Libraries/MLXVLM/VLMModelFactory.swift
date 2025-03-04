@@ -101,10 +101,7 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
                 PaliGemmaProcessorConfiguration.self, PaliGemmaProcessor.init),
             "Qwen2VLProcessor": create(
                 Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
-            // Error: Generic parameter 'C' could not be inferred
-            // Error: Cannot find 'Qwen25VLProcessor' in scope
-            // Error: Cannot find 'Qwen25VLProcessorConfiguration' in scope
-            "Qwen25VLProcessor": create(
+            "Qwen2_5_VLProcessor": create(
                 Qwen25VLProcessorConfiguration.self, Qwen25VLProcessor.init),
             "Idefics3Processor": create(
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),

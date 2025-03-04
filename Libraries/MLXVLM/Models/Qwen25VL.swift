@@ -131,15 +131,14 @@ private enum Language {
     }
 
     fileprivate class MLP: Module, UnaryLayer {
-
         @ModuleInfo(key: "gate_proj") var gate: Linear
-        @ModuleInfo(key: "down_proj") var down: Linear
         @ModuleInfo(key: "up_proj") var up: Linear
+        @ModuleInfo(key: "down_proj") var down: Linear
 
         public init(dimensions: Int, hiddenDimensions: Int) {
-            self._gate.wrappedValue = Linear(dimensions, hiddenDimensions, bias: false)
-            self._down.wrappedValue = Linear(hiddenDimensions, dimensions, bias: false)
-            self._up.wrappedValue = Linear(dimensions, hiddenDimensions, bias: false)
+            self._gate.wrappedValue = Linear(dimensions, hiddenDimensions)
+            self._up.wrappedValue = Linear(dimensions, hiddenDimensions)
+            self._down.wrappedValue = Linear(hiddenDimensions, dimensions)
         }
 
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
@@ -1069,7 +1068,7 @@ public struct Qwen25VLConfiguration: Codable, Sendable {
         public let vocabularySize: Int
         public let kvHeads: Int
         private let _maxPositionEmbeddings: Int?
-        public var maxpPositionEmbeddings: Int { _maxPositionEmbeddings ?? 128000 }
+        public var maxPositionEmbeddings: Int { _maxPositionEmbeddings ?? 128000 }
         private let _ropeTheta: Float?
         public var ropeTheta: Float { _ropeTheta ?? 1_000_000 }
         private let _ropeTraditional: Bool?
@@ -1077,6 +1076,10 @@ public struct Qwen25VLConfiguration: Codable, Sendable {
         public let ropeScaling: [String: StringOrNumber]?
         private let _tieWordEmbeddings: Bool?
         public var tieWordEmbeddings: Bool { _tieWordEmbeddings ?? true }
+        private let _slidingWindow: Int?
+        public var slidingWindow: Int { _slidingWindow ?? 32768 }
+        private let _useSlidingWindow: Bool?
+        public var useSlidingWindow: Bool { _useSlidingWindow ?? false }
 
         enum CodingKeys: String, CodingKey {
             case modelType = "model_type"
@@ -1092,6 +1095,8 @@ public struct Qwen25VLConfiguration: Codable, Sendable {
             case _ropeTraditional = "rope_traditional"
             case ropeScaling = "rope_scaling"
             case _tieWordEmbeddings = "tie_word_embeddings"
+            case _slidingWindow = "sliding_window"
+            case _useSlidingWindow = "use_sliding_window"
         }
     }
 
@@ -1102,16 +1107,20 @@ public struct Qwen25VLConfiguration: Codable, Sendable {
         public let outHiddenSize: Int
         public let numHeads: Int
         public let patchSize: Int
-        public let mlpRatio: Float
-        public let _inChannels: Int?
-        public var inChannels: Int { _inChannels ?? 3 }
-        public let _layerNormEps: Float?
+        private let _inChans: Int?
+        public var inChannels: Int { _inChans ?? 3 }
+        private let _layerNormEps: Float?
         public var layerNormEps: Float { _layerNormEps ?? 1e-6 }
         public let spatialPatchSize: Int
         public let spatialMergeSize: Int
         public let temporalPatchSize: Int
         public let windowSize: Int
         public let fullattBlockIndexes: [Int]
+        public let tokensPerSecond: Int
+        private let _skipVision: Bool?
+        public var skipVision: Bool { _skipVision ?? false }
+        private let _hiddenAct: String?
+        public var hiddenAct: String { _hiddenAct ?? "silu" }
 
         enum CodingKeys: String, CodingKey {
             case depth
@@ -1120,14 +1129,16 @@ public struct Qwen25VLConfiguration: Codable, Sendable {
             case outHiddenSize = "out_hidden_size"
             case numHeads = "num_heads"
             case patchSize = "patch_size"
-            case mlpRatio = "mlp_ratio"
-            case _inChannels = "in_channels"
-            case _layerNormEps = "layer_norm_eps"
+            case _inChans = "in_chans"
+            case _layerNormEps = "layer_norm_eps"  // Added this line
             case spatialPatchSize = "spatial_patch_size"
             case spatialMergeSize = "spatial_merge_size"
             case temporalPatchSize = "temporal_patch_size"
             case windowSize = "window_size"
             case fullattBlockIndexes = "fullatt_block_indexes"
+            case tokensPerSecond = "tokens_per_second"
+            case _skipVision = "skip_vision"
+            case _hiddenAct = "hidden_act"
         }
     }
 
@@ -1140,6 +1151,13 @@ public struct Qwen25VLConfiguration: Codable, Sendable {
         public let visionEndTokenId: Int
         public let visionTokenId: Int
         public let hiddenSize: Int
+        public let numAttentionHeads: Int
+        public let numHiddenLayers: Int
+        public let intermediateSize: Int
+        public let numKeyValueHeads: Int
+        public let slidingWindow: Int
+        public let useSlidingWindow: Bool
+        public let maxWindowLayers: Int
 
         enum CodingKeys: String, CodingKey {
             case modelType = "model_type"
@@ -1150,6 +1168,13 @@ public struct Qwen25VLConfiguration: Codable, Sendable {
             case visionEndTokenId = "vision_end_token_id"
             case visionTokenId = "vision_token_id"
             case hiddenSize = "hidden_size"
+            case numAttentionHeads = "num_attention_heads"
+            case numHiddenLayers = "num_hidden_layers"
+            case intermediateSize = "intermediate_size"
+            case numKeyValueHeads = "num_key_value_heads"
+            case slidingWindow = "sliding_window"
+            case useSlidingWindow = "use_sliding_window"
+            case maxWindowLayers = "max_window_layers"
         }
     }
 
@@ -1176,7 +1201,6 @@ public struct Qwen25VLConfiguration: Codable, Sendable {
 
 /// Configuration for ``Qwen25VLProcessor``
 public struct Qwen25VLProcessorConfiguration: Codable, Sendable {
-
     public struct Size: Codable, Sendable {
         public let maxPixels: Int
         public let minPixels: Int
@@ -1189,10 +1213,12 @@ public struct Qwen25VLProcessorConfiguration: Codable, Sendable {
 
     public let imageMean: [CGFloat]
     public let imageStd: [CGFloat]
-    public let size: Size
+    public let minPixels: Int
+    public let maxPixels: Int
     public let mergeSize: Int
     public let patchSize: Int
     public let temporalPatchSize: Int
+    public let imageProcessorType: String
 
     public var imageMeanTuple: (CGFloat, CGFloat, CGFloat) {
         (imageMean[0], imageMean[1], imageMean[2])
@@ -1201,12 +1227,18 @@ public struct Qwen25VLProcessorConfiguration: Codable, Sendable {
         (imageStd[0], imageStd[1], imageStd[2])
     }
 
+    public var size: Size {
+        Size(maxPixels: maxPixels, minPixels: minPixels)
+    }
+
     enum CodingKeys: String, CodingKey {
         case imageMean = "image_mean"
         case imageStd = "image_std"
-        case size
+        case minPixels = "min_pixels"
+        case maxPixels = "max_pixels"
         case mergeSize = "merge_size"
         case patchSize = "patch_size"
         case temporalPatchSize = "temporal_patch_size"
+        case imageProcessorType = "image_processor_type"
     }
 }
