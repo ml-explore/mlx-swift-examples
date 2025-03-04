@@ -15,6 +15,11 @@ import SwiftUI
     typealias PlatformImage = NSImage
 #endif
 
+let videoSystemPrompt =
+    "Focus only on describing the key dramatic action or notable event occurring in this video segment. Skip general context or scene-setting details unless they are crucial to understanding the main action."
+let imageSystemPrompt =
+    "You are an image understanding model capable of describing the salient features of any image."
+
 struct ContentView: View {
     @State var prompt = ""
     @State var llm = VLMEvaluator()
@@ -28,7 +33,7 @@ struct ContentView: View {
             }
         }
     }
-    @State private var selectedVideoURL: URL? = nil {
+    @State private var selectedVideoURL: URL? {
         didSet {
             if let selectedVideoURL {
                 player = AVPlayer(url: selectedVideoURL)
@@ -61,7 +66,11 @@ struct ContentView: View {
                 }
 
                 VStack {
-                    if let selectedImage {
+                    if let player {
+                        VideoPlayer(player: player)
+                            .frame(height: 300)
+                            .cornerRadius(12)
+                    } else if let selectedImage {
                         Group {
                             #if os(iOS) || os(visionOS)
                                 Image(uiImage: selectedImage)
@@ -91,11 +100,6 @@ struct ContentView: View {
                                 EmptyView()
                             }
                         }
-                    } else if let player {
-                        VideoPlayer(player: player)
-                            .scaledToFit()
-                            .frame(maxHeight: 300)
-                            .cornerRadius(12)
                     }
 
                     HStack {
@@ -193,6 +197,7 @@ struct ContentView: View {
                         .id("bottom")
                 }
             }
+            .frame(minHeight: 200)
 
             HStack {
                 TextField("prompt", text: $prompt)
@@ -204,6 +209,9 @@ struct ContentView: View {
                 Button("generate", action: generate)
                     .disabled(llm.running)
             }
+        }
+        .onAppear {
+            selectedVideoURL = Bundle.main.url(forResource: "test", withExtension: "mp4")!
         }
         #if os(visionOS)
             .padding(40)
@@ -322,10 +330,10 @@ class VLMEvaluator {
 
     /// This controls which model loads. `qwen2VL2BInstruct4Bit` is one of the smaller ones, so this will fit on
     /// more devices.
-    let modelConfiguration = ModelRegistry.qwen2VL2BInstruct4Bit
+    let modelConfiguration = ModelRegistry.smolvlm
 
     /// parameters controlling the output
-    let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.6)
+    let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.7, topP: 0.9)
     let maxTokens = 800
 
     /// update the display every N tokens -- 4 looks like it updates continuously
@@ -401,7 +409,10 @@ class VLMEvaluator {
                             [
                                 "role": "user",
                                 "content": [
-                                    ["type": "text", "text": prompt]
+                                    [
+                                        "type": "text",
+                                        "text": videoURL != nil ? videoSystemPrompt : imageSystemPrompt,
+                                    ]
                                 ]
                                     // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
                                     + images.map { _ in
