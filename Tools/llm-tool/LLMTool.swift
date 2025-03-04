@@ -94,49 +94,21 @@ struct GenerateArguments: ParsableArguments, Sendable {
         }
     }
 
+    func prepare(
+        _ context: inout ModelContext
+    ) {
+        if let extraEosToken {
+            context.configuration.extraEOSTokens.insert(extraEosToken)
+        }
+    }
+
     func generate(
         input: LMInput, context: ModelContext
     ) throws -> GenerateResult {
         var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
-        // If an extra EOS token is provided, create a new context with the updated configuration
-        let contextToUse: ModelContext
-        if let extraToken = extraEosToken {
-            // Create a new configuration with the extra EOS token
-            var extraTokens = context.configuration.extraEOSTokens
-            extraTokens.insert(extraToken)
-            // Create a new configuration based on the existing one
-            let newConfig: ModelConfiguration
-            switch context.configuration.id {
-            case .id(let id):
-                newConfig = ModelConfiguration(
-                    id: id,
-                    tokenizerId: context.configuration.tokenizerId,
-                    overrideTokenizer: context.configuration.overrideTokenizer,
-                    defaultPrompt: context.configuration.defaultPrompt,
-                    extraEOSTokens: extraTokens
-                )
-            case .directory(let url):
-                newConfig = ModelConfiguration(
-                    directory: url,
-                    tokenizerId: context.configuration.tokenizerId,
-                    overrideTokenizer: context.configuration.overrideTokenizer,
-                    defaultPrompt: context.configuration.defaultPrompt,
-                    extraEOSTokens: extraTokens
-                )
-            }
-            // Create a new context with the updated configuration
-            contextToUse = ModelContext(
-                configuration: newConfig,
-                model: context.model,
-                processor: context.processor,
-                tokenizer: context.tokenizer
-            )
-        } else {
-            contextToUse = context
-        }
 
         return try MLXLMCommon.generate(
-            input: input, parameters: generateParameters, context: contextToUse
+            input: input, parameters: generateParameters, context: context
         ) { tokens in
             if let last = tokens.last {
                 detokenizer.append(token: last)
@@ -314,8 +286,13 @@ struct EvaluateCommand: AsyncParsableCommand {
             try await args.load(defaultModel: defaultModel.name, modelFactory: modelFactory)
         }
 
+        // update the context/configuration with any command line parameters
+        await modelContainer.update { [generate] context in
+            generate.prepare(&context)
+        }
+
         // Get the resolved configuration (this has the default prompt)
-        let modelConfiguration = modelContainer.configuration
+        let modelConfiguration = await modelContainer.configuration
 
         if !generate.quiet {
             print("Loaded \(modelConfiguration.name)")

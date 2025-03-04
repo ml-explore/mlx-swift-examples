@@ -31,10 +31,10 @@ public struct ModelConfiguration: Sendable {
     public let overrideTokenizer: String?
 
     /// A reasonable default prompt for the model
-    public let defaultPrompt: String
+    public var defaultPrompt: String
 
     /// Additional tokens to use for end of string
-    public let extraEOSTokens: Set<String>
+    public var extraEOSTokens: Set<String>
 
     public init(
         id: String, tokenizerId: String? = nil, overrideTokenizer: String? = nil,
