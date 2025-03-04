@@ -11,155 +11,33 @@ import MLXLMCommon
 import MLXNN
 import Tokenizers
 
-// MARK: - Common
-
-/// Rotates half the hidden dims of the input
-private func rotateHalf(_ x: MLXArray) -> MLXArray {
-    let index = x.dim(-1) / 2
-    let x1 = x[.ellipsis, 0 ..< index]
-    let x2 = x[.ellipsis, index...]
-    return concatenated([-x2, x1], axis: -1)
-}
-
 // MARK: - Language
 
 private enum Language {
-
-    /// Applies Rotary Position Embedding with Multimodal Sections to the query and key tensors
-    static private func applyMultimodalRotaryPositionEmbedding(
-        q: MLXArray, k: MLXArray, cos: MLXArray, sin: MLXArray,
-        positionIds: MLXArray, mropeSection: [Int]
-    ) -> (MLXArray, MLXArray) {
-        var cos = cos[positionIds]
-        var sin = sin[positionIds]
-
-        cos =
-            concatenated(
-                // [m[i % 3] for i, m in enumerate(mx.split(cos, mrope_section, axis=-1))]
-                split(cos, indices: mropeSection, axis: -1).enumerated().map { i, m in m[i % 3] },
-                axis: -1
-            )[0..., .newAxis, 0..., 0...]
-
-        sin =
-            concatenated(
-                split(sin, indices: mropeSection, axis: -1).enumerated().map { i, m in m[i % 3] },
-                axis: -1
-            )[0..., .newAxis, 0..., 0...]
-
-        // Apply rotary embedding
-        let qEmbed = (q * cos) + (rotateHalf(q) * sin)
-        let kEmbed = (k * cos) + (rotateHalf(k) * sin)
-        return (qEmbed, kEmbed)
-    }
-
-    fileprivate class Attention: Module {
-
-        let heads: Int
-        let kvHeads: Int
-        let headDim: Int
-        let scale: Float
-        let mropeSection: [Int]
-
-        @ModuleInfo(key: "q_proj") var wq: Linear
-        @ModuleInfo(key: "k_proj") var wk: Linear
-        @ModuleInfo(key: "v_proj") var wv: Linear
-        @ModuleInfo(key: "o_proj") var wo: Linear
-
-        @ModuleInfo(key: "rotary_emb") var rotaryEmbedding: RoPE
-
+    fileprivate class Attention: QwenVLLanguage.Attention {
         public init(_ args: Qwen2VLConfiguration.TextConfiguration) {
-            let dim = args.hiddenSize
-            self.heads = args.attentionHeads
-            self.kvHeads = args.kvHeads
-            self.headDim = dim / heads
-            self.scale = pow(Float(headDim), -0.5)
-
-            self._wq.wrappedValue = Linear(dim, heads * headDim, bias: true)
-            self._wk.wrappedValue = Linear(dim, kvHeads * headDim, bias: true)
-            self._wv.wrappedValue = Linear(dim, kvHeads * headDim, bias: true)
-            self._wo.wrappedValue = Linear(heads * headDim, dim, bias: false)
-
-            if let v = args.ropeScaling?["mrope_section"], let array = v.asInts() {
-                // mrope_section = np.cumsum(mrope_section * 2)[:-1].tolist()
-                self.mropeSection = sequence(state: (0, array.makeIterator())) { state in
-                    if let v = state.1.next() {
-                        // note the *2
-                        state.0 += v * 2
-                        return state.0
-                    } else {
-                        return nil
-                    }
-                }.dropLast()
-            } else {
-                fatalError("rope_scaling['mrope_section'] must be an array of integers")
-            }
-
-            self._rotaryEmbedding.wrappedValue = RoPE(
-                dimensions: headDim, traditional: args.ropeTraditional, base: args.ropeTheta)
-        }
-
-        public func callAsFunction(
-            _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
-        ) -> MLXArray {
-            let (B, L) = (x.dim(0), x.dim(1))
-
-            var queries = wq(x)
-            var keys = wk(x)
-            var values = wv(x)
-
-            // prepare the queries, keys and values for the attention computation
-            queries = queries.reshaped(B, L, heads, headDim).transposed(0, 2, 1, 3)
-            keys = keys.reshaped(B, L, kvHeads, headDim).transposed(0, 2, 1, 3)
-            values = values.reshaped(B, L, kvHeads, headDim).transposed(0, 2, 1, 3)
-
-            let offset = cache?.offset ?? 0
-            let mask = mask?[0..., 0 ..< keys.dim(-2)]
-
-            queries = rotaryEmbedding(queries, offset: offset)
-            keys = rotaryEmbedding(keys, offset: offset)
-
-            if let cache {
-                (keys, values) = cache.update(keys: keys, values: values)
-            }
-
-            let output = MLXFast.scaledDotProductAttention(
-                queries: queries, keys: keys, values: values, scale: scale, mask: mask
+            super.init(
+                hiddenSize: args.hiddenSize,
+                attentionHeads: args.attentionHeads,
+                kvHeads: args.kvHeads,
+                ropeTheta: args.ropeTheta,
+                ropeTraditional: args.ropeTraditional,
+                ropeScaling: args.ropeScaling
             )
-            .transposed(0, 2, 1, 3)
-            .reshaped(B, L, -1)
-
-            return wo(output)
-        }
-    }
-
-    fileprivate class MLP: Module, UnaryLayer {
-
-        @ModuleInfo(key: "gate_proj") var gate: Linear
-        @ModuleInfo(key: "down_proj") var down: Linear
-        @ModuleInfo(key: "up_proj") var up: Linear
-
-        public init(dimensions: Int, hiddenDimensions: Int) {
-            self._gate.wrappedValue = Linear(dimensions, hiddenDimensions, bias: false)
-            self._down.wrappedValue = Linear(hiddenDimensions, dimensions, bias: false)
-            self._up.wrappedValue = Linear(dimensions, hiddenDimensions, bias: false)
-        }
-
-        public func callAsFunction(_ x: MLXArray) -> MLXArray {
-            down(silu(gate(x)) * up(x))
         }
     }
 
     fileprivate class Qwen2VLDecoderLayer: Module {
-
         @ModuleInfo(key: "self_attn") var attention: Attention
-        let mlp: MLP
+        let mlp: QwenVLLanguage.MLP
 
         @ModuleInfo(key: "input_layernorm") var inputLayerNorm: RMSNorm
         @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: RMSNorm
 
         public init(_ args: Qwen2VLConfiguration.TextConfiguration) {
             self._attention.wrappedValue = Attention(args)
-            self.mlp = MLP(dimensions: args.hiddenSize, hiddenDimensions: args.intermediateSize)
+            self.mlp = QwenVLLanguage.MLP(
+                dimensions: args.hiddenSize, hiddenDimensions: args.intermediateSize)
             self._inputLayerNorm.wrappedValue = RMSNorm(
                 dimensions: args.hiddenSize, eps: args.rmsNormEps)
             self._postAttentionLayerNorm.wrappedValue = RMSNorm(
@@ -178,7 +56,6 @@ private enum Language {
     }
 
     fileprivate class Qwen2Model: Module {
-
         @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
 
         fileprivate let layers: [Qwen2VLDecoderLayer]
@@ -252,154 +129,7 @@ private enum Language {
 // MARK: - Vision
 
 private enum Vision {
-
-    static fileprivate func applyMultimodalRotaryPositionEmbedding(
-        _ tensor: MLXArray, freqs: MLXArray
-    ) -> MLXArray {
-        var cos = cos(freqs)
-        var sin = sin(freqs)
-
-        cos = expandedDimensions(cos, axis: 1)
-        cos = tiled(cos, repetitions: [1, 1, 2])
-        cos = expandedDimensions(cos, axis: 0)
-
-        sin = expandedDimensions(sin, axis: 1)
-        sin = tiled(sin, repetitions: [1, 1, 2])
-        sin = expandedDimensions(sin, axis: 0)
-
-        let output = (tensor * cos) + (rotateHalf(tensor) * sin)
-        return output.asType(tensor.dtype)
-    }
-
-    fileprivate class VisionRotaryEmbedding {
-        let dimensions: Int
-        let theta: Float
-        let inverseFreq: MLXArray
-
-        init(dimensions: Int, theta: Float) {
-            self.dimensions = dimensions
-            self.theta = theta
-            let p = MLXArray(stride(from: 0, to: dimensions, by: 2)).asType(.float32) / dimensions
-            self.inverseFreq = 1.0 / pow(theta, p)
-        }
-
-        func callAsFunction(sequenceLength: Int) -> MLXArray {
-            let seq = MLXArray(0 ..< sequenceLength).asType(inverseFreq.dtype)
-            let freqs = outer(seq, inverseFreq)
-            return freqs
-        }
-    }
-
-    fileprivate class PatchEmbed: Module, UnaryLayer {
-        @ModuleInfo var proj: Conv3d
-
-        let patchSize: Int
-        let temporalPatchSize: Int
-        let inChannels: Int
-        let embedDimensions: Int
-
-        init(patchSize: Int, temporalPatchSize: Int, inChannels: Int, embedDimensions: Int) {
-            self.patchSize = patchSize
-            self.temporalPatchSize = temporalPatchSize
-            self.inChannels = inChannels
-            self.embedDimensions = embedDimensions
-
-            let kernelSize = IntOrTriple([temporalPatchSize, patchSize, patchSize])
-            self._proj.wrappedValue = Conv3d(
-                inputChannels: inChannels,
-                outputChannels: embedDimensions,
-                kernelSize: kernelSize,
-                stride: kernelSize,
-                bias: false
-            )
-        }
-
-        func callAsFunction(_ hiddenStates: MLXArray) -> MLXArray {
-            var hiddenStates = hiddenStates.reshaped(
-                -1, inChannels, temporalPatchSize, patchSize, patchSize
-            ).movedAxis(source: 1, destination: 4)
-
-            hiddenStates = proj(hiddenStates)
-            hiddenStates = hiddenStates.reshaped(-1, embedDimensions)
-            return hiddenStates
-        }
-    }
-
-    fileprivate class PatchMerger: Module, UnaryLayer {
-        let hiddenSize: Int
-        @ModuleInfo(key: "ln_q") var layerNormQ: LayerNorm
-        @ModuleInfo var mlp: (Linear, GELU, Linear)
-
-        init(dimensions: Int, contextDimensions: Int, spatialMergeSize: Int) {
-            self.hiddenSize = contextDimensions * (spatialMergeSize * spatialMergeSize)
-            self._layerNormQ.wrappedValue = LayerNorm(dimensions: contextDimensions, eps: 1e-6)
-            self.mlp = (
-                Linear(hiddenSize, hiddenSize),
-                GELU(),
-                Linear(hiddenSize, dimensions)
-            )
-        }
-
-        func callAsFunction(_ x: MLXArray) -> MLXArray {
-            var x = layerNormQ(x).reshaped(-1, hiddenSize)
-            x = mlp.0(x)
-            x = mlp.1(x)
-            x = mlp.2(x)
-            return x
-        }
-    }
-
-    fileprivate class Attention: Module {
-
-        let numHeads: Int
-        let scale: Float
-
-        @ModuleInfo(key: "qkv") var qkv: Linear
-        @ModuleInfo(key: "proj") var proj: Linear
-
-        public init(dims: Int, numHeads: Int) {
-            self.numHeads = numHeads
-            let headDim = dims / numHeads
-            self.scale = pow(Float(headDim), -0.5)
-
-            self._qkv.wrappedValue = Linear(dims, 3 * dims, bias: true)
-            self._proj.wrappedValue = Linear(dims, dims)
-        }
-
-        public func callAsFunction(
-            _ x: MLXArray, frames: [THW], rotaryPositionEmbedding: MLXArray
-        ) -> MLXArray {
-            let sequenceLength = x.dim(0)
-            let B = frames[0].t
-            let L = sequenceLength / B
-
-            let qkv = qkv(x)
-            let s = split(qkv, parts: 3, axis: -1)
-            var (q, k, v) = (s[0], s[1], s[2])
-
-            q = q.reshaped(sequenceLength, numHeads, -1)
-            k = k.reshaped(sequenceLength, numHeads, -1)
-            v = v.reshaped(sequenceLength, numHeads, -1)
-
-            q = applyMultimodalRotaryPositionEmbedding(q, freqs: rotaryPositionEmbedding)
-            k = applyMultimodalRotaryPositionEmbedding(k, freqs: rotaryPositionEmbedding)
-
-            q = q.reshaped(B, L, numHeads, -1).transposed(0, 2, 1, 3)
-            k = k.reshaped(B, L, numHeads, -1).transposed(0, 2, 1, 3)
-            v = v.reshaped(B, L, numHeads, -1).transposed(0, 2, 1, 3)
-
-            let output = MLXFast.scaledDotProductAttention(
-                queries: q, keys: k, values: v, scale: scale, mask: nil
-            )
-            .transposed(0, 2, 1, 3)
-            .reshaped(sequenceLength, -1)
-
-            return proj(output)
-        }
-    }
-
     fileprivate class MLP: Module, UnaryLayer {
-
         @ModuleInfo var activation: GELU
         @ModuleInfo var fc1: Linear
         @ModuleInfo var fc2: Linear
@@ -416,17 +146,16 @@ private enum Vision {
     }
 
     fileprivate class Qwen2VLVisionBlock: Module {
-
         @ModuleInfo var norm1: LayerNorm
         @ModuleInfo var norm2: LayerNorm
-        @ModuleInfo(key: "attn") var attention: Attention
+        @ModuleInfo(key: "attn") var attention: QwenVLVision.Attention
         @ModuleInfo var mlp: MLP
 
         public init(_ config: Qwen2VLConfiguration.VisionConfiguration) {
             self.norm1 = LayerNorm(dimensions: config.embedDimensions, eps: 1e-6)
             self.norm2 = LayerNorm(dimensions: config.embedDimensions, eps: 1e-6)
 
-            self._attention.wrappedValue = Attention(
+            self._attention.wrappedValue = QwenVLVision.Attention(
                 dims: config.embedDimensions, numHeads: config.numHeads)
 
             let mlpHiddenDimensions = Int(Float(config.embedDimensions) * config.mlpRatio)
@@ -450,31 +179,31 @@ private enum Vision {
     }
 
     fileprivate class VisionModel: Module {
-
-        @ModuleInfo(key: "patch_embed") var patchEmbed: PatchEmbed
-        @ModuleInfo(key: "rotary_pos_emb") var rotaryPositionEmbedding: VisionRotaryEmbedding
+        @ModuleInfo(key: "patch_embed") var patchEmbed: QwenVLVision.PatchEmbed
+        @ModuleInfo(key: "rotary_pos_emb") var rotaryPositionEmbedding:
+            QwenVLVision.VisionRotaryEmbedding
         @ModuleInfo(key: "blocks") var blocks: [Qwen2VLVisionBlock]
-        @ModuleInfo(key: "merger") var patchMerger: PatchMerger
+        @ModuleInfo(key: "merger") var patchMerger: QwenVLVision.PatchMerger
 
         let spatialMergeSize: Int
 
         public init(_ config: Qwen2VLConfiguration.VisionConfiguration) {
             self.spatialMergeSize = config.spatialMergeSize
 
-            self._patchEmbed.wrappedValue = PatchEmbed(
+            self._patchEmbed.wrappedValue = QwenVLVision.PatchEmbed(
                 patchSize: config.patchSize,
                 temporalPatchSize: config.temporalPatchSize,
                 inChannels: config.inChannels,
                 embedDimensions: config.embedDimensions)
 
             let headDimensions = config.embedDimensions / config.numHeads
-            self._rotaryPositionEmbedding.wrappedValue = VisionRotaryEmbedding(
+            self._rotaryPositionEmbedding.wrappedValue = QwenVLVision.VisionRotaryEmbedding(
                 dimensions: headDimensions / 2, theta: 10_000)
 
             self._blocks.wrappedValue = (0 ..< config.depth).map { _ in
                 Qwen2VLVisionBlock(config)
             }
-            self._patchMerger.wrappedValue = PatchMerger(
+            self._patchMerger.wrappedValue = QwenVLVision.PatchMerger(
                 dimensions: config.hiddenSize, contextDimensions: config.embedDimensions,
                 spatialMergeSize: 2)
         }
@@ -517,7 +246,7 @@ private enum Vision {
 
             let indices = concatenated(positionIds, axis: 0)
             let maxFrameSize = frames.lazy.map { max($0.h, $0.w) }.max() ?? 0
-            let rotaryPositionEmbedFull = rotaryPositionEmbedding(sequenceLength: maxFrameSize)[
+            let rotaryPositionEmbedFull = rotaryPositionEmbedding(maxFrameSize)[
                 indices]
 
             return rotaryPositionEmbedFull.reshaped(indices.dim(0), -1)
@@ -536,19 +265,6 @@ private enum Vision {
             }
 
             return patchMerger(hiddenStates)
-        }
-
-        private func isMLXWeight(_ array: MLXArray) -> Bool {
-            if array.ndim != 4, array.ndim != 5 {
-                return false
-            }
-
-            if array.dim(-1) == 3 {
-                return true
-            }
-
-            let (outChannels, kH, kW) = (array.dim(1), array.dim(2), array.dim(3))
-            return outChannels >= kH && outChannels >= kW && kH == kW
         }
 
         func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
@@ -574,6 +290,19 @@ private enum Vision {
             }
 
             return sanitizedWeights
+        }
+
+        private func isMLXWeight(_ array: MLXArray) -> Bool {
+            if array.ndim != 4, array.ndim != 5 {
+                return false
+            }
+
+            if array.dim(-1) == 3 {
+                return true
+            }
+
+            let (outChannels, kH, kW) = (array.dim(1), array.dim(2), array.dim(3))
+            return outChannels >= kH && outChannels >= kW && kH == kW
         }
     }
 }
@@ -630,36 +359,11 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
 
         // Insert special image tokens in the input_ids
         return mergeInputIdsWithImageFeatures(
-            inputIds: inputIds, inputEmbeds: inputEmbeds, imageFeatures: hiddenStates)
-    }
-
-    private func mergeInputIdsWithImageFeatures(
-        inputIds: MLXArray, inputEmbeds: MLXArray, imageFeatures: MLXArray
-    ) -> MLXArray {
-        let imageTokenIndex = config.baseConfiguration.imageTokenId
-        let videoTokenIndex = config.baseConfiguration.videoTokenId
-
-        var imageIndices = [Int]()
-        for (i, v) in inputIds.asArray(Int.self).enumerated() {
-            if v == imageTokenIndex || v == videoTokenIndex {
-                imageIndices.append(i)
-            }
-        }
-
-        // Make sure shapes match before assignment
-        var result = inputEmbeds
-        if result.ndim == 2 {
-            result = result[.newAxis, 0..., 0...]
-        }
-
-        if imageFeatures.ndim == 2 {
-            let reshapedFeatures = imageFeatures[.newAxis, 0..., 0...]
-            result[0..., MLXArray(imageIndices), 0...] = reshapedFeatures
-        } else {
-            result[0..., MLXArray(imageIndices), 0...] = imageFeatures
-        }
-
-        return result
+            inputIds: inputIds,
+            inputEmbeds: inputEmbeds,
+            imageFeatures: hiddenStates,
+            imageTokenId: config.baseConfiguration.imageTokenId,
+            videoTokenId: config.baseConfiguration.videoTokenId)
     }
 
     public func prepare(_ input: LMInput, cache: [any KVCache], windowSize: Int?) throws
@@ -718,7 +422,6 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
                     })
         )
     }
-
 }
 
 // MARK: - Configuration
@@ -726,7 +429,7 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
 /// Configuration for ``Qwen2VL``
 public struct Qwen2VLConfiguration: Codable, Sendable {
 
-    public struct TextConfiguration: Codable, Sendable {
+    public struct TextConfiguration: Codable, Sendable, QwenVLTextConfigurable {
         public let modelType: String
         public let hiddenSize: Int
         public let hiddenLayers: Int
@@ -763,7 +466,7 @@ public struct Qwen2VLConfiguration: Codable, Sendable {
         }
     }
 
-    public struct VisionConfiguration: Codable, Sendable {
+    public struct VisionConfiguration: Codable, Sendable, QwenVLVisionConfigurable {
         public let depth: Int
         public let embedDimensions: Int
         public let hiddenSize: Int
@@ -793,7 +496,7 @@ public struct Qwen2VLConfiguration: Codable, Sendable {
         }
     }
 
-    public struct BaseConfiguration: Codable, Sendable {
+    public struct BaseConfiguration: Codable, Sendable, QwenVLBaseConfiguration {
         public let modelType: String
         public let vocabularySize: Int
         public let imageTokenId: Int
@@ -859,9 +562,5 @@ public struct Qwen2VLProcessorConfiguration: QwenVLProcessorConfiguration {
         case mergeSize = "merge_size"
         case patchSize = "patch_size"
         case temporalPatchSize = "temporal_patch_size"
-    }
-
-    public func applyChatTemplate(messages: [Message], tokenizer: any Tokenizer) throws -> [Int] {
-        return try tokenizer.applyChatTemplate(messages: messages)
     }
 }
