@@ -22,10 +22,10 @@ public enum ModelFactoryError: Error {
 /// See also ``ModelFactory/loadContainer(hub:configuration:progressHandler:)`` and
 /// ``ModelContainer``.
 public struct ModelContext {
-    public let configuration: ModelConfiguration
-    public let model: any LanguageModel
-    public let processor: any UserInputProcessor
-    public let tokenizer: Tokenizer
+    public var configuration: ModelConfiguration
+    public var model: any LanguageModel
+    public var processor: any UserInputProcessor
+    public var tokenizer: Tokenizer
 
     public init(
         configuration: ModelConfiguration, model: any LanguageModel,
