@@ -382,15 +382,14 @@ private enum Vision {
 
             // Create attention mask
             let attentionMask = full(
-                (1, sequenceLength, sequenceLength),
-                MLXArray.finfo(q.dtype).min,
-                dtype: q.dtype)
+                [1, sequenceLength, sequenceLength],
+                values: -Float32.greatestFiniteMagnitude)
 
             // Update mask for each sequence
             for i in 1 ..< cuSeqlens.size {
-                let start = Int(cuSeqlens[i - 1].item())
-                let end = Int(cuSeqlens[i].item())
-                attentionMask[0..., start ..< end, start ..< end] = 0
+                let start = cuSeqlens[i - 1].item(Int.self)
+                let end = cuSeqlens[i].item(Int.self)
+                attentionMask[0..., start ..< end, start ..< end] = MLXArray(0)
             }
 
             q = q.reshaped(1, sequenceLength, numHeads, -1).transposed(0, 2, 1, 3)
@@ -414,9 +413,9 @@ private enum Vision {
         @ModuleInfo(key: "down_proj") var down: Linear
 
         public init(dimensions: Int, hiddenDimensions: Int) {
-            self.gate = Linear(dimensions, hiddenDimensions)
-            self.up = Linear(dimensions, hiddenDimensions)
-            self.down = Linear(hiddenDimensions, dimensions)
+            self._gate.wrappedValue = Linear(dimensions, hiddenDimensions)
+            self._up.wrappedValue = Linear(dimensions, hiddenDimensions)
+            self._down.wrappedValue = Linear(hiddenDimensions, dimensions)
         }
 
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
@@ -559,11 +558,11 @@ private enum Vision {
                 let numWindowsW = (llmGridW + padW) / vitMergerWindowSize
 
                 // Pad the index
-                let indexPadded = pad(
+                let indexPadded = padded(
                     index,
-                    paddings: [(0, 0), (0, padH), (0, padW)],
+                    widths: [[0, 0], [0, padH], [0, padW]],
                     mode: .constant,
-                    constantValues: -100
+                    value: MLXArray(-100)
                 )
 
                 // Reshape and transpose
@@ -583,7 +582,7 @@ private enum Vision {
                 )
 
                 // Calculate sequence lengths
-                let seqlens = sum(indexTransposed != -100, axes: [2, 3]).reshaped(-1)
+                let seqlens = sum(indexTransposed .!= -100, axes: [2, 3]).reshaped(-1)
 
                 // Get valid indices
                 let indexFlattened = indexTransposed.flattened()
@@ -671,7 +670,7 @@ private enum Vision {
             hiddenStates = patchMerger(hiddenStates)
 
             // Reorder back to original sequence
-            let reverseIndices = argsort(windowIndex, axis: 0)
+            let reverseIndices = argSort(windowIndex, axis: 0)
             hiddenStates = hiddenStates[reverseIndices, 0...]
 
             return hiddenStates
