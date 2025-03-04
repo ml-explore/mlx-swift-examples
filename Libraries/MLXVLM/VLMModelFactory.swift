@@ -186,6 +186,12 @@ public class ModelRegistry: @unchecked Sendable {
             }
         }
     }
+
+    public var models: some Collection<ModelConfiguration> & Sendable {
+        lock.withLock {
+            return registry.values
+        }
+    }
 }
 
 /// Factory for creating new LLMs.
