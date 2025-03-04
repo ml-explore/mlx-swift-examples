@@ -441,7 +441,7 @@ private enum Vision {
 /// PaliGemma VLM `UserInputProcessor`.
 ///
 /// This is meant to be used with ``PaliGemma`` and is typically created by ``VLMModelFactory``.
-public class PaligGemmaProcessor: UserInputProcessor {
+public class PaliGemmaProcessor: UserInputProcessor {
 
     private let config: PaliGemmaProcessorConfiguration
     private let tokenizer: any Tokenizer
@@ -705,7 +705,7 @@ public struct PaliGemmaConfiguration: Codable, Sendable {
     }
 }
 
-/// Configuration for ``PaligGemmaProcessor``
+/// Configuration for ``PaliGemmaProcessor``
 public struct PaliGemmaProcessorConfiguration: Codable, Sendable {
 
     public struct Size: Codable, Sendable {
