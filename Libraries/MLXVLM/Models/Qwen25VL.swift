@@ -136,9 +136,9 @@ private enum Language {
         @ModuleInfo(key: "down_proj") var down: Linear
 
         public init(dimensions: Int, hiddenDimensions: Int) {
-            self._gate.wrappedValue = Linear(dimensions, hiddenDimensions)
-            self._up.wrappedValue = Linear(dimensions, hiddenDimensions)
-            self._down.wrappedValue = Linear(hiddenDimensions, dimensions)
+            self._gate.wrappedValue = Linear(dimensions, hiddenDimensions, bias: false)
+            self._up.wrappedValue = Linear(dimensions, hiddenDimensions, bias: false)
+            self._down.wrappedValue = Linear(hiddenDimensions, dimensions, bias: false)
         }
 
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
