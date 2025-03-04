@@ -98,7 +98,7 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
     private var creators:
         [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor] = [
             "PaliGemmaProcessor": create(
-                PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
+                PaliGemmaProcessorConfiguration.self, PaliGemmaProcessor.init),
             "Qwen2VLProcessor": create(
                 Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
             "Idefics3Processor": create(
