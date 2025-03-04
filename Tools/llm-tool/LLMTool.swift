@@ -223,39 +223,33 @@ struct EvaluateCommand: AsyncParsableCommand {
         let prompt =
             (try? generate.resolvePrompt(configuration: modelConfiguration))
             ?? modelConfiguration.defaultPrompt
-
         let images = image.map { UserInput.Image.url($0) }
         let videos = video.map { UserInput.Video.url($0) }
-
-        let messages: [Message] = [
-            [
-                "role": "system",
-                "content": [
+        let messages: [[String: Any]] =
+            if !images.isEmpty || !videos.isEmpty {
+                [
                     [
-                        "type": "text",
-                        "text": generate.system,
+                        "role": "user",
+                        "content": [
+                            [
+                                "type": "text",
+                                "text": generate.system,
+                            ]
+                        ]
+                            // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
+                            + images.map { _ in ["type": "image"] }
+                            + videos.map { _ in ["type": "video"] },
                     ]
-                ],
-            ],
-            [
-                "role": "user",
-                "content": []
-                    + images.map { _ in
-                        ["type": "image"]
-                    }
-                    + videos.map { _ in
-                        ["type": "video"]
-                    }
-                    + [["type": "text", "text": prompt]],
-            ],
-        ]
-
-        var input = UserInput(
-            messages: messages,
-            images: images,
-            videos: videos
-        )
-
+                ]
+            } else {
+                [
+                    [
+                        "role": "user",
+                        "content": prompt,
+                    ]
+                ]
+            }
+        var userInput = UserInput(messages: messages, images: images, videos: videos)
         if !resize.isEmpty {
             let size: CGSize
             if resize.count == 1 {
@@ -267,10 +261,9 @@ struct EvaluateCommand: AsyncParsableCommand {
                 let v1 = resize[1]
                 size = CGSize(width: v0, height: v1)
             }
-            input.processing.resize = size
+            userInput.processing.resize = size
         }
-
-        return input
+        return userInput
     }
 
     @MainActor

@@ -39,9 +39,14 @@ public class SuScaledRotaryEmbedding: Module {
     }
 
     public func callAsFunction(_ x: MLXArray, offset: Int = 0) -> MLXArray {
+        // Apply scaling only to the dimensions that will be rotated
+        var scaledX = x
+        let sliceToScale = scaledX[.ellipsis, 0 ..< dimensions]
+        scaledX[.ellipsis, 0 ..< dimensions] = scale * sliceToScale
+
         return MLXFast.RoPE(
-            self.scale * x,
-            dimensions: x.shape.last!,
+            scaledX,
+            dimensions: dimensions,
             traditional: false,
             base: nil,
             scale: 1.0,
