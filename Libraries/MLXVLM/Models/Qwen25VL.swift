@@ -134,6 +134,67 @@ private enum Language {
 // MARK: - Vision
 
 private enum Vision {
+    fileprivate class Attention: Module {
+
+        let numHeads: Int
+        let scale: Float
+
+        @ModuleInfo(key: "qkv") var qkv: Linear
+        @ModuleInfo(key: "proj") var proj: Linear
+
+        public init(dims: Int, numHeads: Int) {
+            self.numHeads = numHeads
+            let headDim = dims / numHeads
+            self.scale = pow(Float(headDim), -0.5)
+
+            self._qkv.wrappedValue = Linear(dims, 3 * dims, bias: true)
+            self._proj.wrappedValue = Linear(dims, dims)
+        }
+
+        public func callAsFunction(
+            _ x: MLXArray, cuSeqlens: MLXArray, rotaryPositionEmbedding: MLXArray
+        ) -> MLXArray {
+            let sequenceLength = x.dim(0)
+
+            let qkv = qkv(x)
+            let s = split(qkv, parts: 3, axis: -1)
+            var (q, k, v) = (s[0], s[1], s[2])
+
+            q = q.reshaped(sequenceLength, numHeads, -1)
+            k = k.reshaped(sequenceLength, numHeads, -1)
+            v = v.reshaped(sequenceLength, numHeads, -1)
+
+            q = QwenVLVision.applyMultimodalRotaryPositionEmbedding(
+                q, freqs: rotaryPositionEmbedding)
+            k = QwenVLVision.applyMultimodalRotaryPositionEmbedding(
+                k, freqs: rotaryPositionEmbedding)
+
+            // Create attention mask
+            let attentionMask = full(
+                [1, sequenceLength, sequenceLength],
+                values: -Float32.greatestFiniteMagnitude)
+
+            // Update mask for each sequence
+            for i in 1 ..< cuSeqlens.size {
+                let start = cuSeqlens[i - 1].item(Int.self)
+                let end = cuSeqlens[i].item(Int.self)
+                attentionMask[0..., start ..< end, start ..< end] = MLXArray(0)
+            }
+
+            q = q.reshaped(1, sequenceLength, numHeads, -1).transposed(0, 2, 1, 3)
+            k = k.reshaped(1, sequenceLength, numHeads, -1).transposed(0, 2, 1, 3)
+            v = v.reshaped(1, sequenceLength, numHeads, -1).transposed(0, 2, 1, 3)
+
+            let output = MLXFast.scaledDotProductAttention(
+                queries: q, keys: k, values: v, scale: scale, mask: attentionMask
+            )
+            .transposed(0, 2, 1, 3)
+            .reshaped(sequenceLength, -1)
+
+            return proj(output)
+        }
+    }
+
     fileprivate class MLP: Module, UnaryLayer {
         @ModuleInfo(key: "gate_proj") var gate: Linear
         @ModuleInfo(key: "up_proj") var up: Linear
@@ -153,13 +214,13 @@ private enum Vision {
     fileprivate class Qwen25VLVisionBlock: Module {
         @ModuleInfo var norm1: LayerNorm
         @ModuleInfo var norm2: LayerNorm
-        @ModuleInfo(key: "attn") var attention: QwenVLVision.Attention
+        @ModuleInfo(key: "attn") var attention: Attention
         @ModuleInfo var mlp: MLP
 
         init(_ config: Qwen25VLConfiguration.VisionConfiguration) {
             self.norm1 = LayerNorm(dimensions: config.hiddenSize, eps: 1e-6)
             self.norm2 = LayerNorm(dimensions: config.hiddenSize, eps: 1e-6)
-            self._attention.wrappedValue = QwenVLVision.Attention(
+            self._attention.wrappedValue = Attention(
                 dims: config.hiddenSize,
                 numHeads: config.numHeads
             )
@@ -172,14 +233,14 @@ private enum Vision {
 
         func callAsFunction(
             _ hiddenStates: MLXArray,
-            frames: [THW],
+            cuSeqlens: MLXArray,
             rotaryPositionEmbedding: MLXArray
         ) -> MLXArray {
             var hiddenStates =
                 hiddenStates
                 + attention(
                     norm1(hiddenStates),
-                    frames: frames,
+                    cuSeqlens: cuSeqlens,
                     rotaryPositionEmbedding: rotaryPositionEmbedding
                 )
 
@@ -196,9 +257,18 @@ private enum Vision {
         @ModuleInfo(key: "merger") var patchMerger: QwenVLVision.PatchMerger
 
         let spatialMergeSize: Int
+        let windowSize: Int
+        let patchSize: Int
+        let spatialMergeUnit: Int
+        let fullAttBlockIndexes: [Int]
 
         init(_ config: Qwen25VLConfiguration.VisionConfiguration) {
             self.spatialMergeSize = config.spatialMergeSize
+            self.windowSize = config.windowSize
+            self.patchSize = config.patchSize
+            self.spatialMergeUnit = config.spatialMergeSize * config.spatialMergeSize
+            self.fullAttBlockIndexes = config.fullAttBlockIndexes
+
             self._patchEmbed.wrappedValue = QwenVLVision.PatchEmbed(
                 patchSize: config.patchSize,
                 temporalPatchSize: config.temporalPatchSize,
@@ -228,13 +298,53 @@ private enum Vision {
             var hiddenStates = patchEmbed(hiddenStates)
             var rotaryPositionEmbedding = rotaryPositionEmbedding(frames)
 
-            let batchSize = frames.count
-            for block in blocks {
-                hiddenStates = block(
-                    hiddenStates, frames: frames,
-                    rotaryPositionEmbedding: rotaryPositionEmbedding)
+            // Get window indices and sequence lengths
+            let (windowIndex, cuWindowSeqlens) = getWindowIndex(frames)
+
+            // Reshape and reindex hidden states
+            let seqLen = hiddenStates.dim(0)
+            hiddenStates = hiddenStates.reshaped(seqLen / spatialMergeUnit, spatialMergeUnit, -1)
+            hiddenStates = hiddenStates[windowIndex, 0..., 0...]
+            hiddenStates = hiddenStates.reshaped(seqLen, -1)
+
+            // Reshape and reindex rotary position embeddings
+            var rotaryPosEmbReshaped = rotaryPositionEmbedding.reshaped(
+                seqLen / spatialMergeUnit, spatialMergeUnit, -1)
+            rotaryPosEmbReshaped = rotaryPosEmbReshaped[windowIndex, 0..., 0...]
+            rotaryPosEmbReshaped = rotaryPosEmbReshaped.reshaped(seqLen, -1)
+
+            // Calculate cumulative sequence lengths for full attention
+            var cuSeqlens = [0]
+            for frame in frames {
+                let seqLen = frame.h * frame.w
+                cuSeqlens.append(
+                    contentsOf: Array(repeating: seqLen, count: frame.t).map {
+                        cuSeqlens.last! + $0
+                    })
             }
-            return patchMerger(hiddenStates)
+            let cuSeqlensArray = MLXArray(cuSeqlens)
+
+            // Process through blocks
+            for (i, block) in blocks.enumerated() {
+                // Use full attention for specific blocks, window attention for others
+                let cuSeqlensNow =
+                    fullAttBlockIndexes.contains(i) ? cuSeqlensArray : cuWindowSeqlens
+
+                hiddenStates = block(
+                    hiddenStates,
+                    cuSeqlens: cuSeqlensNow,
+                    rotaryPositionEmbedding: rotaryPosEmbReshaped
+                )
+            }
+
+            // Apply patch merger
+            hiddenStates = patchMerger(hiddenStates)
+
+            // Reorder back to original sequence
+            let reverseIndices = argSort(windowIndex, axis: 0)
+            hiddenStates = hiddenStates[reverseIndices, 0...]
+
+            return hiddenStates
         }
 
         private func rotaryPositionEmbedding(_ frames: [THW]) -> MLXArray {
@@ -274,6 +384,91 @@ private enum Vision {
             let rotaryPositionEmbedFull = rotaryPositionEmbedding(maxFrameSize)[indices]
 
             return rotaryPositionEmbedFull.reshaped(indices.dim(0), -1)
+        }
+
+        func getWindowIndex(_ frames: [THW]) -> (MLXArray, MLXArray) {
+            var windowIndex = [MLXArray]()
+            var cuWindowSeqlens = [0]
+            var windowIndexId = 0
+            let vitMergerWindowSize = windowSize / spatialMergeSize / patchSize
+
+            for frame in frames {
+                let (gridT, gridH, gridW) = frame.values
+                let llmGridH = gridH / spatialMergeSize
+                let llmGridW = gridW / spatialMergeSize
+
+                let index = MLXArray(0 ..< (gridT * llmGridH * llmGridW)).reshaped(
+                    gridT, llmGridH, llmGridW)
+
+                let padH = vitMergerWindowSize - llmGridH % vitMergerWindowSize
+                let padW = vitMergerWindowSize - llmGridW % vitMergerWindowSize
+                let numWindowsH = (llmGridH + padH) / vitMergerWindowSize
+                let numWindowsW = (llmGridW + padW) / vitMergerWindowSize
+
+                // Pad the index
+                let indexPadded = padded(
+                    index,
+                    widths: [[0, 0], [0, padH], [0, padW]],
+                    mode: .constant,
+                    value: MLXArray(-100)
+                )
+
+                // Reshape and transpose
+                let indexReshaped = indexPadded.reshaped(
+                    gridT,
+                    numWindowsH,
+                    vitMergerWindowSize,
+                    numWindowsW,
+                    vitMergerWindowSize
+                )
+
+                let indexTransposed = indexReshaped.transposed(0, 1, 3, 2, 4).reshaped(
+                    gridT,
+                    numWindowsH * numWindowsW,
+                    vitMergerWindowSize,
+                    vitMergerWindowSize
+                )
+
+                // Calculate sequence lengths
+                let seqlens = sum(indexTransposed .!= -100, axes: [2, 3]).reshaped(-1)
+
+                // Get valid indices
+                let indexFlattened = indexTransposed.flattened()
+                let validIndices = indexFlattened.asArray(Int.self).enumerated()
+                    .filter { $0.element != -100 }
+                    .map { $0.offset }
+
+                let validValues = indexFlattened[MLXArray(validIndices)]
+
+                // Add to window index
+                windowIndex.append(validValues + windowIndexId)
+
+                // Update cumulative sequence lengths
+                let cuSeqlensTmp =
+                    cumsum(seqlens, axis: 0) * spatialMergeUnit + cuWindowSeqlens.last!
+                cuWindowSeqlens.append(contentsOf: cuSeqlensTmp.asArray(Int.self))
+
+                windowIndexId += gridT * llmGridH * llmGridW
+            }
+
+            // Concatenate all window indices
+            let combinedWindowIndex = concatenated(windowIndex, axis: 0)
+            let cuWindowSeqlensArray = MLXArray(cuWindowSeqlens)
+
+            // Get unique values in cuWindowSeqlens
+            var seen = Set<Int>()
+            var uniqueIndices = [Int]()
+
+            for (i, value) in cuWindowSeqlens.enumerated() {
+                if !seen.contains(value) {
+                    seen.insert(value)
+                    uniqueIndices.append(i)
+                }
+            }
+
+            let uniqueCuWindowSeqlens = cuWindowSeqlensArray[MLXArray(uniqueIndices)]
+
+            return (combinedWindowIndex, uniqueCuWindowSeqlens)
         }
 
         func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {

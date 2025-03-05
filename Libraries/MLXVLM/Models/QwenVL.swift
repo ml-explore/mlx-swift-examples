@@ -61,7 +61,10 @@ public enum QwenVLLanguage {
 
         @ModuleInfo(key: "rotary_emb") var rotaryEmbedding: RoPE
 
-        public init(hiddenSize: Int, attentionHeads: Int, kvHeads: Int, ropeTheta: Float, ropeTraditional: Bool, ropeScaling: [String: StringOrNumber]?) {
+        public init(
+            hiddenSize: Int, attentionHeads: Int, kvHeads: Int, ropeTheta: Float,
+            ropeTraditional: Bool, ropeScaling: [String: StringOrNumber]?
+        ) {
             self.heads = attentionHeads
             self.kvHeads = kvHeads
             self.headDim = hiddenSize / attentionHeads
@@ -239,54 +242,6 @@ public enum QwenVLVision {
             return x
         }
     }
-
-    class Attention: Module {
-        let numHeads: Int
-        let scale: Float
-
-        @ModuleInfo(key: "qkv") var qkv: Linear
-        @ModuleInfo(key: "proj") var proj: Linear
-
-        public init(dims: Int, numHeads: Int) {
-            self.numHeads = numHeads
-            let headDim = dims / numHeads
-            self.scale = pow(Float(headDim), -0.5)
-
-            self._qkv.wrappedValue = Linear(dims, 3 * dims, bias: true)
-            self._proj.wrappedValue = Linear(dims, dims)
-        }
-
-        public func callAsFunction(
-            _ x: MLXArray, frames: [THW], rotaryPositionEmbedding: MLXArray
-        ) -> MLXArray {
-            let sequenceLength = x.dim(0)
-            let B = frames[0].t
-            let L = sequenceLength / B
-
-            let qkv = qkv(x)
-            let s = split(qkv, parts: 3, axis: -1)
-            var (q, k, v) = (s[0], s[1], s[2])
-
-            q = q.reshaped(sequenceLength, numHeads, -1)
-            k = k.reshaped(sequenceLength, numHeads, -1)
-            v = v.reshaped(sequenceLength, numHeads, -1)
-
-            q = QwenVLVision.applyMultimodalRotaryPositionEmbedding(q, freqs: rotaryPositionEmbedding)
-            k = QwenVLVision.applyMultimodalRotaryPositionEmbedding(k, freqs: rotaryPositionEmbedding)
-
-            q = q.reshaped(B, L, numHeads, -1).transposed(0, 2, 1, 3)
-            k = k.reshaped(B, L, numHeads, -1).transposed(0, 2, 1, 3)
-            v = v.reshaped(B, L, numHeads, -1).transposed(0, 2, 1, 3)
-
-            let output = MLXFast.scaledDotProductAttention(
-                queries: q, keys: k, values: v, scale: scale, mask: nil
-            )
-            .transposed(0, 2, 1, 3)
-            .reshaped(sequenceLength, -1)
-
-            return proj(output)
-        }
-    }
 }
 
 // MARK: - Model Configuration Base Classes
@@ -350,9 +305,9 @@ extension QwenVLProcessorConfiguration {
 
 // MARK: - Common VLM Model Functions
 
-public extension VLMModel where Self: Module, Self: KVCacheDimensionProvider {
+extension VLMModel where Self: Module, Self: KVCacheDimensionProvider {
     /// Common implementation for merging input IDs with image features
-    func mergeInputIdsWithImageFeatures(
+    public func mergeInputIdsWithImageFeatures(
         inputIds: MLXArray,
         inputEmbeds: MLXArray,
         imageFeatures: MLXArray,
@@ -383,7 +338,7 @@ public extension VLMModel where Self: Module, Self: KVCacheDimensionProvider {
     }
 
     /// Helper method to determine if an array is in MLX weight format
-    func isMLXWeight(_ array: MLXArray) -> Bool {
+    public func isMLXWeight(_ array: MLXArray) -> Bool {
         if array.ndim != 4, array.ndim != 5 {
             return false
         }
@@ -397,7 +352,7 @@ public extension VLMModel where Self: Module, Self: KVCacheDimensionProvider {
     }
 
     /// Helper method to sanitize PyTorch weights for MLX
-    func sanitizeVisionWeights(weights: [String: MLXArray]) -> [String: MLXArray] {
+    public func sanitizeVisionWeights(weights: [String: MLXArray]) -> [String: MLXArray] {
         var sanitizedWeights = [String: MLXArray]()
 
         for (k, v) in weights {
@@ -437,8 +392,8 @@ public class QwenVLProcessor<Config: QwenVLProcessorConfiguration>: UserInputPro
     }
 
     func targetSize(height: Int, width: Int, factor: Int, minPixels: Int, maxPixels: Int)
-    throws
-    -> (Int, Int)
+        throws
+        -> (Int, Int)
     {
         if height < factor {
             throw VLMError.imageProcessingFailure(
@@ -486,7 +441,7 @@ public class QwenVLProcessor<Config: QwenVLProcessorConfiguration>: UserInputPro
         let resizedSize = CGSize(width: resizedWidth, height: resizedHeight)
 
         let processedImages =
-        try images
+            try images
             .map {
                 MediaProcessing.inSRGBToneCurveSpace($0)
             }
@@ -595,7 +550,7 @@ public class QwenVLProcessor<Config: QwenVLProcessorConfiguration>: UserInputPro
     }
 
     func replacePaddingTokens(in promptTokens: [Int], frames: [THW], paddingToken: String)
-    throws -> [Int]
+        throws -> [Int]
     {
         // Replace single padding token with correct number for each image or video frame
         let placeholderTokens = try tokenizer.encode(

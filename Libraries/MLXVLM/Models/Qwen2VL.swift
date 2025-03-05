@@ -129,6 +129,57 @@ private enum Language {
 // MARK: - Vision
 
 private enum Vision {
+    fileprivate class Attention: Module {
+
+        let numHeads: Int
+        let scale: Float
+
+        @ModuleInfo(key: "qkv") var qkv: Linear
+        @ModuleInfo(key: "proj") var proj: Linear
+
+        public init(dims: Int, numHeads: Int) {
+            self.numHeads = numHeads
+            let headDim = dims / numHeads
+            self.scale = pow(Float(headDim), -0.5)
+
+            self._qkv.wrappedValue = Linear(dims, 3 * dims, bias: true)
+            self._proj.wrappedValue = Linear(dims, dims)
+        }
+
+        public func callAsFunction(
+            _ x: MLXArray, frames: [THW], rotaryPositionEmbedding: MLXArray
+        ) -> MLXArray {
+            let sequenceLength = x.dim(0)
+            let B = frames[0].t
+            let L = sequenceLength / B
+
+            let qkv = qkv(x)
+            let s = split(qkv, parts: 3, axis: -1)
+            var (q, k, v) = (s[0], s[1], s[2])
+
+            q = q.reshaped(sequenceLength, numHeads, -1)
+            k = k.reshaped(sequenceLength, numHeads, -1)
+            v = v.reshaped(sequenceLength, numHeads, -1)
+
+            q = QwenVLVision.applyMultimodalRotaryPositionEmbedding(
+                q, freqs: rotaryPositionEmbedding)
+            k = QwenVLVision.applyMultimodalRotaryPositionEmbedding(
+                k, freqs: rotaryPositionEmbedding)
+
+            q = q.reshaped(B, L, numHeads, -1).transposed(0, 2, 1, 3)
+            k = k.reshaped(B, L, numHeads, -1).transposed(0, 2, 1, 3)
+            v = v.reshaped(B, L, numHeads, -1).transposed(0, 2, 1, 3)
+
+            let output = MLXFast.scaledDotProductAttention(
+                queries: q, keys: k, values: v, scale: scale, mask: nil
+            )
+            .transposed(0, 2, 1, 3)
+            .reshaped(sequenceLength, -1)
+
+            return proj(output)
+        }
+    }
+
     fileprivate class MLP: Module, UnaryLayer {
         @ModuleInfo var activation: GELU
         @ModuleInfo var fc1: Linear
@@ -148,14 +199,14 @@ private enum Vision {
     fileprivate class Qwen2VLVisionBlock: Module {
         @ModuleInfo var norm1: LayerNorm
         @ModuleInfo var norm2: LayerNorm
-        @ModuleInfo(key: "attn") var attention: QwenVLVision.Attention
+        @ModuleInfo(key: "attn") var attention: Attention
         @ModuleInfo var mlp: MLP
 
         public init(_ config: Qwen2VLConfiguration.VisionConfiguration) {
             self.norm1 = LayerNorm(dimensions: config.embedDimensions, eps: 1e-6)
             self.norm2 = LayerNorm(dimensions: config.embedDimensions, eps: 1e-6)
 
-            self._attention.wrappedValue = QwenVLVision.Attention(
+            self._attention.wrappedValue = Attention(
                 dims: config.embedDimensions, numHeads: config.numHeads)
 
             let mlpHiddenDimensions = Int(Float(config.embedDimensions) * config.mlpRatio)
