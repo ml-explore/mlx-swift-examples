@@ -15,7 +15,7 @@ private let context = CIContext()
 /// var image: CIImage
 /// image = MediaProcessing.inSRGBToneCurveSpace(image)
 ///
-/// // apply user instructions
+/// // Apply user instructions
 /// image = MediaProcessing.apply(image, processing: processing)
 ///
 /// image = MediaProcessing.resampleBicubic(image, to: config.size.cgSize)
@@ -59,6 +59,10 @@ public enum MediaProcessing {
     }
 
     /// Resample the image using bicubic interpolation.
+    /// - Parameters:
+    ///   - image: The image to resample
+    ///   - size: The target size
+    /// - Returns: The resampled image
     static public func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
         let filter = CIFilter.bicubicScaleTransform()
         let extent = image.extent.size
@@ -70,19 +74,13 @@ public enum MediaProcessing {
         let desiredAspectRatio = size.width / size.height
         filter.aspectRatio = Float(1 / inputAspectRatio * desiredAspectRatio)
 
-        // that image is now the aspect ratio of the target and the size
-        // of the shorter dimension
-        let scale: CGFloat
-        if extent.width < extent.height {
-            scale = size.width / extent.width
-        } else {
-            scale = size.height / extent.height
-        }
+        // Use the same scaling approach regardless of orientation
+        let scale = min(size.width / extent.width, size.height / extent.height)
         filter.scale = Float(scale)
 
         let rescaled = filter.outputImage!
 
-        // the image has a DoD larger than the requested size so crop
+        // The image has a DoD larger than the requested size, so crop
         // it to the desired size
         return rescaled.cropped(to: CGRect(origin: .zero, size: size))
     }
@@ -94,7 +92,7 @@ public enum MediaProcessing {
         let filter = CIFilter.colorMatrix()
         filter.inputImage = image
 
-        // this should match
+        // This should match
         // https://pytorch.org/vision/main/generated/torchvision.transforms.Normalize.html
         //
         // output[channel] = (input[channel] - mean[channel]) / std[channel]
@@ -113,6 +111,10 @@ public enum MediaProcessing {
     }
 
     /// Convert the CIImage into a planar 3 channel MLXArray `[1, C, H, W]`
+    /// - Parameters:
+    ///   - image: The image to convert
+    ///   - colorSpace: Optional color space for rendering
+    /// - Returns: The MLXArray representation of the image
     static public func asMLXArray(_ image: CIImage, colorSpace: CGColorSpace? = nil) -> MLXArray {
         let size = image.extent.size
         let w = Int(size.width.rounded())
@@ -135,10 +137,10 @@ public enum MediaProcessing {
 
         var array = MLXArray(data, [h, w, 4], type: Float32.self)
 
-        // drop 4th channel
+        // Drop 4th channel
         array = array[0..., 0..., ..<3]
 
-        // convert to 1, C, H, W
+        // Convert to 1, C, H, W
         array = array.reshaped(1, h, w, 3).transposed(0, 3, 1, 2)
 
         return array

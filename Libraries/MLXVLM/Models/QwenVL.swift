@@ -123,20 +123,25 @@ public struct QwenVL {
     {
         if height < factor {
             throw VLMError.imageProcessingFailure(
-                "height: \(height) must be larger than factor: \(factor)")
+                "Height: \(height) must be larger than factor: \(factor)")
         }
         if width < factor {
             throw VLMError.imageProcessingFailure(
-                "width: \(width) must be larger than factor: \(factor)")
+                "Width: \(width) must be larger than factor: \(factor)")
         }
         if max(height, width) / min(height, width) > 200 {
             throw VLMError.imageProcessingFailure(
-                "absolute aspect ratio must be smaller than 200: \(width)x\(height)")
+                "Absolute aspect ratio must be smaller than 200: \(width) × \(height)")
         }
+
+        // Maximum allowed dimension for any single side to prevent buffer overflows
+        // This is important for portrait/landscape images with extreme aspect ratios
+        let maxDimension = 224
 
         var hBar = max(factor, Int(round(Float(height) / Float(factor))) * factor)
         var wBar = max(factor, Int(round(Float(width) / Float(factor))) * factor)
 
+        // Start by scaling based on total pixel count
         if hBar * wBar > maxPixels {
             let beta = sqrt(Float(height * width) / Float(maxPixels))
             hBar = Int(floor(Float(height) / beta / Float(factor))) * factor
@@ -146,6 +151,24 @@ public struct QwenVL {
             hBar = Int(ceil(Float(height) * beta / Float(factor))) * factor
             wBar = Int(ceil(Float(width) * beta / Float(factor))) * factor
         }
+
+        // Additionally check if either dimension exceeds the maximum allowed
+        if hBar > maxDimension {
+            // Calculate how much we need to scale down height
+            let scale = Float(maxDimension) / Float(hBar)
+            // Apply that scale to both dimensions to maintain aspect ratio
+            hBar = Int(round(Float(hBar) * scale / Float(factor))) * factor
+            wBar = Int(round(Float(wBar) * scale / Float(factor))) * factor
+        }
+
+        if wBar > maxDimension {
+            // Calculate how much we need to scale down width
+            let scale = Float(maxDimension) / Float(wBar)
+            // Apply that scale to both dimensions to maintain aspect ratio
+            hBar = Int(round(Float(hBar) * scale / Float(factor))) * factor
+            wBar = Int(round(Float(wBar) * scale / Float(factor))) * factor
+        }
+
         return (hBar, wBar)
     }
 
