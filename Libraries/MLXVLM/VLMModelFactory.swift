@@ -90,20 +90,28 @@ public class ModelTypeRegistry: @unchecked Sendable {
 
 public class ProcessorTypeRegistry: @unchecked Sendable {
 
+    /// Creates an empty registry
+    public init() {
+        self.creators = [:]
+    }
+
+    /// Shared instance with default processor types.
+    public static let shared: ProcessorTypeRegistry = {
+        let instance = ProcessorTypeRegistry()
+
+        instance.registerProcessorType("PaliGemmaProcessor", creator: create(PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init))
+        instance.registerProcessorType("Qwen2VLProcessor", creator: create(Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init))
+        instance.registerProcessorType("Idefics3Processor", creator: create(Idefics3ProcessorConfiguration.self, Idefics3Processor.init))
+
+        return instance
+    }()
+
     // Note: using NSLock as we have very small (just dictionary get/set)
     // critical sections and expect no contention.  this allows the methods
     // to remain synchronous.
     private let lock = NSLock()
 
-    private var creators:
-        [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor] = [
-            "PaliGemmaProcessor": create(
-                PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
-            "Qwen2VLProcessor": create(
-                Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
-            "Idefics3Processor": create(
-                Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
-        ]
+    private var creators: [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor]
 
     /// Add a new model to the type registry.
     public func registerProcessorType(
@@ -224,7 +232,7 @@ public class VLMModelFactory: ModelFactory {
     }
 
     /// Shared instance with default behavior.
-    public static let shared = VLMModelFactory(typeRegistry: .init(), processorRegistry: .init(), modelRegistry: .shared)
+    public static let shared = VLMModelFactory(typeRegistry: .init(), processorRegistry: .shared, modelRegistry: .shared)
 
     /// registry of model type, e.g. configuration value `paligemma` -> configuration and init methods
     public let typeRegistry: ModelTypeRegistry
