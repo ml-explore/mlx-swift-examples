@@ -90,21 +90,27 @@ public class ModelTypeRegistry: @unchecked Sendable {
 
 public class ProcessorTypeRegistry: @unchecked Sendable {
 
-    /// Creates an empty registry
+    /// Creates an empty registry.
     public init() {
         self.creators = [:]
     }
 
+    /// Creates a registry with given creators.
+    public init(creators: [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor]) {
+        self.creators = creators
+    }
+
     /// Shared instance with default processor types.
-    public static let shared: ProcessorTypeRegistry = {
-        let instance = ProcessorTypeRegistry()
+    public static let shared: ProcessorTypeRegistry = .init(creators: all())
 
-        instance.registerProcessorType("PaliGemmaProcessor", creator: create(PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init))
-        instance.registerProcessorType("Qwen2VLProcessor", creator: create(Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init))
-        instance.registerProcessorType("Idefics3Processor", creator: create(Idefics3ProcessorConfiguration.self, Idefics3Processor.init))
-
-        return instance
-    }()
+    /// All predefined processor types.
+    private static func all() -> [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor] {
+        [
+             "PaliGemmaProcessor": create(PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
+             "Qwen2VLProcessor": create(Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
+             "Idefics3Processor": create(Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
+         ]
+    }
 
     // Note: using NSLock as we have very small (just dictionary get/set)
     // critical sections and expect no contention.  this allows the methods
