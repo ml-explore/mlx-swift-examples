@@ -72,8 +72,21 @@ public class ModelTypeRegistry: @unchecked Sendable {
 /// implementation, if needed.
 public class ModelRegistry: @unchecked Sendable {
 
+    /// Creates an empty registry.
+    public init() {
+        self.registry = Dictionary()
+    }
+
+    /// Creates a new registry with from given model configurations.
+    public init(modelConfigurations: [ModelConfiguration]) {
+        self.registry = Dictionary(uniqueKeysWithValues: modelConfigurations.map { ($0.name, $0) })
+    }
+
+    /// Shared instance with default model configurations.
+    public static let shared = ModelRegistry(modelConfigurations: all())
+
     private let lock = NSLock()
-    private var registry = Dictionary(uniqueKeysWithValues: all().map { ($0.name, $0) })
+    private var registry: Dictionary<String, ModelConfiguration>
 
     static public let smolLM_135M_4bit = ModelConfiguration(
         id: "mlx-community/SmolLM-135M-Instruct-4bit",
@@ -280,7 +293,7 @@ public class LLMModelFactory: ModelFactory {
     }
 
     /// Shared instance with default behavior.
-    public static let shared = LLMModelFactory(typeRegistry: .init(), modelRegistry: .init())
+    public static let shared = LLMModelFactory(typeRegistry: .init(), modelRegistry: .shared)
 
     /// registry of model type, e.g. configuration value `llama` -> configuration and init methods
     public let typeRegistry: ModelTypeRegistry

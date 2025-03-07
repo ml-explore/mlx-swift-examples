@@ -140,6 +140,18 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
 public class ModelRegistry: @unchecked Sendable {
+    /// Creates an empty registry.
+    public init() {
+        registry = Dictionary()
+    }
+
+    /// Creates a new registry with from given model configurations.
+    public init(modelConfigurations: [ModelConfiguration]) {
+        registry = Dictionary(uniqueKeysWithValues: modelConfigurations.map { ($0.name, $0) })
+    }
+
+    /// Shared instance with default model configurations.
+    public static let shared = ModelRegistry(modelConfigurations: all())
 
     private let lock = NSLock()
     private var registry = Dictionary(
@@ -212,7 +224,7 @@ public class VLMModelFactory: ModelFactory {
     }
 
     /// Shared instance with default behavior.
-    public static let shared = VLMModelFactory(typeRegistry: .init(), processorRegistry: .init(), modelRegistry: .init())
+    public static let shared = VLMModelFactory(typeRegistry: .init(), processorRegistry: .init(), modelRegistry: .shared)
 
     /// registry of model type, e.g. configuration value `paligemma` -> configuration and init methods
     public let typeRegistry: ModelTypeRegistry
