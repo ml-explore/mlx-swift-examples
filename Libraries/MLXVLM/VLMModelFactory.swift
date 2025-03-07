@@ -168,10 +168,7 @@ public class ModelRegistry: @unchecked Sendable {
     public static let shared = ModelRegistry(modelConfigurations: all())
 
     private let lock = NSLock()
-    private var registry = Dictionary(
-        uniqueKeysWithValues: all().map {
-            ($0.name, $0)
-        })
+    private var registry: Dictionary<String, ModelConfiguration>
 
     static public let paligemma3bMix448_8bit = ModelConfiguration(
         id: "mlx-community/paligemma-3b-mix-448-8bit",
