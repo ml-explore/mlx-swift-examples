@@ -205,16 +205,23 @@ public class ModelRegistry: @unchecked Sendable {
 /// ```
 public class VLMModelFactory: ModelFactory {
 
-    public static let shared = VLMModelFactory()
+    public init(typeRegistry: ModelTypeRegistry, processorRegistry: ProcessorTypeRegistry, modelRegistry: ModelRegistry) {
+        self.typeRegistry = typeRegistry
+        self.processorRegistry = processorRegistry
+        self.modelRegistry = modelRegistry
+    }
+
+    /// Shared instance with default behavior.
+    public static let shared = VLMModelFactory(typeRegistry: .init(), processorRegistry: .init(), modelRegistry: .init())
 
     /// registry of model type, e.g. configuration value `paligemma` -> configuration and init methods
-    public let typeRegistry = ModelTypeRegistry()
+    public let typeRegistry: ModelTypeRegistry
 
     /// registry of input processor type, e.g. configuration value `PaliGemmaProcessor` -> configuration and init methods
-    public let processorRegistry = ProcessorTypeRegistry()
+    public let processorRegistry: ProcessorTypeRegistry
 
     /// registry of model id to configuration, e.g. `mlx-community/paligemma-3b-mix-448-8bit`
-    public let modelRegistry = ModelRegistry()
+    public let modelRegistry: ModelRegistry
 
     public func configuration(id: String) -> ModelConfiguration {
         modelRegistry.configuration(id: id)

@@ -274,13 +274,19 @@ private struct LLMUserInputProcessor: UserInputProcessor {
 /// ```
 public class LLMModelFactory: ModelFactory {
 
-    public static let shared = LLMModelFactory()
+    public init(typeRegistry: ModelTypeRegistry, modelRegistry: ModelRegistry) {
+        self.typeRegistry = typeRegistry
+        self.modelRegistry = modelRegistry
+    }
+
+    /// Shared instance with default behavior.
+    public static let shared = LLMModelFactory(typeRegistry: .init(), modelRegistry: .init())
 
     /// registry of model type, e.g. configuration value `llama` -> configuration and init methods
-    public let typeRegistry = ModelTypeRegistry()
+    public let typeRegistry: ModelTypeRegistry
 
     /// registry of model id to configuration, e.g. `mlx-community/Llama-3.2-3B-Instruct-4bit`
-    public let modelRegistry = ModelRegistry()
+    public let modelRegistry: ModelRegistry
 
     public func configuration(id: String) -> ModelConfiguration {
         modelRegistry.configuration(id: id)
