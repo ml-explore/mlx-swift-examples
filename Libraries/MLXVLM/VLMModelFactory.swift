@@ -50,20 +50,10 @@ private func create<C: Codable, P>(
 /// Registry of model type, e.g 'llama', to functions that can instantiate the model from configuration.
 ///
 /// Typically called via ``LLMModelFactory/load(hub:configuration:progressHandler:)``.
-public class ModelTypeRegistry: @unchecked Sendable {
-
-    /// Creates an empty registry.
-    public init() {
-        self.creators = [:]
-    }
-
-    /// Creates a registry with given creators.
-    public init(creators: [String: @Sendable (URL) throws -> any LanguageModel]) {
-        self.creators = creators
-    }
+public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
 
     /// Shared instance with default model types.
-    public static let shared: ModelTypeRegistry = .init(creators: all())
+    public static let shared: VLMTypeRegistry = .init(creators: all())
 
     /// All predefined model types
     private static func all() -> [String: @Sendable (URL) throws -> any LanguageModel] {
@@ -72,36 +62,6 @@ public class ModelTypeRegistry: @unchecked Sendable {
             "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
             "idefics3": create(Idefics3Configuration.self, Idefics3.init),
         ]
-    }
-
-    // Note: using NSLock as we have very small (just dictionary get/set)
-    // critical sections and expect no contention.  this allows the methods
-    // to remain synchronous.
-    private let lock = NSLock()
-
-    private var creators: [String: @Sendable (URL) throws -> any LanguageModel]
-
-    /// Add a new model to the type registry.
-    public func registerModelType(
-        _ type: String,
-        creator: @Sendable @escaping (
-            URL
-        ) throws -> any LanguageModel
-    ) {
-        lock.withLock {
-            creators[type] = creator
-        }
-    }
-
-    /// Given a `modelType` and configuration file instantiate a new `LanguageModel`.
-    public func createModel(configuration: URL, modelType: String) throws -> any LanguageModel {
-        let creator = lock.withLock {
-            creators[modelType]
-        }
-        guard let creator else {
-            throw ModelFactoryError.unsupportedModelType(modelType)
-        }
-        return try creator(configuration)
     }
 
 }
@@ -263,7 +223,8 @@ public class VLMModelFactory: ModelFactory {
 
     /// Shared instance with default behavior.
     public static let shared = VLMModelFactory(
-        typeRegistry: .shared, processorRegistry: .shared, modelRegistry: .shared)
+        typeRegistry: VLMTypeRegistry.shared, processorRegistry: .shared,
+        modelRegistry: .shared)
 
     /// registry of model type, e.g. configuration value `paligemma` -> configuration and init methods
     public let typeRegistry: ModelTypeRegistry
