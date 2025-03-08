@@ -3,7 +3,7 @@
 import Foundation
 
 open class ModelRegistry: @unchecked Sendable {
-    
+
     /// Creates an empty registry.
     public init() {
         self.registry = Dictionary()

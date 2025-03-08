@@ -66,21 +66,10 @@ public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
 
 }
 
-public class ProcessorTypeRegistry: @unchecked Sendable {
-
-    /// Creates an empty registry.
-    public init() {
-        self.creators = [:]
-    }
-
-    /// Creates a registry with given creators.
-    public init(creators: [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor])
-    {
-        self.creators = creators
-    }
+public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendable {
 
     /// Shared instance with default processor types.
-    public static let shared: ProcessorTypeRegistry = .init(creators: all())
+    public static let shared: VLMProcessorTypeRegistry = .init(creators: all())
 
     /// All predefined processor types.
     private static func all() -> [String: @Sendable (URL, any Tokenizer) throws ->
@@ -93,39 +82,6 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
             "Idefics3Processor": create(
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
         ]
-    }
-
-    // Note: using NSLock as we have very small (just dictionary get/set)
-    // critical sections and expect no contention.  this allows the methods
-    // to remain synchronous.
-    private let lock = NSLock()
-
-    private var creators: [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor]
-
-    /// Add a new model to the type registry.
-    public func registerProcessorType(
-        _ type: String,
-        creator: @Sendable @escaping (
-            URL,
-            any Tokenizer
-        ) throws -> any UserInputProcessor
-    ) {
-        lock.withLock {
-            creators[type] = creator
-        }
-    }
-
-    /// Given a `processorType` and configuration file instantiate a new `UserInputProcessor`.
-    public func createModel(configuration: URL, processorType: String, tokenizer: any Tokenizer)
-        throws -> any UserInputProcessor
-    {
-        let creator = lock.withLock {
-            creators[processorType]
-        }
-        guard let creator else {
-            throw ModelFactoryError.unsupportedProcessorType(processorType)
-        }
-        return try creator(configuration, tokenizer)
     }
 
 }
@@ -188,7 +144,7 @@ public class VLMModelFactory: ModelFactory {
 
     /// Shared instance with default behavior.
     public static let shared = VLMModelFactory(
-        typeRegistry: VLMTypeRegistry.shared, processorRegistry: .shared,
+        typeRegistry: VLMTypeRegistry.shared, processorRegistry: VLMProcessorTypeRegistry.shared,
         modelRegistry: VLMRegistry.shared)
 
     /// registry of model type, e.g. configuration value `paligemma` -> configuration and init methods
