@@ -114,7 +114,8 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
     }
 
     /// Creates a registry with given creators.
-    public init(creators: [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor]) {
+    public init(creators: [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor])
+    {
         self.creators = creators
     }
 
@@ -122,12 +123,16 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
     public static let shared: ProcessorTypeRegistry = .init(creators: all())
 
     /// All predefined processor types.
-    private static func all() -> [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor] {
+    private static func all() -> [String: @Sendable (URL, any Tokenizer) throws ->
+        any UserInputProcessor]
+    {
         [
-             "PaliGemmaProcessor": create(PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
-             "Qwen2VLProcessor": create(Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
-             "Idefics3Processor": create(Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
-         ]
+            "PaliGemmaProcessor": create(
+                PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
+            "Qwen2VLProcessor": create(Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
+            "Idefics3Processor": create(
+                Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
+        ]
     }
 
     // Note: using NSLock as we have very small (just dictionary get/set)
@@ -186,7 +191,7 @@ public class ModelRegistry: @unchecked Sendable {
     public static let shared = ModelRegistry(modelConfigurations: all())
 
     private let lock = NSLock()
-    private var registry: Dictionary<String, ModelConfiguration>
+    private var registry: [String: ModelConfiguration]
 
     static public let paligemma3bMix448_8bit = ModelConfiguration(
         id: "mlx-community/paligemma-3b-mix-448-8bit",
@@ -207,7 +212,7 @@ public class ModelRegistry: @unchecked Sendable {
         [
             paligemma3bMix448_8bit,
             qwen2VL2BInstruct4Bit,
-            smolvlminstruct4bit
+            smolvlminstruct4bit,
         ]
     }
 
@@ -247,14 +252,18 @@ public class ModelRegistry: @unchecked Sendable {
 /// ```
 public class VLMModelFactory: ModelFactory {
 
-    public init(typeRegistry: ModelTypeRegistry, processorRegistry: ProcessorTypeRegistry, modelRegistry: ModelRegistry) {
+    public init(
+        typeRegistry: ModelTypeRegistry, processorRegistry: ProcessorTypeRegistry,
+        modelRegistry: ModelRegistry
+    ) {
         self.typeRegistry = typeRegistry
         self.processorRegistry = processorRegistry
         self.modelRegistry = modelRegistry
     }
 
     /// Shared instance with default behavior.
-    public static let shared = VLMModelFactory(typeRegistry: .shared, processorRegistry: .shared, modelRegistry: .shared)
+    public static let shared = VLMModelFactory(
+        typeRegistry: .shared, processorRegistry: .shared, modelRegistry: .shared)
 
     /// registry of model type, e.g. configuration value `paligemma` -> configuration and init methods
     public let typeRegistry: ModelTypeRegistry

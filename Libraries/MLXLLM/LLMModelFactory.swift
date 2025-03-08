@@ -59,8 +59,6 @@ public class ModelTypeRegistry: @unchecked Sendable {
     private let lock = NSLock()
     private var creators: [String: @Sendable (URL) throws -> any LanguageModel]
 
-
-
     /// Add a new model to the type registry.
     public func registerModelType(
         _ type: String, creator: @Sendable @escaping (URL) throws -> any LanguageModel
@@ -105,7 +103,7 @@ public class ModelRegistry: @unchecked Sendable {
     public static let shared = ModelRegistry(modelConfigurations: all())
 
     private let lock = NSLock()
-    private var registry: Dictionary<String, ModelConfiguration>
+    private var registry: [String: ModelConfiguration]
 
     static public let smolLM_135M_4bit = ModelConfiguration(
         id: "mlx-community/SmolLM-135M-Instruct-4bit",
