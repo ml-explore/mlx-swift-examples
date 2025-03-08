@@ -52,16 +52,34 @@ private func create<C: Codable, P>(
 /// Typically called via ``LLMModelFactory/load(hub:configuration:progressHandler:)``.
 public class ModelTypeRegistry: @unchecked Sendable {
 
+    /// Creates an empty registry.
+    public init() {
+        self.creators = [:]
+    }
+
+    /// Creates a registry with given creators.
+    public init(creators: [String: @Sendable (URL) throws -> any LanguageModel]) {
+        self.creators = creators
+    }
+
+    /// Shared instance with default model types.
+    public static let shared: ModelTypeRegistry = .init(creators: all())
+
+    /// All predefined model types
+    private static func all() -> [String: @Sendable (URL) throws -> any LanguageModel] {
+        [
+            "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
+            "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
+            "idefics3": create(Idefics3Configuration.self, Idefics3.init),
+        ]
+    }
+
     // Note: using NSLock as we have very small (just dictionary get/set)
     // critical sections and expect no contention.  this allows the methods
     // to remain synchronous.
     private let lock = NSLock()
 
-    private var creators: [String: @Sendable (URL) throws -> any LanguageModel] = [
-        "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
-        "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
-        "idefics3": create(Idefics3Configuration.self, Idefics3.init),
-    ]
+    private var creators: [String: @Sendable (URL) throws -> any LanguageModel]
 
     /// Add a new model to the type registry.
     public func registerModelType(
@@ -189,6 +207,7 @@ public class ModelRegistry: @unchecked Sendable {
         [
             paligemma3bMix448_8bit,
             qwen2VL2BInstruct4Bit,
+            smolvlminstruct4bit
         ]
     }
 
@@ -235,7 +254,7 @@ public class VLMModelFactory: ModelFactory {
     }
 
     /// Shared instance with default behavior.
-    public static let shared = VLMModelFactory(typeRegistry: .init(), processorRegistry: .shared, modelRegistry: .shared)
+    public static let shared = VLMModelFactory(typeRegistry: .shared, processorRegistry: .shared, modelRegistry: .shared)
 
     /// registry of model type, e.g. configuration value `paligemma` -> configuration and init methods
     public let typeRegistry: ModelTypeRegistry
