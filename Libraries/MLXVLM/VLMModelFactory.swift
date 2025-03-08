@@ -52,16 +52,34 @@ private func create<C: Codable, P>(
 /// Typically called via ``LLMModelFactory/load(hub:configuration:progressHandler:)``.
 public class ModelTypeRegistry: @unchecked Sendable {
 
+    /// Creates an empty registry.
+    public init() {
+        self.creators = [:]
+    }
+
+    /// Creates a registry with given creators.
+    public init(creators: [String: @Sendable (URL) throws -> any LanguageModel]) {
+        self.creators = creators
+    }
+
+    /// Shared instance with default model types.
+    public static let shared: ModelTypeRegistry = .init(creators: all())
+
+    /// All predefined model types
+    private static func all() -> [String: @Sendable (URL) throws -> any LanguageModel] {
+        [
+            "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
+            "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
+            "idefics3": create(Idefics3Configuration.self, Idefics3.init),
+        ]
+    }
+
     // Note: using NSLock as we have very small (just dictionary get/set)
     // critical sections and expect no contention.  this allows the methods
     // to remain synchronous.
     private let lock = NSLock()
 
-    private var creators: [String: @Sendable (URL) throws -> any LanguageModel] = [
-        "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
-        "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
-        "idefics3": create(Idefics3Configuration.self, Idefics3.init),
-    ]
+    private var creators: [String: @Sendable (URL) throws -> any LanguageModel]
 
     /// Add a new model to the type registry.
     public func registerModelType(
@@ -90,20 +108,39 @@ public class ModelTypeRegistry: @unchecked Sendable {
 
 public class ProcessorTypeRegistry: @unchecked Sendable {
 
+    /// Creates an empty registry.
+    public init() {
+        self.creators = [:]
+    }
+
+    /// Creates a registry with given creators.
+    public init(creators: [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor])
+    {
+        self.creators = creators
+    }
+
+    /// Shared instance with default processor types.
+    public static let shared: ProcessorTypeRegistry = .init(creators: all())
+
+    /// All predefined processor types.
+    private static func all() -> [String: @Sendable (URL, any Tokenizer) throws ->
+        any UserInputProcessor]
+    {
+        [
+            "PaliGemmaProcessor": create(
+                PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
+            "Qwen2VLProcessor": create(Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
+            "Idefics3Processor": create(
+                Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
+        ]
+    }
+
     // Note: using NSLock as we have very small (just dictionary get/set)
     // critical sections and expect no contention.  this allows the methods
     // to remain synchronous.
     private let lock = NSLock()
 
-    private var creators:
-        [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor] = [
-            "PaliGemmaProcessor": create(
-                PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
-            "Qwen2VLProcessor": create(
-                Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
-            "Idefics3Processor": create(
-                Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
-        ]
+    private var creators: [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor]
 
     /// Add a new model to the type registry.
     public func registerProcessorType(
@@ -140,12 +177,21 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
 public class ModelRegistry: @unchecked Sendable {
+    /// Creates an empty registry.
+    public init() {
+        registry = Dictionary()
+    }
+
+    /// Creates a new registry with from given model configurations.
+    public init(modelConfigurations: [ModelConfiguration]) {
+        registry = Dictionary(uniqueKeysWithValues: modelConfigurations.map { ($0.name, $0) })
+    }
+
+    /// Shared instance with default model configurations.
+    public static let shared = ModelRegistry(modelConfigurations: all())
 
     private let lock = NSLock()
-    private var registry = Dictionary(
-        uniqueKeysWithValues: all().map {
-            ($0.name, $0)
-        })
+    private var registry: [String: ModelConfiguration]
 
     static public let paligemma3bMix448_8bit = ModelConfiguration(
         id: "mlx-community/paligemma-3b-mix-448-8bit",
@@ -166,6 +212,7 @@ public class ModelRegistry: @unchecked Sendable {
         [
             paligemma3bMix448_8bit,
             qwen2VL2BInstruct4Bit,
+            smolvlminstruct4bit,
         ]
     }
 
@@ -205,16 +252,27 @@ public class ModelRegistry: @unchecked Sendable {
 /// ```
 public class VLMModelFactory: ModelFactory {
 
-    public static let shared = VLMModelFactory()
+    public init(
+        typeRegistry: ModelTypeRegistry, processorRegistry: ProcessorTypeRegistry,
+        modelRegistry: ModelRegistry
+    ) {
+        self.typeRegistry = typeRegistry
+        self.processorRegistry = processorRegistry
+        self.modelRegistry = modelRegistry
+    }
+
+    /// Shared instance with default behavior.
+    public static let shared = VLMModelFactory(
+        typeRegistry: .shared, processorRegistry: .shared, modelRegistry: .shared)
 
     /// registry of model type, e.g. configuration value `paligemma` -> configuration and init methods
-    public let typeRegistry = ModelTypeRegistry()
+    public let typeRegistry: ModelTypeRegistry
 
     /// registry of input processor type, e.g. configuration value `PaliGemmaProcessor` -> configuration and init methods
-    public let processorRegistry = ProcessorTypeRegistry()
+    public let processorRegistry: ProcessorTypeRegistry
 
     /// registry of model id to configuration, e.g. `mlx-community/paligemma-3b-mix-448-8bit`
-    public let modelRegistry = ModelRegistry()
+    public let modelRegistry: ModelRegistry
 
     public func configuration(id: String) -> ModelConfiguration {
         modelRegistry.configuration(id: id)

@@ -22,25 +22,42 @@ private func create<C: Codable, M>(
 /// Typically called via ``LLMModelFactory/load(hub:configuration:progressHandler:)``.
 public class ModelTypeRegistry: @unchecked Sendable {
 
+    /// Creates an empty registry.
+    public init() {
+        self.creators = [:]
+    }
+
+    /// Creates a registry with given creators.
+    public init(creators: [String: @Sendable (URL) throws -> any LanguageModel]) {
+        self.creators = creators
+    }
+
+    /// Shared instance with default model types.
+    public static let shared: ModelTypeRegistry = .init(creators: all())
+
+    /// All predefined model types.
+    private static func all() -> [String: @Sendable (URL) throws -> any LanguageModel] {
+        [
+            "mistral": create(LlamaConfiguration.self, LlamaModel.init),
+            "llama": create(LlamaConfiguration.self, LlamaModel.init),
+            "phi": create(PhiConfiguration.self, PhiModel.init),
+            "phi3": create(Phi3Configuration.self, Phi3Model.init),
+            "phimoe": create(PhiMoEConfiguration.self, PhiMoEModel.init),
+            "gemma": create(GemmaConfiguration.self, GemmaModel.init),
+            "gemma2": create(Gemma2Configuration.self, Gemma2Model.init),
+            "qwen2": create(Qwen2Configuration.self, Qwen2Model.init),
+            "starcoder2": create(Starcoder2Configuration.self, Starcoder2Model.init),
+            "cohere": create(CohereConfiguration.self, CohereModel.init),
+            "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
+            "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
+        ]
+    }
+
     // Note: using NSLock as we have very small (just dictionary get/set)
     // critical sections and expect no contention.  this allows the methods
     // to remain synchronous.
     private let lock = NSLock()
-
-    private var creators: [String: @Sendable (URL) throws -> any LanguageModel] = [
-        "mistral": create(LlamaConfiguration.self, LlamaModel.init),
-        "llama": create(LlamaConfiguration.self, LlamaModel.init),
-        "phi": create(PhiConfiguration.self, PhiModel.init),
-        "phi3": create(Phi3Configuration.self, Phi3Model.init),
-        "phimoe": create(PhiMoEConfiguration.self, PhiMoEModel.init),
-        "gemma": create(GemmaConfiguration.self, GemmaModel.init),
-        "gemma2": create(Gemma2Configuration.self, Gemma2Model.init),
-        "qwen2": create(Qwen2Configuration.self, Qwen2Model.init),
-        "starcoder2": create(Starcoder2Configuration.self, Starcoder2Model.init),
-        "cohere": create(CohereConfiguration.self, CohereModel.init),
-        "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
-        "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
-    ]
+    private var creators: [String: @Sendable (URL) throws -> any LanguageModel]
 
     /// Add a new model to the type registry.
     public func registerModelType(
@@ -72,8 +89,21 @@ public class ModelTypeRegistry: @unchecked Sendable {
 /// implementation, if needed.
 public class ModelRegistry: @unchecked Sendable {
 
+    /// Creates an empty registry.
+    public init() {
+        self.registry = Dictionary()
+    }
+
+    /// Creates a new registry with from given model configurations.
+    public init(modelConfigurations: [ModelConfiguration]) {
+        self.registry = Dictionary(uniqueKeysWithValues: modelConfigurations.map { ($0.name, $0) })
+    }
+
+    /// Shared instance with default model configurations.
+    public static let shared = ModelRegistry(modelConfigurations: all())
+
     private let lock = NSLock()
-    private var registry = Dictionary(uniqueKeysWithValues: all().map { ($0.name, $0) })
+    private var registry: [String: ModelConfiguration]
 
     static public let smolLM_135M_4bit = ModelConfiguration(
         id: "mlx-community/SmolLM-135M-Instruct-4bit",
@@ -274,13 +304,19 @@ private struct LLMUserInputProcessor: UserInputProcessor {
 /// ```
 public class LLMModelFactory: ModelFactory {
 
-    public static let shared = LLMModelFactory()
+    public init(typeRegistry: ModelTypeRegistry, modelRegistry: ModelRegistry) {
+        self.typeRegistry = typeRegistry
+        self.modelRegistry = modelRegistry
+    }
+
+    /// Shared instance with default behavior.
+    public static let shared = LLMModelFactory(typeRegistry: .shared, modelRegistry: .shared)
 
     /// registry of model type, e.g. configuration value `llama` -> configuration and init methods
-    public let typeRegistry = ModelTypeRegistry()
+    public let typeRegistry: ModelTypeRegistry
 
     /// registry of model id to configuration, e.g. `mlx-community/Llama-3.2-3B-Instruct-4bit`
-    public let modelRegistry = ModelRegistry()
+    public let modelRegistry: ModelRegistry
 
     public func configuration(id: String) -> ModelConfiguration {
         modelRegistry.configuration(id: id)
