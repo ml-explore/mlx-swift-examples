@@ -51,23 +51,10 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
 /// The python tokenizers have a very rich set of implementations and configuration.  The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
-public class ModelRegistry: @unchecked Sendable {
-
-    /// Creates an empty registry.
-    public init() {
-        self.registry = Dictionary()
-    }
-
-    /// Creates a new registry with from given model configurations.
-    public init(modelConfigurations: [ModelConfiguration]) {
-        self.registry = Dictionary(uniqueKeysWithValues: modelConfigurations.map { ($0.name, $0) })
-    }
+public class LLMRegistry: ModelRegistry, @unchecked Sendable {
 
     /// Shared instance with default model configurations.
-    public static let shared = ModelRegistry(modelConfigurations: all())
-
-    private let lock = NSLock()
-    private var registry: [String: ModelConfiguration]
+    public static let shared = LLMRegistry(modelConfigurations: all())
 
     static public let smolLM_135M_4bit = ModelConfiguration(
         id: "mlx-community/SmolLM-135M-Instruct-4bit",
@@ -203,29 +190,6 @@ public class ModelRegistry: @unchecked Sendable {
         ]
     }
 
-    public func register(configurations: [ModelConfiguration]) {
-        lock.withLock {
-            for c in configurations {
-                registry[c.name] = c
-            }
-        }
-    }
-
-    public func configuration(id: String) -> ModelConfiguration {
-        lock.withLock {
-            if let c = registry[id] {
-                return c
-            } else {
-                return ModelConfiguration(id: id)
-            }
-        }
-    }
-
-    public var models: some Collection<ModelConfiguration> & Sendable {
-        lock.withLock {
-            return registry.values
-        }
-    }
 }
 
 private struct LLMUserInputProcessor: UserInputProcessor {
@@ -275,7 +239,7 @@ public class LLMModelFactory: ModelFactory {
 
     /// Shared instance with default behavior.
     public static let shared = LLMModelFactory(
-        typeRegistry: LLMTypeRegistry.shared, modelRegistry: .shared)
+        typeRegistry: LLMTypeRegistry.shared, modelRegistry: LLMRegistry.shared)
 
     /// registry of model type, e.g. configuration value `llama` -> configuration and init methods
     public let typeRegistry: ModelTypeRegistry

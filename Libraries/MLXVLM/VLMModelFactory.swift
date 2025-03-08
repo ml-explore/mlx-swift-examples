@@ -136,22 +136,10 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
 /// The python tokenizers have a very rich set of implementations and configuration.  The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
-public class ModelRegistry: @unchecked Sendable {
-    /// Creates an empty registry.
-    public init() {
-        registry = Dictionary()
-    }
-
-    /// Creates a new registry with from given model configurations.
-    public init(modelConfigurations: [ModelConfiguration]) {
-        registry = Dictionary(uniqueKeysWithValues: modelConfigurations.map { ($0.name, $0) })
-    }
+public class VLMRegistry: ModelRegistry, @unchecked Sendable {
 
     /// Shared instance with default model configurations.
-    public static let shared = ModelRegistry(modelConfigurations: all())
-
-    private let lock = NSLock()
-    private var registry: [String: ModelConfiguration]
+    public static let shared: VLMRegistry = .init(modelConfigurations: all())
 
     static public let paligemma3bMix448_8bit = ModelConfiguration(
         id: "mlx-community/paligemma-3b-mix-448-8bit",
@@ -176,29 +164,6 @@ public class ModelRegistry: @unchecked Sendable {
         ]
     }
 
-    public func register(configurations: [ModelConfiguration]) {
-        lock.withLock {
-            for c in configurations {
-                registry[c.name] = c
-            }
-        }
-    }
-
-    public func configuration(id: String) -> ModelConfiguration {
-        lock.withLock {
-            if let c = registry[id] {
-                return c
-            } else {
-                return ModelConfiguration(id: id)
-            }
-        }
-    }
-
-    public var models: some Collection<ModelConfiguration> & Sendable {
-        lock.withLock {
-            return registry.values
-        }
-    }
 }
 
 /// Factory for creating new LLMs.
@@ -224,7 +189,7 @@ public class VLMModelFactory: ModelFactory {
     /// Shared instance with default behavior.
     public static let shared = VLMModelFactory(
         typeRegistry: VLMTypeRegistry.shared, processorRegistry: .shared,
-        modelRegistry: .shared)
+        modelRegistry: VLMRegistry.shared)
 
     /// registry of model type, e.g. configuration value `paligemma` -> configuration and init methods
     public let typeRegistry: ModelTypeRegistry
