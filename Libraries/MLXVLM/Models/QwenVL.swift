@@ -169,6 +169,16 @@ public struct QwenVL {
             wBar = Int(round(Float(wBar) * scale / Float(factor))) * factor
         }
 
+        // Ensure dimensions are divisible by the factor
+        hBar = (hBar / factor) * factor
+        wBar = (wBar / factor) * factor
+
+        // Final sanity check
+        if hBar <= 0 || wBar <= 0 {
+            throw VLMError.imageProcessingFailure(
+                "Invalid target dimensions: \(wBar) × \(hBar)")
+        }
+
         return (hBar, wBar)
     }
 

@@ -63,26 +63,48 @@ public enum MediaProcessing {
     ///   - image: The image to resample
     ///   - size: The target size
     /// - Returns: The resampled image
-    static public func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
-        let filter = CIFilter.bicubicScaleTransform()
-        let extent = image.extent.size
+    public static func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
+        // First, create a CIFilter for precise resampling
+        guard let filter = CIFilter(name: "CILanczosScaleTransform") else {
+            // Fall back to affine transform if filter isn't available
+            let scaleX = size.width / image.extent.width
+            let scaleY = size.height / image.extent.height
+            let transform = CGAffineTransform(scaleX: scaleX, y: scaleY)
+            let scaled = image.transformed(by: transform)
 
-        filter.inputImage = image
+            // Force exact dimensions by cropping
+            return scaled.cropped(to: CGRect(origin: .zero, size: size))
+        }
 
-        // set the aspect ratio to match the aspect ratio of the target
-        let inputAspectRatio = extent.width / extent.height
-        let desiredAspectRatio = size.width / size.height
-        filter.aspectRatio = Float(1 / inputAspectRatio * desiredAspectRatio)
+        filter.setValue(image, forKey: kCIInputImageKey)
+        filter.setValue(size.width / image.extent.width, forKey: kCIInputScaleKey)
+        filter.setValue(1.0, forKey: kCIInputAspectRatioKey)
 
-        // Use the same scaling approach regardless of orientation
-        let scale = min(size.width / extent.width, size.height / extent.height)
-        filter.scale = Float(scale)
+        guard let scaledImage = filter.outputImage else {
+            // Fall back if filter fails
+            let scaleX = size.width / image.extent.width
+            let scaleY = size.height / image.extent.height
+            let transform = CGAffineTransform(scaleX: scaleX, y: scaleY)
+            let scaled = image.transformed(by: transform)
 
-        let rescaled = filter.outputImage!
+            return scaled.cropped(to: CGRect(origin: .zero, size: size))
+        }
 
-        // The image has a DoD larger than the requested size, so crop
-        // it to the desired size
-        return rescaled.cropped(to: CGRect(origin: .zero, size: size))
+        // Calculate the crop rect to get exactly the requested size
+        // Scale height separately to match the target height
+        let heightScale = size.height / scaledImage.extent.height
+        let finalImage = scaledImage.transformed(by: CGAffineTransform(scaleX: 1.0, y: heightScale))
+
+        // Create a rect with the exact dimensions we want
+        let exactRect = CGRect(
+            x: 0,
+            y: 0,
+            width: size.width,
+            height: size.height
+        )
+
+        // Crop to ensure exact dimensions
+        return finalImage.cropped(to: exactRect)
     }
 
     /// Normalize the image using the given mean and standard deviation parameters.
