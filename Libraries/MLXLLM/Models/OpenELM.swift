@@ -27,7 +27,6 @@ func makeDivisible(_ v: Float, divisor: Int = 8, minValue: Float? = nil) -> Int 
 }
 
 private class MultiHeadCausalAttention: Module {
-    var args: OpenElmConfiguration
     let scale: Float
     let heads: Int
     let headDim: Int
@@ -36,18 +35,17 @@ private class MultiHeadCausalAttention: Module {
     @ModuleInfo(key: "qkv_proj") var qkvProj: Linear
     @ModuleInfo(key: "out_proj") var outProj: Linear
 
-    @ModuleInfo(key: "q_norm") var qNorm: RMSNorm
-    @ModuleInfo(key: "k_norm") var kNorm: RMSNorm
+    @ModuleInfo(key: "q_norm") var qNorm: RMSNorm?
+    @ModuleInfo(key: "k_norm") var kNorm: RMSNorm?
 
     let rope: RoPE
 
     public init(_ args: OpenElmConfiguration, layerId: Int) {
-        self.args = args
         self.headDim = args.headDimensions
         let modelDim = args.modelDim
 
-        self.heads = self.args.numQueryHeads[layerId]
-        self.kvHeads = self.args.kvHeads[layerId]
+        self.heads = args.numQueryHeads[layerId]
+        self.kvHeads = args.kvHeads[layerId]
         self.scale = pow(Float(headDim), -0.5)
 
         let opSize = (heads + (kvHeads * 2)) * headDim
@@ -74,7 +72,7 @@ private class MultiHeadCausalAttention: Module {
         var keys = qkvSplit[1]
         var values = qkvSplit[2]
 
-        if args.normalizeQkProjections {
+        if let qNorm, let kNorm {
             queries = qNorm(queries)
             keys = kNorm(keys)
         }
@@ -181,27 +179,27 @@ public class OpenELMModel: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
     public let kvHeads: [Int]
 
-    let shareInputOutputLayers: Bool
     let transformer: OpenELMModelInner
 
-    @ModuleInfo(key: "lm_head") var lmHead: Linear
+    @ModuleInfo(key: "lm_head") var lmHead: Linear?
 
     public init(_ args: OpenElmConfiguration) {
         self.vocabularySize = args.vocabularySize
         self.kvHeads = args.kvHeads
 
         self.transformer = OpenELMModelInner(args)
-        self.shareInputOutputLayers = args.shareInputOutputLayers
-        self._lmHead.wrappedValue = Linear(
-            args.numTransformerLayers, args.vocabularySize, bias: false)
+        if !args.shareInputOutputLayers {
+            self._lmHead.wrappedValue = Linear(
+                args.numTransformerLayers, args.vocabularySize, bias: false)
+        }
     }
 
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
         var out = transformer(inputs, cache: cache)
-        if shareInputOutputLayers {
-            out = matmul(out, transformer.embedTokens.weight.T)
-        } else {
+        if let lmHead {
             out = lmHead(out)
+        } else {
+            out = matmul(out, transformer.embedTokens.weight.T)
         }
 
         return out
