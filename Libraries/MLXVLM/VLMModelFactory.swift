@@ -159,10 +159,6 @@ public class VLMModelFactory: ModelFactory {
     /// registry of model id to configuration, e.g. `mlx-community/paligemma-3b-mix-448-8bit`
     public let modelRegistry: AbstractModelRegistry
 
-    public func configuration(id: String) -> ModelConfiguration {
-        modelRegistry.configuration(id: id)
-    }
-
     public func _load(
         hub: HubApi, configuration: ModelConfiguration,
         progressHandler: @Sendable @escaping (Progress) -> Void
