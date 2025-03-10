@@ -421,7 +421,7 @@ class VLMEvaluator {
                         ]
                     }
                 var userInput = UserInput(messages: messages, images: images, videos: videos)
-                userInput.processing.resize = .init(width: 448, height: 448)
+                userInput.processing.resize = .init(width: 1344, height: 1344)
                 let input = try await context.processor.prepare(input: userInput)
                 return try MLXLMCommon.generate(
                     input: input,
