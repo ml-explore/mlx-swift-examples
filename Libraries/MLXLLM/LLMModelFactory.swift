@@ -250,19 +250,6 @@ public class LLMModelFactory: ModelFactory {
     /// registry of model id to configuration, e.g. `mlx-community/Llama-3.2-3B-Instruct-4bit`
     public let modelRegistry: AbstractModelRegistry
 
-    /// Returns configuration from ``modelRegistry``.
-    ///
-    /// - Note: If the id doesn't exists in the configuration, this will return a new instance of it.
-    /// If you want to check if the configuration in model registry, you should use ``contains(id:)``.
-    public func configuration(id: String) -> ModelConfiguration {
-        modelRegistry.configuration(id: id)
-    }
-
-    /// Returns true if ``modelRegistry`` contains a model with the id. Otherwise, false.
-    public func contains(id: String) -> Bool {
-        modelRegistry.contains(id: id)
-    }
-
     public func _load(
         hub: HubApi, configuration: ModelConfiguration,
         progressHandler: @Sendable @escaping (Progress) -> Void
