@@ -318,13 +318,13 @@ private enum Vision {
             // Create attention mask
             let attentionMask = full(
                 [1, sequenceLength, sequenceLength],
-                values: -Float32.greatestFiniteMagnitude)
+                values: true)
 
             // Update mask for each sequence
             for i in 1 ..< cuSeqlens.size {
                 let start = cuSeqlens[i - 1].item(Int.self)
                 let end = cuSeqlens[i].item(Int.self)
-                attentionMask[0..., start ..< end, start ..< end] = MLXArray(0)
+                attentionMask[0..., start ..< end, start ..< end] = MLXArray(false)
             }
 
             q = q.reshaped(1, sequenceLength, numHeads, -1).transposed(0, 2, 1, 3)
