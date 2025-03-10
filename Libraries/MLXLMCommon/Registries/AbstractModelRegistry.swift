@@ -2,7 +2,7 @@
 
 import Foundation
 
-open class ModelRegistry: @unchecked Sendable {
+open class AbstractModelRegistry: @unchecked Sendable {
 
     /// Creates an empty registry.
     public init() {

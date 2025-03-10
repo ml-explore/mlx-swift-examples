@@ -92,7 +92,7 @@ public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendabl
 /// The python tokenizers have a very rich set of implementations and configuration.  The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
-public class VLMRegistry: ModelRegistry, @unchecked Sendable {
+public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
 
     /// Shared instance with default model configurations.
     public static let shared: VLMRegistry = .init(modelConfigurations: all())
@@ -135,7 +135,7 @@ public class VLMModelFactory: ModelFactory {
 
     public init(
         typeRegistry: ModelTypeRegistry, processorRegistry: ProcessorTypeRegistry,
-        modelRegistry: ModelRegistry
+        modelRegistry: AbstractModelRegistry
     ) {
         self.typeRegistry = typeRegistry
         self.processorRegistry = processorRegistry
@@ -154,7 +154,7 @@ public class VLMModelFactory: ModelFactory {
     public let processorRegistry: ProcessorTypeRegistry
 
     /// registry of model id to configuration, e.g. `mlx-community/paligemma-3b-mix-448-8bit`
-    public let modelRegistry: ModelRegistry
+    public let modelRegistry: AbstractModelRegistry
 
     public func configuration(id: String) -> ModelConfiguration {
         modelRegistry.configuration(id: id)

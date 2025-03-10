@@ -51,7 +51,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
 /// The python tokenizers have a very rich set of implementations and configuration.  The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
-public class LLMRegistry: ModelRegistry, @unchecked Sendable {
+public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
 
     /// Shared instance with default model configurations.
     public static let shared = LLMRegistry(modelConfigurations: all())
@@ -232,7 +232,7 @@ private struct LLMUserInputProcessor: UserInputProcessor {
 /// ```
 public class LLMModelFactory: ModelFactory {
 
-    public init(typeRegistry: ModelTypeRegistry, modelRegistry: ModelRegistry) {
+    public init(typeRegistry: ModelTypeRegistry, modelRegistry: AbstractModelRegistry) {
         self.typeRegistry = typeRegistry
         self.modelRegistry = modelRegistry
     }
@@ -245,7 +245,7 @@ public class LLMModelFactory: ModelFactory {
     public let typeRegistry: ModelTypeRegistry
 
     /// registry of model id to configuration, e.g. `mlx-community/Llama-3.2-3B-Instruct-4bit`
-    public let modelRegistry: ModelRegistry
+    public let modelRegistry: AbstractModelRegistry
 
     public func configuration(id: String) -> ModelConfiguration {
         modelRegistry.configuration(id: id)
