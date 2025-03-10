@@ -192,7 +192,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
 
 }
 
-@available(*, deprecated, renamed: "LLMRegistry", message: "Please use LLMRegistry directly instead.")
+@available(*, deprecated, renamed: "LLMRegistry", message: "Please use LLMRegistry directly.")
 public typealias ModelRegistry = LLMRegistry
 
 private struct LLMUserInputProcessor: UserInputProcessor {
