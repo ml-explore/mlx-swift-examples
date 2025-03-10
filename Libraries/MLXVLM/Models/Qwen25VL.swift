@@ -679,6 +679,8 @@ public class Qwen25VLProcessor: UserInputProcessor {
             minPixels: config.size.minPixels, maxPixels: config.size.maxPixels)
         let resizedSize = CGSize(width: resizedWidth, height: resizedHeight)
 
+        print("config.size.maxPixels: \(config.size.maxPixels)")
+
         // Process images
         let processedImages =
             try images
