@@ -83,6 +83,12 @@ public struct ModelConfiguration: Sendable {
             return ModelConfiguration(id: id)
         }
     }
+
+    @MainActor
+    public static var models: some Collection<ModelConfiguration> & Sendable {
+        bootstrap()
+        return Self.registry.values
+    }
 }
 
 extension ModelConfiguration {
