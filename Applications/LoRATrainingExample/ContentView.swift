@@ -9,9 +9,33 @@ import MLXRandom
 import SwiftUI
 import Tokenizers
 
+/// MLX Supported formats, as defined in [mlx-examples](https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/LORA.md#local-datasets)
+enum DataFormat: String, CaseIterable {
+    case chat, tool, completion, text
+    
+    var prompt: String {
+        switch self {
+        case .chat: """
+            """
+        case .tool: """
+            """
+        case .completion: """
+            """
+        case .text: """
+            table: 1-10015132-16
+            columns: Player, No., Nationality, Position, Years in Toronto, School/Club Team
+            Q: What is terrence ross' nationality
+            A:
+            """
+        }
+    }
+}
+
 struct ContentView: View {
 
     @State var evaluator = LoRAEvaluator()
+    @State private var isTargeted = false
+    @State private var dataFormat: DataFormat = .text
 
     @State var prompt = """
         table: 1-10015132-16
@@ -56,8 +80,15 @@ struct ContentView: View {
                 VStack {
                     switch evaluator.state {
                     case .idle:
-                        Button("Start", action: start)
-
+                        HStack {
+                            Picker("Select training data format:", selection: $dataFormat) {
+                                ForEach(DataFormat.allCases, id: \.self) { format in
+                                    Text(format.rawValue)
+                                        .tag(format)
+                                }
+                            }
+                            Button("Start", action: start)
+                        }
                     case .training:
                         EmptyView()
 
@@ -84,7 +115,7 @@ struct ContentView: View {
 
     func start() {
         Task {
-            await evaluator.start()
+            await evaluator.start(trainFilename: "train-\(dataFormat.rawValue)", validateFilename: "valid-\(dataFormat.rawValue)", testFilename: "test-\(dataFormat.rawValue)")
         }
     }
 
@@ -133,7 +164,7 @@ class LoRAEvaluator {
     private let generateParameters = GenerateParameters(temperature: 0.6, topP: 0.9)
     private let evaluateShowEvery = 8
     private let maxTokens = 200
-
+    
     private func loadModel() async throws -> ModelContainer {
         switch self.model {
         case .idle:
@@ -167,9 +198,9 @@ class LoRAEvaluator {
         return nil
     }
 
-    func start() async {
+    func start(trainFilename: String, validateFilename: String, testFilename: String) async {
         do {
-            try await startInner()
+            try await startInner(trainFilename: trainFilename, validateFilename: validateFilename, testFilename: testFilename)
         } catch {
             self.state = .failed("Failed: \(error)")
         }
@@ -186,7 +217,7 @@ class LoRAEvaluator {
         return Array(layerProvider.loraLinearLayers().suffix(loraLayers))
     }
 
-    private func startInner() async throws {
+    private func startInner(trainFilename: String, validateFilename: String, testFilename: String) async throws {
         // setup
         GPU.set(cacheLimit: 32 * 1024 * 1024)
         await MainActor.run {
@@ -203,8 +234,8 @@ class LoRAEvaluator {
                 model: context.model, layers: loraLayers(model: context.model))
         }
 
-        let train = try loadLoRAData(name: "train")
-        let valid = try loadLoRAData(name: "valid")
+        let train = try loadLoRAData(name: trainFilename)
+        let valid = try loadLoRAData(name: validateFilename)
         guard let train, let valid else {
             state = .failed("Failed to load train/validation data")
             return
@@ -237,7 +268,7 @@ class LoRAEvaluator {
 
         // done training, test
         self.progress = .init(title: "Testing", current: nil, limit: nil)
-        guard let test = try loadLoRAData(name: "test") else {
+        guard let test = try loadLoRAData(name: testFilename) else {
             state = .failed("Failed to load test data")
             return
         }
