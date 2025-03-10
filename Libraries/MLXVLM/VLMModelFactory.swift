@@ -50,20 +50,10 @@ private func create<C: Codable, P>(
 /// Registry of model type, e.g 'llama', to functions that can instantiate the model from configuration.
 ///
 /// Typically called via ``LLMModelFactory/load(hub:configuration:progressHandler:)``.
-public class ModelTypeRegistry: @unchecked Sendable {
-
-    /// Creates an empty registry.
-    public init() {
-        self.creators = [:]
-    }
-
-    /// Creates a registry with given creators.
-    public init(creators: [String: @Sendable (URL) throws -> any LanguageModel]) {
-        self.creators = creators
-    }
+public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
 
     /// Shared instance with default model types.
-    public static let shared: ModelTypeRegistry = .init(creators: all())
+    public static let shared: VLMTypeRegistry = .init(creators: all())
 
     /// All predefined model types
     private static func all() -> [String: @Sendable (URL) throws -> any LanguageModel] {
@@ -74,53 +64,12 @@ public class ModelTypeRegistry: @unchecked Sendable {
         ]
     }
 
-    // Note: using NSLock as we have very small (just dictionary get/set)
-    // critical sections and expect no contention.  this allows the methods
-    // to remain synchronous.
-    private let lock = NSLock()
-
-    private var creators: [String: @Sendable (URL) throws -> any LanguageModel]
-
-    /// Add a new model to the type registry.
-    public func registerModelType(
-        _ type: String,
-        creator: @Sendable @escaping (
-            URL
-        ) throws -> any LanguageModel
-    ) {
-        lock.withLock {
-            creators[type] = creator
-        }
-    }
-
-    /// Given a `modelType` and configuration file instantiate a new `LanguageModel`.
-    public func createModel(configuration: URL, modelType: String) throws -> any LanguageModel {
-        let creator = lock.withLock {
-            creators[modelType]
-        }
-        guard let creator else {
-            throw ModelFactoryError.unsupportedModelType(modelType)
-        }
-        return try creator(configuration)
-    }
-
 }
 
-public class ProcessorTypeRegistry: @unchecked Sendable {
-
-    /// Creates an empty registry.
-    public init() {
-        self.creators = [:]
-    }
-
-    /// Creates a registry with given creators.
-    public init(creators: [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor])
-    {
-        self.creators = creators
-    }
+public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendable {
 
     /// Shared instance with default processor types.
-    public static let shared: ProcessorTypeRegistry = .init(creators: all())
+    public static let shared: VLMProcessorTypeRegistry = .init(creators: all())
 
     /// All predefined processor types.
     private static func all() -> [String: @Sendable (URL, any Tokenizer) throws ->
@@ -135,39 +84,6 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
         ]
     }
 
-    // Note: using NSLock as we have very small (just dictionary get/set)
-    // critical sections and expect no contention.  this allows the methods
-    // to remain synchronous.
-    private let lock = NSLock()
-
-    private var creators: [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor]
-
-    /// Add a new model to the type registry.
-    public func registerProcessorType(
-        _ type: String,
-        creator: @Sendable @escaping (
-            URL,
-            any Tokenizer
-        ) throws -> any UserInputProcessor
-    ) {
-        lock.withLock {
-            creators[type] = creator
-        }
-    }
-
-    /// Given a `processorType` and configuration file instantiate a new `UserInputProcessor`.
-    public func createModel(configuration: URL, processorType: String, tokenizer: any Tokenizer)
-        throws -> any UserInputProcessor
-    {
-        let creator = lock.withLock {
-            creators[processorType]
-        }
-        guard let creator else {
-            throw ModelFactoryError.unsupportedProcessorType(processorType)
-        }
-        return try creator(configuration, tokenizer)
-    }
-
 }
 
 /// Registry of models and any overrides that go with them, e.g. prompt augmentation.
@@ -176,22 +92,10 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
 /// The python tokenizers have a very rich set of implementations and configuration.  The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
-public class ModelRegistry: @unchecked Sendable {
-    /// Creates an empty registry.
-    public init() {
-        registry = Dictionary()
-    }
-
-    /// Creates a new registry with from given model configurations.
-    public init(modelConfigurations: [ModelConfiguration]) {
-        registry = Dictionary(uniqueKeysWithValues: modelConfigurations.map { ($0.name, $0) })
-    }
+public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
 
     /// Shared instance with default model configurations.
-    public static let shared = ModelRegistry(modelConfigurations: all())
-
-    private let lock = NSLock()
-    private var registry: [String: ModelConfiguration]
+    public static let shared: VLMRegistry = .init(modelConfigurations: all())
 
     static public let paligemma3bMix448_8bit = ModelConfiguration(
         id: "mlx-community/paligemma-3b-mix-448-8bit",
@@ -216,30 +120,10 @@ public class ModelRegistry: @unchecked Sendable {
         ]
     }
 
-    public func register(configurations: [ModelConfiguration]) {
-        lock.withLock {
-            for c in configurations {
-                registry[c.name] = c
-            }
-        }
-    }
-
-    public func configuration(id: String) -> ModelConfiguration {
-        lock.withLock {
-            if let c = registry[id] {
-                return c
-            } else {
-                return ModelConfiguration(id: id)
-            }
-        }
-    }
-
-    public var models: some Collection<ModelConfiguration> & Sendable {
-        lock.withLock {
-            return registry.values
-        }
-    }
 }
+
+@available(*, deprecated, renamed: "VLMRegistry", message: "Please use VLMRegistry directly.")
+public typealias ModelRegistry = VLMRegistry
 
 /// Factory for creating new LLMs.
 ///
@@ -254,7 +138,7 @@ public class VLMModelFactory: ModelFactory {
 
     public init(
         typeRegistry: ModelTypeRegistry, processorRegistry: ProcessorTypeRegistry,
-        modelRegistry: ModelRegistry
+        modelRegistry: AbstractModelRegistry
     ) {
         self.typeRegistry = typeRegistry
         self.processorRegistry = processorRegistry
@@ -263,7 +147,8 @@ public class VLMModelFactory: ModelFactory {
 
     /// Shared instance with default behavior.
     public static let shared = VLMModelFactory(
-        typeRegistry: .shared, processorRegistry: .shared, modelRegistry: .shared)
+        typeRegistry: VLMTypeRegistry.shared, processorRegistry: VLMProcessorTypeRegistry.shared,
+        modelRegistry: VLMRegistry.shared)
 
     /// registry of model type, e.g. configuration value `paligemma` -> configuration and init methods
     public let typeRegistry: ModelTypeRegistry
@@ -272,7 +157,7 @@ public class VLMModelFactory: ModelFactory {
     public let processorRegistry: ProcessorTypeRegistry
 
     /// registry of model id to configuration, e.g. `mlx-community/paligemma-3b-mix-448-8bit`
-    public let modelRegistry: ModelRegistry
+    public let modelRegistry: AbstractModelRegistry
 
     public func configuration(id: String) -> ModelConfiguration {
         modelRegistry.configuration(id: id)
