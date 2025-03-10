@@ -199,7 +199,7 @@ public class OpenELMModel: Module, LLMModel, KVCacheDimensionProvider {
         if let lmHead {
             out = lmHead(out)
         } else {
-            out = matmul(out, transformer.embedTokens.weight.T)
+            out = transformer.embedTokens.asLinear(out)
         }
 
         return out
