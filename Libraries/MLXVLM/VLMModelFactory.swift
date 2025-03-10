@@ -85,6 +85,7 @@ public class ModelTypeRegistry: @unchecked Sendable {
         [
             "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
             "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
+            "qwen2_5_vl": create(Qwen25VLConfiguration.self, Qwen25VL.init),
             "idefics3": create(Idefics3Configuration.self, Idefics3.init),
         ]
     }
