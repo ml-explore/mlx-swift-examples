@@ -192,6 +192,9 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
 
 }
 
+@available(*, deprecated, renamed: "LLMRegistry", message: "Please use LLMRegistry directly instead.")
+public typealias ModelRegistry = LLMRegistry
+
 private struct LLMUserInputProcessor: UserInputProcessor {
 
     let tokenizer: Tokenizer

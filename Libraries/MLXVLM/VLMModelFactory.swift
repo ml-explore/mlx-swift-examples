@@ -122,6 +122,9 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
 
 }
 
+@available(*, deprecated, renamed: "VLMRegistry", message: "Please use VLMRegistry directly instead.")
+public typealias ModelRegistry = VLMRegistry
+
 /// Factory for creating new LLMs.
 ///
 /// Callers can use the `shared` instance or create a new instance if custom configuration
