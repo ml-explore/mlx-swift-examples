@@ -15,7 +15,7 @@ private let context = CIContext()
 /// var image: CIImage
 /// image = MediaProcessing.inSRGBToneCurveSpace(image)
 ///
-/// // apply user instructions
+/// // Apply user instructions
 /// image = MediaProcessing.apply(image, processing: processing)
 ///
 /// image = MediaProcessing.resampleBicubic(image, to: config.size.cgSize)
@@ -59,32 +59,52 @@ public enum MediaProcessing {
     }
 
     /// Resample the image using bicubic interpolation.
-    static public func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
-        let filter = CIFilter.bicubicScaleTransform()
-        let extent = image.extent.size
+    /// - Parameters:
+    ///   - image: The image to resample
+    ///   - size: The target size
+    /// - Returns: The resampled image
+    public static func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
+        // First, create a CIFilter for precise resampling
+        guard let filter = CIFilter(name: "CILanczosScaleTransform") else {
+            // Fall back to affine transform if filter isn't available
+            let scaleX = size.width / image.extent.width
+            let scaleY = size.height / image.extent.height
+            let transform = CGAffineTransform(scaleX: scaleX, y: scaleY)
+            let scaled = image.transformed(by: transform)
 
-        filter.inputImage = image
-
-        // set the aspect ratio to match the aspect ratio of the target
-        let inputAspectRatio = extent.width / extent.height
-        let desiredAspectRatio = size.width / size.height
-        filter.aspectRatio = Float(1 / inputAspectRatio * desiredAspectRatio)
-
-        // that image is now the aspect ratio of the target and the size
-        // of the shorter dimension
-        let scale: CGFloat
-        if extent.width < extent.height {
-            scale = size.width / extent.width
-        } else {
-            scale = size.height / extent.height
+            // Force exact dimensions by cropping
+            return scaled.cropped(to: CGRect(origin: .zero, size: size))
         }
-        filter.scale = Float(scale)
 
-        let rescaled = filter.outputImage!
+        filter.setValue(image, forKey: kCIInputImageKey)
+        filter.setValue(size.width / image.extent.width, forKey: kCIInputScaleKey)
+        filter.setValue(1.0, forKey: kCIInputAspectRatioKey)
 
-        // the image has a DoD larger than the requested size so crop
-        // it to the desired size
-        return rescaled.cropped(to: CGRect(origin: .zero, size: size))
+        guard let scaledImage = filter.outputImage else {
+            // Fall back if filter fails
+            let scaleX = size.width / image.extent.width
+            let scaleY = size.height / image.extent.height
+            let transform = CGAffineTransform(scaleX: scaleX, y: scaleY)
+            let scaled = image.transformed(by: transform)
+
+            return scaled.cropped(to: CGRect(origin: .zero, size: size))
+        }
+
+        // Calculate the crop rect to get exactly the requested size
+        // Scale height separately to match the target height
+        let heightScale = size.height / scaledImage.extent.height
+        let finalImage = scaledImage.transformed(by: CGAffineTransform(scaleX: 1.0, y: heightScale))
+
+        // Create a rect with the exact dimensions we want
+        let exactRect = CGRect(
+            x: 0,
+            y: 0,
+            width: size.width,
+            height: size.height
+        )
+
+        // Crop to ensure exact dimensions
+        return finalImage.cropped(to: exactRect)
     }
 
     /// Normalize the image using the given mean and standard deviation parameters.
@@ -94,7 +114,7 @@ public enum MediaProcessing {
         let filter = CIFilter.colorMatrix()
         filter.inputImage = image
 
-        // this should match
+        // This should match
         // https://pytorch.org/vision/main/generated/torchvision.transforms.Normalize.html
         //
         // output[channel] = (input[channel] - mean[channel]) / std[channel]
@@ -113,6 +133,10 @@ public enum MediaProcessing {
     }
 
     /// Convert the CIImage into a planar 3 channel MLXArray `[1, C, H, W]`
+    /// - Parameters:
+    ///   - image: The image to convert
+    ///   - colorSpace: Optional color space for rendering
+    /// - Returns: The MLXArray representation of the image
     static public func asMLXArray(_ image: CIImage, colorSpace: CGColorSpace? = nil) -> MLXArray {
         let size = image.extent.size
         let w = Int(size.width.rounded())
@@ -135,10 +159,10 @@ public enum MediaProcessing {
 
         var array = MLXArray(data, [h, w, 4], type: Float32.self)
 
-        // drop 4th channel
+        // Drop 4th channel
         array = array[0..., 0..., ..<3]
 
-        // convert to 1, C, H, W
+        // Convert to 1, C, H, W
         array = array.reshaped(1, h, w, 3).transposed(0, 3, 1, 2)
 
         return array
