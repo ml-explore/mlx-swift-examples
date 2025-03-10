@@ -485,12 +485,18 @@ public class PaligGemmaProcessor: UserInputProcessor {
         prompt =
             Array(repeating: "<image>", count: count).joined() + (tokenizer.bosToken ?? "") + prompt
             + "\n"
-
+        
+        try Task.checkCancellation()
+        
         let promptTokens = try tokenizer.encode(text: prompt)
         let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
+        
+        try Task.checkCancellation()
+        
         let mask = ones(like: promptArray).asType(.int8)
 
         let pixels = try prepare(image: input.images[0].asCIImage(), processing: input.processing)
+        try Task.checkCancellation()
 
         return LMInput(text: .init(tokens: promptArray, mask: mask), image: .init(pixels: pixels))
     }

@@ -811,6 +811,7 @@ public class Idefics3Processor: UserInputProcessor {
             // No image scenario
             let tokens = try tokenizer.encode(text: prompt)
             let tokensArray = MLXArray(tokens).expandedDimensions(axis: 0)
+            try Task.checkCancellation()
             let mask = ones(like: tokensArray)
             return LMInput(text: .init(tokens: tokensArray, mask: mask), image: nil)
         } else {
@@ -832,12 +833,17 @@ public class Idefics3Processor: UserInputProcessor {
 
             var image = try input.images[0].asCIImage()
             image = MediaProcessing.inSRGBToneCurveSpace(image)
+            
+            try Task.checkCancellation()
+            
             let targetSize = CGSize(
                 width: fixedImageSize,
                 height: fixedImageSize
             )
             image = MediaProcessing.apply(image, processing: input.processing)
+            try Task.checkCancellation()
             image = MediaProcessing.resampleBicubic(image, to: targetSize)
+            try Task.checkCancellation()
             image = MediaProcessing.normalize(
                 image,
                 mean: config.imageMeanTuple,
@@ -863,6 +869,7 @@ public class Idefics3Processor: UserInputProcessor {
             {
                 pixels = pixels.transposed(0, 2, 3, 1)
             }
+            try Task.checkCancellation()
 
             return LMInput(
                 text: .init(tokens: promptArray, mask: mask),

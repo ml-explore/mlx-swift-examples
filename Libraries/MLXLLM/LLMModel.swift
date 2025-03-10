@@ -24,7 +24,7 @@ extension LLMModel {
         while y.tokens.size > prefillStepSize {
             let input = y[.newAxis, ..<prefillStepSize]
             let result = self(input, cache: cache.isEmpty ? nil : cache, state: state)
-            eval(cache)
+            try batchedEval(cache)
             y = y[prefillStepSize...]
         }
 

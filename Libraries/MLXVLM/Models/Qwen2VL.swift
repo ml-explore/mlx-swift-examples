@@ -631,6 +631,8 @@ public class Qwen2VLProcessor: UserInputProcessor {
         let images = images.map { MediaProcessing.apply($0, processing: processing) }
 
         // image_processing_qwen2_vl._preprocess
+        
+        try Task.checkCancellation()
 
         let size = images[0].extent.size
         let (resizedHeight, resizedWidth) = try targetSize(
@@ -654,6 +656,7 @@ public class Qwen2VLProcessor: UserInputProcessor {
             .map {
                 MediaProcessing.asMLXArray($0)
             }
+        try Task.checkCancellation()
 
         var patches = concatenated(processedImages)
         let mod = patches.dim(0) % config.temporalPatchSize
@@ -685,6 +688,7 @@ public class Qwen2VLProcessor: UserInputProcessor {
             gridT * gridH * gridW,
             channel * config.temporalPatchSize * config.patchSize * config.patchSize
         )
+        try Task.checkCancellation()
 
         return (flattenedPatches, .init(gridT, gridH, gridW))
     }
@@ -711,6 +715,7 @@ public class Qwen2VLProcessor: UserInputProcessor {
                 promptTokens = try replacePaddingTokens(
                     in: promptTokens, frames: imageFrames, paddingToken: "<|image_pad|>")
             }
+            try Task.checkCancellation()
         }
 
         // Process videos if any
@@ -718,6 +723,7 @@ public class Qwen2VLProcessor: UserInputProcessor {
         if !input.videos.isEmpty {
             var videosAsImageSequences = [[CIImage]]()
             for video in input.videos {
+                try Task.checkCancellation()
                 if let imageSequence = try? await MediaProcessing.asCIImageSequence(
                     video.asAVAsset(), samplesPerSecond: 2)
                 {
@@ -735,7 +741,9 @@ public class Qwen2VLProcessor: UserInputProcessor {
                     in: promptTokens, frames: videoFrames, paddingToken: "<|video_pad|>")
             }
         }
-
+        
+        try Task.checkCancellation()
+        
         let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
         let mask = ones(like: promptArray).asType(.int8)
         return LMInput(

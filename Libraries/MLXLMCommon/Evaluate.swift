@@ -331,6 +331,7 @@ public struct TokenIterator: Sequence, IteratorProtocol {
 
             // evaluate the remainder of the prompt -- this primes the pump
             let token = step(previous: y)
+            try Task.checkCancellation()
             y = .init(tokens: token)
             asyncEval(y.tokens)
 
@@ -340,6 +341,7 @@ public struct TokenIterator: Sequence, IteratorProtocol {
 
             break
         }
+        try Task.checkCancellation()
     }
 
     mutating func convertToToken(logits: MLXArray) -> MLXArray {
@@ -454,7 +456,7 @@ public func generate(
         configuration: configuration, model: model, processor: StandInUserInputProcessor(),
         tokenizer: tokenizer)
 
-    return generate(
+    return try generate(
         input: input, context: context, iterator: iterator, didGenerate: didGenerate)
 }
 
@@ -490,7 +492,7 @@ public func generate(
 ) throws -> GenerateResult {
     let iterator = try TokenIterator(
         input: input, model: context.model, parameters: parameters)
-    return generate(
+    return try generate(
         input: input, context: context, iterator: iterator, didGenerate: didGenerate)
 }
 
@@ -508,7 +510,7 @@ public func generate(
     input: LMInput, context: ModelContext,
     iterator: TokenIterator,
     didGenerate: ([Int]) -> GenerateDisposition
-) -> GenerateResult {
+) throws -> GenerateResult {
     var start = Date.timeIntervalSinceReferenceDate
     var promptTime: TimeInterval = 0
 
@@ -538,6 +540,10 @@ public func generate(
         if didGenerate(tokens) == .stop {
             break
         }
+        
+        if Task.isCancelled {
+            break // instead of checkCancellation so that Stream().synchronize() gets called
+        }
     }
 
     let now = Date.timeIntervalSinceReferenceDate
@@ -548,6 +554,8 @@ public func generate(
     // hit assertions as the mlx scheduler is torn down.  Synchronize with the stream
     // to make sure it is complete.
     Stream().synchronize()
+    
+    try Task.checkCancellation() // check now, so that throw happens
 
     return GenerateResult(
         inputText: input.text, tokens: tokens,

@@ -210,7 +210,11 @@ private struct LLMUserInputProcessor: UserInputProcessor {
             let messages = input.prompt.asMessages()
             let promptTokens = try tokenizer.applyChatTemplate(
                 messages: messages, tools: input.tools, additionalContext: input.additionalContext)
-            return LMInput(tokens: MLXArray(promptTokens))
+            try Task.checkCancellation()
+            let input = LMInput(tokens: MLXArray(promptTokens))
+            return input
+        } catch (let cancellationError as CancellationError) {
+            throw cancellationError // just rethrow
         } catch {
             // #150 -- it might be a TokenizerError.chatTemplate("No chat template was specified")
             // but that is not public so just fall back to text
@@ -219,6 +223,7 @@ private struct LLMUserInputProcessor: UserInputProcessor {
                 .compactMap { $0["content"] as? String }
                 .joined(separator: ". ")
             let promptTokens = tokenizer.encode(text: prompt)
+            try Task.checkCancellation()
             return LMInput(tokens: MLXArray(promptTokens))
         }
     }
@@ -261,20 +266,29 @@ public class LLMModelFactory: ModelFactory {
         // download weights and config
         let modelDirectory = try await downloadModel(
             hub: hub, configuration: configuration, progressHandler: progressHandler)
+        
+        try Task.checkCancellation()
 
         // load the generic config to unerstand which model and how to load the weights
         let configurationURL = modelDirectory.appending(component: "config.json")
         let baseConfig = try JSONDecoder().decode(
             BaseConfiguration.self, from: Data(contentsOf: configurationURL))
+        
         let model = try typeRegistry.createModel(
             configuration: configurationURL, modelType: baseConfig.modelType)
+        
+        try Task.checkCancellation()
 
         // apply the weights to the bare model
         try loadWeights(
             modelDirectory: modelDirectory, model: model, quantization: baseConfig.quantization)
-
+        
+        try Task.checkCancellation()
+        
         let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
-
+        
+        try Task.checkCancellation()
+        
         return .init(
             configuration: configuration, model: model,
             processor: LLMUserInputProcessor(tokenizer: tokenizer, configuration: configuration),

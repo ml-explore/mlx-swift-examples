@@ -71,6 +71,7 @@ public func loadWeights(
             for (key, value) in w {
                 weights[key] = value
             }
+            try Task.checkCancellation()
         }
     }
 
@@ -79,15 +80,88 @@ public func loadWeights(
 
     // quantize if needed
     if let quantization {
+        try Task.checkCancellation()
         quantize(model: model, groupSize: quantization.groupSize, bits: quantization.bits) {
             path, module in
             weights["\(path).scales"] != nil
         }
     }
 
+    try Task.checkCancellation()
     // apply the loaded weights
     let parameters = ModuleParameters.unflattened(weights)
+    
+    try Task.checkCancellation()
     try model.update(parameters: parameters, verify: [.all])
 
-    eval(model)
+    try Task.checkCancellation()
+    try batchedEval(model)
+}
+
+
+public func batchedEval(_ values: Any..., batchSize: Int = 5) throws {
+    var arrays = [MLXArray]()
+
+    for item in values {
+        collect(item, into: &arrays)
+    }
+    
+    for batch in arrays.chunked(into: batchSize) {
+        try Task.checkCancellation()
+        eval(batch)
+    }
+}
+
+private func collect(_ item: Any, into arrays: inout [MLXArray]) {
+    switch item {
+    case let v as Evaluatable:
+        arrays.append(contentsOf: v.innerState())
+
+    case let v as NestedDictionary<String, MLXArray>:
+        arrays.append(contentsOf: v.flattened().map { $0.1 })
+
+    case let v as MLXArray:
+        arrays.append(v)
+    case let v as [MLXArray]:
+        arrays.append(contentsOf: v)
+    case let v as [Any]:
+        for item in v {
+            collect(item, into: &arrays)
+        }
+    case let v as [AnyHashable: Any]:
+        for item in v.values {
+            collect(item, into: &arrays)
+        }
+    case let v as (Any, Any):
+        collect(v.0, into: &arrays)
+        collect(v.1, into: &arrays)
+    case let v as (Any, Any, Any):
+        collect(v.0, into: &arrays)
+        collect(v.1, into: &arrays)
+        collect(v.2, into: &arrays)
+    case let v as (Any, Any, Any, Any):
+        collect(v.0, into: &arrays)
+        collect(v.1, into: &arrays)
+        collect(v.2, into: &arrays)
+        collect(v.3, into: &arrays)
+    case let v as (Any, Any, Any, Any, Any):
+        collect(v.0, into: &arrays)
+        collect(v.1, into: &arrays)
+        collect(v.2, into: &arrays)
+        collect(v.3, into: &arrays)
+        collect(v.4, into: &arrays)
+    case is String, is any BinaryInteger, is any BinaryFloatingPoint:
+        // ignore, e.g. (String, MLXArray)
+        break
+    default:
+        fatalError("Unable to extract MLXArray from \(item)")
+    }
+}
+
+extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        stride(from: 0, to: count, by: size).map {
+            Array(self[$0..<Swift.min($0 + size, count)])
+        }
+    }
 }
