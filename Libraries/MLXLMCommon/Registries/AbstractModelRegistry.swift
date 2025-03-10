@@ -25,6 +25,10 @@ open class AbstractModelRegistry: @unchecked Sendable {
         }
     }
 
+    /// Returns configuration from ``modelRegistry``.
+    ///
+    /// - Note: If the id doesn't exists in the configuration, this will return a new instance of it.
+    /// If you want to check if the configuration in model registry, you should use ``contains(id:)``.
     public func configuration(id: String) -> ModelConfiguration {
         lock.withLock {
             if let c = registry[id] {
@@ -32,6 +36,13 @@ open class AbstractModelRegistry: @unchecked Sendable {
             } else {
                 return ModelConfiguration(id: id)
             }
+        }
+    }
+
+    /// Returns true if the registry contains a model with the id. Otherwise, false.
+    public func contains(id: String) -> Bool {
+        lock.withLock {
+            registry[id] != nil
         }
     }
 
