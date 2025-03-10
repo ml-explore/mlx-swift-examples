@@ -32,12 +32,11 @@ import Tokenizers
 /// }
 /// ```
 public actor ModelContainer {
-    let context: ModelContext
-    nonisolated public let configuration: ModelConfiguration
+    var context: ModelContext
+    public var configuration: ModelConfiguration { context.configuration }
 
     public init(context: ModelContext) {
         self.context = context
-        self.configuration = context.configuration
     }
 
     /// Perform an action on the model and/or tokenizer.  Callers _must_ eval any `MLXArray` before returning as
@@ -75,4 +74,9 @@ public actor ModelContainer {
         try await action(context, values)
     }
 
+    /// Update the owned `ModelContext`.
+    /// - Parameter action: update action
+    public func update(_ action: @Sendable (inout ModelContext) -> Void) {
+        action(&context)
+    }
 }
