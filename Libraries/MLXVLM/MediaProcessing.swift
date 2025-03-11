@@ -62,9 +62,9 @@ public enum MediaProcessing {
         case transformFailed
 
         var errorDescription: String? {
-          switch self {
+            switch self {
             case .transformFailed: "Failed to transform image"
-          }
+            }
         }
     }
 
@@ -75,16 +75,19 @@ public enum MediaProcessing {
     /// - Returns: The resampled image
     public static func resampleBicubic(_ image: CIImage, to size: CGSize) throws -> CIImage {
         // Create a bicubic scale filter
+
+        let scale = size.width / image.extent.width
+
         let filter = CIFilter.bicubicScaleTransform()
         filter.inputImage = image
-        filter.scale = Float(size.width / image.extent.width)
+        filter.scale = Float(scale)
         filter.aspectRatio = 1.0
         guard let scaledImage = filter.outputImage else {
             throw MediaProcessingError.transformFailed
         }
         // Calculate the crop rect to get exactly the requested size
         // Scale height separately to match the target height
-        let heightScale = size.height / scaledImage.extent.height
+        let heightScale = size.height / (image.extent.height * scale)
         let finalImage = scaledImage.transformed(by: CGAffineTransform(scaleX: 1.0, y: heightScale))
         // Create a rect with the exact dimensions we want
         let exactRect = CGRect(
