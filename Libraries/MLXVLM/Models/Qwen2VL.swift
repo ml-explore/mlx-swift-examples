@@ -549,7 +549,7 @@ public class Qwen2VLProcessor: UserInputProcessor {
                 MediaProcessing.inSRGBToneCurveSpace($0)
             }
             .map {
-                return MediaProcessing.resampleBicubic($0, to: resizedSize)
+                return try MediaProcessing.resampleBicubic($0, to: resizedSize)
             }
             .map {
                 MediaProcessing.normalize(

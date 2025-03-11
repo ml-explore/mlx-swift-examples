@@ -451,7 +451,7 @@ public class PaliGemmaProcessor: UserInputProcessor {
         self.tokenizer = tokenizer
     }
 
-    private func prepare(image: CIImage, processing: UserInput.Processing?) -> MLXArray {
+    private func prepare(image: CIImage, processing: UserInput.Processing?) throws -> MLXArray {
         // based on image_processing_siglip from transformers
         var image = image
 
@@ -463,7 +463,7 @@ public class PaliGemmaProcessor: UserInputProcessor {
         // apply user instructions
         image = MediaProcessing.apply(image, processing: processing)
 
-        image = MediaProcessing.resampleBicubic(image, to: config.size.cgSize)
+        image = try MediaProcessing.resampleBicubic(image, to: config.size.cgSize)
         image = MediaProcessing.normalize(
             image, mean: config.imageMeanTuple, std: config.imageStdTuple)
 

@@ -58,43 +58,32 @@ public enum MediaProcessing {
         min(other.width / size.width, other.height / size.height)
     }
 
+    enum MediaProcessingError: LocalizedError {
+        case transformFailed
+
+        var errorDescription: String? {
+            "Failed to transform image"
+        }
+    }
+
     /// Resample the image using bicubic interpolation.
     /// - Parameters:
     ///   - image: The image to resample
     ///   - size: The target size
     /// - Returns: The resampled image
-    public static func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
-        // First, create a CIFilter for precise resampling
-        guard let filter = CIFilter(name: "CILanczosScaleTransform") else {
-            // Fall back to affine transform if filter isn't available
-            let scaleX = size.width / image.extent.width
-            let scaleY = size.height / image.extent.height
-            let transform = CGAffineTransform(scaleX: scaleX, y: scaleY)
-            let scaled = image.transformed(by: transform)
-
-            // Force exact dimensions by cropping
-            return scaled.cropped(to: CGRect(origin: .zero, size: size))
-        }
-
-        filter.setValue(image, forKey: kCIInputImageKey)
-        filter.setValue(size.width / image.extent.width, forKey: kCIInputScaleKey)
-        filter.setValue(1.0, forKey: kCIInputAspectRatioKey)
-
+    public static func resampleBicubic(_ image: CIImage, to size: CGSize) throws -> CIImage {
+        // Create a bicubic scale filter
+        let filter = CIFilter.bicubicScaleTransform()
+        filter.inputImage = image
+        filter.scale = Float(size.width / image.extent.width)
+        filter.aspectRatio = 1.0
         guard let scaledImage = filter.outputImage else {
-            // Fall back if filter fails
-            let scaleX = size.width / image.extent.width
-            let scaleY = size.height / image.extent.height
-            let transform = CGAffineTransform(scaleX: scaleX, y: scaleY)
-            let scaled = image.transformed(by: transform)
-
-            return scaled.cropped(to: CGRect(origin: .zero, size: size))
+            throw MediaProcessingError.transformFailed
         }
-
         // Calculate the crop rect to get exactly the requested size
         // Scale height separately to match the target height
         let heightScale = size.height / scaledImage.extent.height
         let finalImage = scaledImage.transformed(by: CGAffineTransform(scaleX: 1.0, y: heightScale))
-
         // Create a rect with the exact dimensions we want
         let exactRect = CGRect(
             x: 0,
@@ -102,7 +91,6 @@ public enum MediaProcessing {
             width: size.width,
             height: size.height
         )
-
         // Crop to ensure exact dimensions
         return finalImage.cropped(to: exactRect)
     }
