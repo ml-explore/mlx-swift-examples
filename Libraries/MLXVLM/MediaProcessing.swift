@@ -62,7 +62,9 @@ public enum MediaProcessing {
         case transformFailed
 
         var errorDescription: String? {
-            "Failed to transform image"
+          switch self {
+            case .transformFailed: "Failed to transform image"
+          }
         }
     }
 
