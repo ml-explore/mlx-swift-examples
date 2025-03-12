@@ -379,7 +379,7 @@ public struct TokenIterator: Sequence, IteratorProtocol {
 
 /// Result of a call to ``generate(input:parameters:context:didGenerate:)``.
 public struct GenerateResult: Sendable {
-    
+
     /// Initializes a new `GenerateResult` instance.
     ///
     /// - Parameters:
@@ -388,14 +388,17 @@ public struct GenerateResult: Sendable {
     ///   - output: The generated output string.
     ///   - promptTime: The time taken to prompt the input.
     ///   - generateTime: The time taken to generate the output.
-    public init(inputText: LMInput.Text, tokens: [Int], output: String, promptTime: TimeInterval, generateTime: TimeInterval) {
+    public init(
+        inputText: LMInput.Text, tokens: [Int], output: String, promptTime: TimeInterval,
+        generateTime: TimeInterval
+    ) {
         self.inputText = inputText
         self.tokens = tokens
         self.output = output
         self.promptTime = promptTime
         self.generateTime = generateTime
     }
-    
+
     /// input (prompt, images, etc.)
     public let inputText: LMInput.Text
 
