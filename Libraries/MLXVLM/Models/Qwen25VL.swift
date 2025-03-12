@@ -300,7 +300,7 @@ private enum Vision {
         }
 
         public func callAsFunction(
-            _ x: MLXArray, cuSeqlens: MLXArray, rotaryPositionEmbedding: MLXArray
+            _ x: MLXArray, attentionMask: MLXArray, rotaryPositionEmbedding: MLXArray
         ) -> MLXArray {
             let sequenceLength = x.dim(0)
 
@@ -314,18 +314,6 @@ private enum Vision {
 
             q = applyMultimodalRotaryPositionEmbedding(q, freqs: rotaryPositionEmbedding)
             k = applyMultimodalRotaryPositionEmbedding(k, freqs: rotaryPositionEmbedding)
-
-            // Create attention mask
-            let attentionMask = full(
-                [1, sequenceLength, sequenceLength],
-                values: true)
-
-            // Update mask for each sequence
-            for i in 1 ..< cuSeqlens.size {
-                let start = cuSeqlens[i - 1].item(Int.self)
-                let end = cuSeqlens[i].item(Int.self)
-                attentionMask[0..., start ..< end, start ..< end] = MLXArray(false)
-            }
 
             q = q.reshaped(1, sequenceLength, numHeads, -1).transposed(0, 2, 1, 3)
             k = k.reshaped(1, sequenceLength, numHeads, -1).transposed(0, 2, 1, 3)
@@ -377,13 +365,13 @@ private enum Vision {
         }
 
         func callAsFunction(
-            _ hiddenStates: MLXArray, cuSeqlens: MLXArray, rotaryPositionEmbedding: MLXArray
+            _ hiddenStates: MLXArray, attentionMask: MLXArray, rotaryPositionEmbedding: MLXArray
         ) -> MLXArray {
             var hiddenStates =
                 hiddenStates
                 + attention(
                     norm1(hiddenStates),
-                    cuSeqlens: cuSeqlens,
+                    attentionMask: attentionMask,
                     rotaryPositionEmbedding: rotaryPositionEmbedding
                 )
             hiddenStates = hiddenStates + mlp(norm2(hiddenStates))
@@ -558,6 +546,22 @@ private enum Vision {
             return (combinedWindowIndex, uniqueCuWindowSeqlens)
         }
 
+        func attentionMask(sequenceLength: Int, cuSeqlens: MLXArray) -> MLXArray {
+            // Create attention mask
+            let attentionMask = full(
+                [1, sequenceLength, sequenceLength],
+                values: true)
+
+            // Update mask for each sequence
+            for i in 1 ..< cuSeqlens.size {
+                let start = cuSeqlens[i - 1].item(Int.self)
+                let end = cuSeqlens[i].item(Int.self)
+                attentionMask[0..., start ..< end, start ..< end] = MLXArray(false)
+            }
+
+            return attentionMask
+        }
+
         public func callAsFunction(_ hiddenStates: MLXArray, frames: [THW]) -> MLXArray {
             var hiddenStates = patchEmbed(hiddenStates)
             let rotaryPosEmb = rotaryPositionEmbedding(frames)
@@ -565,19 +569,8 @@ private enum Vision {
             // Get window indices and sequence lengths
             let (windowIndex, cuWindowSeqlens) = getWindowIndex(frames)
 
-            // Reshape and reindex hidden states
+            // prepare attention masks
             let seqLen = hiddenStates.dim(0)
-            hiddenStates = hiddenStates.reshaped(seqLen / spatialMergeUnit, spatialMergeUnit, -1)
-            hiddenStates = hiddenStates[windowIndex, 0..., 0...]
-            hiddenStates = hiddenStates.reshaped(seqLen, -1)
-
-            // Reshape and reindex rotary position embeddings
-            var rotaryPosEmbReshaped = rotaryPosEmb.reshaped(
-                seqLen / spatialMergeUnit, spatialMergeUnit, -1)
-            rotaryPosEmbReshaped = rotaryPosEmbReshaped[windowIndex, 0..., 0...]
-            rotaryPosEmbReshaped = rotaryPosEmbReshaped.reshaped(seqLen, -1)
-
-            // Calculate cumulative sequence lengths for full attention
             var cuSeqlens = [0]
             for frame in frames {
                 let seqLen = frame.h * frame.w
@@ -588,15 +581,30 @@ private enum Vision {
             }
             let cuSeqlensArray = MLXArray(cuSeqlens)
 
+            let fullAttentionMask = attentionMask(sequenceLength: seqLen, cuSeqlens: cuSeqlensArray)
+            let windowAttentionMask = attentionMask(
+                sequenceLength: seqLen, cuSeqlens: cuWindowSeqlens)
+
+            // Reshape and reindex hidden states
+            hiddenStates = hiddenStates.reshaped(seqLen / spatialMergeUnit, spatialMergeUnit, -1)
+            hiddenStates = hiddenStates[windowIndex, 0..., 0...]
+            hiddenStates = hiddenStates.reshaped(seqLen, -1)
+
+            // Reshape and reindex rotary position embeddings
+            var rotaryPosEmbReshaped = rotaryPosEmb.reshaped(
+                seqLen / spatialMergeUnit, spatialMergeUnit, -1)
+            rotaryPosEmbReshaped = rotaryPosEmbReshaped[windowIndex, 0..., 0...]
+            rotaryPosEmbReshaped = rotaryPosEmbReshaped.reshaped(seqLen, -1)
+
             // Process through blocks
             for (i, block) in blocks.enumerated() {
                 // Use full attention for specific blocks, window attention for others
-                let cuSeqlensNow =
-                    fullattBlockIndexes.contains(i) ? cuSeqlensArray : cuWindowSeqlens
+                let attentionMask =
+                    fullattBlockIndexes.contains(i) ? fullAttentionMask : windowAttentionMask
 
                 hiddenStates = block(
                     hiddenStates,
-                    cuSeqlens: cuSeqlensNow,
+                    attentionMask: attentionMask,
                     rotaryPositionEmbedding: rotaryPosEmbReshaped
                 )
             }
