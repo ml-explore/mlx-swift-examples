@@ -7,9 +7,18 @@ import ImageIO
 import MLX
 import UniformTypeIdentifiers
 
-enum ImageError: Error {
+enum ImageError: LocalizedError {
     case failedToSave
     case unableToOpen
+
+    var errorDescription: String? {
+        switch self {
+        case .failedToSave:
+            return String(localized: "Failed to save the image to the specified location.")
+        case .unableToOpen:
+            return String(localized: "Unable to open the image file.")
+        }
+    }
 }
 
 /// Conversion utilities for moving between `MLXArray`, `CGImage` and files.

@@ -2,8 +2,16 @@
 
 import Foundation
 
-enum LoRADataError: Error {
+enum LoRADataError: LocalizedError {
     case fileNotFound(URL, String)
+
+    var errorDescription: String? {
+        switch self {
+        case .fileNotFound(let directory, let name):
+            return String(
+                localized: "Could not find data file '\(name)' in directory '\(directory.path())'.")
+        }
+    }
 }
 
 /// Load a LoRA data file.

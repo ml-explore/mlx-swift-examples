@@ -4,9 +4,16 @@ import Foundation
 import Hub
 import Tokenizers
 
-public enum ModelFactoryError: Error {
+public enum ModelFactoryError: LocalizedError {
     case unsupportedModelType(String)
     case unsupportedProcessorType(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .unsupportedModelType(let type): "Unsupported model type: \(type)"
+        case .unsupportedProcessorType(let type): "Unsupported processor type: \(type)"
+        }
+    }
 }
 
 /// Context of types that work together to provide a ``LanguageModel``.
