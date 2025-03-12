@@ -175,10 +175,21 @@ public protocol UserInputProcessor {
     func prepare(input: UserInput) async throws -> LMInput
 }
 
-private enum UserInputError: Error {
+private enum UserInputError: LocalizedError {
     case notImplemented
     case unableToLoad(URL)
     case arrayError(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .notImplemented:
+            return String(localized: "This functionality is not implemented.")
+        case .unableToLoad(let url):
+            return String(localized: "Unable to load image from URL: \(url.path).")
+        case .arrayError(let message):
+            return String(localized: "Error processing image array: \(message).")
+        }
+    }
 }
 
 /// A do-nothing ``UserInputProcessor``.

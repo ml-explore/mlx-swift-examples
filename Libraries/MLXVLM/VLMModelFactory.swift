@@ -6,12 +6,27 @@ import MLX
 import MLXLMCommon
 import Tokenizers
 
-public enum VLMError: Error {
+public enum VLMError: LocalizedError {
     case imageRequired
     case maskRequired
     case singleImageAllowed
     case imageProcessingFailure(String)
     case processing(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .imageRequired:
+            return String(localized: "An image is required for this operation.")
+        case .maskRequired:
+            return String(localized: "An image mask is required for this operation.")
+        case .singleImageAllowed:
+            return String(localized: "Only a single image is allowed for this operation.")
+        case .imageProcessingFailure(let details):
+            return String(localized: "Failed to process the image: \(details)")
+        case .processing(let details):
+            return String(localized: "Processing error: \(details)")
+        }
+    }
 }
 
 public struct BaseProcessorConfiguration: Codable, Sendable {
