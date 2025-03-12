@@ -76,19 +76,16 @@ public enum MediaProcessing {
     public static func resampleBicubic(_ image: CIImage, to size: CGSize) throws -> CIImage {
         // Create a bicubic scale filter
 
-        let scale = size.width / image.extent.width
+        let yScale = size.height / image.extent.height
+        let xScale = size.width / image.extent.width
 
         let filter = CIFilter.bicubicScaleTransform()
         filter.inputImage = image
-        filter.scale = Float(scale)
-        filter.aspectRatio = 1.0
+        filter.scale = Float(yScale)
+        filter.aspectRatio = Float(xScale / yScale)
         guard let scaledImage = filter.outputImage else {
             throw MediaProcessingError.transformFailed
         }
-        // Calculate the crop rect to get exactly the requested size
-        // Scale height separately to match the target height
-        let heightScale = size.height / (image.extent.height * scale)
-        let finalImage = scaledImage.transformed(by: CGAffineTransform(scaleX: 1.0, y: heightScale))
         // Create a rect with the exact dimensions we want
         let exactRect = CGRect(
             x: 0,
@@ -97,7 +94,7 @@ public enum MediaProcessing {
             height: size.height
         )
         // Crop to ensure exact dimensions
-        return finalImage.cropped(to: exactRect)
+        return scaledImage.cropped(to: exactRect)
     }
 
     /// Normalize the image using the given mean and standard deviation parameters.
