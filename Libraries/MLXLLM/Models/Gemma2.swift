@@ -8,19 +8,21 @@ import MLXNN
 
 // Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/gemma2.py
 
-// Specialized norm for gemma
-private class RMSNorm: Module, UnaryLayer {
-    let weight: MLXArray
-    let eps: Float
+public enum GemmaUtils {
+    /// Specialized norm for gemma
+    public class RMSNorm: Module, UnaryLayer {
+        let weight: MLXArray
+        let eps: Float
 
-    public init(dimensions: Int, eps: Float = 1e-5) {
-        self.weight = MLXArray.ones([dimensions])
-        self.eps = eps
-        super.init()
-    }
+        public init(dimensions: Int, eps: Float = 1e-5) {
+            self.weight = MLXArray.ones([dimensions])
+            self.eps = eps
+            super.init()
+        }
 
-    public func callAsFunction(_ x: MLXArray) -> MLXArray {
-        return MLXFast.rmsNorm(x, weight: 1.0 + self.weight, eps: self.eps)
+        public func callAsFunction(_ x: MLXArray) -> MLXArray {
+            return MLXFast.rmsNorm(x, weight: 1.0 + self.weight, eps: self.eps)
+        }
     }
 }
 
@@ -125,21 +127,21 @@ private class TransformerBlock: Module {
     @ModuleInfo(key: "self_attn") var attention: Attention
     let mlp: MLP
 
-    @ModuleInfo(key: "input_layernorm") var inputLayerNorm: RMSNorm
-    @ModuleInfo(key: "pre_feedforward_layernorm") var preFeedforwardLayerNorm: RMSNorm
-    @ModuleInfo(key: "post_feedforward_layernorm") var postFeedforwardLayerNorm: RMSNorm
-    @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: RMSNorm
+    @ModuleInfo(key: "input_layernorm") var inputLayerNorm: GemmaUtils.RMSNorm
+    @ModuleInfo(key: "pre_feedforward_layernorm") var preFeedforwardLayerNorm: GemmaUtils.RMSNorm
+    @ModuleInfo(key: "post_feedforward_layernorm") var postFeedforwardLayerNorm: GemmaUtils.RMSNorm
+    @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: GemmaUtils.RMSNorm
 
     public init(_ args: Gemma2Configuration) {
         self._attention.wrappedValue = Attention(args)
         self.mlp = MLP(dimensions: args.hiddenSize, hiddenDimensions: args.intermediateSize)
-        self._inputLayerNorm.wrappedValue = RMSNorm(
+        self._inputLayerNorm.wrappedValue = GemmaUtils.RMSNorm(
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
-        self._preFeedforwardLayerNorm.wrappedValue = RMSNorm(
+        self._preFeedforwardLayerNorm.wrappedValue = GemmaUtils.RMSNorm(
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
-        self._postFeedforwardLayerNorm.wrappedValue = RMSNorm(
+        self._postFeedforwardLayerNorm.wrappedValue = GemmaUtils.RMSNorm(
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
-        self._postAttentionLayerNorm.wrappedValue = RMSNorm(
+        self._postAttentionLayerNorm.wrappedValue = GemmaUtils.RMSNorm(
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
@@ -159,7 +161,7 @@ private class ModelInner: Module {
     @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
 
     fileprivate let layers: [TransformerBlock]
-    fileprivate let norm: RMSNorm
+    fileprivate let norm: GemmaUtils.RMSNorm
 
     let hiddenScale: Float
 
@@ -175,7 +177,7 @@ private class ModelInner: Module {
             .map { _ in
                 TransformerBlock(args)
             }
-        self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+        self.norm = GemmaUtils.RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
