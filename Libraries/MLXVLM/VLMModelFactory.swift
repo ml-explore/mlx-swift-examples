@@ -117,7 +117,8 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
 
     static public let gemma3_4B_it_4bit = ModelConfiguration(
         id: "mlx-community/gemma-3-4b-it-4bit",
-        defaultPrompt: "Describe the image in English"
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
     )
 
     static public func all() -> [ModelConfiguration] {

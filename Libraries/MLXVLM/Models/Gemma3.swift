@@ -27,7 +27,7 @@ public struct Gemma3TextConfiguration: Codable, Sendable {
     public var ropeGlobalBaseFreq: Float = 1_000_000.0
     public var ropeLocalBaseFreq: Float = 10_000.0
     public var ropeTraditional: Bool = false
-    public var queryPreAttnScalar: Float = 0.0625
+    public var queryPreAttnScalar: Float = 256
     public var mmTokensPerImage: Int = 256
     public var slidingWindowPattern: Int = 6
 
