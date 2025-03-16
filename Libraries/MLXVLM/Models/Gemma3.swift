@@ -245,6 +245,7 @@ private class MLP: Module, UnaryLayer {
     }
 
     func callAsFunction(_ x: MLXArray) -> MLXArray {
+        // TODO: Python implementation includes this comment: "This should not be GELU approx, jax.nn.gelu"
         downProj(geluApproximate(gateProj(x)) * upProj(x))
     }
 }
