@@ -91,8 +91,8 @@ private class Attention: Module {
     @ModuleInfo(key: "v_proj") var valueProj: Linear
     @ModuleInfo(key: "o_proj") var outputProj: Linear
 
-    @ModuleInfo(key: "q_norm") var queryNorm: GemmaUtils.RMSNorm
-    @ModuleInfo(key: "k_norm") var keyNorm: GemmaUtils.RMSNorm
+    @ModuleInfo(key: "q_norm") var queryNorm: Gemma.RMSNorm
+    @ModuleInfo(key: "k_norm") var keyNorm: Gemma.RMSNorm
 
     @ModuleInfo var rope: RoPE
 
@@ -111,9 +111,9 @@ private class Attention: Module {
         self._valueProj.wrappedValue = Linear(dim, nKVHeads * headDim, bias: false)
         self._outputProj.wrappedValue = Linear(nHeads * headDim, dim, bias: false)
 
-        self._queryNorm.wrappedValue = GemmaUtils.RMSNorm(
+        self._queryNorm.wrappedValue = Gemma.RMSNorm(
             dimensions: headDim, eps: config.rmsNormEps)
-        self._keyNorm.wrappedValue = GemmaUtils.RMSNorm(dimensions: headDim, eps: config.rmsNormEps)
+        self._keyNorm.wrappedValue = Gemma.RMSNorm(dimensions: headDim, eps: config.rmsNormEps)
 
         self.isSliding = (layerIdx + 1) % config.slidingWindowPattern != 0
 

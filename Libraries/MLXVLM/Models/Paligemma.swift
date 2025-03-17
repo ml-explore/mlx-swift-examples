@@ -7,7 +7,6 @@ import Foundation
 import Hub
 import MLX
 import MLXFast
-import MLXLLM
 import MLXLMCommon
 import MLXNN
 import Tokenizers
@@ -101,15 +100,15 @@ private enum Language {
         @ModuleInfo(key: "self_attn") var attention: Attention
         let mlp: MLP
 
-        @ModuleInfo(key: "input_layernorm") var inputLayerNorm: GemmaUtils.RMSNorm
-        @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: GemmaUtils.RMSNorm
+        @ModuleInfo(key: "input_layernorm") var inputLayerNorm: Gemma.RMSNorm
+        @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: Gemma.RMSNorm
 
         public init(_ args: PaliGemmaConfiguration.TextConfiguration) {
             self._attention.wrappedValue = Attention(args)
             self.mlp = MLP(dimensions: args.hiddenSize, hiddenDimensions: args.intermediateSize)
-            self._inputLayerNorm.wrappedValue = GemmaUtils.RMSNorm(
+            self._inputLayerNorm.wrappedValue = Gemma.RMSNorm(
                 dimensions: args.hiddenSize, eps: args.rmsNormEps)
-            self._postAttentionLayerNorm.wrappedValue = GemmaUtils.RMSNorm(
+            self._postAttentionLayerNorm.wrappedValue = Gemma.RMSNorm(
                 dimensions: args.hiddenSize, eps: args.rmsNormEps)
         }
 
@@ -129,7 +128,7 @@ private enum Language {
         @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
 
         fileprivate let layers: [TransformerBlock]
-        fileprivate let norm: GemmaUtils.RMSNorm
+        fileprivate let norm: Gemma.RMSNorm
 
         let hiddenScale: Float
 
@@ -145,7 +144,7 @@ private enum Language {
                 .map { _ in
                     TransformerBlock(args)
                 }
-            self.norm = GemmaUtils.RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+            self.norm = Gemma.RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
         }
 
         public func callAsFunction(
