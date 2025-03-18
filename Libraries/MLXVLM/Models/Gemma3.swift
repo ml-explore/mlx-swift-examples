@@ -190,8 +190,6 @@ private class Attention: Module {
         queries = queryNorm(queries)
         keys = keyNorm(keys)
 
-        var mask = mask
-
         if let cache = cache {
             queries = rope(queries, offset: cache.offset)
             keys = rope(keys, offset: cache.offset)
@@ -201,12 +199,11 @@ private class Attention: Module {
             keys = rope(keys)
         }
 
-        // Sliding window
-        if isSliding && mask != nil {
-            let keyLen = keys.dim(-2)
-            if mask!.dim(-1) != keyLen {
-                mask = mask![0..., 0..., 0..., 0 ..< keyLen]
-            }
+        var localMask = mask
+        if let mask = mask, mask.dim(-1) != keys.dim(-2) {
+            // Calculate proper index instead of using negative index
+            let startIndex = mask.dim(-1) - keys.dim(-2)
+            localMask = mask[0..., 0..., 0..., startIndex...]
         }
 
         // Handle key-value head repetition
@@ -221,7 +218,7 @@ private class Attention: Module {
             keys: keys,
             values: values,
             scale: scale,
-            mask: mask
+            mask: localMask
         )
         .transposed(0, 2, 1, 3)
         .reshaped(B, L, -1)
@@ -320,7 +317,7 @@ private class GemmaModel: Module {
         _ inputs: MLXArray? = nil,
         inputEmbedding: MLXArray? = nil,
         mask: MLXArray? = nil,
-        cache: [KVCache]? = nil
+        cache: [KVCache?]? = nil
     ) -> MLXArray {
         var h: MLXArray
         if let inputEmbedding = inputEmbedding {
@@ -331,22 +328,41 @@ private class GemmaModel: Module {
             fatalError("Either inputs or inputEmbedding must be provided")
         }
 
-        // Scale embeddings
-        h = h * pow(Float(config.hiddenSize), 0.5)
+        // TODO: Is dtype casting necessary here?
+        h = h * MLXArray(pow(Float(config.hiddenSize), 0.5), dtype: .bfloat16).asType(h.dtype)
 
-        var mask = mask
+        // Initialize cache if not provided
+        let cacheArray = cache ?? Array(repeating: nil as KVCache?, count: layers.count)
+
+        // Initialize masks
+        var currentMask = mask
+        var fullMask: MLXArray? = nil
+        var slidingWindowMask: MLXArray? = nil
+
         if mask == nil {
-            // Create attention mask
-            if let cache = cache, cache.count >= config.slidingWindowPattern {
-                let j = config.slidingWindowPattern
-                mask = createAttentionMask(h: h, cache: Array(cache[(j - 1) ..< j]))
-            } else {
-                mask = createAttentionMask(h: h, cache: nil)
-            }
+            let j = config.slidingWindowPattern
+            // Create full mask for global attention layers
+            let fullMaskCaches = Array(cacheArray[(j - 1) ..< j].compactMap { $0 })
+            fullMask = createAttentionMask(h: h, cache: fullMaskCaches)
+
+            // Create sliding window mask
+            slidingWindowMask = createAttentionMask(h: h, cache: cacheArray.compactMap { $0 })
         }
 
+        // Process through all layers
         for (i, layer) in layers.enumerated() {
-            h = layer(h, mask: mask, cache: cache?[i])
+            let isSliding = (i % config.slidingWindowPattern == config.slidingWindowPattern - 1)
+
+            // Select appropriate mask based on layer position
+            if mask == nil {
+                if isSliding {
+                    currentMask = slidingWindowMask
+                } else {
+                    currentMask = fullMask
+                }
+            }
+
+            h = layer(h, mask: currentMask, cache: cacheArray[i])
         }
 
         return norm(h)
