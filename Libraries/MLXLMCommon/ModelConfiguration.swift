@@ -73,3 +73,23 @@ public struct ModelConfiguration: Sendable {
         }
     }
 }
+
+extension ModelConfiguration: Equatable {
+
+}
+
+extension ModelConfiguration.Identifier: Equatable {
+
+    public static func == (lhs: ModelConfiguration.Identifier, rhs: ModelConfiguration.Identifier)
+        -> Bool
+    {
+        switch (lhs, rhs) {
+        case (.id(let lhsID), .id(let rhsID)):
+            lhsID == rhsID
+        case (.directory(let lhsURL), .directory(let rhsURL)):
+            lhsURL == rhsURL
+        default:
+            false
+        }
+    }
+}
