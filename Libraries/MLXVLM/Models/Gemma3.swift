@@ -888,8 +888,10 @@ public class Gemma3Processor: UserInputProcessor {
     public func preprocess(images: [CIImage], processing: UserInput.Processing?) throws -> (
         MLXArray, THW
     ) {
+        var processingOverride = processing ?? UserInput.Processing()
+        processingOverride.resize = CGSize(width: 896, height: 896)
         // Implementation unchanged
-        let images = images.map { MediaProcessing.apply($0, processing: processing) }
+        let images = images.map { MediaProcessing.apply($0, processing: processingOverride) }
 
         let processedImages =
             try images
