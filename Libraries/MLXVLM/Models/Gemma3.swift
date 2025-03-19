@@ -647,33 +647,8 @@ private class VisionModel: Module {
     }
 
     func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
-        var sanitizedWeights: [String: MLXArray] = [:]
-
-        for (k, v) in weights {
-            if k.contains("patch_embedding.weight") {
-                // Check if already in MLX format
-                if isMLXWeight(v) {
-                    sanitizedWeights[k] = v
-                } else {
-                    // Convert from PyTorch format to MLX format
-                    sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
-                }
-            } else {
-                sanitizedWeights[k] = v
-            }
-        }
-
-        return sanitizedWeights
-    }
-
-    private func isMLXWeight(_ array: MLXArray) -> Bool {
-        if array.ndim != 4 {
-            return false
-        }
-
-        let (outChannels, kH, kW, _) = (array.dim(0), array.dim(1), array.dim(2), array.dim(3))
-
-        return (outChannels >= kH) && (outChannels >= kW) && (kH == kW)
+        // TODO: Do we need to do anything here?
+        return weights
     }
 }
 
@@ -890,7 +865,6 @@ public class Gemma3Processor: UserInputProcessor {
     ) {
         var processingOverride = processing ?? UserInput.Processing()
         processingOverride.resize = CGSize(width: 896, height: 896)
-        // Implementation unchanged
         let images = images.map { MediaProcessing.apply($0, processing: processingOverride) }
 
         let processedImages =
