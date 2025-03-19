@@ -14,7 +14,7 @@ public protocol KVCache: Evaluatable {
     func update(keys: MLXArray, values: MLXArray) -> (MLXArray, MLXArray)
 }
 
-func createAdditiveCausalMask(n: Int, offset: Int) -> MLXArray {
+public func createAdditiveCausalMask(n: Int, offset: Int) -> MLXArray {
     let rinds = MLXArray(Int32(0) ..< Int32(offset + n))
     let linds = offset != 0 ? MLXArray(Int32(offset) ..< Int32(offset + n)) : rinds
     let mask = linds[0..., .newAxis] .< rinds[.newAxis]
