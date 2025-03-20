@@ -11,7 +11,7 @@ public enum VLMError: LocalizedError {
     case maskRequired
     case singleImageAllowed
     case singleVideoAllowed
-    case onlySingleMediaTypeAllowed
+    case singleMediaTypeAllowed
     case imageProcessingFailure(String)
     case processing(String)
 
@@ -23,6 +23,10 @@ public enum VLMError: LocalizedError {
             return String(localized: "An image mask is required for this operation.")
         case .singleImageAllowed:
             return String(localized: "Only a single image is allowed for this operation.")
+        case .singleVideoAllowed:
+            return String(localized: "Only a single video is allowed for this operation.")
+        case .singleMediaTypeAllowed:
+            return String(localized: "Only a single media type (image or video) is allowed for this operation.")
         case .imageProcessingFailure(let details):
             return String(localized: "Failed to process the image: \(details)")
         case .processing(let details):

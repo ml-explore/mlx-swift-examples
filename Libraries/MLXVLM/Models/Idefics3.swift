@@ -1142,7 +1142,7 @@ public class SmolVLMProcessor: UserInputProcessor {
         } else {
             // Single video scenario
             guard input.images.count == 0 else {
-                throw VLMError.onlySingleMediaTypeAllowed
+                throw VLMError.singleMediaTypeAllowed
             }
             guard input.videos.count == 1 else {
                 throw VLMError.singleVideoAllowed
