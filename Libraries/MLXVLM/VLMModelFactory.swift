@@ -82,7 +82,7 @@ public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
             "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
             "idefics3": create(Idefics3Configuration.self, Idefics3.init),
-            "smolvlm": create(Idefics3Configuration.self, Idefics3.init),
+            "smolvlm": create(SmolVLM2Configuration.self, SmolVLM2.init),
         ]
     }
 

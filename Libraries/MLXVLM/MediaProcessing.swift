@@ -237,9 +237,7 @@ public enum MediaProcessing {
         return ciImages
     }
 
-    static public func asCIImageSequence(
-        _ asset: AVAsset, maxFrames: Int, targetFPS: Double, skipSeconds: CMTime = .zero
-    ) async throws -> VideoFrameResult {
+    static public func asCIImageSequence(_ asset: AVAsset, maxFrames: Int, targetFPS: Double) async throws -> VideoFrameResult {
         // Use AVAssetImageGenerator to extract frames
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
@@ -257,18 +255,12 @@ public enum MediaProcessing {
         var desiredFrames = min(estimatedFrames, maxFrames)
         let finalFrameCount = max(desiredFrames, 1)
 
-        let durationTimeValue = duration.value
-        let timescale = duration.timescale
-        let startTimeValue =
-            skipSeconds.seconds > 0 ? Int64(skipSeconds.seconds * Double(timescale)) : 0
-        let endTimeValue =
-            skipSeconds.seconds > 0
-            ? Int64(duration.seconds * Double(timescale) - skipSeconds.seconds * Double(timescale))
-            : duration.value
         let sampledTimeValues = MLXArray.linspace(
-            startTimeValue, endTimeValue, count: Int(finalFrameCount)
+            0, duration.value, count: Int(finalFrameCount)
         ).asArray(Int64.self)
 
+        // Construct a CMTime using the sampled CMTimeValue's and the asset's timescale
+        let timescale = duration.timescale
         let sampledTimes = sampledTimeValues.map { CMTime(value: $0, timescale: timescale) }
 
         // Collect the frames
