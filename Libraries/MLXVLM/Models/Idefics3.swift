@@ -673,7 +673,6 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
     }
 
     // inputs_merger
-    // TODO: why did we need to do changes here? Do we need a new modelling class, or did this never work (for tiling)?
     private func prepareInputsForMultimodal(
         imageFeatures: MLXArray, inputs_embeds: MLXArray, inputIds: MLXArray
     ) -> MLXArray {
