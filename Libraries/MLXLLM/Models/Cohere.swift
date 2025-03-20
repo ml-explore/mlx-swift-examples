@@ -163,7 +163,7 @@ public class CohereModel: Module, LLMModel, KVCacheDimensionProvider {
 
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
         var out = model(inputs, cache: cache)
-        out = matmul(out, model.embedTokens.weight.T)
+        out = model.embedTokens.asLinear(out)
         out = out * self.logitScale
         return out
     }

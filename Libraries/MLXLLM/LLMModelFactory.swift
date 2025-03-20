@@ -20,46 +20,27 @@ private func create<C: Codable, M>(
 /// Registry of model type, e.g 'llama', to functions that can instantiate the model from configuration.
 ///
 /// Typically called via ``LLMModelFactory/load(hub:configuration:progressHandler:)``.
-public class ModelTypeRegistry: @unchecked Sendable {
+public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
 
-    // Note: using NSLock as we have very small (just dictionary get/set)
-    // critical sections and expect no contention.  this allows the methods
-    // to remain synchronous.
-    private let lock = NSLock()
+    /// Shared instance with default model types.
+    public static let shared: LLMTypeRegistry = .init(creators: all())
 
-    private var creators: [String: @Sendable (URL) throws -> any LanguageModel] = [
-        "mistral": create(LlamaConfiguration.self, LlamaModel.init),
-        "llama": create(LlamaConfiguration.self, LlamaModel.init),
-        "phi": create(PhiConfiguration.self, PhiModel.init),
-        "phi3": create(Phi3Configuration.self, Phi3Model.init),
-        "phimoe": create(PhiMoEConfiguration.self, PhiMoEModel.init),
-        "gemma": create(GemmaConfiguration.self, GemmaModel.init),
-        "gemma2": create(Gemma2Configuration.self, Gemma2Model.init),
-        "qwen2": create(Qwen2Configuration.self, Qwen2Model.init),
-        "starcoder2": create(Starcoder2Configuration.self, Starcoder2Model.init),
-        "cohere": create(CohereConfiguration.self, CohereModel.init),
-        "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
-        "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
-    ]
-
-    /// Add a new model to the type registry.
-    public func registerModelType(
-        _ type: String, creator: @Sendable @escaping (URL) throws -> any LanguageModel
-    ) {
-        lock.withLock {
-            creators[type] = creator
-        }
-    }
-
-    /// Given a `modelType` and configuration file instantiate a new `LanguageModel`.
-    public func createModel(configuration: URL, modelType: String) throws -> LanguageModel {
-        let creator = lock.withLock {
-            creators[modelType]
-        }
-        guard let creator else {
-            throw ModelFactoryError.unsupportedModelType(modelType)
-        }
-        return try creator(configuration)
+    /// All predefined model types.
+    private static func all() -> [String: @Sendable (URL) throws -> any LanguageModel] {
+        [
+            "mistral": create(LlamaConfiguration.self, LlamaModel.init),
+            "llama": create(LlamaConfiguration.self, LlamaModel.init),
+            "phi": create(PhiConfiguration.self, PhiModel.init),
+            "phi3": create(Phi3Configuration.self, Phi3Model.init),
+            "phimoe": create(PhiMoEConfiguration.self, PhiMoEModel.init),
+            "gemma": create(GemmaConfiguration.self, GemmaModel.init),
+            "gemma2": create(Gemma2Configuration.self, Gemma2Model.init),
+            "qwen2": create(Qwen2Configuration.self, Qwen2Model.init),
+            "starcoder2": create(Starcoder2Configuration.self, Starcoder2Model.init),
+            "cohere": create(CohereConfiguration.self, CohereModel.init),
+            "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
+            "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
+        ]
     }
 
 }
@@ -70,10 +51,10 @@ public class ModelTypeRegistry: @unchecked Sendable {
 /// The python tokenizers have a very rich set of implementations and configuration.  The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
-public class ModelRegistry: @unchecked Sendable {
+public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
 
-    private let lock = NSLock()
-    private var registry = Dictionary(uniqueKeysWithValues: all().map { ($0.name, $0) })
+    /// Shared instance with default model configurations.
+    public static let shared = LLMRegistry(modelConfigurations: all())
 
     static public let smolLM_135M_4bit = ModelConfiguration(
         id: "mlx-community/SmolLM-135M-Instruct-4bit",
@@ -209,30 +190,10 @@ public class ModelRegistry: @unchecked Sendable {
         ]
     }
 
-    public func register(configurations: [ModelConfiguration]) {
-        lock.withLock {
-            for c in configurations {
-                registry[c.name] = c
-            }
-        }
-    }
-
-    public func configuration(id: String) -> ModelConfiguration {
-        lock.withLock {
-            if let c = registry[id] {
-                return c
-            } else {
-                return ModelConfiguration(id: id)
-            }
-        }
-    }
-
-    public var models: some Collection<ModelConfiguration> & Sendable {
-        lock.withLock {
-            return registry.values
-        }
-    }
 }
+
+@available(*, deprecated, renamed: "LLMRegistry", message: "Please use LLMRegistry directly.")
+public typealias ModelRegistry = LLMRegistry
 
 private struct LLMUserInputProcessor: UserInputProcessor {
 
@@ -274,17 +235,20 @@ private struct LLMUserInputProcessor: UserInputProcessor {
 /// ```
 public class LLMModelFactory: ModelFactory {
 
-    public static let shared = LLMModelFactory()
+    public init(typeRegistry: ModelTypeRegistry, modelRegistry: AbstractModelRegistry) {
+        self.typeRegistry = typeRegistry
+        self.modelRegistry = modelRegistry
+    }
+
+    /// Shared instance with default behavior.
+    public static let shared = LLMModelFactory(
+        typeRegistry: LLMTypeRegistry.shared, modelRegistry: LLMRegistry.shared)
 
     /// registry of model type, e.g. configuration value `llama` -> configuration and init methods
-    public let typeRegistry = ModelTypeRegistry()
+    public let typeRegistry: ModelTypeRegistry
 
     /// registry of model id to configuration, e.g. `mlx-community/Llama-3.2-3B-Instruct-4bit`
-    public let modelRegistry = ModelRegistry()
-
-    public func configuration(id: String) -> ModelConfiguration {
-        modelRegistry.configuration(id: id)
-    }
+    public let modelRegistry: AbstractModelRegistry
 
     public func _load(
         hub: HubApi, configuration: ModelConfiguration,

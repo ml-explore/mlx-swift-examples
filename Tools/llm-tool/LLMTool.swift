@@ -31,6 +31,8 @@ struct ModelArguments: ParsableArguments, Sendable {
 
         let modelName = self.model ?? defaultModel
 
+        print("Loading \(modelName)...")
+
         if modelName.hasPrefix("/") {
             // path
             modelConfiguration = ModelConfiguration(directory: URL(filePath: modelName))
@@ -74,6 +76,9 @@ struct GenerateArguments: ParsableArguments, Sendable {
     @Option(name: .long, help: "The number of tokens to consider for repetition penalty")
     var repetitionContextSize: Int = 20
 
+    @Option(name: .long, help: "Additional end-of-sequence token to stop generation")
+    var extraEosToken: String?
+
     @Option(name: .long, help: "The PRNG seed")
     var seed: UInt64 = 0
 
@@ -96,17 +101,22 @@ struct GenerateArguments: ParsableArguments, Sendable {
         }
     }
 
+    func prepare(
+        _ context: inout ModelContext
+    ) {
+        if let extraEosToken {
+            context.configuration.extraEOSTokens.insert(extraEosToken)
+        }
+    }
+
     func generate(
         input: LMInput, context: ModelContext
-    )
-        throws -> GenerateResult
-    {
+    ) throws -> GenerateResult {
         var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
 
         return try MLXLMCommon.generate(
             input: input, parameters: generateParameters, context: context
         ) { tokens in
-
             if let last = tokens.last {
                 detokenizer.append(token: last)
             }
@@ -286,11 +296,16 @@ struct EvaluateCommand: AsyncParsableCommand {
             try await args.load(defaultModel: defaultModel.name, modelFactory: modelFactory)
         }
 
+        // update the context/configuration with any command line parameters
+        await modelContainer.update { [generate] context in
+            generate.prepare(&context)
+        }
+
         // Get the resolved configuration (this has the default prompt)
-        let modelConfiguration = modelContainer.configuration
+        let modelConfiguration = await modelContainer.configuration
 
         if !generate.quiet {
-            print("Model loaded -> \(modelConfiguration.id)")
+            print("Loaded \(modelConfiguration.name)")
         }
 
         let userInput = self.userInput(modelConfiguration: modelConfiguration)

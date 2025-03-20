@@ -31,10 +31,10 @@ public struct ModelConfiguration: Sendable {
     public let overrideTokenizer: String?
 
     /// A reasonable default prompt for the model
-    public let defaultPrompt: String
+    public var defaultPrompt: String
 
     /// Additional tokens to use for end of string
-    public let extraEOSTokens: Set<String>
+    public var extraEOSTokens: Set<String>
 
     public init(
         id: String, tokenizerId: String? = nil, overrideTokenizer: String? = nil,
@@ -70,6 +70,26 @@ public struct ModelConfiguration: Sendable {
 
         case .directory(let directory):
             return directory
+        }
+    }
+}
+
+extension ModelConfiguration: Equatable {
+
+}
+
+extension ModelConfiguration.Identifier: Equatable {
+
+    public static func == (lhs: ModelConfiguration.Identifier, rhs: ModelConfiguration.Identifier)
+        -> Bool
+    {
+        switch (lhs, rhs) {
+        case (.id(let lhsID), .id(let rhsID)):
+            lhsID == rhsID
+        case (.directory(let lhsURL), .directory(let rhsURL)):
+            lhsURL == rhsURL
+        default:
+            false
         }
     }
 }

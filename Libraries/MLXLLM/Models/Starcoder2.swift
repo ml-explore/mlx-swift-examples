@@ -173,7 +173,7 @@ public class Starcoder2Model: Module, LLMModel, KVCacheDimensionProvider {
         if !tieWordEmbeddings {
             return lmHead(out)
         } else {
-            out = matmul(out, model.embedTokens.weight.T)
+            out = model.embedTokens.asLinear(out)
             return out
         }
     }
