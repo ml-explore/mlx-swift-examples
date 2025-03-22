@@ -6,6 +6,7 @@
 //
 
 import CoreImage
+import CoreMedia
 import Foundation
 import MLX
 import MLXLMCommon
@@ -210,6 +211,15 @@ public class SmolVLMProcessor: UserInputProcessor {
         return (tiles, nRows, nCols)
     }
 
+    func formatTimestamp(_ time: CMTime) -> String {
+        let totalSeconds = Int(ceil(time.seconds))
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
+
+        return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+    }
+
     public func prepare(input: UserInput) async throws -> LMInput {
         let messages = input.prompt.asMessages()
 
@@ -233,7 +243,7 @@ public class SmolVLMProcessor: UserInputProcessor {
             let (tiles, imageRows, imageCols) = tiles(from: image)
 
             // Append the resized global image
-            // TODO: note we are resampling from the original (potentially larger), not the processing size. It shouldn't make much difference.
+            // Note we are resampling from the original (potentially larger), not the processing size. It shouldn't make much difference.
             let images =
                 tiles + [
                     image.resampled(
@@ -300,32 +310,31 @@ public class SmolVLMProcessor: UserInputProcessor {
 
             var video = try input.videos[0].asAVAsset()
 
-            var videoFrameResult = await try MediaProcessing.asCIImageSequence(
-                video, maxFrames: maxVideoFrames, targetFPS: targetVideoFPS)
+            let processedFrames = await try MediaProcessing.asProcessedSequence(
+                video,
+                maxFrames: maxVideoFrames,
+                targetFPS: { duration in
+                    // 1 fps for duration >= 10s, apply a multiplier if smaller
+                    max((10 - 0.9 * duration.seconds) * targetVideoFPS, 1)
+                }
+            ) { frame in
+                let processedFrame = frame.frame
+                    .toSRGB()
+                    .resampled(to: CGSize(width: fixedImageSize, height: fixedImageSize), method: .lanczos)
+                    .normalized(mean: config.imageMeanTuple, std: config.imageStdTuple)
+                return VideoFrame(frame: processedFrame, timeStamp: frame.timeStamp)
+            }
 
-            let thwFrames = (0 ..< videoFrameResult.frames.count).map {
+            let thwFrames = (0 ..< processedFrames.frames.count).map {
                 THW($0, Int(fixedImageSize), Int(fixedImageSize))
             }
 
-            var processedFrames: [MLXArray] = []
-            for frame in videoFrameResult.frames {
-                let image =
-                    frame
-                    .toSRGB()
-                    .resampled(
-                        to: CGSize(width: fixedImageSize, height: fixedImageSize), method: .lanczos
-                    )
-                    .normalized(mean: config.imageMeanTuple, std: config.imageStdTuple)
-                    .asMLXArray()
-                processedFrames.append(image)
-            }
-
-            let stackedFrames = concatenated(processedFrames, axis: 0)
+            let stackedFrames = concatenated(processedFrames.frames, axis: 0)
             let transposedFrames = stackedFrames.transposed(0, 2, 3, 1)
 
             let videoPromptString = getVideoPromptString(
-                frameCount: videoFrameResult.frames.count, timeStamps: videoFrameResult.timestamps,
-                videoDuration: videoFrameResult.totalDuration, seqLen: imageSequenceLength,
+                frameCount: processedFrames.frames.count, timeStamps: processedFrames.timestamps.map(formatTimestamp),
+                videoDuration: formatTimestamp(processedFrames.totalDuration), seqLen: imageSequenceLength,
                 fakeToken: fakeImageToken, imageToken: imageToken,
                 globalImageToken: globalImageToken)
 

@@ -5,10 +5,15 @@ import CoreImage.CIFilterBuiltins
 import MLX
 import MLXLMCommon
 
-public struct VideoFrameResult {
-    let frames: [CIImage]
-    let timestamps: [String]
-    let totalDuration: String
+public struct VideoFrame {
+    let frame: CIImage
+    let timeStamp: CMTime
+}
+
+public struct ProcessedFrames {
+    let frames: [MLXArray]
+    let timestamps: [CMTime]
+    let totalDuration: CMTime
 }
 
 // TODO: verify working color space, rendering color space
@@ -237,7 +242,7 @@ public enum MediaProcessing {
         return ciImages
     }
 
-    static public func asCIImageSequence(_ asset: AVAsset, maxFrames: Int, targetFPS: Double) async throws -> VideoFrameResult {
+    static public func asProcessedSequence(_ asset: AVAsset, maxFrames: Int, targetFPS: (CMTime) -> Double, frameProcessing: (VideoFrame) -> VideoFrame = {$0}) async throws -> ProcessedFrames {
         // Use AVAssetImageGenerator to extract frames
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
@@ -249,9 +254,8 @@ public enum MediaProcessing {
                 domain: "MediaProcessing", code: -1,
                 userInfo: [NSLocalizedDescriptionKey: "Failed to load the asset's duration"])
         }
-        // 1 fps for duration >= 10s, apply a multiplier if smaller
-        let adjustedFPS = max((10 - 0.9 * duration.seconds) * targetFPS, 1)
-        let estimatedFrames = Int(round(adjustedFPS * duration.seconds))
+        let fps = targetFPS(duration)
+        let estimatedFrames = Int(round(fps * duration.seconds))
         var desiredFrames = min(estimatedFrames, maxFrames)
         let finalFrameCount = max(desiredFrames, 1)
 
@@ -265,36 +269,28 @@ public enum MediaProcessing {
 
         // Collect the frames
         var ciImages: [CIImage] = []
-        var timestamps: [String] = []
+        var timestamps: [CMTime] = []
+
+        var frames: [VideoFrame] = []
 
         for await result in await generator.images(for: sampledTimes) {
             switch result {
             case .success(requestedTime: let requested, let image, actualTime: let actual):
-                let ciImage = CIImage(
-                    cgImage: image, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
-                ciImages.append(ciImage)
-                timestamps.append(formatTimestamp(actual))
+                let ciImage = CIImage(cgImage: image, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
+                let frame = frameProcessing(.init(frame: ciImage, timeStamp: actual))
+                ciImages.append(frame.frame)
+                timestamps.append(frame.timeStamp)
             case .failure(requestedTime: let requested, let error):
                 break
             }
         }
 
-        let totalDuration = formatTimestamp(duration)
-
-        return VideoFrameResult(
-            frames: ciImages,
+        let framesAsArrays = ciImages.map { $0.asMLXArray() }
+        return ProcessedFrames(
+            frames: framesAsArrays,
             timestamps: timestamps,
-            totalDuration: totalDuration
+            totalDuration: duration
         )
-    }
-
-    private static func formatTimestamp(_ time: CMTime) -> String {
-        let totalSeconds = Int(ceil(time.seconds))
-        let hours = totalSeconds / 3600
-        let minutes = (totalSeconds % 3600) / 60
-        let seconds = totalSeconds % 60
-
-        return String(format: "%d:%02d:%02d", hours, minutes, seconds)
     }
 }
 
