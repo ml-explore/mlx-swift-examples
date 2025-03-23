@@ -330,7 +330,7 @@ class VLMEvaluator {
 
     /// This controls which model loads. `smolvlm` is very small even unquantized, so it will fit on
     /// more devices.
-    let modelConfiguration = ModelRegistry.smolvlm
+    let modelConfiguration = VLMRegistry.smolvlm
 
     /// parameters controlling the output – use values appropriate for the model selected above
     let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.7, topP: 0.9)
