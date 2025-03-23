@@ -70,6 +70,12 @@ public enum MediaProcessing {
         min(other.width / size.width, other.height / size.height)
     }
 
+    static public func aspectRatioForResample(_ image: CIImage, size: CGSize) -> Float {
+        let inputAspectRatio = image.extent.width / image.extent.height
+        let desiredAspectRatio = size.width / size.height
+        return Float(1 / inputAspectRatio * desiredAspectRatio)
+    }
+
     /// Resample the image using bicubic interpolation.
     static public func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
         let filter = CIFilter.bicubicScaleTransform()
@@ -78,9 +84,7 @@ public enum MediaProcessing {
         filter.inputImage = image
 
         // set the aspect ratio to match the aspect ratio of the target
-        let inputAspectRatio = extent.width / extent.height
-        let desiredAspectRatio = size.width / size.height
-        filter.aspectRatio = Float(1 / inputAspectRatio * desiredAspectRatio)
+        filter.aspectRatio = aspectRatioForResample(image, size: size)
 
         // that image is now the aspect ratio of the target and the size
         // of the shorter dimension
@@ -107,9 +111,7 @@ public enum MediaProcessing {
         filter.inputImage = image
 
         // set the aspect ratio to match the aspect ratio of the target
-        let inputAspectRatio = extent.width / extent.height
-        let desiredAspectRatio = size.width / size.height
-        filter.aspectRatio = Float(1 / inputAspectRatio * desiredAspectRatio)
+        filter.aspectRatio = aspectRatioForResample(image, size: size)
 
         // that image is now the aspect ratio of the target and the size
         // of the shorter dimension
