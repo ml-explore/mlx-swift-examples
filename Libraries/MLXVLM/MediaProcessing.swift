@@ -242,7 +242,11 @@ public enum MediaProcessing {
         return ciImages
     }
 
-    static public func asProcessedSequence(_ asset: AVAsset, maxFrames: Int, targetFPS: (CMTime) -> Double, frameProcessing: (VideoFrame) -> VideoFrame = {$0}) async throws -> ProcessedFrames {
+    static public func asProcessedSequence(_ asset: AVAsset, samplesPerSecond: Int, frameProcessing: (VideoFrame) throws -> VideoFrame = {$0}) async throws -> ProcessedFrames {
+        return try await asProcessedSequence(asset, maxFrames: Int.max, targetFPS: {_ in Double(samplesPerSecond)}, frameProcessing: frameProcessing)
+    }
+
+    static public func asProcessedSequence(_ asset: AVAsset, maxFrames: Int, targetFPS: (CMTime) -> Double, frameProcessing: (VideoFrame) throws -> VideoFrame = {$0}) async throws -> ProcessedFrames {
         // Use AVAssetImageGenerator to extract frames
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
@@ -255,6 +259,7 @@ public enum MediaProcessing {
                 userInfo: [NSLocalizedDescriptionKey: "Failed to load the asset's duration"])
         }
         let fps = targetFPS(duration)
+        // Note: the round was not present in `asCIImageSequence`, so we may now be passing 1 more frame to Qwen depending on video duration.
         let estimatedFrames = Int(round(fps * duration.seconds))
         var desiredFrames = min(estimatedFrames, maxFrames)
         let finalFrameCount = max(desiredFrames, 1)
@@ -277,7 +282,7 @@ public enum MediaProcessing {
             switch result {
             case .success(requestedTime: let requested, let image, actualTime: let actual):
                 let ciImage = CIImage(cgImage: image, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
-                let frame = frameProcessing(.init(frame: ciImage, timeStamp: actual))
+                let frame = try frameProcessing(.init(frame: ciImage, timeStamp: actual))
                 ciImages.append(frame.frame)
                 timestamps.append(frame.timeStamp)
             case .failure(requestedTime: let requested, let error):
