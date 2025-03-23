@@ -5,10 +5,15 @@ import CoreImage.CIFilterBuiltins
 import MLX
 import MLXLMCommon
 
-public struct VideoFrameResult {
-    let frames: [CIImage]
-    let timestamps: [String]
-    let totalDuration: String
+public struct VideoFrame {
+    let frame: CIImage
+    let timeStamp: CMTime
+}
+
+public struct ProcessedFrames {
+    let frames: [MLXArray]
+    let timestamps: [CMTime]
+    let totalDuration: CMTime
 }
 
 // TODO: verify working color space, rendering color space
@@ -65,6 +70,12 @@ public enum MediaProcessing {
         min(other.width / size.width, other.height / size.height)
     }
 
+    static public func aspectRatioForResample(_ image: CIImage, size: CGSize) -> Float {
+        let inputAspectRatio = image.extent.width / image.extent.height
+        let desiredAspectRatio = size.width / size.height
+        return Float(1 / inputAspectRatio * desiredAspectRatio)
+    }
+
     /// Resample the image using bicubic interpolation.
     static public func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
         let filter = CIFilter.bicubicScaleTransform()
@@ -73,9 +84,7 @@ public enum MediaProcessing {
         filter.inputImage = image
 
         // set the aspect ratio to match the aspect ratio of the target
-        let inputAspectRatio = extent.width / extent.height
-        let desiredAspectRatio = size.width / size.height
-        filter.aspectRatio = Float(1 / inputAspectRatio * desiredAspectRatio)
+        filter.aspectRatio = aspectRatioForResample(image, size: size)
 
         // that image is now the aspect ratio of the target and the size
         // of the shorter dimension
@@ -102,9 +111,7 @@ public enum MediaProcessing {
         filter.inputImage = image
 
         // set the aspect ratio to match the aspect ratio of the target
-        let inputAspectRatio = extent.width / extent.height
-        let desiredAspectRatio = size.width / size.height
-        filter.aspectRatio = Float(1 / inputAspectRatio * desiredAspectRatio)
+        filter.aspectRatio = aspectRatioForResample(image, size: size)
 
         // that image is now the aspect ratio of the target and the size
         // of the shorter dimension
@@ -237,9 +244,11 @@ public enum MediaProcessing {
         return ciImages
     }
 
-    static public func asCIImageSequence(
-        _ asset: AVAsset, maxFrames: Int, targetFPS: Double, skipSeconds: CMTime = .zero
-    ) async throws -> VideoFrameResult {
+    static public func asProcessedSequence(_ asset: AVAsset, samplesPerSecond: Int, frameProcessing: (VideoFrame) throws -> VideoFrame = {$0}) async throws -> ProcessedFrames {
+        return try await asProcessedSequence(asset, maxFrames: Int.max, targetFPS: {_ in Double(samplesPerSecond)}, frameProcessing: frameProcessing)
+    }
+
+    static public func asProcessedSequence(_ asset: AVAsset, maxFrames: Int, targetFPS: (CMTime) -> Double, frameProcessing: (VideoFrame) throws -> VideoFrame = {$0}) async throws -> ProcessedFrames {
         // Use AVAssetImageGenerator to extract frames
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
@@ -251,58 +260,44 @@ public enum MediaProcessing {
                 domain: "MediaProcessing", code: -1,
                 userInfo: [NSLocalizedDescriptionKey: "Failed to load the asset's duration"])
         }
-        // 1 fps for duration >= 10s, apply a multiplier if smaller
-        let adjustedFPS = max((10 - 0.9 * duration.seconds) * targetFPS, 1)
-        let estimatedFrames = Int(round(adjustedFPS * duration.seconds))
+        let fps = targetFPS(duration)
+        // Note: the round was not present in `asCIImageSequence`, so we may now be passing 1 more frame to Qwen depending on video duration.
+        let estimatedFrames = Int(round(fps * duration.seconds))
         var desiredFrames = min(estimatedFrames, maxFrames)
         let finalFrameCount = max(desiredFrames, 1)
 
-        let durationTimeValue = duration.value
-        let timescale = duration.timescale
-        let startTimeValue =
-            skipSeconds.seconds > 0 ? Int64(skipSeconds.seconds * Double(timescale)) : 0
-        let endTimeValue =
-            skipSeconds.seconds > 0
-            ? Int64(duration.seconds * Double(timescale) - skipSeconds.seconds * Double(timescale))
-            : duration.value
         let sampledTimeValues = MLXArray.linspace(
-            startTimeValue, endTimeValue, count: Int(finalFrameCount)
+            0, duration.value, count: Int(finalFrameCount)
         ).asArray(Int64.self)
 
+        // Construct a CMTime using the sampled CMTimeValue's and the asset's timescale
+        let timescale = duration.timescale
         let sampledTimes = sampledTimeValues.map { CMTime(value: $0, timescale: timescale) }
 
         // Collect the frames
         var ciImages: [CIImage] = []
-        var timestamps: [String] = []
+        var timestamps: [CMTime] = []
+
+        var frames: [VideoFrame] = []
 
         for await result in await generator.images(for: sampledTimes) {
             switch result {
             case .success(requestedTime: let requested, let image, actualTime: let actual):
-                let ciImage = CIImage(
-                    cgImage: image, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
-                ciImages.append(ciImage)
-                timestamps.append(formatTimestamp(actual))
+                let ciImage = CIImage(cgImage: image, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
+                let frame = try frameProcessing(.init(frame: ciImage, timeStamp: actual))
+                ciImages.append(frame.frame)
+                timestamps.append(frame.timeStamp)
             case .failure(requestedTime: let requested, let error):
                 break
             }
         }
 
-        let totalDuration = formatTimestamp(duration)
-
-        return VideoFrameResult(
-            frames: ciImages,
+        let framesAsArrays = ciImages.map { $0.asMLXArray() }
+        return ProcessedFrames(
+            frames: framesAsArrays,
             timestamps: timestamps,
-            totalDuration: totalDuration
+            totalDuration: duration
         )
-    }
-
-    private static func formatTimestamp(_ time: CMTime) -> String {
-        let totalSeconds = Int(ceil(time.seconds))
-        let hours = totalSeconds / 3600
-        let minutes = (totalSeconds % 3600) / 60
-        let seconds = totalSeconds % 60
-
-        return String(format: "%d:%02d:%02d", hours, minutes, seconds)
     }
 }
 

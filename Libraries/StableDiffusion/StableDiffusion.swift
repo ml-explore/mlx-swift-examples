@@ -100,12 +100,26 @@ public protocol ImageToImageGenerator: ImageGenerator {
         -> DenoiseIterator
 }
 
-enum ModelContainerError: Error {
-    /// unable to create the particular type of model, e.g. it doesn't support image to image
+enum ModelContainerError: LocalizedError {
+    /// Unable to create the particular type of model, e.g. it doesn't support image to image
     case unableToCreate(String, String)
-
-    /// when operating in conserveMemory mode it tried to use a model that had been discarded
+    /// When operating in conserveMemory mode, it tried to use a model that had been discarded
     case modelDiscarded
+
+    var errorDescription: String? {
+        switch self {
+        case .unableToCreate(let modelId, let generatorType):
+            return String(
+                localized:
+                    "Unable to create a \(generatorType) with model ID '\(modelId)'. The model may not support this operation type."
+            )
+        case .modelDiscarded:
+            return String(
+                localized:
+                    "The model has been discarded to conserve memory and is no longer available. Please recreate the model container."
+            )
+        }
+    }
 }
 
 /// Container for models that guarantees single threaded access.

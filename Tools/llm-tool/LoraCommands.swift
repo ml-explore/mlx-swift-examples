@@ -48,7 +48,7 @@ struct LoRAModelArguments: ParsableArguments, Sendable {
         // convert some of the Linear layers to LoRALinear
         await modelContainer.perform { context in
             guard let lora = context.model as? LoRAModel else {
-                fatalError("Model \(modelContainer.configuration.name) is not a LoRAModel")
+                fatalError("Model \(context.configuration.name) is not a LoRAModel")
             }
             LoRATrain.convert(model: context.model, layers: lora.loraLinearLayers(loraLayers))
         }
@@ -197,7 +197,7 @@ struct LoRAFuseCommand: AsyncParsableCommand {
         // fuse them back into Linear/QuantizedLinear
         await modelContainer.perform { [args, deQuantize] context in
             guard let lora = context.model as? LoRAModel else {
-                fatalError("Model \(modelContainer.configuration.name) is not a LoRAModel")
+                fatalError("Model \(context.configuration.name) is not a LoRAModel")
             }
 
             LoRATrain.fuse(
@@ -207,7 +207,7 @@ struct LoRAFuseCommand: AsyncParsableCommand {
 
         // make the new directory and copy files from source model
         try FileManager.default.createDirectory(at: outputURL, withIntermediateDirectories: true)
-        let inputURL = modelContainer.configuration.modelDirectory()
+        let inputURL = await modelContainer.configuration.modelDirectory()
         let enumerator = FileManager.default.enumerator(
             at: inputURL, includingPropertiesForKeys: nil)!
         for case let url as URL in enumerator {
@@ -296,7 +296,8 @@ struct LoRAEvalCommand: AsyncParsableCommand {
 
         memory.start()
 
-        let prompt = generate.prompt ?? modelContainer.configuration.defaultPrompt
+        let defaultPrompt = await modelContainer.configuration.defaultPrompt
+        let prompt = generate.prompt ?? defaultPrompt
 
         if !generate.quiet {
             print("Starting generation ...")

@@ -328,11 +328,11 @@ class VLMEvaluator {
     var modelInfo = ""
     var stat = ""
 
-    /// This controls which model loads. `qwen2VL2BInstruct4Bit` is one of the smaller ones, so this will fit on
+    /// This controls which model loads. `smolvlm` is very small even unquantized, so it will fit on
     /// more devices.
-    let modelConfiguration = ModelRegistry.smolvlm
+    let modelConfiguration = VLMRegistry.smolvlm
 
-    /// parameters controlling the output
+    /// parameters controlling the output – use values appropriate for the model selected above
     let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.7, topP: 0.9)
     let maxTokens = 800
 

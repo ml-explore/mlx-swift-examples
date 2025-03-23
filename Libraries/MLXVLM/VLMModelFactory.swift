@@ -6,14 +6,33 @@ import MLX
 import MLXLMCommon
 import Tokenizers
 
-public enum VLMError: Error {
+public enum VLMError: LocalizedError {
     case imageRequired
     case maskRequired
     case singleImageAllowed
     case singleVideoAllowed
-    case onlySingleMediaTypeAllowed
+    case singleMediaTypeAllowed
     case imageProcessingFailure(String)
     case processing(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .imageRequired:
+            return String(localized: "An image is required for this operation.")
+        case .maskRequired:
+            return String(localized: "An image mask is required for this operation.")
+        case .singleImageAllowed:
+            return String(localized: "Only a single image is allowed for this operation.")
+        case .singleVideoAllowed:
+            return String(localized: "Only a single video is allowed for this operation.")
+        case .singleMediaTypeAllowed:
+            return String(localized: "Only a single media type (image or video) is allowed for this operation.")
+        case .imageProcessingFailure(let details):
+            return String(localized: "Failed to process the image: \(details)")
+        case .processing(let details):
+            return String(localized: "Processing error: \(details)")
+        }
+    }
 }
 
 public struct BaseProcessorConfiguration: Codable, Sendable {
@@ -52,88 +71,41 @@ private func create<C: Codable, P>(
 /// Registry of model type, e.g 'llama', to functions that can instantiate the model from configuration.
 ///
 /// Typically called via ``LLMModelFactory/load(hub:configuration:progressHandler:)``.
-public class ModelTypeRegistry: @unchecked Sendable {
+public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
 
-    // Note: using NSLock as we have very small (just dictionary get/set)
-    // critical sections and expect no contention.  this allows the methods
-    // to remain synchronous.
-    private let lock = NSLock()
+    /// Shared instance with default model types.
+    public static let shared: VLMTypeRegistry = .init(creators: all())
 
-    private var creators: [String: @Sendable (URL) throws -> any LanguageModel] = [
-        "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
-        "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
-        "idefics3": create(Idefics3Configuration.self, Idefics3.init),
-        "smolvlm": create(Idefics3Configuration.self, Idefics3.init),
-    ]
-
-    /// Add a new model to the type registry.
-    public func registerModelType(
-        _ type: String,
-        creator: @Sendable @escaping (
-            URL
-        ) throws -> any LanguageModel
-    ) {
-        lock.withLock {
-            creators[type] = creator
-        }
-    }
-
-    /// Given a `modelType` and configuration file instantiate a new `LanguageModel`.
-    public func createModel(configuration: URL, modelType: String) throws -> any LanguageModel {
-        let creator = lock.withLock {
-            creators[modelType]
-        }
-        guard let creator else {
-            throw ModelFactoryError.unsupportedModelType(modelType)
-        }
-        return try creator(configuration)
+    /// All predefined model types
+    private static func all() -> [String: @Sendable (URL) throws -> any LanguageModel] {
+        [
+            "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
+            "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
+            "idefics3": create(Idefics3Configuration.self, Idefics3.init),
+            "smolvlm": create(SmolVLM2Configuration.self, SmolVLM2.init),
+        ]
     }
 
 }
 
-public class ProcessorTypeRegistry: @unchecked Sendable {
+public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendable {
 
-    // Note: using NSLock as we have very small (just dictionary get/set)
-    // critical sections and expect no contention.  this allows the methods
-    // to remain synchronous.
-    private let lock = NSLock()
+    /// Shared instance with default processor types.
+    public static let shared: VLMProcessorTypeRegistry = .init(creators: all())
 
-    private var creators:
-        [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor] = [
+    /// All predefined processor types.
+    private static func all() -> [String: @Sendable (URL, any Tokenizer) throws ->
+        any UserInputProcessor]
+    {
+        [
             "PaliGemmaProcessor": create(
                 PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
-            "Qwen2VLProcessor": create(
-                Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
+            "Qwen2VLProcessor": create(Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
             "Idefics3Processor": create(
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
             "SmolVLMProcessor": create(
                 SmolVLMProcessorConfiguration.self, SmolVLMProcessor.init),
         ]
-
-    /// Add a new model to the type registry.
-    public func registerProcessorType(
-        _ type: String,
-        creator: @Sendable @escaping (
-            URL,
-            any Tokenizer
-        ) throws -> any UserInputProcessor
-    ) {
-        lock.withLock {
-            creators[type] = creator
-        }
-    }
-
-    /// Given a `processorType` and configuration file instantiate a new `UserInputProcessor`.
-    public func createModel(configuration: URL, processorType: String, tokenizer: any Tokenizer)
-        throws -> any UserInputProcessor
-    {
-        let creator = lock.withLock {
-            creators[processorType]
-        }
-        guard let creator else {
-            throw ModelFactoryError.unsupportedProcessorType(processorType)
-        }
-        return try creator(configuration, tokenizer)
     }
 
 }
@@ -144,13 +116,10 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
 /// The python tokenizers have a very rich set of implementations and configuration.  The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
-public class ModelRegistry: @unchecked Sendable {
+public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
 
-    private let lock = NSLock()
-    private var registry = Dictionary(
-        uniqueKeysWithValues: all().map {
-            ($0.name, $0)
-        })
+    /// Shared instance with default model configurations.
+    public static let shared: VLMRegistry = .init(modelConfigurations: all())
 
     static public let paligemma3bMix448_8bit = ModelConfiguration(
         id: "mlx-community/paligemma-3b-mix-448-8bit",
@@ -176,30 +145,10 @@ public class ModelRegistry: @unchecked Sendable {
         ]
     }
 
-    public func register(configurations: [ModelConfiguration]) {
-        lock.withLock {
-            for c in configurations {
-                registry[c.name] = c
-            }
-        }
-    }
-
-    public func configuration(id: String) -> ModelConfiguration {
-        lock.withLock {
-            if let c = registry[id] {
-                return c
-            } else {
-                return ModelConfiguration(id: id)
-            }
-        }
-    }
-
-    public var models: some Collection<ModelConfiguration> & Sendable {
-        lock.withLock {
-            return registry.values
-        }
-    }
 }
+
+@available(*, deprecated, renamed: "VLMRegistry", message: "Please use VLMRegistry directly.")
+public typealias ModelRegistry = VLMRegistry
 
 /// Factory for creating new LLMs.
 ///
@@ -212,20 +161,28 @@ public class ModelRegistry: @unchecked Sendable {
 /// ```
 public class VLMModelFactory: ModelFactory {
 
-    public static let shared = VLMModelFactory()
+    public init(
+        typeRegistry: ModelTypeRegistry, processorRegistry: ProcessorTypeRegistry,
+        modelRegistry: AbstractModelRegistry
+    ) {
+        self.typeRegistry = typeRegistry
+        self.processorRegistry = processorRegistry
+        self.modelRegistry = modelRegistry
+    }
+
+    /// Shared instance with default behavior.
+    public static let shared = VLMModelFactory(
+        typeRegistry: VLMTypeRegistry.shared, processorRegistry: VLMProcessorTypeRegistry.shared,
+        modelRegistry: VLMRegistry.shared)
 
     /// registry of model type, e.g. configuration value `paligemma` -> configuration and init methods
-    public let typeRegistry = ModelTypeRegistry()
+    public let typeRegistry: ModelTypeRegistry
 
     /// registry of input processor type, e.g. configuration value `PaliGemmaProcessor` -> configuration and init methods
-    public let processorRegistry = ProcessorTypeRegistry()
+    public let processorRegistry: ProcessorTypeRegistry
 
     /// registry of model id to configuration, e.g. `mlx-community/paligemma-3b-mix-448-8bit`
-    public let modelRegistry = ModelRegistry()
-
-    public func configuration(id: String) -> ModelConfiguration {
-        modelRegistry.configuration(id: id)
-    }
+    public let modelRegistry: AbstractModelRegistry
 
     public func _load(
         hub: HubApi, configuration: ModelConfiguration,
