@@ -79,7 +79,7 @@ public struct GenerateParameters: Sendable {
         self.repetitionContextSize = repetitionContextSize
     }
 
-    func sampler() -> LogitSampler {
+    public func sampler() -> LogitSampler {
         if temperature == 0 {
             return ArgMaxSampler()
         } else if topP > 0 && topP < 1 {
@@ -89,7 +89,7 @@ public struct GenerateParameters: Sendable {
         }
     }
 
-    func processor() -> LogitProcessor? {
+    public func processor() -> LogitProcessor? {
         if let repetitionPenalty, repetitionContextSize > 0 {
             return RepetitionContext(
                 repetitionPenalty: repetitionPenalty, repetitionContextSize: repetitionContextSize)
@@ -379,6 +379,26 @@ public struct TokenIterator: Sequence, IteratorProtocol {
 
 /// Result of a call to ``generate(input:parameters:context:didGenerate:)``.
 public struct GenerateResult: Sendable {
+
+    /// Initializes a new `GenerateResult` instance.
+    ///
+    /// - Parameters:
+    ///   - inputText: The input text used for generation.
+    ///   - tokens: The array of tokens generated.
+    ///   - output: The generated output string.
+    ///   - promptTime: The time taken to prompt the input.
+    ///   - generateTime: The time taken to generate the output.
+    public init(
+        inputText: LMInput.Text, tokens: [Int], output: String, promptTime: TimeInterval,
+        generateTime: TimeInterval
+    ) {
+        self.inputText = inputText
+        self.tokens = tokens
+        self.output = output
+        self.promptTime = promptTime
+        self.generateTime = generateTime
+    }
+
     /// input (prompt, images, etc.)
     public let inputText: LMInput.Text
 

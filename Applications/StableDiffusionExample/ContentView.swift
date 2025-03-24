@@ -105,8 +105,18 @@ actor ModelFactory {
         case loaded(ModelContainer<TextToImageGenerator>)
     }
 
-    enum SDError: Error {
+    enum SDError: LocalizedError {
         case unableToLoad
+
+        var errorDescription: String? {
+            switch self {
+            case .unableToLoad:
+                return String(
+                    localized:
+                        "Unable to load the Stable Diffusion model. Please check your internet connection or available storage space."
+                )
+            }
+        }
     }
 
     public nonisolated let configuration = StableDiffusionConfiguration.presetSDXLTurbo

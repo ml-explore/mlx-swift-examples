@@ -16,15 +16,15 @@ public enum VLMError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .imageRequired:
-            return "An image is required for this operation."
+            return String(localized: "An image is required for this operation.")
         case .maskRequired:
-            return "A mask is required for this operation."
+            return String(localized: "An image mask is required for this operation.")
         case .singleImageAllowed:
-            return "Only a single image is allowed for this operation."
-        case .imageProcessingFailure(let message):
-            return "Image processing failed: \(message)"
-        case .processing(let message):
-            return "Processing error: \(message)"
+            return String(localized: "Only a single image is allowed for this operation.")
+        case .imageProcessingFailure(let details):
+            return String(localized: "Failed to process the image: \(details)")
+        case .processing(let details):
+            return String(localized: "Processing error: \(details)")
         }
     }
 }
@@ -181,10 +181,6 @@ public class VLMModelFactory: ModelFactory {
 
     /// registry of model id to configuration, e.g. `mlx-community/paligemma-3b-mix-448-8bit`
     public let modelRegistry: AbstractModelRegistry
-
-    public func configuration(id: String) -> ModelConfiguration {
-        modelRegistry.configuration(id: id)
-    }
 
     public func _load(
         hub: HubApi, configuration: ModelConfiguration,
