@@ -717,7 +717,8 @@ public func generate(
 
     AsyncStream { continuation in
 
-        Task {
+        // Launch a Task to perform iteration asynchronously.
+        let task = Task {
             var start = Date.timeIntervalSinceReferenceDate
             var promptTime: TimeInterval = 0
 
@@ -731,7 +732,8 @@ public func generate(
 
             for token in iterator {
 
-                try Task.checkCancellation()
+                // Check for cancellation on every loop iteration.
+                if Task.isCancelled { break }
 
                 if promptTime == 0 {
                     let now = Date.timeIntervalSinceReferenceDate
@@ -766,6 +768,11 @@ public func generate(
 
             // Finalize the stream
             continuation.finish()
+        }
+        // When the consumer cancels (or ends) the stream,
+        // cancel our underlying task.
+        continuation.onTermination = { _ in
+            task.cancel()
         }
     }
 }
