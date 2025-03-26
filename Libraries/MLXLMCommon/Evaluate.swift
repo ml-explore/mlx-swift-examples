@@ -574,3 +574,244 @@ public func generate(
         output: context.tokenizer.decode(tokens: tokens),
         promptTime: promptTime, generateTime: generateTime)
 }
+
+/// Generate tokens from an ``LMInput`` and a ``ModelContext``.
+///
+/// For example:
+///
+/// ```swift
+/// let generateParameters: GenerateParameters
+/// let input: UserInput
+/// let context: ModelContext
+///
+/// let lmInput = try context.processor.prepare(input: input)
+/// let result = generate(input: lmInput,
+///     parameters: generateParameters,
+///     context: context) { token in
+///     .more
+/// }
+/// ```
+///
+/// Internally this constructs a ``TokenIterator`` and calls
+/// ``generate(input:context:iterator:didGenerate:)``
+///
+/// - Parameters:
+///   - input: prepared language model input
+///   - parameters: parameters controlling the token generation
+///   - context: model context (model and tokenizer)
+///   - didGenerate: token visitor that can output tokens as they are generated and indicate early stop
+/// - Returns: Information about the generation
+public func generate(
+    input: LMInput, parameters: GenerateParameters, context: ModelContext,
+    didGenerate: (Int) -> GenerateDisposition
+) throws -> GenerateCompletionInfo {
+    let iterator = try TokenIterator(
+        input: input, model: context.model, parameters: parameters)
+    return generate(
+        input: input, context: context, iterator: iterator, didGenerate: didGenerate)
+}
+
+public func generate(
+    input: LMInput, context: ModelContext,
+    iterator: TokenIterator,
+    didGenerate: (Int) -> GenerateDisposition
+) -> GenerateCompletionInfo {
+    var start = Date.timeIntervalSinceReferenceDate
+    var promptTime: TimeInterval = 0
+
+    let additionalEOSTokenIds = Set(
+        (context.configuration.extraEOSTokens ?? [])
+            .compactMap {
+                context.tokenizer.convertTokenToId($0)
+            })
+
+    var tokenCount = 0
+
+    for token in iterator {
+        // Compute the timing for the prompt
+        if promptTime == 0 {
+            let now = Date.timeIntervalSinceReferenceDate
+            promptTime = now - start
+            start = now
+        }
+
+        // Check for end-of-sequence tokens
+        if token == context.tokenizer.unknownTokenId || token == context.tokenizer.eosTokenId
+            || additionalEOSTokenIds.contains(token)
+        {
+            break
+        }
+
+        tokenCount += 1
+
+        // Invoke the callback with the current token
+        if didGenerate(token) == .stop {
+            break
+        }
+    }
+
+    let now = Date.timeIntervalSinceReferenceDate
+    let generateTime = now - start
+
+    // Synchronize with the stream to ensure tasks are completed
+    Stream().synchronize()
+
+    return GenerateCompletionInfo(
+        promptTokenCount: input.text.tokens.size,
+        generationTokenCount: tokenCount,
+        promptTime: promptTime,
+        generationTime: generateTime
+    )
+}
+
+/// Generates tokens asynchronously using the provided language model input, parameters, and context.
+///
+/// This function initializes a `TokenIterator` with the given input, model, and generation parameters,
+/// and then streams the token generation process via an `AsyncStream`. The resulting stream yields
+/// instances of the `Generation` enum, which can represent either individual tokens or summary
+/// completion information.
+///
+/// - Parameters:
+///   - input: The input for the language model.
+///   - parameters: The configuration options for token generation.
+///   - context: The model context, including the model itself and associated tokenizer.
+/// - Returns: An `AsyncStream` that emits `Generation` values, including generated tokens (`.token`)
+///   and completion information (`.info`).
+/// - Throws: An error if the `TokenIterator` initialization fails due to invalid input or model configuration.
+///
+/// ### Example Usage:
+/// ```swift
+/// // Define the input, parameters, and context for token generation.
+/// let generateParameters: GenerateParameters
+/// let input: UserInput
+/// let context: ModelContext
+///
+/// let lmInput = try context.processor.prepare(input: input)
+///
+/// // Call the generate function to get an AsyncStream.
+/// let stream = try generate(input: lmInput, parameters: parameters, context: context)
+///
+/// // Process the stream asynchronously to handle generated tokens and completion info.
+/// for await generation in stream {
+///     switch generation {
+///     case .token(let token):
+///         print("Generated token: \(context.tokenizer.decode(tokens: [token])")
+///     case .info(let info):
+///         print("Finished: \(info.tokensPerSecond) tokens/s.")
+///     }
+/// }
+/// ```
+public func generate(
+    input: LMInput, parameters: GenerateParameters, context: ModelContext
+) throws -> AsyncStream<Generation> {
+    let iterator = try TokenIterator(
+        input: input, model: context.model, parameters: parameters)
+    return generate(
+        input: input, context: context, iterator: iterator)
+}
+
+public func generate(
+    input: LMInput, context: ModelContext,
+    iterator: TokenIterator
+) -> AsyncStream<Generation> {
+
+    AsyncStream { continuation in
+
+        // Launch a Task to perform iteration asynchronously.
+        let task = Task {
+            var start = Date.timeIntervalSinceReferenceDate
+            var promptTime: TimeInterval = 0
+
+            let additionalEOSTokenIds = Set(
+                (context.configuration.extraEOSTokens ?? [])
+                    .compactMap {
+                        context.tokenizer.convertTokenToId($0)
+                    })
+
+            var tokenCount = 0
+
+            for token in iterator {
+
+                // Check for cancellation on every loop iteration.
+                if Task.isCancelled { break }
+
+                if promptTime == 0 {
+                    let now = Date.timeIntervalSinceReferenceDate
+                    promptTime = now - start
+                    start = now
+                }
+
+                if token == context.tokenizer.unknownTokenId
+                    || token == context.tokenizer.eosTokenId
+                    || additionalEOSTokenIds.contains(token)
+                {
+                    break
+                }
+
+                tokenCount += 1
+                continuation.yield(.token(token))
+            }
+
+            let now = Date.timeIntervalSinceReferenceDate
+            let generateTime = now - start
+
+            let info = GenerateCompletionInfo(
+                promptTokenCount: input.text.tokens.size,
+                generationTokenCount: tokenCount,
+                promptTime: promptTime,
+                generationTime: generateTime
+            )
+            continuation.yield(.info(info))
+
+            // Synchronize with the stream to ensure tasks are completed
+            Stream().synchronize()
+
+            // Finalize the stream
+            continuation.finish()
+        }
+        // When the consumer cancels (or ends) the stream,
+        // cancel our underlying task.
+        continuation.onTermination = { _ in
+            task.cancel()
+        }
+    }
+}
+
+/// Represents metadata and statistics related to token generation.
+///
+/// Provides information about the number of tokens processed during both the prompt and generation phases, as well as the time taken for each phase.
+public struct GenerateCompletionInfo {
+    /// The number of tokens included in the input prompt.
+    let promptTokenCount: Int
+
+    /// The number of tokens generated by the language model.
+    let generationTokenCount: Int
+
+    /// The time interval (in seconds) taken to process the input prompt.
+    let promptTime: TimeInterval
+
+    /// The time interval (in seconds) taken to generate the output tokens.
+    let generationTime: TimeInterval
+
+    /// The number of tokens processed per second during the prompt phase.
+    public var promptTokensPerSecond: Double {
+        Double(promptTokenCount) / promptTime
+    }
+
+    /// The number of tokens generated per second during the generation phase.
+    public var tokensPerSecond: Double {
+        Double(generationTokenCount) / generationTime
+    }
+}
+
+/// Represents the different stages or outputs of the token generation process.
+///
+/// This enum distinguishes between the following:
+/// - `.token`: An individual token generated by the language model.
+/// - `.info`: Metadata and performance statistics about the generation process.
+public enum Generation {
+    /// A generated token represented as an integer.
+    case token(Int)
+    /// Completion information summarizing token counts and performance metrics.
+    case info(GenerateCompletionInfo)
+}
