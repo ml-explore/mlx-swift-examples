@@ -636,7 +636,7 @@ public class Qwen2VLProcessor: UserInputProcessor {
         let (resizedHeight, resizedWidth) = try targetSize(
             height: Int(size.height), width: Int(size.width),
             factor: config.patchSize * config.mergeSize,
-            minPixels: config.size.minPixels, maxPixels: config.size.maxPixels)
+            minPixels: config.minPixels, maxPixels: config.maxPixels)
         let resizedSize = CGSize(width: resizedWidth, height: resizedHeight)
 
         let processedImages =
@@ -1040,10 +1040,20 @@ public struct Qwen2VLProcessorConfiguration: Codable, Sendable {
 
     public let imageMean: [CGFloat]
     public let imageStd: [CGFloat]
-    public let size: Size
     public let mergeSize: Int
     public let patchSize: Int
     public let temporalPatchSize: Int
+
+    private let _size: Size?
+    private let _maxPixels: Int?
+    private let _minPixels: Int?
+
+    public var minPixels: Int {
+        _minPixels ?? _size?.minPixels ?? 3136
+    }
+    public var maxPixels: Int {
+        _maxPixels ?? _size?.maxPixels ?? 12_845_056
+    }
 
     public var imageMeanTuple: (CGFloat, CGFloat, CGFloat) {
         (imageMean[0], imageMean[1], imageMean[2])
@@ -1055,9 +1065,11 @@ public struct Qwen2VLProcessorConfiguration: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case imageMean = "image_mean"
         case imageStd = "image_std"
-        case size
         case mergeSize = "merge_size"
         case patchSize = "patch_size"
         case temporalPatchSize = "temporal_patch_size"
+        case _maxPixels = "max_pixels"
+        case _minPixels = "min_pixels"
+        case _size = "size"
     }
 }
