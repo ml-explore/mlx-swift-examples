@@ -780,7 +780,7 @@ public func generate(
 /// Represents metadata and statistics related to token generation.
 ///
 /// Provides information about the number of tokens processed during both the prompt and generation phases, as well as the time taken for each phase.
-public struct GenerateCompletionInfo {
+public struct GenerateCompletionInfo: Sendable {
     /// The number of tokens included in the input prompt.
     let promptTokenCount: Int
 
@@ -814,4 +814,36 @@ public enum Generation {
     case token(Int)
     /// Completion information summarizing token counts and performance metrics.
     case info(GenerateCompletionInfo)
+}
+
+extension AsyncSequence {
+    public func throttle(for interval: TimeInterval) -> AsyncStream<[Element]> {
+        AsyncStream { continuation in
+            var buffer: [Element] = []
+            var lastEmissionTime: Date = Date()
+
+            let task = Task {
+                for try await value in self {
+                    buffer.append(value)
+                    let now = Date()
+
+                    if now.timeIntervalSince(lastEmissionTime) >= interval {
+                        continuation.yield(buffer)
+                        buffer.removeAll()  // Clear the buffer
+                        lastEmissionTime = now
+                    }
+                }
+
+                // Emit remaining values in the buffer when the sequence ends
+                if !buffer.isEmpty {
+                    continuation.yield(buffer)
+                }
+                continuation.finish()
+            }
+
+            continuation.onTermination = { _ in
+                task.cancel()
+            }
+        }
+    }
 }
