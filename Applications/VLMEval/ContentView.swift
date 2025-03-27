@@ -322,7 +322,7 @@ class VLMEvaluator {
 
     /// This controls which model loads. `qwen2VL2BInstruct4Bit` is one of the smaller ones, so this will fit on
     /// more devices.
-    let modelConfiguration = ModelRegistry.qwen2VL2BInstruct4Bit
+    let modelConfiguration = VLMRegistry.qwen2VL2BInstruct4Bit
 
     /// parameters controlling the output
     let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.6)
@@ -382,7 +382,7 @@ class VLMEvaluator {
             // each time you generate you will get something new
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
-            let result = try await modelContainer.perform { context in
+            try await modelContainer.perform { context in
                 let images: [UserInput.Image] =
                     if let image {
                         [UserInput.Image.ciImage(image)]
@@ -423,33 +423,44 @@ class VLMEvaluator {
                 var userInput = UserInput(messages: messages, images: images, videos: videos)
                 userInput.processing.resize = .init(width: 448, height: 448)
                 let input = try await context.processor.prepare(input: userInput)
-                return try MLXLMCommon.generate(
-                    input: input,
-                    parameters: generateParameters,
-                    context: context
-                ) { tokens in
-                    // update the output -- this will make the view show the text as it generates
-                    if tokens.count % displayEveryNTokens == 0 {
-                        let text = context.tokenizer.decode(tokens: tokens)
-                        Task { @MainActor in
-                            self.output = text
+                
+                // TODO: Since context is an actor, we'll need to use `Task { @MainActor in` to update the UI.
+                // Is there a way can run the for await loop on the original thread?
+                try await modelContainer.perform { context in
+                    
+                    // Call the generate function to get an AsyncStream.
+                    var tokens = [Int]()
+                    for await generation in try MLXLMCommon.generate(input: input, parameters: generateParameters, context: context) {
+                        switch generation {
+                        case .token(let token):
+                            
+                            tokens.append(token)
+                            if tokens.count % displayEveryNTokens == 0 {
+                                let text = context.tokenizer.decode(tokens: tokens)
+                                tokens = []
+                                Task { @MainActor in
+                                    self.output.append(text)
+                                }
+                            }
+                            if tokens.count >= maxTokens {
+                                // TODO: cancel stream
+                            }
+                        case .info(let info):
+                            Task { @MainActor in
+                                self.stat = " Tokens/second: \(String(format: "%.3f", info.tokensPerSecond))"
+                            }
                         }
                     }
-
-                    if tokens.count >= maxTokens {
-                        return .stop
-                    } else {
-                        return .more
+                    
+                    // update the text if needed, e.g. we haven't displayed because of displayEveryNTokens
+                    if !tokens.isEmpty {
+                        let text = context.tokenizer.decode(tokens: tokens)
+                        Task { @MainActor in
+                            self.output.appending(text)
+                        }
                     }
                 }
             }
-
-            // update the text if needed, e.g. we haven't displayed because of displayEveryNTokens
-            if result.output != self.output {
-                self.output = result.output
-            }
-            self.stat = " Tokens/second: \(String(format: "%.3f", result.tokensPerSecond))"
-
         } catch {
             output = "Failed: \(error)"
         }
