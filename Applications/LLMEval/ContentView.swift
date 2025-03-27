@@ -13,7 +13,6 @@ struct ContentView: View {
     @Environment(DeviceStat.self) private var deviceStat
 
     @State var llm = LLMEvaluator()
-    @State var prompt = "What's the current weather in Paris?"
 
     enum displayStyle: String, CaseIterable, Identifiable {
         case plain, markdown
@@ -83,14 +82,13 @@ struct ContentView: View {
             }
 
             HStack {
-                TextField("prompt", text: $prompt)
+                TextField("prompt", text: Bindable(llm).prompt)
                     .onSubmit(generate)
                     .disabled(llm.running)
                     #if os(visionOS)
                         .textFieldStyle(.roundedBorder)
                     #endif
-                Button("generate", action: generate)
-                    .disabled(llm.running)
+                Button(llm.running ? "stop" : "generate", action: llm.running ? cancel : generate)
             }
         }
         #if os(visionOS)
@@ -130,17 +128,19 @@ struct ContentView: View {
 
         }
         .task {
-            self.prompt = llm.modelConfiguration.defaultPrompt
             // pre-load the weights on launch to speed up the first generation
             _ = try? await llm.load()
         }
     }
 
     private func generate() {
-        Task {
-            await llm.generate(prompt: prompt)
-        }
+        llm.generate()
     }
+    
+    private func cancel() {
+        llm.cancelGeneration()
+    }
+    
     private func copyToClipboard(_ string: String) {
         #if os(macOS)
             NSPasteboard.general.clearContents()
@@ -159,22 +159,21 @@ class LLMEvaluator {
 
     var includeWeatherTool = false
 
+    var prompt = ""
     var output = ""
     var modelInfo = ""
     var stat = ""
 
     /// This controls which model loads. `qwen2_5_1_5b` is one of the smaller ones, so this will fit on
     /// more devices.
-    let modelConfiguration = ModelRegistry.qwen2_5_1_5b
+    let modelConfiguration = LLMRegistry.qwen2_5_1_5b
 
     /// parameters controlling the output
     let generateParameters = GenerateParameters(temperature: 0.6)
     let maxTokens = 240
 
-    /// update the display every N tokens -- 4 looks like it updates continuously
-    /// and is low overhead.  observed ~15% reduction in tokens/s when updating
-    /// on every token
-    let displayEveryNTokens = 4
+    /// A task responsible for handling the generation process.
+    var generationTask: Task<Void, Error>?
 
     enum LoadState {
         case idle
@@ -227,6 +226,7 @@ class LLMEvaluator {
                 context.model.numParameters()
             }
 
+            self.prompt = modelConfiguration.defaultPrompt
             self.modelInfo =
                 "Loaded \(modelConfiguration.id).  Weights: \(numParams / (1024*1024))M"
             loadState = .loaded(modelContainer)
@@ -237,53 +237,57 @@ class LLMEvaluator {
         }
     }
 
-    func generate(prompt: String) async {
-        guard !running else { return }
+    private func generate(prompt: String) async {
 
-        running = true
         self.output = ""
+        let userInput = UserInput(prompt: prompt)
 
         do {
             let modelContainer = try await load()
 
             // each time you generate you will get something new
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
-
-            let result = try await modelContainer.perform { context in
-                let input = try await context.processor.prepare(
-                    input: .init(
-                        messages: [
-                            ["role": "system", "content": "You are a helpful assistant."],
-                            ["role": "user", "content": prompt],
-                        ], tools: includeWeatherTool ? [currentWeatherToolSpec] : nil))
-                return try MLXLMCommon.generate(
-                    input: input, parameters: generateParameters, context: context
-                ) { tokens in
-                    // Show the text in the view as it generates
-                    if tokens.count % displayEveryNTokens == 0 {
-                        let text = context.tokenizer.decode(tokens: tokens)
+            
+            try await modelContainer.perform { (context: ModelContext) -> Void in
+                let lmInput = try await context.processor.prepare(input: userInput)
+                let stream = try MLXLMCommon.generate(input: lmInput, parameters: generateParameters, context: context)
+                
+                var tokenCount = 0
+                for await result in stream {
+                    switch result {
+                    case .token(let token):
+                        tokenCount += 1
+                        if tokenCount >= maxTokens { await generationTask?.cancel() }
+                        let text = context.tokenizer.decode(tokens: [token])
                         Task { @MainActor in
-                            self.output = text
+                            self.output += text
                         }
-                    }
-                    if tokens.count >= maxTokens {
-                        return .stop
-                    } else {
-                        return .more
+                    case .info(let info):
+                        Task { @MainActor in
+                            self.stat = "\(info.tokensPerSecond) tokens/s"
+                        }
                     }
                 }
             }
 
-            // update the text if needed, e.g. we haven't displayed because of displayEveryNTokens
-            if result.output != self.output {
-                self.output = result.output
-            }
-            self.stat = " Tokens/second: \(String(format: "%.3f", result.tokensPerSecond))"
-
         } catch {
             output = "Failed: \(error)"
         }
-
+    }
+    
+    func generate() {
+        guard !running else { return }
+        let currentPrompt = prompt
+        prompt = ""
+        generationTask = Task {
+            running = true
+            await generate(prompt: currentPrompt)
+            running = false
+        }
+    }
+    
+    func cancelGeneration() {
+        generationTask?.cancel()
         running = false
     }
 }

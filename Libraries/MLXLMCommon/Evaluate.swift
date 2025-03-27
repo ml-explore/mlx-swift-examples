@@ -780,7 +780,7 @@ public func generate(
 /// Represents metadata and statistics related to token generation.
 ///
 /// Provides information about the number of tokens processed during both the prompt and generation phases, as well as the time taken for each phase.
-public struct GenerateCompletionInfo {
+public struct GenerateCompletionInfo: Sendable {
     /// The number of tokens included in the input prompt.
     let promptTokenCount: Int
 
