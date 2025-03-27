@@ -560,7 +560,16 @@ public class Qwen2VLProcessor: UserInputProcessor {
     }
 
     public func prepare(input: UserInput) async throws -> LMInput {
-        let messages = input.prompt.asMessages()
+        let generator = Qwen2VLMessageGenerator()
+        let messages =
+            switch input.prompt {
+            case .text(let text):
+                generator.generate(messages: [.user(text)])
+            case .messages(let messages):
+                messages
+            case .chat(let messages):
+                generator.generate(messages: messages)
+            }
         var promptTokens = try tokenizer.applyChatTemplate(messages: messages)
 
         // Text-only input

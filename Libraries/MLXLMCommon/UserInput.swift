@@ -17,15 +17,7 @@ public struct UserInput: Sendable {
     public enum Prompt: Sendable, CustomStringConvertible {
         case text(String)
         case messages([Message])
-
-        public func asMessages() -> [Message] {
-            switch self {
-            case .text(let text):
-                return [["role": "user", "content": text]]
-            case .messages(let messages):
-                return messages
-            }
-        }
+        case chat([Chat.Message])
 
         public var description: String {
             switch self {
@@ -33,6 +25,8 @@ public struct UserInput: Sendable {
                 return text
             case .messages(let messages):
                 return messages.map { $0.description }.joined(separator: "\n")
+            case .chat(let messages):
+                return messages.map(\.content).joined(separator: "\n")
             }
         }
     }
@@ -150,6 +144,18 @@ public struct UserInput: Sendable {
         additionalContext: [String: Any]? = nil
     ) {
         self.prompt = .messages(messages)
+        self.images = images
+        self.videos = videos
+        self.tools = tools
+        self.additionalContext = additionalContext
+    }
+
+    public init(
+        messages: [Chat.Message], images: [Image] = [Image](), videos: [Video] = [Video](),
+        tools: [ToolSpec]? = nil,
+        additionalContext: [String: Any]? = nil
+    ) {
+        self.prompt = .chat(messages)
         self.images = images
         self.videos = videos
         self.tools = tools
