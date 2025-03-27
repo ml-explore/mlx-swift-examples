@@ -75,10 +75,10 @@ public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
         [
             "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
             "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
+            "qwen2_5_vl": create(Qwen25VLConfiguration.self, Qwen25VL.init),
             "idefics3": create(Idefics3Configuration.self, Idefics3.init),
         ]
     }
-
 }
 
 public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendable {
@@ -92,13 +92,15 @@ public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendabl
     {
         [
             "PaliGemmaProcessor": create(
-                PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
-            "Qwen2VLProcessor": create(Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
+                PaliGemmaProcessorConfiguration.self, PaliGemmaProcessor.init),
+            "Qwen2VLProcessor": create(
+                Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
+            "Qwen2_5_VLProcessor": create(
+                Qwen25VLProcessorConfiguration.self, Qwen25VLProcessor.init),
             "Idefics3Processor": create(
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
         ]
     }
-
 }
 
 /// Registry of models and any overrides that go with them, e.g. prompt augmentation.
@@ -122,15 +124,21 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Describe the image in English"
     )
 
+    static public let qwen2_5VL3BInstruct4Bit = ModelConfiguration(
+        id: "mlx-community/Qwen2.5-VL-3B-Instruct-4bit",
+        defaultPrompt: "Describe the image in English"
+    )
+
     static public let smolvlminstruct4bit = ModelConfiguration(
         id: "mlx-community/SmolVLM-Instruct-4bit",
         defaultPrompt: "Describe the image in English"
     )
 
-    static private func all() -> [ModelConfiguration] {
+    static public func all() -> [ModelConfiguration] {
         [
             paligemma3bMix448_8bit,
             qwen2VL2BInstruct4Bit,
+            qwen2_5VL3BInstruct4Bit,
             smolvlminstruct4bit,
         ]
     }
