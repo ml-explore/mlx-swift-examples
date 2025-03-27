@@ -16,7 +16,7 @@ import SwiftUI
 #endif
 
 struct ContentView: View {
-    
+
     @State var llm = VLMEvaluator()
     @Environment(DeviceStat.self) private var deviceStat
 
@@ -274,7 +274,7 @@ struct ContentView: View {
             }
         }
     }
-    
+
     private func cancel() {
         llm.cancelGeneration()
     }
@@ -383,7 +383,7 @@ class VLMEvaluator {
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
             try await modelContainer.perform { (context: ModelContext) -> Void in
-                
+
                 let images: [UserInput.Image] =
                     if let image {
                         [UserInput.Image.ciImage(image)]
@@ -423,24 +423,27 @@ class VLMEvaluator {
                     }
                 var userInput = UserInput(messages: messages, images: images, videos: videos)
                 userInput.processing.resize = .init(width: 448, height: 448)
-                
+
                 let lmInput = try await context.processor.prepare(input: userInput)
-                
-                let stream = try MLXLMCommon.generate(input: lmInput, parameters: generateParameters, context: context)
-                
+
+                let stream = try MLXLMCommon.generate(
+                    input: lmInput, parameters: generateParameters, context: context)
+
                 var tokenCount = 0
-                for await result in stream {
-                    switch result {
-                    case .token(let token):
-                        tokenCount += 1
-                        if tokenCount >= maxTokens { await generationTask?.cancel() }
-                        let text = context.tokenizer.decode(tokens: [token])
-                        Task { @MainActor in
-                            self.output += text
-                        }
-                    case .info(let info):
-                        Task { @MainActor in
-                            self.stat = "\(info.tokensPerSecond) tokens/s"
+                for await batch in stream.throttle(for: 0.25) {
+                    for result in batch {
+                        switch result {
+                        case .token(let token):
+                            tokenCount += 1
+                            if tokenCount >= maxTokens { await generationTask?.cancel() }
+                            let text = context.tokenizer.decode(tokens: [token])
+                            Task { @MainActor in
+                                self.output += text
+                            }
+                        case .info(let info):
+                            Task { @MainActor in
+                                self.stat = "\(info.tokensPerSecond) tokens/s"
+                            }
                         }
                     }
                 }
@@ -449,7 +452,7 @@ class VLMEvaluator {
             output = "Failed: \(error)"
         }
     }
-    
+
     func generate(image: CIImage?, videoURL: URL?) {
         guard !running else { return }
         let currentPrompt = prompt
@@ -460,7 +463,7 @@ class VLMEvaluator {
             running = false
         }
     }
-    
+
     func cancelGeneration() {
         generationTask?.cancel()
         running = false

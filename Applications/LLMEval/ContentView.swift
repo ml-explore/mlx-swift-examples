@@ -136,11 +136,11 @@ struct ContentView: View {
     private func generate() {
         llm.generate()
     }
-    
+
     private func cancel() {
         llm.cancelGeneration()
     }
-    
+
     private func copyToClipboard(_ string: String) {
         #if os(macOS)
             NSPasteboard.general.clearContents()
@@ -247,24 +247,27 @@ class LLMEvaluator {
 
             // each time you generate you will get something new
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
-            
+
             try await modelContainer.perform { (context: ModelContext) -> Void in
                 let lmInput = try await context.processor.prepare(input: userInput)
-                let stream = try MLXLMCommon.generate(input: lmInput, parameters: generateParameters, context: context)
-                
+                let stream = try MLXLMCommon.generate(
+                    input: lmInput, parameters: generateParameters, context: context)
+
                 var tokenCount = 0
-                for await result in stream {
-                    switch result {
-                    case .token(let token):
-                        tokenCount += 1
-                        if tokenCount >= maxTokens { await generationTask?.cancel() }
-                        let text = context.tokenizer.decode(tokens: [token])
-                        Task { @MainActor in
-                            self.output += text
-                        }
-                    case .info(let info):
-                        Task { @MainActor in
-                            self.stat = "\(info.tokensPerSecond) tokens/s"
+                for await batch in stream.throttle(for: 0.25) {
+                    for result in batch {
+                        switch result {
+                        case .token(let token):
+                            tokenCount += 1
+                            if tokenCount >= maxTokens { await generationTask?.cancel() }
+                            let text = context.tokenizer.decode(tokens: [token])
+                            Task { @MainActor in
+                                self.output += text
+                            }
+                        case .info(let info):
+                            Task { @MainActor in
+                                self.stat = "\(info.tokensPerSecond) tokens/s"
+                            }
                         }
                     }
                 }
@@ -274,7 +277,7 @@ class LLMEvaluator {
             output = "Failed: \(error)"
         }
     }
-    
+
     func generate() {
         guard !running else { return }
         let currentPrompt = prompt
@@ -285,7 +288,7 @@ class LLMEvaluator {
             running = false
         }
     }
-    
+
     func cancelGeneration() {
         generationTask?.cancel()
         running = false
