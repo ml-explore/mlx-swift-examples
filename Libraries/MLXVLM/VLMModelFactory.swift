@@ -76,6 +76,7 @@ public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
             "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
             "idefics3": create(Idefics3Configuration.self, Idefics3.init),
+            "gemma3": create(Gemma3Configuration.self, Gemma3.init),
         ]
     }
 
@@ -96,6 +97,8 @@ public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendabl
             "Qwen2VLProcessor": create(Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
             "Idefics3Processor": create(
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
+            "Gemma3Processor": create(
+                Gemma3ProcessorConfiguration.self, Gemma3Processor.init),
         ]
     }
 
@@ -127,11 +130,18 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Describe the image in English"
     )
 
-    static private func all() -> [ModelConfiguration] {
+    static public let gemma3_4B_it_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-4b-it-4bit",
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public func all() -> [ModelConfiguration] {
         [
             paligemma3bMix448_8bit,
             qwen2VL2BInstruct4Bit,
             smolvlminstruct4bit,
+            gemma3_4B_it_4bit,
         ]
     }
 
