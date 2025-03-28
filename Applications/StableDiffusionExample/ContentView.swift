@@ -241,7 +241,8 @@ class StableDiffusionEvaluator {
     }
 
     nonisolated private func display(decoded: MLXArray) {
-        let raster = (decoded * 255).asType(.uint8).squeezed()
+        let raster: MLXArray = (decoded * 255).asType(.uint8).squeezed()
+
         let image = Image(raster).asCGImage()
 
         Task { @MainActor in
