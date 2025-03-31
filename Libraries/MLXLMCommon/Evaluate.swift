@@ -802,6 +802,18 @@ public struct GenerateCompletionInfo: Sendable {
     public var tokensPerSecond: Double {
         Double(generationTokenCount) / generationTime
     }
+    
+    public init(
+        promptTokenCount: Int,
+        generationTokenCount: Int,
+        promptTime: TimeInterval,
+        generationTime: TimeInterval
+    ) {
+        self.promptTokenCount = promptTokenCount
+        self.generationTokenCount = generationTokenCount
+        self.promptTime = promptTime
+        self.generationTime = generationTime
+    }
 }
 
 /// Represents the different stages or outputs of the token generation process.
