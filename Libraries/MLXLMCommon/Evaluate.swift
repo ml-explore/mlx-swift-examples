@@ -723,12 +723,13 @@ public func generate(
             var promptTime: TimeInterval = 0
 
             let additionalEOSTokenIds = Set(
-                (context.configuration.extraEOSTokens ?? [])
+                context.configuration.extraEOSTokens
                     .compactMap {
                         context.tokenizer.convertTokenToId($0)
                     })
 
             var tokenCount = 0
+            var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
 
             for token in iterator {
 
@@ -748,9 +749,11 @@ public func generate(
                     break
                 }
 
-                tokenCount += 1
-                let chunk = context.tokenizer.decode(tokens: [token])
-                continuation.yield(.chunk(chunk))
+                detokenizer.append(token: token)
+                if let chunk = detokenizer.next() {
+                    tokenCount += 1
+                    continuation.yield(.chunk(chunk))
+                }
             }
 
             let now = Date.timeIntervalSinceReferenceDate
