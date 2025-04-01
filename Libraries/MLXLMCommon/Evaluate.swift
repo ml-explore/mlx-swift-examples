@@ -802,7 +802,7 @@ public struct GenerateCompletionInfo: Sendable {
     public var tokensPerSecond: Double {
         Double(generationTokenCount) / generationTime
     }
-    
+
     public init(
         promptTokenCount: Int,
         generationTokenCount: Int,
