@@ -322,7 +322,7 @@ class VLMEvaluator {
 
     /// This controls which model loads. `qwen2VL2BInstruct4Bit` is one of the smaller ones, so this will fit on
     /// more devices.
-    let modelConfiguration = ModelRegistry.qwen2VL2BInstruct4Bit
+    let modelConfiguration = ModelRegistry.qwen2_5VL3BInstruct4Bit
 
     /// parameters controlling the output
     let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.6)
@@ -421,7 +421,7 @@ class VLMEvaluator {
                         ]
                     }
                 var userInput = UserInput(messages: messages, images: images, videos: videos)
-                userInput.processing.resize = .init(width: 448, height: 448)
+                userInput.processing.resize = .init(width: 1344, height: 1344)
                 let input = try await context.processor.prepare(input: userInput)
                 return try MLXLMCommon.generate(
                     input: input,
