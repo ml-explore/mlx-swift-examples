@@ -151,13 +151,17 @@ public struct UserInput: Sendable {
     }
 
     public init(
-        messages: [Chat.Message], images: [Image] = [Image](), videos: [Video] = [Video](),
+        messages: [Chat.Message],
         tools: [ToolSpec]? = nil,
         additionalContext: [String: Any]? = nil
     ) {
         self.prompt = .chat(messages)
-        self.images = images
-        self.videos = videos
+        self.images = messages.reduce(into: []) { result, message in
+            result.append(contentsOf: message.images)
+        }
+        self.videos = messages.reduce(into: []) { result, message in
+            result.append(contentsOf: message.videos)
+        }
         self.tools = tools
         self.additionalContext = additionalContext
     }
