@@ -69,23 +69,3 @@ public struct DefaultMessageGenerator: MessageGenerator {
         ]
     }
 }
-
-public struct Qwen2VLMessageGenerator: MessageGenerator {
-    public init() {}
-
-    public func generate(message: Chat.Message) -> Message {
-        [
-            "role": message.role.rawValue,
-            "content": [
-                ["type": "text", "text": message.content]
-            ]
-                // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
-                + message.images.map { _ in
-                    ["type": "image"]
-                }
-                + message.videos.map { _ in
-                    ["type": "video"]
-                },
-        ]
-    }
-}
