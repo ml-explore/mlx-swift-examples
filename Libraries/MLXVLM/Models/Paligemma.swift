@@ -14,23 +14,6 @@ import Tokenizers
 // MARK: - Language
 
 private enum Language {
-
-    // specialized norm for gemma
-    fileprivate class RMSNorm: Module, UnaryLayer {
-        let weight: MLXArray
-        let eps: Float
-
-        public init(dimensions: Int, eps: Float = 1e-5) {
-            self.weight = MLXArray.ones([dimensions]).asType(.float16)
-            self.eps = eps
-            super.init()
-        }
-
-        public func callAsFunction(_ x: MLXArray) -> MLXArray {
-            return MLXFast.rmsNorm(x, weight: 1.0 + self.weight, eps: self.eps)
-        }
-    }
-
     fileprivate class Attention: Module {
 
         let args: PaliGemmaConfiguration.TextConfiguration
@@ -117,15 +100,15 @@ private enum Language {
         @ModuleInfo(key: "self_attn") var attention: Attention
         let mlp: MLP
 
-        @ModuleInfo(key: "input_layernorm") var inputLayerNorm: RMSNorm
-        @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: RMSNorm
+        @ModuleInfo(key: "input_layernorm") var inputLayerNorm: Gemma.RMSNorm
+        @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: Gemma.RMSNorm
 
         public init(_ args: PaliGemmaConfiguration.TextConfiguration) {
             self._attention.wrappedValue = Attention(args)
             self.mlp = MLP(dimensions: args.hiddenSize, hiddenDimensions: args.intermediateSize)
-            self._inputLayerNorm.wrappedValue = RMSNorm(
+            self._inputLayerNorm.wrappedValue = Gemma.RMSNorm(
                 dimensions: args.hiddenSize, eps: args.rmsNormEps)
-            self._postAttentionLayerNorm.wrappedValue = RMSNorm(
+            self._postAttentionLayerNorm.wrappedValue = Gemma.RMSNorm(
                 dimensions: args.hiddenSize, eps: args.rmsNormEps)
         }
 
@@ -145,7 +128,7 @@ private enum Language {
         @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
 
         fileprivate let layers: [TransformerBlock]
-        fileprivate let norm: RMSNorm
+        fileprivate let norm: Gemma.RMSNorm
 
         let hiddenScale: Float
 
@@ -161,7 +144,7 @@ private enum Language {
                 .map { _ in
                     TransformerBlock(args)
                 }
-            self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+            self.norm = Gemma.RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
         }
 
         public func callAsFunction(

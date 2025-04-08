@@ -322,7 +322,7 @@ class VLMEvaluator {
 
     /// This controls which model loads. `qwen2VL2BInstruct4Bit` is one of the smaller ones, so this will fit on
     /// more devices.
-    let modelConfiguration = ModelRegistry.qwen2VL2BInstruct4Bit
+    let modelConfiguration = VLMRegistry.gemma3_4B_it_4bit
 
     /// parameters controlling the output
     let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.6)
