@@ -21,7 +21,7 @@ let imageSystemPrompt =
     "You are an image understanding model capable of describing the salient features of any image."
 
 struct ContentView: View {
-    @State var prompt = ""
+
     @State var llm = VLMEvaluator()
     @Environment(DeviceStat.self) private var deviceStat
 
@@ -200,14 +200,13 @@ struct ContentView: View {
             .frame(minHeight: 200)
 
             HStack {
-                TextField("prompt", text: $prompt)
+                TextField("prompt", text: Bindable(llm).prompt)
                     .onSubmit(generate)
                     .disabled(llm.running)
                     #if os(visionOS)
                         .textFieldStyle(.roundedBorder)
                     #endif
-                Button("generate", action: generate)
-                    .disabled(llm.running)
+                Button(llm.running ? "stop" : "generate", action: llm.running ? cancel : generate)
             }
         }
         .onAppear {
@@ -251,7 +250,6 @@ struct ContentView: View {
             }
         }
         .task {
-            self.prompt = llm.modelConfiguration.defaultPrompt
             _ = try? await llm.load()
         }
     }
@@ -261,30 +259,34 @@ struct ContentView: View {
             if let selectedImage = selectedImage {
                 #if os(iOS) || os(visionOS)
                     let ciImage = CIImage(image: selectedImage)
-                    await llm.generate(prompt: prompt, image: ciImage ?? CIImage(), videoURL: nil)
+                    llm.generate(image: ciImage ?? CIImage(), videoURL: nil)
                 #else
                     if let cgImage = selectedImage.cgImage(
                         forProposedRect: nil, context: nil, hints: nil)
                     {
                         let ciImage = CIImage(cgImage: cgImage)
-                        await llm.generate(prompt: prompt, image: ciImage, videoURL: nil)
+                        llm.generate(image: ciImage, videoURL: nil)
                     }
                 #endif
             } else if let imageURL = currentImageURL {
                 do {
                     let (data, _) = try await URLSession.shared.data(from: imageURL)
                     if let ciImage = CIImage(data: data) {
-                        await llm.generate(prompt: prompt, image: ciImage, videoURL: nil)
+                        llm.generate(image: ciImage, videoURL: nil)
                     }
                 } catch {
                     print("Failed to load image: \(error.localizedDescription)")
                 }
             } else {
                 if let videoURL = selectedVideoURL {
-                    await llm.generate(prompt: prompt, image: nil, videoURL: videoURL)
+                    llm.generate(image: nil, videoURL: videoURL)
                 }
             }
         }
+    }
+
+    private func cancel() {
+        llm.cancelGeneration()
     }
 
     #if os(macOS)
@@ -326,6 +328,7 @@ class VLMEvaluator {
 
     var running = false
 
+    var prompt = ""
     var output = ""
     var modelInfo = ""
     var stat = ""
@@ -337,11 +340,10 @@ class VLMEvaluator {
     /// parameters controlling the output – use values appropriate for the model selected above
     let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.7, topP: 0.9)
     let maxTokens = 800
+    let updateInterval = 0.25
 
-    /// update the display every N tokens -- 4 looks like it updates continuously
-    /// and is low overhead.  observed ~15% reduction in tokens/s when updating
-    /// on every token
-    let displayEveryNTokens = 4
+    /// A task responsible for handling the generation process.
+    var generationTask: Task<Void, Error>?
 
     enum LoadState {
         case idle
@@ -371,6 +373,7 @@ class VLMEvaluator {
                 context.model.numParameters()
             }
 
+            self.prompt = modelConfiguration.defaultPrompt
             self.modelInfo = "Loaded \(modelConfiguration.id). Weights: \(numParams / (1024*1024))M"
             loadState = .loaded(modelContainer)
             return modelContainer
@@ -380,10 +383,8 @@ class VLMEvaluator {
         }
     }
 
-    func generate(prompt: String, image: CIImage?, videoURL: URL?) async {
-        guard !running else { return }
+    private func generate(prompt: String, image: CIImage?, videoURL: URL?) async {
 
-        running = true
         self.output = ""
 
         do {
@@ -392,7 +393,8 @@ class VLMEvaluator {
             // each time you generate you will get something new
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
-            let result = try await modelContainer.perform { context in
+            try await modelContainer.perform { (context: ModelContext) -> Void in
+
                 let images: [UserInput.Image] =
                     if let image {
                         [UserInput.Image.ciImage(image)]
@@ -436,38 +438,61 @@ class VLMEvaluator {
                     }
                 var userInput = UserInput(messages: messages, images: images, videos: videos)
                 userInput.processing.resize = .init(width: 448, height: 448)
-                let input = try await context.processor.prepare(input: userInput)
-                return try MLXLMCommon.generate(
-                    input: input,
-                    parameters: generateParameters,
-                    context: context
-                ) { tokens in
-                    // update the output -- this will make the view show the text as it generates
-                    if tokens.count % displayEveryNTokens == 0 {
-                        let text = context.tokenizer.decode(tokens: tokens)
+
+                let lmInput = try await context.processor.prepare(input: userInput)
+
+                let stream = try MLXLMCommon.generate(
+                    input: lmInput, parameters: generateParameters, context: context)
+
+                var tokenCount = 0
+                var lastEmissionTime: Date = Date()
+                var chunks = ""
+
+                for await result in stream {
+                    switch result {
+                    case .chunk(let string):
+                        tokenCount += 1
+                        if tokenCount >= maxTokens { await generationTask?.cancel() }
+                        let now = Date()
+                        if now.timeIntervalSince(lastEmissionTime) >= updateInterval {
+                            lastEmissionTime = now
+                            let text = chunks
+                            chunks = ""
+                            Task { @MainActor in
+                                self.output += text
+                            }
+                        } else {
+                            chunks += string
+                        }
+                    case .info(let info):
                         Task { @MainActor in
-                            self.output = text
+                            self.stat = "\(info.tokensPerSecond) tokens/s"
                         }
                     }
+                }
 
-                    if tokens.count >= maxTokens {
-                        return .stop
-                    } else {
-                        return .more
-                    }
+                Task { @MainActor in
+                    self.output += chunks
                 }
             }
-
-            // update the text if needed, e.g. we haven't displayed because of displayEveryNTokens
-            if result.output != self.output {
-                self.output = result.output
-            }
-            self.stat = " Tokens/second: \(String(format: "%.3f", result.tokensPerSecond))"
-
         } catch {
             output = "Failed: \(error)"
         }
+    }
 
+    func generate(image: CIImage?, videoURL: URL?) {
+        guard !running else { return }
+        let currentPrompt = prompt
+        prompt = ""
+        generationTask = Task {
+            running = true
+            await generate(prompt: currentPrompt, image: image, videoURL: videoURL)
+            running = false
+        }
+    }
+
+    func cancelGeneration() {
+        generationTask?.cancel()
         running = false
     }
 }
