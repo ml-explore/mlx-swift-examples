@@ -60,7 +60,6 @@
 		C3A8B3F52B92A2A90002EFB8 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3EF2B92A2A90002EFB8 /* Preview Assets.xcassets */; };
 		C3A8B3F72B92A2A90002EFB8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3F22B92A2A90002EFB8 /* ContentView.swift */; };
 		C3E7D94D2CF6C9B20056C095 /* StableDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = C3E7D94C2CF6C9B20056C095 /* StableDiffusion */; };
-		F1C6791A2D5FD729004565BC /* test.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = F1C679192D5FD729004565BC /* test.mp4 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -242,7 +241,6 @@
 		C3C3240B2B6CA689007D2D9A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C3C36A6B2CA714600099FFA4 /* Build.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Build.xcconfig; sourceTree = "<group>"; };
 		C3D573052C40701E00857A35 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		F1C679192D5FD729004565BC /* test.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = test.mp4; sourceTree = "<group>"; };
 		F8D7023A2BB4E223003D7CF5 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -359,7 +357,6 @@
 				0AC74ECA2D13622A003C90A7 /* Preview Content */,
 				0AC74ECB2D13622A003C90A7 /* Assets.xcassets */,
 				0AC74ECC2D13622A003C90A7 /* ContentView.swift */,
-				F1C679192D5FD729004565BC /* test.mp4 */,
 				0AC74ECD2D13622A003C90A7 /* VLMEvalApp.swift */,
 			);
 			path = VLMEval;
@@ -892,7 +889,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				0AC74ECF2D13622A003C90A7 /* Preview Assets.xcassets in Resources */,
-				F1C6791A2D5FD729004565BC /* test.mp4 in Resources */,
 				0AC74ED02D13622A003C90A7 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
