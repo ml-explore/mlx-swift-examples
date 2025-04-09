@@ -34,32 +34,32 @@ public enum MediaProcessing {
     /// sRGB primaries, etc.
     ///
     /// See ``inLinearToneCurveSpace(_:)``
-    static public func inSRGBToneCurveSpace(_ image: CIImage) -> CIImage {
+    public static func inSRGBToneCurveSpace(_ image: CIImage) -> CIImage {
         let filter = CIFilter.linearToSRGBToneCurve()
         filter.inputImage = image
         return filter.outputImage!
     }
 
     /// Inverse of ``inSRGBToneCurveSpace(_:)`` (for completeness).
-    static public func inLinearToneCurveSpace(_ image: CIImage) -> CIImage {
+    public static func inLinearToneCurveSpace(_ image: CIImage) -> CIImage {
         let filter = CIFilter.sRGBToneCurveToLinear()
         filter.inputImage = image
         return filter.outputImage!
     }
 
     /// Compute the best fit size of one size in another (respecting aspect ratio).
-    static public func bestFit(_ size: CGSize, in other: CGSize) -> CGSize {
+    public static func bestFit(_ size: CGSize, in other: CGSize) -> CGSize {
         let scale = bestFitScale(size, in: other)
         return CGSize(width: round(size.width * scale), height: round(size.height * scale))
     }
 
     /// Compute the best fit scale of one size in another (respecting aspect ratio).
-    static public func bestFitScale(_ size: CGSize, in other: CGSize) -> CGFloat {
+    public static func bestFitScale(_ size: CGSize, in other: CGSize) -> CGFloat {
         min(other.width / size.width, other.height / size.height)
     }
 
     /// Resample the image using bicubic interpolation.
-    static public func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
+    public static func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
         let filter = CIFilter.bicubicScaleTransform()
         let extent = image.extent.size
 
@@ -88,7 +88,7 @@ public enum MediaProcessing {
     }
 
     /// Normalize the image using the given mean and standard deviation parameters.
-    static public func normalize(
+    public static func normalize(
         _ image: CIImage, mean: (CGFloat, CGFloat, CGFloat), std: (CGFloat, CGFloat, CGFloat)
     ) -> CIImage {
         let filter = CIFilter.colorMatrix()
@@ -113,7 +113,7 @@ public enum MediaProcessing {
     }
 
     /// Convert the CIImage into a planar 3 channel MLXArray `[1, C, H, W]`
-    static public func asMLXArray(_ image: CIImage, colorSpace: CGColorSpace? = nil) -> MLXArray {
+    public static func asMLXArray(_ image: CIImage, colorSpace: CGColorSpace? = nil) -> MLXArray {
         let size = image.extent.size
         let w = Int(size.width.rounded())
         let h = Int(size.height.rounded())
@@ -144,8 +144,72 @@ public enum MediaProcessing {
         return array
     }
 
+    /// Return `true` if the size is smaller or equal to the size of the `extent`.
+    public static func rectSmallerOrEqual(_ extent: CGRect, size: CGSize) -> Bool {
+        return extent.width <= size.width && extent.height <= size.height
+    }
+
+    /// Given an `extent` and a target `size` produce the `CGRect` that will be a center crop.
+    public static func centerCrop(_ extent: CGRect, size: CGSize) -> CGRect {
+        let targetWidth = min(extent.width, size.width)
+        let targetHeight = min(extent.height, size.height)
+
+        return CGRect(
+            x: (extent.maxX - targetWidth) / 2,
+            y: (extent.maxY - targetHeight) / 2,
+            width: targetWidth, height: targetHeight
+        )
+    }
+
+    /// Given an `image` and a target `size` produce the `CIImage` that will be a center crop.
+    public static func centerCrop(_ image: CIImage, size: CGSize) -> CIImage {
+        let extent = image.extent
+        if rectSmallerOrEqual(extent, size: size) {
+            return image
+        }
+
+        let crop = centerCrop(extent, size: size)
+        return
+            image
+            .cropped(to: crop)
+            .transformed(by: CGAffineTransform(translationX: -crop.minX, y: -crop.minY))
+    }
+
+    /// Given a `size` and a target `shortestEdge` compute a new size
+    /// that respects the aspect ratio of the original `size` and is
+    /// constrained by the `shortestEdge`.
+    public static func fitIn(_ size: CGSize, shortestEdge: Int) -> CGSize {
+        let floatShortestEdge = CGFloat(shortestEdge)
+
+        let (short, long) =
+            size.width <= size.height ? (size.width, size.height) : (size.height, size.width)
+        let newShort = floatShortestEdge
+        let newLong = floatShortestEdge * long / short
+
+        return size.width <= size.height
+            ? CGSize(width: newShort, height: newLong) : CGSize(width: newLong, height: newShort)
+    }
+
+    /// Given a `size` and a target `longestEdge` compute a new size
+    /// that respects the aspect ratio of the original `size` and is
+    /// constrained by the `longestEdge`.
+    public static func fitIn(_ size: CGSize, longestEdge: Int) -> CGSize {
+        let floatLongestEdge = CGFloat(longestEdge)
+
+        var (newShort, newLong) =
+            size.width <= size.height ? (size.width, size.height) : (size.height, size.width)
+
+        if newLong > floatLongestEdge {
+            newLong = floatLongestEdge
+            newShort = floatLongestEdge * newShort / newLong
+        }
+
+        return size.width <= size.height
+            ? CGSize(width: newShort, height: newLong) : CGSize(width: newLong, height: newShort)
+    }
+
     /// Apply `UserInput.Processing`, if needed, to the image.
-    static func apply(_ image: CIImage, processing: UserInput.Processing?) -> CIImage {
+    public static func apply(_ image: CIImage, processing: UserInput.Processing?) -> CIImage {
         var image = image
 
         if let resize = processing?.resize {
@@ -156,7 +220,8 @@ public enum MediaProcessing {
         return image
     }
 
-    static func asCIImageSequence(_ asset: AVAsset, samplesPerSecond: Int) async throws -> [CIImage]
+    public static func asCIImageSequence(_ asset: AVAsset, samplesPerSecond: Int) async throws
+        -> [CIImage]
     {
         // Use AVAssetImageGenerator to extract frames
         let generator = AVAssetImageGenerator(asset: asset)
