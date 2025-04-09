@@ -601,7 +601,11 @@ a missing `[.newAxis]` somewhere in the code.  It may be something more
 complicated but either way you know which value is incorrect and you can
 track it down.
 
-Incorrect output can be investigated in a similar fashion but it requires looking at the contents of the arrays, not just the shapes.  You can modify the `trace` functions like this:
+Incorrect output can be investigated in a similar fashion but I usually start with making sure the inputs are correct -- compare the integer tokens from the Python side to what the Swift side generates.  The implementations of `transformers` and `swift-transformers` are similar but not identical.  If needed, the token array from the Python program can be used directly.
+
+After making sure the inputs are identical, make sure the generation parameters (temperature, seed, etc.) are the same.
+
+If the output still differs, then you must look at the contents of the arrays during inference, not just the shapes.  You can modify the `trace` functions like this:
 
 ```python
 def trace(name, x):
