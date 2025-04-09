@@ -22,7 +22,7 @@ struct LoRACommand: AsyncParsableCommand {
     )
 }
 
-private let defaultModel = MLXLLM.ModelRegistry.mistral7B4bit.name
+private let defaultModel = MLXLLM.LLMRegistry.mistral7B4bit.name
 
 /// Common arguments for loading a LoRA mdoel with adapter weights
 struct LoRAModelArguments: ParsableArguments, Sendable {
@@ -210,7 +210,7 @@ struct LoRAFuseCommand: AsyncParsableCommand {
         let inputURL = await modelContainer.configuration.modelDirectory()
         let enumerator = FileManager.default.enumerator(
             at: inputURL, includingPropertiesForKeys: nil)!
-        for case let url as URL in enumerator {
+        for url in enumerator.allObjects.compactMap({ $0 as? URL }) {
             // copy everything except the model weights -- we will write out the fused one below
             if url.pathExtension == "safetensors" {
                 continue

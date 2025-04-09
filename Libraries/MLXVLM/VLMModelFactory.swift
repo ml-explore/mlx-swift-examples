@@ -147,7 +147,7 @@ public typealias ModelRegistry = VLMRegistry
 ///
 /// ```swift
 /// let modelContainer = try await VLMModelFactory.shared.loadContainer(
-///     configuration: ModelRegistry.paligemma3bMix4488bit)
+///     configuration: VLMRegistry.paligemma3bMix4488bit)
 /// ```
 public class VLMModelFactory: ModelFactory {
 

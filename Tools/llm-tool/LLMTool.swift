@@ -275,10 +275,10 @@ struct EvaluateCommand: AsyncParsableCommand {
         let vlm = !image.isEmpty || !video.isEmpty
         if vlm {
             modelFactory = VLMModelFactory.shared
-            defaultModel = MLXVLM.ModelRegistry.qwen2VL2BInstruct4Bit
+            defaultModel = MLXVLM.VLMRegistry.qwen2VL2BInstruct4Bit
         } else {
             modelFactory = LLMModelFactory.shared
-            defaultModel = MLXLLM.ModelRegistry.mistral7B4bit
+            defaultModel = MLXLLM.LLMRegistry.mistral7B4bit
         }
 
         // Load the model
