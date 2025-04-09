@@ -330,6 +330,7 @@ class VLMEvaluator {
     /// parameters controlling the output
     let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.6)
     let maxTokens = 800
+    let updateInterval = 0.25
 
     /// A task responsible for handling the generation process.
     var generationTask: Task<Void, Error>?
@@ -430,22 +431,35 @@ class VLMEvaluator {
                     input: lmInput, parameters: generateParameters, context: context)
 
                 var tokenCount = 0
-                for await batch in stream.throttle(for: 0.25) {
-                    for result in batch {
-                        switch result {
-                        case .token(let token):
-                            tokenCount += 1
-                            if tokenCount >= maxTokens { await generationTask?.cancel() }
-                            let text = context.tokenizer.decode(tokens: [token])
+                var lastEmissionTime: Date = Date()
+                var chunks = ""
+
+                for await result in stream {
+                    switch result {
+                    case .chunk(let string):
+                        print(string)
+                        tokenCount += 1
+                        if tokenCount >= maxTokens { await generationTask?.cancel() }
+                        let now = Date()
+                        if now.timeIntervalSince(lastEmissionTime) >= updateInterval {
+                            lastEmissionTime = now
+                            let text = chunks
+                            chunks = ""
                             Task { @MainActor in
                                 self.output += text
                             }
-                        case .info(let info):
-                            Task { @MainActor in
-                                self.stat = "\(info.tokensPerSecond) tokens/s"
-                            }
+                        } else {
+                            chunks += string
+                        }
+                    case .info(let info):
+                        Task { @MainActor in
+                            self.stat = "\(info.tokensPerSecond) tokens/s"
                         }
                     }
+                }
+
+                Task { @MainActor in
+                    self.output += chunks
                 }
             }
         } catch {
