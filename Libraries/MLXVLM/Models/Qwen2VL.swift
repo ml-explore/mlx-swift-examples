@@ -733,7 +733,7 @@ public class Qwen2VLProcessor: UserInputProcessor {
                         let (resizedHeight, resizedWidth) = try targetSize(
                             height: Int(size.height), width: Int(size.width),
                             factor: config.patchSize * config.mergeSize,
-                            minPixels: config.size.minPixels, maxPixels: config.size.maxPixels)
+                            minPixels: config.minPixels, maxPixels: config.maxPixels)
                         resizedSize = CGSize(width: resizedWidth, height: resizedHeight)
                     }
                     let processedImage = preprocess(image: resizedImage, resizedSize: resizedSize)
