@@ -10,7 +10,7 @@ import MLXNN
 
 // Specialized norm for Gemma
 private class RMSNorm: Module, UnaryLayer {
-    @ParameterInfo(key: "weight") var weight: MLXArray
+    let weight: MLXArray
     let eps: Float
 
     public init(dimensions: Int, eps: Float = 1e-5) {
