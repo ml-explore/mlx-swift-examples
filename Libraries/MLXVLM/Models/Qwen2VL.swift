@@ -624,6 +624,13 @@ public class Qwen2VLProcessor: UserInputProcessor {
         return (hBar, wBar)
     }
 
+    func preprocess(image: CIImage, resizedSize: CGSize) -> CIImage {
+        image
+            .toSRGB()
+            .resampled(to: resizedSize, method: .bicubic)
+            .normalized(mean: config.imageMeanTuple, std: config.imageStdTuple)
+    }
+
     public func preprocess(images: [CIImage], processing: UserInput.Processing?) throws -> (
         MLXArray, THW
     ) {
@@ -639,23 +646,22 @@ public class Qwen2VLProcessor: UserInputProcessor {
             minPixels: config.minPixels, maxPixels: config.maxPixels)
         let resizedSize = CGSize(width: resizedWidth, height: resizedHeight)
 
-        let processedImages =
-            try images
-            .map {
-                MediaProcessing.inSRGBToneCurveSpace($0)
-            }
-            .map {
-                return MediaProcessing.resampleBicubic($0, to: resizedSize)
-            }
-            .map {
-                MediaProcessing.normalize(
-                    $0, mean: config.imageMeanTuple, std: config.imageStdTuple)
-            }
-            .map {
-                MediaProcessing.asMLXArray($0)
-            }
+        let processedImages = try images.map { image in
+            preprocess(image: image, resizedSize: resizedSize).asMLXArray()
+        }
 
-        var patches = concatenated(processedImages)
+        return try patchify(images: processedImages)
+    }
+
+    public func patchify(images: [MLXArray]) throws -> (
+        MLXArray, THW
+    ) {
+        guard let firstImage = images.first else {
+            throw VLMError.imageProcessingFailure("No images in video sequence")
+        }
+        let resizedHeight = firstImage.dim(-2)
+        let resizedWidth = firstImage.dim(-1)
+        var patches = concatenated(images)
         let mod = patches.dim(0) % config.temporalPatchSize
         if mod != 0 {
             let lastPatch = patches[-1, .ellipsis]
@@ -716,17 +722,29 @@ public class Qwen2VLProcessor: UserInputProcessor {
         // Process videos if any
         var processedVideo: LMInput.ProcessedVideo?
         if !input.videos.isEmpty {
-            var videosAsImageSequences = [[CIImage]]()
+            var videosAsImageSequences = [[MLXArray]]()
+            var resizedSize: CGSize = .zero
             for video in input.videos {
-                if let imageSequence = try? await MediaProcessing.asCIImageSequence(
-                    video.asAVAsset(), samplesPerSecond: 2)
-                {
-                    videosAsImageSequences.append(imageSequence)
+                let imageSequence = try await MediaProcessing.asProcessedSequence(
+                    video.asAVAsset(), samplesPerSecond: 2
+                ) { frame in
+                    // first apply the user requested resizing, etc. if any
+                    let resizedImage = MediaProcessing.apply(
+                        frame.frame, processing: input.processing)
+                    if resizedSize == .zero {
+                        let size = resizedImage.extent.size
+                        let (resizedHeight, resizedWidth) = try targetSize(
+                            height: Int(size.height), width: Int(size.width),
+                            factor: config.patchSize * config.mergeSize,
+                            minPixels: config.minPixels, maxPixels: config.maxPixels)
+                        resizedSize = CGSize(width: resizedWidth, height: resizedHeight)
+                    }
+                    let processedImage = preprocess(image: resizedImage, resizedSize: resizedSize)
+                    return VideoFrame(frame: processedImage, timeStamp: frame.timeStamp)
                 }
+                videosAsImageSequences.append(imageSequence.frames)
             }
-            let videoPixelsAndFrames = try videosAsImageSequences.map {
-                try preprocess(images: $0, processing: input.processing)
-            }
+            let videoPixelsAndFrames = try videosAsImageSequences.map(patchify)
             let videoPixelsConcatenated = concatenated(videoPixelsAndFrames.map { $0.0 })
             processedVideo = LMInput.ProcessedVideo(
                 pixels: videoPixelsConcatenated, frames: videoPixelsAndFrames.map { $0.1 })
