@@ -211,7 +211,9 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            selectedVideoURL = URL(string: "https://videos.pexels.com/video-files/4066325/4066325-uhd_2560_1440_24fps.mp4")!
+            selectedVideoURL = URL(
+                string:
+                    "https://videos.pexels.com/video-files/4066325/4066325-uhd_2560_1440_24fps.mp4")!
         }
         #if os(visionOS)
             .padding(40)
