@@ -307,7 +307,7 @@ struct LoRAEvalCommand: AsyncParsableCommand {
         // generate and print the result
         let result = try await modelContainer.perform { [generate] context in
             let input = try await context.processor.prepare(input: .init(prompt: prompt))
-            return try generate.generate(input: input, context: context)
+            return try await generate.generate(input: input, context: context)
         }
 
         if !generate.quiet {
