@@ -601,14 +601,14 @@ a missing `[.newAxis]` somewhere in the code.  It may be something more
 complicated but either way you know which value is incorrect and you can
 track it down.
 
-Incorrect output 
+Incorrect output can be investigated in a similar fashion but it requires looking at the contents of the arrays, not just the shapes.  You can modify the `trace` functions like this:
 
 ```python
 def trace(name, x):
     print(f"{name}: {x.shape} {x.sum().item()}")
 ```
 
-and one in Swift:
+and:
 
 ```swift
 func trace(_ name: String, _ x: MLXArray) {
@@ -616,64 +616,81 @@ func trace(_ name: String, _ x: MLXArray) {
 }
 ```
 
+This uses `sum()` to give an aggregate value -- if these produce the same (or close to) values then the contents of the array are _probably_ the same.  Certainly if they are wildly different then contents of the array are _certainly_ different.  If the arrays contain larger numbers you might try different aggregation functions or look at slices of the array, e.g. the first row.
+
+You can use these calls on the values passed in to the `__call__`/`callAsFunction` methods and you can also use them on the parameters of the layers themselves.
+
+The nice thing about this technique is that it doesn't require understanding how the model works -- you have a reference implementation on the Python side and you only need to identify when it is different.  Once you determine the point where it is different you can track backward and figure out why (again, it is just calling functions and doing math).
 
 ### Optional Modules and Parameters
 
-- optional modules and parameters
+Models sometimes have optional modules or parameters based on their configuration.
+For example [qwen2.py](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/qwen2.py#L161C1-L163C1)
+only creates the `lm_head` module if the `tie_word_embeddings` is `False`:
 
-Qwen2
+```python
+if not args.tie_word_embeddings:
+    self.lm_head = nn.Linear(args.hidden_size, args.vocab_size, bias=False)
+```
 
+In Swift it is important to do the same thing using `Optional`:
+
+```swift
 public class Qwen2Model: Module, LLMModel, KVCacheDimensionProvider {
-    public let vocabularySize: Int
-    public let kvHeads: [Int]
-
-    private let model: Qwen2ModelInner
-    let configuration: Qwen2Configuration
+    ...
 
     @ModuleInfo(key: "lm_head") var lmHead: Linear?
 
     public init(_ args: Qwen2Configuration) {
-        self.configuration = args
-        self.vocabularySize = args.vocabularySize
-        self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
-        self.model = Qwen2ModelInner(args)
-
+        ...
         if !args.tieWordEmbeddings {
             _lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
         }
+    }
 
-- MLXArray as a parameter
+    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
+        var out = ...
+        if let lmHead {
+            out = lmHead(out)
+        } else {
+            out = model.embedTokens.asLinear(out)
+        }
+        ...
+    }
+```
+
+If the `lmHead` module is created but not used, the parameter load will fail validation because the `lm_head` keys will be missing.
 
 ### Pre-computed MLXArrays
 
-PaliGemma
+In some cases it is convenient to pre-compute some `MLXArray` but not treat
+it as a loadable parameter -- in particular we do not want loading of 
+parameters to fail because this MLXArray is "missing".
 
+For example in PaliGemma there is a constant
+`positionIds` based on the imageSize and patchSize configuration.
+If we name the property with a leading underscore (`_`) it will
+not be considered as a valid parameter and will be ignored
+when loading parameters:
+
+```swift
 fileprivate class VisionEmbeddings: Module, UnaryLayer {
 
-    @ModuleInfo(key: "patch_embedding") var patchEmbedding: Conv2d
-    @ModuleInfo(key: "position_embedding") var positionEmbedding: Embedding
-
+    ...
     let positions: Int
     let _positionIds: MLXArray
 
     public init(_ config: PaliGemmaConfiguration.VisionConfiguration) {
-        self._patchEmbedding.wrappedValue = Conv2d(
-            inputChannels: config.channels, outputChannels: config.hiddenSize,
-            kernelSize: .init(config.patchSize), stride: .init(config.patchSize)
-        )
+        ...
         let d = config.imageSize / config.patchSize
         self.positions = d * d
-        self._positionEmbedding.wrappedValue = Embedding(
-            embeddingCount: positions, dimensions: config.hiddenSize
-        )
         self._positionIds = MLXArray(0 ..< positions)[.newAxis, 0...]
     }
 
     public func callAsFunction(_ x: MLXArray) -> MLXArray {
-        var patchEmbeddings = self.patchEmbedding(x)
-        patchEmbeddings = patchEmbeddings.flattened(start: 1, end: 2)
+        ...
         let embeddings = patchEmbeddings + self.positionEmbedding(self._positionIds)
-        return embeddings
+        ...
     }
 }
-
+```
