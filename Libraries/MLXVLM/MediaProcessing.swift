@@ -308,11 +308,19 @@ public enum MediaProcessing {
         return ciImages
     }
 
-    static public func asProcessedSequence(_ asset: AVAsset, samplesPerSecond: Int, frameProcessing: (VideoFrame) throws -> VideoFrame = {$0}) async throws -> ProcessedFrames {
-        return try await asProcessedSequence(asset, maxFrames: Int.max, targetFPS: {_ in Double(samplesPerSecond)}, frameProcessing: frameProcessing)
+    static public func asProcessedSequence(
+        _ asset: AVAsset, samplesPerSecond: Int,
+        frameProcessing: (VideoFrame) throws -> VideoFrame = { $0 }
+    ) async throws -> ProcessedFrames {
+        return try await asProcessedSequence(
+            asset, maxFrames: Int.max, targetFPS: { _ in Double(samplesPerSecond) },
+            frameProcessing: frameProcessing)
     }
 
-    static public func asProcessedSequence(_ asset: AVAsset, maxFrames: Int, targetFPS: (CMTime) -> Double, frameProcessing: (VideoFrame) throws -> VideoFrame = {$0}) async throws -> ProcessedFrames {
+    static public func asProcessedSequence(
+        _ asset: AVAsset, maxFrames: Int, targetFPS: (CMTime) -> Double,
+        frameProcessing: (VideoFrame) throws -> VideoFrame = { $0 }
+    ) async throws -> ProcessedFrames {
         // Use AVAssetImageGenerator to extract frames
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
@@ -347,7 +355,8 @@ public enum MediaProcessing {
         for await result in await generator.images(for: sampledTimes) {
             switch result {
             case .success(requestedTime: let requested, let image, actualTime: let actual):
-                let ciImage = CIImage(cgImage: image, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
+                let ciImage = CIImage(
+                    cgImage: image, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
                 let frame = try frameProcessing(.init(frame: ciImage, timeStamp: actual))
                 ciImages.append(frame.frame)
                 timestamps.append(frame.timeStamp)

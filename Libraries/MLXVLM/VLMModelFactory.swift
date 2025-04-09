@@ -26,7 +26,9 @@ public enum VLMError: LocalizedError {
         case .singleVideoAllowed:
             return String(localized: "Only a single video is allowed for this operation.")
         case .singleMediaTypeAllowed:
-            return String(localized: "Only a single media type (image or video) is allowed for this operation.")
+            return String(
+                localized:
+                    "Only a single media type (image or video) is allowed for this operation.")
         case .imageProcessingFailure(let details):
             return String(localized: "Failed to process the image: \(details)")
         case .processing(let details):

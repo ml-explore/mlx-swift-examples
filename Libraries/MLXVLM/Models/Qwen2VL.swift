@@ -725,9 +725,12 @@ public class Qwen2VLProcessor: UserInputProcessor {
             var videosAsImageSequences = [[MLXArray]]()
             var resizedSize: CGSize = .zero
             for video in input.videos {
-                let imageSequence = try await MediaProcessing.asProcessedSequence(video.asAVAsset(), samplesPerSecond: 2) { frame in
+                let imageSequence = try await MediaProcessing.asProcessedSequence(
+                    video.asAVAsset(), samplesPerSecond: 2
+                ) { frame in
                     // first apply the user requested resizing, etc. if any
-                    let resizedImage = MediaProcessing.apply(frame.frame, processing: input.processing)
+                    let resizedImage = MediaProcessing.apply(
+                        frame.frame, processing: input.processing)
                     if resizedSize == .zero {
                         let size = resizedImage.extent.size
                         let (resizedHeight, resizedWidth) = try targetSize(

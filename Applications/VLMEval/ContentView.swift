@@ -411,7 +411,8 @@ class VLMEvaluator {
                                 "content": [
                                     [
                                         "type": "text",
-                                        "text": videoURL != nil ? videoSystemPrompt : imageSystemPrompt,
+                                        "text": videoURL != nil
+                                            ? videoSystemPrompt : imageSystemPrompt,
                                     ]
                                 ]
                                     // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.

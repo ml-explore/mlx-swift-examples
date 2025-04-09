@@ -320,7 +320,9 @@ public class SmolVLMProcessor: UserInputProcessor {
             ) { frame in
                 let processedFrame = frame.frame
                     .toSRGB()
-                    .resampled(to: CGSize(width: fixedImageSize, height: fixedImageSize), method: .lanczos)
+                    .resampled(
+                        to: CGSize(width: fixedImageSize, height: fixedImageSize), method: .lanczos
+                    )
                     .normalized(mean: config.imageMeanTuple, std: config.imageStdTuple)
                 return VideoFrame(frame: processedFrame, timeStamp: frame.timeStamp)
             }
@@ -333,8 +335,10 @@ public class SmolVLMProcessor: UserInputProcessor {
             let transposedFrames = stackedFrames.transposed(0, 2, 3, 1)
 
             let videoPromptString = getVideoPromptString(
-                frameCount: processedFrames.frames.count, timeStamps: processedFrames.timestamps.map(formatTimestamp),
-                videoDuration: formatTimestamp(processedFrames.totalDuration), seqLen: imageSequenceLength,
+                frameCount: processedFrames.frames.count,
+                timeStamps: processedFrames.timestamps.map(formatTimestamp),
+                videoDuration: formatTimestamp(processedFrames.totalDuration),
+                seqLen: imageSequenceLength,
                 fakeToken: fakeImageToken, imageToken: imageToken,
                 globalImageToken: globalImageToken)
 
