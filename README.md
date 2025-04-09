@@ -49,6 +49,9 @@ the command line:
 ./mlx-run llm-tool --prompt "swift programming language"
 ```
 
+Note: `mlx-run` is a shell script that uses `xcode` command line tools to
+locate the built binaries.  It is equivalent to running from Xcode itself.
+
 See also:
 
 - [MLX troubleshooting](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx/troubleshooting)

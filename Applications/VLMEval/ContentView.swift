@@ -211,7 +211,9 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            selectedVideoURL = Bundle.main.url(forResource: "test", withExtension: "mp4")!
+            selectedVideoURL = URL(
+                string:
+                    "https://videos.pexels.com/video-files/4066325/4066325-uhd_2560_1440_24fps.mp4")!
         }
         #if os(visionOS)
             .padding(40)
@@ -411,7 +413,8 @@ class VLMEvaluator {
                                 "content": [
                                     [
                                         "type": "text",
-                                        "text": videoURL != nil ? videoSystemPrompt : imageSystemPrompt,
+                                        "text": videoURL != nil
+                                            ? videoSystemPrompt : imageSystemPrompt,
                                     ]
                                 ]
                                     // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
