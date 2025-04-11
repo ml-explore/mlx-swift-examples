@@ -31,7 +31,7 @@ import MLXNN
 ```
 
 - Foundation
-    - used for standard Swift features like Codable -- this let's us easily read JSON configuration
+    - used for standard Swift features like Codable -- this let's us easily read the JSON configuration
 - MLX
     - the base [MLXArray](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx) framework
 - MLXFast
