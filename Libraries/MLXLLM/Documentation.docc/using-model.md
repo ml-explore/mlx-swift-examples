@@ -10,7 +10,7 @@ A model is typically loaded by using a `ModelFactory` and a `ModelConfiguration`
 // e.g. LLMModelFactory.shared
 let modelFactory: ModelFactory
 
-// e.g. MLXLLM.ModelRegistry.llama3_8B_4bit
+// e.g. LLMRegistry.llama3_8B_4bit
 let modelConfiguration: ModelConfiguration
 
 let container = try await modelFactory.loadContainer(configuration: modelConfiguration)

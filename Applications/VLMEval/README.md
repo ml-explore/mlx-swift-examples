@@ -19,7 +19,7 @@ The example application uses Qwen-VL-2B model by default, see [ContentView.swift
 
 ```swift
 self.modelContainer = try await VLMModelFactory.shared.loadContainer(
-    configuration: ModelRegistry.qwen2VL2BInstruct4Bit)
+    configuration: VLMRegistry.qwen2VL2BInstruct4Bit)
 ```
 
 The application:

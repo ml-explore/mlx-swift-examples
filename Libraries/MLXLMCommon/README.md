@@ -16,7 +16,7 @@ A model is typically loaded by using a `ModelFactory` and a `ModelConfiguration`
 // e.g. VLMModelFactory.shared
 let modelFactory: ModelFactory
 
-// e.g. MLXVLM.ModelRegistry.paligemma3bMix4488bit
+// e.g. VLMRegistry.paligemma3bMix4488bit
 let modelConfiguration: ModelConfiguration
 
 let container = try await modelFactory.loadContainer(configuration: modelConfiguration)

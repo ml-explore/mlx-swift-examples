@@ -123,7 +123,7 @@ class LoRAEvaluator {
 
     var output = ""
 
-    private let modelConfiguration = ModelRegistry.mistral7B4bit
+    private let modelConfiguration = LLMRegistry.mistral7B4bit
     private var model: ModelState = .idle
 
     private let loraLayers = 4
