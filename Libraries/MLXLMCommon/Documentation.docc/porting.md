@@ -45,7 +45,7 @@ import MLXNN
 
 ### Configuration
 
-Next I typically port the configuration type from python -- you can see it at the top of the `gemma.py` file:
+Next port the configuration type from python -- you can see it at the top of the `gemma.py` file:
 
 ```python
 @dataclass
