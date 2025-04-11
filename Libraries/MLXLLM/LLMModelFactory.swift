@@ -211,15 +211,7 @@ private struct LLMUserInputProcessor: UserInputProcessor {
     }
 
     func prepare(input: UserInput) throws -> LMInput {
-        let messages =
-            switch input.prompt {
-            case .text(let text):
-                messageGenerator.generate(messages: [.user(text)])
-            case .messages(let messages):
-                messages
-            case .chat(let messages):
-                messageGenerator.generate(messages: messages)
-            }
+        let messages = messageGenerator.generate(from: input)
 
         do {
             let promptTokens = try tokenizer.applyChatTemplate(
