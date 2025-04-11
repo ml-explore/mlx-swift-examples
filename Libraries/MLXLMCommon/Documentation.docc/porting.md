@@ -14,7 +14,7 @@ This document talks primarily about the latter.
 ## Porting Models from MLX (Python)
 
 Let's consider a concrete example,
-[Gemma.py](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/gemma.py).  For
+[gemma.py](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/gemma.py).  For
 reference, here is the current port
 [Gemma.swift](https://github.com/ml-explore/mlx-swift-examples/blob/main/Libraries/MLXLLM/Models/Gemma.swift).
 
