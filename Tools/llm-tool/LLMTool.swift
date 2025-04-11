@@ -54,6 +54,13 @@ struct GenerateArguments: ParsableArguments, Sendable {
     )
     var prompt: String?
 
+    @Option(
+        name: .shortAndLong,
+        help:
+            "The system prompt"
+    )
+    var system: String = ""
+
     @Option(name: .shortAndLong, help: "Maximum number of tokens to generate")
     var maxTokens = 100
 
@@ -234,7 +241,10 @@ struct EvaluateCommand: AsyncParsableCommand {
                     [
                         "role": "user",
                         "content": [
-                            ["type": "text", "text": prompt]
+                            [
+                                "type": "text",
+                                "text": generate.system,
+                            ]
                         ]
                             // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
                             + images.map { _ in ["type": "image"] }
