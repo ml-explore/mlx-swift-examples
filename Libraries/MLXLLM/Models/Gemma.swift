@@ -16,7 +16,6 @@ private class RMSNorm: Module, UnaryLayer {
     public init(dimensions: Int, eps: Float = 1e-5) {
         self.weight = MLXArray.ones([dimensions])
         self.eps = eps
-        super.init()
     }
 
     public func callAsFunction(_ x: MLXArray) -> MLXArray {
@@ -106,9 +105,6 @@ private class MLP: Module, UnaryLayer {
 }
 
 private class TransformerBlock: Module {
-    let numAttentionHeads: Int
-    let hiddenSize: Int
-
     @ModuleInfo(key: "self_attn") var attention: Attention
     let mlp: MLP
 
@@ -116,9 +112,6 @@ private class TransformerBlock: Module {
     @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: RMSNorm
 
     public init(_ args: GemmaConfiguration) {
-        self.numAttentionHeads = args.attentionHeads
-        self.hiddenSize = args.hiddenSize
-
         self._attention.wrappedValue = Attention(args)
         self.mlp = MLP(dimensions: args.hiddenSize, hiddenDimensions: args.intermediateSize)
         self._inputLayerNorm.wrappedValue = RMSNorm(
@@ -207,8 +200,10 @@ public struct GemmaConfiguration: Codable, Sendable {
     var rmsNormEps: Float
     var vocabularySize: Int
     var kvHeads: Int
-    var ropeTheta: Float = 10_000
-    var ropeTraditional: Bool = false
+    private let _ropeTheta: Float?
+    public var ropeTheta: Float { _ropeTheta ?? 10_000 }
+    private let _ropeTraditional: Bool?
+    public var ropeTraditional: Bool { _ropeTraditional ?? false }
 
     enum CodingKeys: String, CodingKey {
         case modelType = "model_type"
@@ -220,38 +215,8 @@ public struct GemmaConfiguration: Codable, Sendable {
         case rmsNormEps = "rms_norm_eps"
         case vocabularySize = "vocab_size"
         case kvHeads = "num_key_value_heads"
-        case ropeTheta = "rope_theta"
-        case ropeTraditional = "rope_traditional"
-    }
-
-    public init(from decoder: Decoder) throws {
-        // Custom implementation to handle optional keys with required values
-        let container: KeyedDecodingContainer<CodingKeys> = try decoder.container(
-            keyedBy: CodingKeys.self)
-
-        self.modelType = try container.decode(
-            String.self, forKey: CodingKeys.modelType)
-        self.hiddenSize = try container.decode(
-            Int.self, forKey: CodingKeys.hiddenSize)
-        self.hiddenLayers = try container.decode(
-            Int.self, forKey: CodingKeys.hiddenLayers)
-        self.intermediateSize = try container.decode(
-            Int.self, forKey: CodingKeys.intermediateSize)
-        self.attentionHeads = try container.decode(
-            Int.self, forKey: CodingKeys.attentionHeads)
-        self.headDimensions = try container.decode(
-            Int.self, forKey: CodingKeys.headDimensions)
-        self.rmsNormEps = try container.decode(
-            Float.self, forKey: CodingKeys.rmsNormEps)
-        self.vocabularySize = try container.decode(
-            Int.self, forKey: CodingKeys.vocabularySize)
-        self.kvHeads = try container.decode(Int.self, forKey: CodingKeys.kvHeads)
-        self.ropeTheta =
-            try container.decodeIfPresent(Float.self, forKey: CodingKeys.ropeTheta)
-            ?? 10_000
-        self.ropeTraditional =
-            try container.decodeIfPresent(
-                Bool.self, forKey: CodingKeys.ropeTraditional) ?? false
+        case _ropeTheta = "rope_theta"
+        case _ropeTraditional = "rope_traditional"
     }
 }
 
