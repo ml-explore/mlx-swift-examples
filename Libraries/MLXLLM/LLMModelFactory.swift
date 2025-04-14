@@ -231,7 +231,7 @@ private struct LLMUserInputProcessor: UserInputProcessor {
 ///
 /// ```swift
 /// let modelContainer = try await LLMModelFactory.shared.loadContainer(
-///     configuration: ModelRegistry.llama3_8B_4bit)
+///     configuration: LLMRegistry.llama3_8B_4bit)
 /// ```
 public class LLMModelFactory: ModelFactory {
 
