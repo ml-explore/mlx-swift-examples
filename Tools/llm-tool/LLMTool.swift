@@ -54,6 +54,13 @@ struct GenerateArguments: ParsableArguments, Sendable {
     )
     var prompt: String?
 
+    @Option(
+        name: .shortAndLong,
+        help:
+            "The system prompt"
+    )
+    var system: String = ""
+
     @Option(name: .shortAndLong, help: "Maximum number of tokens to generate")
     var maxTokens = 100
 
@@ -80,6 +87,7 @@ struct GenerateArguments: ParsableArguments, Sendable {
 
     var generateParameters: GenerateParameters {
         GenerateParameters(
+            maxTokens: maxTokens,
             temperature: temperature, topP: topP, repetitionPenalty: repetitionPenalty,
             repetitionContextSize: repetitionContextSize)
     }
@@ -104,27 +112,18 @@ struct GenerateArguments: ParsableArguments, Sendable {
 
     func generate(
         input: LMInput, context: ModelContext
-    ) throws -> GenerateResult {
-        var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
-
-        return try MLXLMCommon.generate(
-            input: input, parameters: generateParameters, context: context
-        ) { tokens in
-            if let last = tokens.last {
-                detokenizer.append(token: last)
-            }
-
-            if let new = detokenizer.next() {
-                print(new, terminator: "")
-                fflush(stdout)
-            }
-
-            if tokens.count >= maxTokens {
-                return .stop
-            } else {
-                return .more
+    ) async throws -> GenerateCompletionInfo {
+        for await item in try MLXLMCommon.generate(
+            input: input, parameters: generateParameters, context: context)
+        {
+            switch item {
+            case .chunk(let string):
+                print(string, terminator: "")
+            case .info(let info):
+                return info
             }
         }
+        fatalError("exited loop without seeing .info")
     }
 }
 
@@ -234,7 +233,10 @@ struct EvaluateCommand: AsyncParsableCommand {
                     [
                         "role": "user",
                         "content": [
-                            ["type": "text", "text": prompt]
+                            [
+                                "type": "text",
+                                "text": generate.system,
+                            ]
                         ]
                             // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
                             + images.map { _ in ["type": "image"] }
@@ -275,10 +277,10 @@ struct EvaluateCommand: AsyncParsableCommand {
         let vlm = !image.isEmpty || !video.isEmpty
         if vlm {
             modelFactory = VLMModelFactory.shared
-            defaultModel = MLXVLM.ModelRegistry.qwen2VL2BInstruct4Bit
+            defaultModel = MLXVLM.VLMRegistry.qwen2VL2BInstruct4Bit
         } else {
             modelFactory = LLMModelFactory.shared
-            defaultModel = MLXLLM.ModelRegistry.mistral7B4bit
+            defaultModel = MLXLLM.LLMRegistry.mistral7B4bit
         }
 
         // Load the model
@@ -307,7 +309,7 @@ struct EvaluateCommand: AsyncParsableCommand {
 
         let result = try await modelContainer.perform { [generate] context in
             let input = try await context.processor.prepare(input: userInput)
-            return try generate.generate(input: input, context: context)
+            return try await generate.generate(input: input, context: context)
         }
 
         if !generate.quiet {

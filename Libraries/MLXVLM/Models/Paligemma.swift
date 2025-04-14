@@ -336,7 +336,7 @@ private enum Vision {
         @ModuleInfo(key: "position_embedding") var positionEmbedding: Embedding
 
         let positions: Int
-        let positionIds: MLXArray
+        let _positionIds: MLXArray
 
         public init(_ config: PaliGemmaConfiguration.VisionConfiguration) {
             self._patchEmbedding.wrappedValue = Conv2d(
@@ -348,13 +348,13 @@ private enum Vision {
             self._positionEmbedding.wrappedValue = Embedding(
                 embeddingCount: positions, dimensions: config.hiddenSize
             )
-            self.positionIds = MLXArray(0 ..< positions)[.newAxis, 0...]
+            self._positionIds = MLXArray(0 ..< positions)[.newAxis, 0...]
         }
 
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
             var patchEmbeddings = self.patchEmbedding(x)
             patchEmbeddings = patchEmbeddings.flattened(start: 1, end: 2)
-            let embeddings = patchEmbeddings + self.positionEmbedding(self.positionIds)
+            let embeddings = patchEmbeddings + self.positionEmbedding(self._positionIds)
             return embeddings
         }
     }

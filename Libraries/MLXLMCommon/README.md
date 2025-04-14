@@ -1,5 +1,14 @@
 # MLXLMCommon
 
+# Documentation
+
+- [Porting and implementing models](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/porting)
+- [MLXLLMCommon](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon) -- common API for LLM and VLM
+- [MLXLLM](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxllm) -- large language model example implementations
+- [MLXVLM](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxvlm) -- vision language model example implementations
+
+# Contents
+
 MLXLMCommon contains types and code that is generic across many types
 of language models, from LLMs to VLMs:
 
@@ -16,7 +25,7 @@ A model is typically loaded by using a `ModelFactory` and a `ModelConfiguration`
 // e.g. VLMModelFactory.shared
 let modelFactory: ModelFactory
 
-// e.g. MLXVLM.ModelRegistry.paligemma3bMix4488bit
+// e.g. VLMRegistry.paligemma3bMix4488bit
 let modelConfiguration: ModelConfiguration
 
 let container = try await modelFactory.loadContainer(configuration: modelConfiguration)

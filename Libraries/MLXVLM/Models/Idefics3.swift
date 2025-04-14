@@ -21,21 +21,24 @@ public struct Idefics3Configuration: Codable, Sendable {
     public struct TextConfiguration: Codable, Sendable {
         public let modelType: String
         public let hiddenSize: Int
-        public let numHiddenLayers: Int
+        public var numHiddenLayers: Int { _numHiddenLayers ?? 32 }
         public let intermediateSize: Int
         public let numAttentionHeads: Int
         public let rmsNormEps: Float
         public let vocabSize: Int
         public let numKeyValueHeads: Int
         public let ropeTheta: Float
-        private let _ropeTraditional: Bool?
         public var ropeTraditional: Bool { _ropeTraditional ?? false }
-        public let tieWordEmbeddings: Bool
+        public var tieWordEmbeddings: Bool { _tieWordEmbeddings ?? false }
+
+        private let _numHiddenLayers: Int?
+        private let _ropeTraditional: Bool?
+        private let _tieWordEmbeddings: Bool?
 
         enum CodingKeys: String, CodingKey {
             case modelType = "model_type"
             case hiddenSize = "hidden_size"
-            case numHiddenLayers = "num_hidden_layers"
+            case _numHiddenLayers = "num_hidden_layers"
             case intermediateSize = "intermediate_size"
             case numAttentionHeads = "num_attention_heads"
             case rmsNormEps = "rms_norm_eps"
@@ -43,30 +46,36 @@ public struct Idefics3Configuration: Codable, Sendable {
             case numKeyValueHeads = "num_key_value_heads"
             case ropeTheta = "rope_theta"
             case _ropeTraditional = "rope_traditional"
-            case tieWordEmbeddings = "tie_word_embeddings"
+            case _tieWordEmbeddings = "tie_word_embeddings"
         }
     }
 
     public struct VisionConfiguration: Codable, Sendable {
         public let modelType: String
-        public let numHiddenLayers: Int
+        public var numHiddenLayers: Int { _numHiddenLayers ?? 12 }
         public let hiddenSize: Int
-        public let intermediateSize: Int
+        public var intermediateSize: Int { _intermediateSize ?? 3072 }
         public let numAttentionHeads: Int
         public let patchSize: Int
         public let imageSize: Int
-        public let numChannels: Int
-        public let layerNormEps: Float
+        public var numChannels: Int { _numChannels ?? 3 }
+        public var layerNormEps: Float { _layerNormEps ?? 1e-6 }
+
+        private let _numHiddenLayers: Int?
+        private let _intermediateSize: Int?
+        private let _numChannels: Int?
+        private let _layerNormEps: Float?
+
         enum CodingKeys: String, CodingKey {
             case modelType = "model_type"
-            case numHiddenLayers = "num_hidden_layers"
+            case _numHiddenLayers = "num_hidden_layers"
             case hiddenSize = "hidden_size"
-            case intermediateSize = "intermediate_size"
+            case _intermediateSize = "intermediate_size"
             case numAttentionHeads = "num_attention_heads"
             case patchSize = "patch_size"
             case imageSize = "image_size"
-            case numChannels = "num_channels"
-            case layerNormEps = "layer_norm_eps"
+            case _numChannels = "num_channels"
+            case _layerNormEps = "layer_norm_eps"
         }
     }
 
@@ -663,9 +672,11 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
         return final
     }
 
+    // inputs_merger
     private func prepareInputsForMultimodal(
         imageFeatures: MLXArray, inputs_embeds: MLXArray, inputIds: MLXArray
     ) -> MLXArray {
+        // Assumes bs == 1
         // inputIds shape: (1, seq_len)
         // asArray(Int.self) -> [[Int]], take [0] to get [Int]
         let ids: [[Int]] = [inputIds.asArray(Int.self)]
@@ -680,30 +691,32 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
         var segments = [MLXArray]()
         var start_idx = 0
 
-        for pos in imagePositions {
-            if pos > start_idx {
-                let textSegment = inputs_embeds[0..., start_idx ..< pos, 0...]
-                if textSegment.dim(1) > 0 {
-                    segments.append(textSegment)
+        let chunkSize = imageFeatures.shape[1]  // 64
+        let chunkCount = imagePositions.count / chunkSize  // Should be imageFeatures.shape[0]
+        let chunks = (0 ..< chunkCount).map { startIndex in
+            let start = startIndex * chunkSize
+            let end = start + chunkSize
+            return Array(imagePositions[start ..< end])
+        }
+
+        for (chunkIndex, chunk) in chunks.enumerated() {
+            let currentImage = imageFeatures[chunkIndex]
+
+            for (i, pos) in chunk.enumerated() {
+                if pos > start_idx {
+                    segments.append(inputs_embeds[0, start_idx ..< pos])
                 }
+                segments.append(currentImage[i ..< i + 1])
+                start_idx = pos + 1
             }
-            start_idx = pos + 1
-            segments.append(imageFeatures)
         }
 
         if start_idx < inputs_embeds.dim(1) {
-            let remain = inputs_embeds[0..., start_idx..., 0...]
-            if remain.dim(1) > 0 {
-                segments.append(remain)
-            }
+            segments.append(inputs_embeds[0, start_idx...])
         }
 
-        var finalEmbeds = segments[0]
-        for seg in segments.dropFirst() {
-            finalEmbeds = concatenated([finalEmbeds, seg], axis: 1)
-        }
-
-        return finalEmbeds
+        let finalEmbeds = concatenated(segments, axis: 0)
+        return finalEmbeds.expandedDimensions(axis: 0)
     }
 
     public func prepare(_ input: LMInput, cache: [any KVCache], windowSize: Int?) throws
@@ -805,6 +818,7 @@ public class Idefics3Processor: UserInputProcessor {
     }
 
     public func prepare(input: UserInput) throws -> LMInput {
+
         let prompt = input.prompt.asMessages().last?["content"] as? String ?? ""
 
         if input.images.isEmpty {

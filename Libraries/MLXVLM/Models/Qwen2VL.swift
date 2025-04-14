@@ -528,6 +528,45 @@ public class Qwen2VLProcessor: UserInputProcessor {
         self.tokenizer = tokenizer
     }
 
+    // image_processing_qwen2_vl.smart_resize
+    private func targetSize(height: Int, width: Int, factor: Int, minPixels: Int, maxPixels: Int)
+        throws -> (Int, Int)
+    {
+        if height < factor {
+            throw VLMError.imageProcessingFailure(
+                "height: \(height) must be larger than factor: \(factor)")
+        }
+        if width < factor {
+            throw VLMError.imageProcessingFailure(
+                "width: \(width) must be larger than factor: \(factor)")
+        }
+        if max(height, width) / min(height, width) > 200 {
+            throw VLMError.imageProcessingFailure(
+                "absolute aspect ratio must be smaller than 200: \(width)x\(height)")
+        }
+
+        var hBar = max(factor, Int(round(Float(height) / Float(factor))) * factor)
+        var wBar = max(factor, Int(round(Float(width) / Float(factor))) * factor)
+
+        if hBar * wBar > maxPixels {
+            let beta = sqrt(Float(height * width) / Float(maxPixels))
+            hBar = Int(floor(Float(height) / beta / Float(factor))) * factor
+            wBar = Int(floor(Float(width) / beta / Float(factor))) * factor
+        } else if hBar * wBar < minPixels {
+            let beta = sqrt(Float(minPixels) / Float(height * width))
+            hBar = Int(ceil(Float(height) * beta / Float(factor))) * factor
+            wBar = Int(ceil(Float(width) * beta / Float(factor))) * factor
+        }
+        return (hBar, wBar)
+    }
+
+    func preprocess(image: CIImage, resizedSize: CGSize) -> CIImage {
+        image
+            .toSRGB()
+            .resampled(to: resizedSize, method: .bicubic)
+            .normalized(mean: config.imageMeanTuple, std: config.imageStdTuple)
+    }
+
     public func preprocess(images: [CIImage], processing: UserInput.Processing?) throws -> (
         MLXArray, THW
     ) {
@@ -539,45 +578,9 @@ public class Qwen2VLProcessor: UserInputProcessor {
         let (resizedHeight, resizedWidth) = try QwenVL.targetSize(
             height: Int(size.height), width: Int(size.width),
             factor: config.patchSize * config.mergeSize,
-            minPixels: config.size.minPixels, maxPixels: config.size.maxPixels)
+            minPixels: config.minPixels, maxPixels: config.maxPixels)
         let resizedSize = CGSize(width: resizedWidth, height: resizedHeight)
 
-        // Process images
-        let processedImages =
-            try images
-            .map {
-                MediaProcessing.inSRGBToneCurveSpace($0)
-            }
-            .map {
-                return try MediaProcessing.resampleBicubic($0, to: resizedSize)
-            }
-            .map {
-                MediaProcessing.normalize(
-                    $0, mean: config.imageMeanTuple, std: config.imageStdTuple)
-            }
-            .map {
-                MediaProcessing.asMLXArray($0)
-            }
-
-        // Calculate grid dimensions
-        let gridT = images.count
-        let gridH = resizedHeight / config.patchSize
-        let gridW = resizedWidth / config.patchSize
-
-        // Ensure dimensions are valid
-        guard
-            resizedHeight % config.patchSize == 0 && resizedWidth % config.patchSize == 0
-                && gridH % config.mergeSize == 0 && gridW % config.mergeSize == 0
-        else {
-            throw VLMError.imageProcessingFailure(
-                "Image dimensions must be divisible by patch size and merge size")
-        }
-
-        // Concatenate images and handle temporal patch size
-        var patches = concatenated(processedImages)
-        let channel = patches.dim(1)
-
-        // Pad to match temporal patch size if needed
         let mod = patches.dim(0) % config.temporalPatchSize
         if mod != 0 {
             let lastPatch = patches[-1, .ellipsis]
@@ -664,17 +667,29 @@ public class Qwen2VLProcessor: UserInputProcessor {
         // Process videos if any
         var processedVideo: LMInput.ProcessedVideo?
         if !input.videos.isEmpty {
-            var videosAsImageSequences = [[CIImage]]()
+            var videosAsImageSequences = [[MLXArray]]()
+            var resizedSize: CGSize = .zero
             for video in input.videos {
-                if let imageSequence = try? await MediaProcessing.asCIImageSequence(
-                    video.asAVAsset(), samplesPerSecond: 2)
-                {
-                    videosAsImageSequences.append(imageSequence)
+                let imageSequence = try await MediaProcessing.asProcessedSequence(
+                    video.asAVAsset(), samplesPerSecond: 2
+                ) { frame in
+                    // first apply the user requested resizing, etc. if any
+                    let resizedImage = MediaProcessing.apply(
+                        frame.frame, processing: input.processing)
+                    if resizedSize == .zero {
+                        let size = resizedImage.extent.size
+                        let (resizedHeight, resizedWidth) = try targetSize(
+                            height: Int(size.height), width: Int(size.width),
+                            factor: config.patchSize * config.mergeSize,
+                            minPixels: config.minPixels, maxPixels: config.maxPixels)
+                        resizedSize = CGSize(width: resizedWidth, height: resizedHeight)
+                    }
+                    let processedImage = preprocess(image: resizedImage, resizedSize: resizedSize)
+                    return VideoFrame(frame: processedImage, timeStamp: frame.timeStamp)
                 }
+                videosAsImageSequences.append(imageSequence.frames)
             }
-            let videoPixelsAndFrames = try videosAsImageSequences.map {
-                try preprocess(images: $0, processing: input.processing)
-            }
+            let videoPixelsAndFrames = try videosAsImageSequences.map(patchify)
             let videoPixelsConcatenated = concatenated(videoPixelsAndFrames.map { $0.0 })
             processedVideo = LMInput.ProcessedVideo(
                 pixels: videoPixelsConcatenated, frames: videoPixelsAndFrames.map { $0.1 })
@@ -932,10 +947,20 @@ public struct Qwen2VLProcessorConfiguration: Codable, Sendable {
 
     public let imageMean: [CGFloat]
     public let imageStd: [CGFloat]
-    public let size: Size
     public let mergeSize: Int
     public let patchSize: Int
     public let temporalPatchSize: Int
+
+    private let _size: Size?
+    private let _maxPixels: Int?
+    private let _minPixels: Int?
+
+    public var minPixels: Int {
+        _minPixels ?? _size?.minPixels ?? 3136
+    }
+    public var maxPixels: Int {
+        _maxPixels ?? _size?.maxPixels ?? 12_845_056
+    }
 
     public var imageMeanTuple: (CGFloat, CGFloat, CGFloat) {
         (imageMean[0], imageMean[1], imageMean[2])
@@ -947,9 +972,11 @@ public struct Qwen2VLProcessorConfiguration: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case imageMean = "image_mean"
         case imageStd = "image_std"
-        case size
         case mergeSize = "merge_size"
         case patchSize = "patch_size"
         case temporalPatchSize = "temporal_patch_size"
+        case _maxPixels = "max_pixels"
+        case _minPixels = "min_pixels"
+        case _size = "size"
     }
 }
