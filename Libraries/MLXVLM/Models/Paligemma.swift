@@ -441,7 +441,7 @@ private enum Vision {
 /// PaliGemma VLM `UserInputProcessor`.
 ///
 /// This is meant to be used with ``PaliGemma`` and is typically created by ``VLMModelFactory``.
-public class PaligGemmaProcessor: UserInputProcessor {
+public class PaliGemmaProcessor: UserInputProcessor {
 
     private let config: PaliGemmaProcessorConfiguration
     private let tokenizer: any Tokenizer
@@ -451,7 +451,7 @@ public class PaligGemmaProcessor: UserInputProcessor {
         self.tokenizer = tokenizer
     }
 
-    private func prepare(image: CIImage, processing: UserInput.Processing?) -> MLXArray {
+    private func prepare(image: CIImage, processing: UserInput.Processing?) throws -> MLXArray {
         // based on image_processing_siglip from transformers
         var image = image
 
@@ -463,7 +463,7 @@ public class PaligGemmaProcessor: UserInputProcessor {
         // apply user instructions
         image = MediaProcessing.apply(image, processing: processing)
 
-        image = MediaProcessing.resampleBicubic(image, to: config.size.cgSize)
+        image = try MediaProcessing.resampleBicubic(image, to: config.size.cgSize)
         image = MediaProcessing.normalize(
             image, mean: config.imageMeanTuple, std: config.imageStdTuple)
 
@@ -705,7 +705,7 @@ public struct PaliGemmaConfiguration: Codable, Sendable {
     }
 }
 
-/// Configuration for ``PaligGemmaProcessor``
+/// Configuration for ``PaliGemmaProcessor``
 public struct PaliGemmaProcessorConfiguration: Codable, Sendable {
 
     public struct Size: Codable, Sendable {

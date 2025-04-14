@@ -851,7 +851,7 @@ public class Idefics3Processor: UserInputProcessor {
                 height: fixedImageSize
             )
             image = MediaProcessing.apply(image, processing: input.processing)
-            image = MediaProcessing.resampleBicubic(image, to: targetSize)
+            image = try MediaProcessing.resampleBicubic(image, to: targetSize)
             image = MediaProcessing.normalize(
                 image,
                 mean: config.imageMeanTuple,
