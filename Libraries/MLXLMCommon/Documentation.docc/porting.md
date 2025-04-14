@@ -25,7 +25,6 @@ When creating the new model you need to import the right modules -- typically th
 ```swift
 import Foundation
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
 ```
@@ -34,9 +33,6 @@ import MLXNN
     - used for standard Swift features like Codable -- this let's us easily read the JSON configuration
 - MLX
     - the base [MLXArray](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx) framework
-- MLXFast
-    - specialized and optimized functions for e.g. `rmsNorm`
-    - Note: this becomes part of `MLX` in current releases
 - MLXLMCommon
     - language model support code (this library)
     - provides weight loading, token generation, etc.
