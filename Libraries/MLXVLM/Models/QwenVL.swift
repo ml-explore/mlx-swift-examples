@@ -205,4 +205,51 @@ public struct QwenVL {
         }
         return result
     }
+
+    static func patchify(images: [MLXArray], mergeSize: Int, patchSize: Int, temporalPatchSize: Int)
+        throws -> (
+            MLXArray, THW
+        )
+    {
+        guard let firstImage = images.first else {
+            throw VLMError.imageProcessingFailure("No images in video sequence")
+        }
+        let resizedHeight = firstImage.dim(-2)
+        let resizedWidth = firstImage.dim(-1)
+        var patches = concatenated(images)
+
+        // Pad to match temporal patch size if needed
+        let mod = patches.dim(0) % temporalPatchSize
+        if mod != 0 {
+            let lastPatch = patches[-1, .ellipsis]
+            let lastPatchRepeated = tiled(
+                lastPatch, repetitions: [temporalPatchSize - mod, 1, 1, 1])
+            patches = concatenated([patches, lastPatchRepeated])
+        }
+        let channel = patches.dim(1)
+        let gridT = patches.dim(0) / temporalPatchSize
+        let gridH = resizedHeight / patchSize
+        let gridW = resizedWidth / patchSize
+
+        patches = patches.reshaped(
+            gridT,
+            temporalPatchSize,
+            channel,
+            gridH / mergeSize,
+            mergeSize,
+            patchSize,
+            gridW / mergeSize,
+            mergeSize,
+            patchSize
+        )
+        patches = patches.transposed(0, 3, 6, 4, 7, 2, 1, 5, 8)
+
+        let flattenedPatches = patches.reshaped(
+            gridT * gridH * gridW,
+            channel * temporalPatchSize * patchSize * patchSize
+        )
+
+        return (flattenedPatches, .init(gridT, gridH, gridW))
+    }
+
 }

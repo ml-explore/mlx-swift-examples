@@ -16,7 +16,6 @@ public struct ProcessedFrames {
     let totalDuration: CMTime
 }
 
-// TODO: verify working color space, rendering color space
 private let context = CIContext()
 
 /// Collection of methods for processing media (images, video, etc.).
@@ -76,51 +75,29 @@ public enum MediaProcessing {
         return Float(1 / inputAspectRatio * desiredAspectRatio)
     }
 
-    /// Resample the image using bicubic interpolation.
-    public static func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
-        let filter = CIFilter.bicubicScaleTransform()
-        let extent = image.extent.size
-
-        filter.inputImage = image
-
-        // set the aspect ratio to match the aspect ratio of the target
-        filter.aspectRatio = aspectRatioForResample(image, size: size)
-
-        // that image is now the aspect ratio of the target and the size
-        // of the shorter dimension
-        let scale: CGFloat
-        if extent.width < extent.height {
-            scale = size.width / extent.width
-        } else {
-            scale = size.height / extent.height
-        }
-        filter.scale = Float(scale)
-
-        let rescaled = filter.outputImage!
-
-        // the image has a DoD larger than the requested size so crop
-        // it to the desired size
-        return rescaled.cropped(to: CGRect(origin: .zero, size: size))
-    }
-
     /// Resample the image using Lanczos interpolation.
     static public func resampleLanczos(_ image: CIImage, to size: CGSize) -> CIImage {
+        // Create a bicubic scale filter
+
+        let yScale = size.height / image.extent.height
+        let xScale = size.width / image.extent.width
+
         let filter = CIFilter.lanczosScaleTransform()
-        let extent = image.extent.size
-
         filter.inputImage = image
+        filter.scale = Float(yScale)
+        filter.aspectRatio = Float(xScale / yScale)
+        let scaledImage = filter.outputImage!
 
-        // set the aspect ratio to match the aspect ratio of the target
-        filter.aspectRatio = aspectRatioForResample(image, size: size)
+        // Create a rect with the exact dimensions we want
+        let exactRect = CGRect(
+            x: 0,
+            y: 0,
+            width: size.width,
+            height: size.height
+        )
 
-        // that image is now the aspect ratio of the target and the size
-        // of the shorter dimension
-        let scale: CGFloat
-        if extent.width < extent.height {
-            scale = size.width / extent.width
-        } else {
-            scale = size.height / extent.height
-        }
+        // Crop to ensure exact dimensions
+        return scaledImage.cropped(to: exactRect)
     }
 
     /// Resample the image using bicubic interpolation.
@@ -128,7 +105,7 @@ public enum MediaProcessing {
     ///   - image: The image to resample
     ///   - size: The target size
     /// - Returns: The resampled image
-    public static func resampleBicubic(_ image: CIImage, to size: CGSize) throws -> CIImage {
+    public static func resampleBicubic(_ image: CIImage, to size: CGSize) -> CIImage {
         // Create a bicubic scale filter
 
         let yScale = size.height / image.extent.height
@@ -138,9 +115,8 @@ public enum MediaProcessing {
         filter.inputImage = image
         filter.scale = Float(yScale)
         filter.aspectRatio = Float(xScale / yScale)
-        guard let scaledImage = filter.outputImage else {
-            throw MediaProcessingError.transformFailed
-        }
+        let scaledImage = filter.outputImage!
+
         // Create a rect with the exact dimensions we want
         let exactRect = CGRect(
             x: 0,
@@ -148,6 +124,7 @@ public enum MediaProcessing {
             width: size.width,
             height: size.height
         )
+
         // Crop to ensure exact dimensions
         return scaledImage.cropped(to: exactRect)
     }

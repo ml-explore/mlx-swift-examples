@@ -528,38 +528,6 @@ public class Qwen2VLProcessor: UserInputProcessor {
         self.tokenizer = tokenizer
     }
 
-    // image_processing_qwen2_vl.smart_resize
-    private func targetSize(height: Int, width: Int, factor: Int, minPixels: Int, maxPixels: Int)
-        throws -> (Int, Int)
-    {
-        if height < factor {
-            throw VLMError.imageProcessingFailure(
-                "height: \(height) must be larger than factor: \(factor)")
-        }
-        if width < factor {
-            throw VLMError.imageProcessingFailure(
-                "width: \(width) must be larger than factor: \(factor)")
-        }
-        if max(height, width) / min(height, width) > 200 {
-            throw VLMError.imageProcessingFailure(
-                "absolute aspect ratio must be smaller than 200: \(width)x\(height)")
-        }
-
-        var hBar = max(factor, Int(round(Float(height) / Float(factor))) * factor)
-        var wBar = max(factor, Int(round(Float(width) / Float(factor))) * factor)
-
-        if hBar * wBar > maxPixels {
-            let beta = sqrt(Float(height * width) / Float(maxPixels))
-            hBar = Int(floor(Float(height) / beta / Float(factor))) * factor
-            wBar = Int(floor(Float(width) / beta / Float(factor))) * factor
-        } else if hBar * wBar < minPixels {
-            let beta = sqrt(Float(minPixels) / Float(height * width))
-            hBar = Int(ceil(Float(height) * beta / Float(factor))) * factor
-            wBar = Int(ceil(Float(width) * beta / Float(factor))) * factor
-        }
-        return (hBar, wBar)
-    }
-
     func preprocess(image: CIImage, resizedSize: CGSize) -> CIImage {
         image
             .toSRGB()
@@ -570,10 +538,11 @@ public class Qwen2VLProcessor: UserInputProcessor {
     public func preprocess(images: [CIImage], processing: UserInput.Processing?) throws -> (
         MLXArray, THW
     ) {
-        // First apply the user requested resizing, etc. if any
+        // first apply the user requested resizing, etc. if any
         let images = images.map { MediaProcessing.apply($0, processing: processing) }
 
         // image_processing_qwen2_vl._preprocess
+
         let size = images[0].extent.size
         let (resizedHeight, resizedWidth) = try QwenVL.targetSize(
             height: Int(size.height), width: Int(size.width),
@@ -581,60 +550,17 @@ public class Qwen2VLProcessor: UserInputProcessor {
             minPixels: config.minPixels, maxPixels: config.maxPixels)
         let resizedSize = CGSize(width: resizedWidth, height: resizedHeight)
 
-        let mod = patches.dim(0) % config.temporalPatchSize
-        if mod != 0 {
-            let lastPatch = patches[-1, .ellipsis]
-            let lastPatchRepeated = tiled(
-                lastPatch, repetitions: [config.temporalPatchSize - mod, 1, 1, 1])
-            patches = concatenated([patches, lastPatchRepeated])
+        let processedImages = try images.map { image in
+            preprocess(image: image, resizedSize: resizedSize).asMLXArray()
         }
 
-        // Recalculate gridT after padding
-        let actualGridT = patches.dim(0) / config.temporalPatchSize
-
-        // Calculate expected size for verification
-        let totalElements = patches.size
-        let expectedElements =
-            actualGridT * config.temporalPatchSize * channel * resizedHeight * resizedWidth
-
-        // Try to reshape with careful dimension calculation
-        do {
-            patches = patches.reshaped(
-                actualGridT,
-                config.temporalPatchSize,
-                channel,
-                gridH / config.mergeSize,
-                config.mergeSize,
-                config.patchSize,
-                gridW / config.mergeSize,
-                config.mergeSize,
-                config.patchSize
-            )
-        } catch {
-            // If reshape fails, provide detailed error
-            throw VLMError.imageProcessingFailure(
-                "Failed to reshape patches: \(error). Patches shape: \(patches.shape), "
-                    + "Target shape: (\(actualGridT), \(config.temporalPatchSize), \(channel), "
-                    + "\(gridH / config.mergeSize), \(config.mergeSize), \(config.patchSize), "
-                    + "\(gridW / config.mergeSize), \(config.mergeSize), \(config.patchSize))"
-            )
-        }
-
-        // Continue with transpose and final reshape
-        patches = patches.transposed(0, 3, 6, 4, 7, 2, 1, 5, 8)
-
-        let flattenedPatches = patches.reshaped(
-            actualGridT * (gridH / config.mergeSize) * (gridW / config.mergeSize),
-            channel * config.temporalPatchSize * (config.mergeSize * config.patchSize)
-                * (config.mergeSize * config.patchSize)
-        )
-
-        return (flattenedPatches, .init(actualGridT, gridH, gridW))
+        return try QwenVL.patchify(
+            images: processedImages, mergeSize: config.mergeSize, patchSize: config.patchSize,
+            temporalPatchSize: config.temporalPatchSize)
     }
 
     public func prepare(input: UserInput) async throws -> LMInput {
         let messages = input.prompt.asMessages()
-
         var promptTokens = try tokenizer.applyChatTemplate(messages: messages)
 
         // Text-only input
@@ -651,16 +577,10 @@ public class Qwen2VLProcessor: UserInputProcessor {
             let imagePixelsConcatenated = concatenated(imagePixelsAndFrames.map { $0.0 })
             processedImage = LMInput.ProcessedImage(
                 pixels: imagePixelsConcatenated, frames: imagePixelsAndFrames.map { $0.1 })
-
             if let imageFrames = processedImage?.frames {
-                do {
-                    promptTokens = try QwenVL.replacePaddingTokens(
-                        in: promptTokens, frames: imageFrames, paddingToken: "<|image_pad|>",
-                        mergeSize: config.mergeSize, tokenizer: tokenizer)
-                } catch {
-                    print("Error in replacePaddingTokens: \(error)")
-                    throw error
-                }
+                promptTokens = try QwenVL.replacePaddingTokens(
+                    in: promptTokens, frames: imageFrames, paddingToken: "<|image_pad|>",
+                    mergeSize: config.mergeSize, tokenizer: tokenizer)
             }
         }
 
@@ -678,7 +598,7 @@ public class Qwen2VLProcessor: UserInputProcessor {
                         frame.frame, processing: input.processing)
                     if resizedSize == .zero {
                         let size = resizedImage.extent.size
-                        let (resizedHeight, resizedWidth) = try targetSize(
+                        let (resizedHeight, resizedWidth) = try QwenVL.targetSize(
                             height: Int(size.height), width: Int(size.width),
                             factor: config.patchSize * config.mergeSize,
                             minPixels: config.minPixels, maxPixels: config.maxPixels)
@@ -689,20 +609,18 @@ public class Qwen2VLProcessor: UserInputProcessor {
                 }
                 videosAsImageSequences.append(imageSequence.frames)
             }
-            let videoPixelsAndFrames = try videosAsImageSequences.map(patchify)
+            let videoPixelsAndFrames = try videosAsImageSequences.map {
+                try QwenVL.patchify(
+                    images: $0, mergeSize: config.mergeSize, patchSize: config.patchSize,
+                    temporalPatchSize: config.temporalPatchSize)
+            }
             let videoPixelsConcatenated = concatenated(videoPixelsAndFrames.map { $0.0 })
             processedVideo = LMInput.ProcessedVideo(
                 pixels: videoPixelsConcatenated, frames: videoPixelsAndFrames.map { $0.1 })
-
             if let videoFrames = processedVideo?.frames {
-                do {
-                    promptTokens = try QwenVL.replacePaddingTokens(
-                        in: promptTokens, frames: videoFrames, paddingToken: "<|video_pad|>",
-                        mergeSize: config.mergeSize, tokenizer: tokenizer)
-                } catch {
-                    print("Error in video replacePaddingTokens: \(error)")
-                    throw error
-                }
+                promptTokens = try QwenVL.replacePaddingTokens(
+                    in: promptTokens, frames: videoFrames, paddingToken: "<|video_pad|>",
+                    mergeSize: config.mergeSize, tokenizer: tokenizer)
             }
         }
 

@@ -144,7 +144,7 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         id: "mlx-community/SmolVLM-Instruct-4bit",
         defaultPrompt: "Describe the image in English"
     )
-  
+
     static public let smolvlm = ModelConfiguration(
         id: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct-mlx",
         defaultPrompt:
