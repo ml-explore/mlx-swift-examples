@@ -87,6 +87,7 @@ struct GenerateArguments: ParsableArguments, Sendable {
 
     var generateParameters: GenerateParameters {
         GenerateParameters(
+            maxTokens: maxTokens,
             temperature: temperature, topP: topP, repetitionPenalty: repetitionPenalty,
             repetitionContextSize: repetitionContextSize)
     }
@@ -111,27 +112,18 @@ struct GenerateArguments: ParsableArguments, Sendable {
 
     func generate(
         input: LMInput, context: ModelContext
-    ) throws -> GenerateResult {
-        var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
-
-        return try MLXLMCommon.generate(
-            input: input, parameters: generateParameters, context: context
-        ) { tokens in
-            if let last = tokens.last {
-                detokenizer.append(token: last)
-            }
-
-            if let new = detokenizer.next() {
-                print(new, terminator: "")
-                fflush(stdout)
-            }
-
-            if tokens.count >= maxTokens {
-                return .stop
-            } else {
-                return .more
+    ) async throws -> GenerateCompletionInfo {
+        for await item in try MLXLMCommon.generate(
+            input: input, parameters: generateParameters, context: context)
+        {
+            switch item {
+            case .chunk(let string):
+                print(string, terminator: "")
+            case .info(let info):
+                return info
             }
         }
+        fatalError("exited loop without seeing .info")
     }
 }
 
@@ -317,7 +309,7 @@ struct EvaluateCommand: AsyncParsableCommand {
 
         let result = try await modelContainer.perform { [generate] context in
             let input = try await context.processor.prepare(input: userInput)
-            return try generate.generate(input: input, context: context)
+            return try await generate.generate(input: input, context: context)
         }
 
         if !generate.quiet {

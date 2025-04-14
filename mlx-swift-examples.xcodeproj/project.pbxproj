@@ -36,6 +36,8 @@
 		C32A18482D00E1540092A5B6 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18472D00E1540092A5B6 /* MLX */; };
 		C32A184A2D00E1540092A5B6 /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18492D00E1540092A5B6 /* MLXNN */; };
 		C32A184C2D00E1540092A5B6 /* MLXOptimizers in Frameworks */ = {isa = PBXBuildFile; productRef = C32A184B2D00E1540092A5B6 /* MLXOptimizers */; };
+		C32B4C6D2DA7136000EF663D /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = C32B4C6C2DA7136000EF663D /* AsyncAlgorithms */; };
+		C32B4C6F2DA71ADC00EF663D /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = C32B4C6E2DA71ADC00EF663D /* AsyncAlgorithms */; };
 		C34E48F52B696F0B00FCB841 /* LLMTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48F42B696F0B00FCB841 /* LLMTool.swift */; };
 		C34E49242B6A026F00FCB841 /* MNISTTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E49232B6A026F00FCB841 /* MNISTTool.swift */; };
 		C34E49292B6A028100FCB841 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C34E49282B6A028100FCB841 /* ArgumentParser */; };
@@ -254,6 +256,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0A8284222D13863900BEF338 /* MLXVLM in Frameworks */,
+				C32B4C6D2DA7136000EF663D /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -335,6 +338,7 @@
 			files = (
 				C32A18052CFFD19F0092A5B6 /* MLXLLM in Frameworks */,
 				81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */,
+				C32B4C6F2DA71ADC00EF663D /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -611,6 +615,7 @@
 			name = VLMEval;
 			packageProductDependencies = (
 				0AC74ED92D136223003C90A7 /* MLXVLM */,
+				C32B4C6C2DA7136000EF663D /* AsyncAlgorithms */,
 			);
 			productName = VLMEval;
 			productReference = 0AC74EBB2D136221003C90A7 /* VLMEval.app */;
@@ -804,6 +809,7 @@
 			packageProductDependencies = (
 				81695B402BA373D300F260D8 /* MarkdownUI */,
 				C32A18042CFFD19F0092A5B6 /* MLXLLM */,
+				C32B4C6E2DA71ADC00EF663D /* AsyncAlgorithms */,
 			);
 			productName = LLMEval;
 			productReference = C3A8B3DC2B92A29E0002EFB8 /* LLMEval.app */;
@@ -864,6 +870,7 @@
 				C36BEFF02BC32A8C002D4AFE /* XCRemoteSwiftPackageReference "Progress" */,
 				C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */,
 				C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */,
+				C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 			);
 			productRefGroup = C39273752B606A0A00368D5D /* Products */;
 			projectDirPath = "";
@@ -2714,6 +2721,14 @@
 				minimumVersion = 0.21.2;
 			};
 		};
+		C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-async-algorithms.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.3;
+			};
+		};
 		C34E491A2B69C43600FCB841 /* XCRemoteSwiftPackageReference "GzipSwift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/1024jp/GzipSwift";
@@ -2810,6 +2825,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */;
 			productName = MLXOptimizers;
+		};
+		C32B4C6C2DA7136000EF663D /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
+		};
+		C32B4C6E2DA71ADC00EF663D /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
 		};
 		C34E49282B6A028100FCB841 /* ArgumentParser */ = {
 			isa = XCSwiftPackageProductDependency;

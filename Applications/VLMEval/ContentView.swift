@@ -1,6 +1,7 @@
 // Copyright 2024 Apple Inc.
 
 import AVKit
+import AsyncAlgorithms
 import CoreImage
 import MLX
 import MLXLMCommon
@@ -338,9 +339,9 @@ class VLMEvaluator {
     let modelConfiguration = VLMRegistry.smolvlm
 
     /// parameters controlling the output – use values appropriate for the model selected above
-    let generateParameters = MLXLMCommon.GenerateParameters(temperature: 0.7, topP: 0.9)
-    let maxTokens = 800
-    let updateInterval = 0.25
+    let generateParameters = MLXLMCommon.GenerateParameters(
+        maxTokens: 800, temperature: 0.7, topP: 0.9)
+    let updateInterval = Duration.seconds(0.25)
 
     /// A task responsible for handling the generation process.
     var generationTask: Task<Void, Error>?
@@ -444,35 +445,22 @@ class VLMEvaluator {
                 let stream = try MLXLMCommon.generate(
                     input: lmInput, parameters: generateParameters, context: context)
 
-                var tokenCount = 0
-                var lastEmissionTime: Date = Date()
-                var chunks = ""
-
-                for await result in stream {
-                    switch result {
-                    case .chunk(let string):
-                        tokenCount += 1
-                        if tokenCount >= maxTokens { await generationTask?.cancel() }
-                        let now = Date()
-                        if now.timeIntervalSince(lastEmissionTime) >= updateInterval {
-                            lastEmissionTime = now
-                            let text = chunks
-                            chunks = ""
-                            Task { @MainActor in
-                                self.output += text
-                            }
-                        } else {
-                            chunks += string
-                        }
-                    case .info(let info):
-                        Task { @MainActor in
-                            self.stat = "\(info.tokensPerSecond) tokens/s"
+                // generate and output in batches
+                for await batch in stream._throttle(
+                    for: updateInterval, reducing: Generation.collect)
+                {
+                    let output = batch.compactMap { $0.chunk }.joined(separator: "")
+                    if !output.isEmpty {
+                        Task { @MainActor [output] in
+                            self.output += output
                         }
                     }
-                }
 
-                Task { @MainActor in
-                    self.output += chunks
+                    if let completion = batch.compactMap({ $0.info }).first {
+                        Task { @MainActor in
+                            self.stat = "\(completion.tokensPerSecond) tokens/s"
+                        }
+                    }
                 }
             }
         } catch {

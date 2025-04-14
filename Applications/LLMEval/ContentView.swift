@@ -1,5 +1,6 @@
 // Copyright © 2024 Apple Inc.
 
+import AsyncAlgorithms
 import MLX
 import MLXLLM
 import MLXLMCommon
@@ -169,9 +170,8 @@ class LLMEvaluator {
     let modelConfiguration = LLMRegistry.qwen2_5_1_5b
 
     /// parameters controlling the output
-    let generateParameters = GenerateParameters(temperature: 0.6)
-    let maxTokens = 240
-    let updateInterval = 0.25
+    let generateParameters = GenerateParameters(maxTokens: 240, temperature: 0.6)
+    let updateInterval = Duration.seconds(0.25)
 
     /// A task responsible for handling the generation process.
     var generationTask: Task<Void, Error>?
@@ -254,35 +254,22 @@ class LLMEvaluator {
                 let stream = try MLXLMCommon.generate(
                     input: lmInput, parameters: generateParameters, context: context)
 
-                var tokenCount = 0
-                var lastEmissionTime: Date = Date()
-                var chunks = ""
-
-                for await result in stream {
-                    switch result {
-                    case .chunk(let string):
-                        tokenCount += 1
-                        if tokenCount >= maxTokens { await generationTask?.cancel() }
-                        let now = Date()
-                        if now.timeIntervalSince(lastEmissionTime) >= updateInterval {
-                            lastEmissionTime = now
-                            let text = chunks
-                            chunks = ""
-                            Task { @MainActor in
-                                self.output += text
-                            }
-                        } else {
-                            chunks += string
-                        }
-                    case .info(let info):
-                        Task { @MainActor in
-                            self.stat = "\(info.tokensPerSecond) tokens/s"
+                // generate and output in batches
+                for await batch in stream._throttle(
+                    for: updateInterval, reducing: Generation.collect)
+                {
+                    let output = batch.compactMap { $0.chunk }.joined(separator: "")
+                    if !output.isEmpty {
+                        Task { @MainActor [output] in
+                            self.output += output
                         }
                     }
-                }
 
-                Task { @MainActor in
-                    self.output += chunks
+                    if let completion = batch.compactMap({ $0.info }).first {
+                        Task { @MainActor in
+                            self.stat = "\(completion.tokensPerSecond) tokens/s"
+                        }
+                    }
                 }
             }
 
