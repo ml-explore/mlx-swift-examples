@@ -9,6 +9,10 @@ import Tokenizers
 
 // MARK: - Common Utilities for Qwen 2 VL and Qwen 2.5 VL
 
+private func debug(_ message: @autoclosure () -> String) {
+    // print(message())
+}
+
 public struct QwenVL {
     /// Rotates half the hidden dims of the input
     static func rotateHalf(_ x: MLXArray) -> MLXArray {
@@ -121,8 +125,8 @@ public struct QwenVL {
         throws
         -> (Int, Int)
     {
-        print("Original dimensions: \(width) × \(height)")
-        print("Factor: \(factor), minPixels: \(minPixels), maxPixels: \(maxPixels)")
+        debug("Original dimensions: \(width) × \(height)")
+        debug("Factor: \(factor), minPixels: \(minPixels), maxPixels: \(maxPixels)")
 
         if height < factor {
             throw VLMError.imageProcessingFailure(
@@ -139,26 +143,26 @@ public struct QwenVL {
 
         var hBar = max(factor, Int(round(Float(height) / Float(factor))) * factor)
         var wBar = max(factor, Int(round(Float(width) / Float(factor))) * factor)
-        print("After rounding to factor multiples: \(wBar) × \(hBar)")
+        debug("After rounding to factor multiples: \(wBar) × \(hBar)")
 
         // Scale based on total pixel count
         if hBar * wBar > maxPixels {
             let beta = sqrt(Float(height * width) / Float(maxPixels))
             hBar = Int(floor(Float(height) / beta / Float(factor))) * factor
             wBar = Int(floor(Float(width) / beta / Float(factor))) * factor
-            print("After scaling down for maxPixels: \(wBar) × \(hBar)")
+            debug("After scaling down for maxPixels: \(wBar) × \(hBar)")
         } else if hBar * wBar < minPixels {
             let beta = sqrt(Float(minPixels) / Float(height * width))
             hBar = Int(ceil(Float(height) * beta / Float(factor))) * factor
             wBar = Int(ceil(Float(width) * beta / Float(factor))) * factor
-            print("After scaling up for minPixels: \(wBar) × \(hBar)")
+            debug("After scaling up for minPixels: \(wBar) × \(hBar)")
         }
 
         // Ensure dimensions are divisible by the factor
         hBar = (hBar / factor) * factor
         wBar = (wBar / factor) * factor
-        print("Final dimensions: \(wBar) × \(hBar)")
-        print("Total pixels: \(wBar * hBar)")
+        debug("Final dimensions: \(wBar) × \(hBar)")
+        debug("Total pixels: \(wBar * hBar)")
 
         // Final sanity check
         if hBar <= 0 || wBar <= 0 {

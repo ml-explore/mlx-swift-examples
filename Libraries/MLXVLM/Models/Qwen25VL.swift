@@ -695,8 +695,6 @@ public class Qwen25VLProcessor: UserInputProcessor {
             minPixels: config.size.minPixels, maxPixels: config.size.maxPixels)
         let resizedSize = CGSize(width: resizedWidth, height: resizedHeight)
 
-        print("config.size.maxPixels: \(config.size.maxPixels)")
-
         // Process images
         let processedImages =
             try images
@@ -740,14 +738,9 @@ public class Qwen25VLProcessor: UserInputProcessor {
                 pixels: imagePixelsConcatenated, frames: imagePixelsAndFrames.map { $0.1 })
 
             if let imageFrames = processedImage?.frames {
-                do {
-                    promptTokens = try QwenVL.replacePaddingTokens(
-                        in: promptTokens, frames: imageFrames, paddingToken: "<|image_pad|>",
-                        mergeSize: config.mergeSize, tokenizer: tokenizer)
-                } catch {
-                    print("Error in replacePaddingTokens: \(error)")
-                    throw error
-                }
+                promptTokens = try QwenVL.replacePaddingTokens(
+                    in: promptTokens, frames: imageFrames, paddingToken: "<|image_pad|>",
+                    mergeSize: config.mergeSize, tokenizer: tokenizer)
             }
         }
 
