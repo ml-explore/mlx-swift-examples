@@ -148,7 +148,6 @@ private class RMSNorm: Module, UnaryLayer {
     public init(dimensions: Int, eps: Float = 1e-5) {
         self.weight = MLXArray.ones([dimensions])
         self.eps = eps
-        super.init()
     }
 
     public func callAsFunction(_ x: MLXArray) -> MLXArray {
@@ -188,7 +187,7 @@ parameters to the initializer.  In typical inference use these values
 will be replaced when the weights are loaded 
 (``loadWeights(modelDirectory:model:quantization:)``).
 
-* Important:
+* Note:
 If the property names in Python don't make good Swift names you can use the `@ParameterInfo` property wrapper to specify the key:\
 \
 `@ParameterInfo(key: "some_weight") var weight: MLXArray`
@@ -217,7 +216,7 @@ public func callAsFunction(_ x: MLXArray) -> MLXArray {
 }
 ```
 
-* Important:
+* Note:
 [This reference](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx/converting-python) shows the mapping between Python method and function names and Swift.
 
 ### Porting Layers -- Children
@@ -318,7 +317,7 @@ If there are many properties that _are_ needed, it may be more
 convenient in Swift to simply store the `GemmaConfiguration` --
 that provides access to the typed properties inside.
 
-* Important:
+* Note:
 Much like parameters with non-Swift names, you can (and typically do) use `@ModuleInfo` to give the same naming hint:\
 \
 `@ModuleInfo(key: "self_attn") var attention: Attention`
