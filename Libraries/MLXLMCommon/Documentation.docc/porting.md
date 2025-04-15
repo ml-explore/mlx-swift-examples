@@ -148,7 +148,6 @@ private class RMSNorm: Module, UnaryLayer {
     public init(dimensions: Int, eps: Float = 1e-5) {
         self.weight = MLXArray.ones([dimensions])
         self.eps = eps
-        super.init()
     }
 
     public func callAsFunction(_ x: MLXArray) -> MLXArray {
