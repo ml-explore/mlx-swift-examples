@@ -3,16 +3,26 @@
 public enum Chat {
     public struct Message {
         /// The role of the message sender.
-        public let role: Role
+        public var role: Role
 
         /// The content of the message.
-        public let content: String
+        public var content: String
 
         /// Array of image data associated with the message.
-        public let images: [UserInput.Image]
+        public var images: [UserInput.Image]
 
         /// Array of video data associated with the message.
-        public let videos: [UserInput.Video]
+        public var videos: [UserInput.Video]
+
+        public init(
+            role: Role, content: String, images: [UserInput.Image] = [],
+            videos: [UserInput.Video] = []
+        ) {
+            self.role = role
+            self.content = content
+            self.images = images
+            self.videos = videos
+        }
 
         public static func system(
             _ content: String, images: [UserInput.Image] = [], videos: [UserInput.Video] = []
@@ -40,13 +50,25 @@ public enum Chat {
     }
 }
 
+/// Protocol for something that can convert structured
+/// ``Chat.Message`` into model specific ``Message``
+/// (raw dictionary) format.
+///
+/// Typically this is owned and used by a ``UserInputProcessor``:
+///
+/// ```swift
+/// public func prepare(input: UserInput) async throws -> LMInput {
+///     let messages = Qwen2VLMessageGenerator().generate(from: input)
+///     ...
+/// ```
 public protocol MessageGenerator {
-    /// Returns [String: Any] aka Message
+
+    /// Returns `[String: Any]` aka ``Message``.
     func generate(message: Chat.Message) -> Message
 }
 
 extension MessageGenerator {
-    /// Returns array of [String: Any] aka Message
+    /// Returns array of `[String: Any]` aka ``Message``
     public func generate(messages: [Chat.Message]) -> [Message] {
         var rawMessages: [Message] = []
 
@@ -71,6 +93,15 @@ extension MessageGenerator {
     }
 }
 
+/// Default implementation of ``MessageGenerator`` that produces a
+/// `role` and `content`.
+///
+/// ```swift
+/// [
+///     "role": message.role.rawValue,
+///     "content": message.content,
+/// ]
+/// ```
 public struct DefaultMessageGenerator: MessageGenerator {
     public init() {}
 
