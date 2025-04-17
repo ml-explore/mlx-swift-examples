@@ -61,12 +61,12 @@ extension MessageGenerator {
     /// Generates messages from the input.
     public func generate(from input: UserInput) -> [Message] {
         switch input.prompt {
-            case .text(let text):
-                generate(messages: [.user(text)])
-            case .messages(let messages):
-                messages
-            case .chat(let messages):
-                generate(messages: messages)
+        case .text(let text):
+            generate(messages: [.user(text)])
+        case .messages(let messages):
+            messages
+        case .chat(let messages):
+            generate(messages: messages)
         }
     }
 }
