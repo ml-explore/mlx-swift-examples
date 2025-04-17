@@ -412,12 +412,21 @@ class VLMEvaluator {
                     if !images.isEmpty || !videos.isEmpty {
                         [
                             [
-                                "role": "user",
+                                "role": "system",
                                 "content": [
                                     [
                                         "type": "text",
                                         "text": videoURL != nil
                                             ? videoSystemPrompt : imageSystemPrompt,
+                                    ]
+                                ],
+                            ],
+                            [
+                                "role": "user",
+                                "content": [
+                                    [
+                                        "type": "text",
+                                        "text": prompt,
                                     ]
                                 ]
                                     // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
@@ -427,7 +436,7 @@ class VLMEvaluator {
                                     + videos.map { _ in
                                         ["type": "video"]
                                     },
-                            ]
+                            ],
                         ]
                     } else {
                         [

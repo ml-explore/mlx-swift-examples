@@ -231,7 +231,7 @@ struct EvaluateCommand: AsyncParsableCommand {
             chat: [
                 .system(generate.system),
                 .user(prompt, images: images, videos: videos),
-            ],
+            ]
         )
         if !resize.isEmpty {
             let size: CGSize
