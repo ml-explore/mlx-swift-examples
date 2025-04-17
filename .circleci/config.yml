@@ -34,6 +34,7 @@ jobs:
             xcodebuild -version
             xcrun --show-sdk-build-version
             swift --version
+            find . -name Package.resolved -exec rm {} \;
             xcodebuild test -scheme mlx-libraries-Package -destination 'platform=OS X'
       - run:
           name: Build Examples
