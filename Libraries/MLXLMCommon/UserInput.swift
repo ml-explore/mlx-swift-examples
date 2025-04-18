@@ -129,61 +129,35 @@ public struct UserInput: Sendable {
     }
 
     /// The prompt to evaluate.
-    public var prompt: Prompt
+    public var prompt: Prompt {
+        didSet {
+            switch prompt {
+            case .text, .messages:
+                // no action
+                break
+            case .chat(let messages):
+                // rebuild images & videos
+                self.images = messages.reduce(into: []) { result, message in
+                    result.append(contentsOf: message.images)
+                }
+                self.videos = messages.reduce(into: []) { result, message in
+                    result.append(contentsOf: message.videos)
+                }
+            }
+        }
+    }
 
     /// The images associated with the `UserInput`.
     ///
     /// If the ``prompt-swift.property`` is a ``Prompt-swift.enum/chat(_:)`` this will
     /// collect the images from the chat messages, otherwise these are the stored images with the ``UserInput``.
-    public var images: [Image] {
-        get {
-            switch prompt {
-            case .text: _images
-            case .messages: _images
-            case .chat(let messages):
-                messages.reduce(into: []) { result, message in
-                    result.append(contentsOf: message.images)
-                }
-            }
-        }
-        set {
-            switch prompt {
-            case .text, .messages:
-                _images = newValue
-            case .chat:
-                break
-            }
-        }
-    }
-
-    private var _images = [Image]()
+    public var images = [Image]()
 
     /// The images associated with the `UserInput`.
     ///
     /// If the ``prompt-swift.property`` is a ``Prompt-swift.enum/chat(_:)`` this will
     /// collect the videos from the chat messages, otherwise these are the stored videos with the ``UserInput``.
-    public var videos: [Video] {
-        get {
-            switch prompt {
-            case .text: _videos
-            case .messages: _videos
-            case .chat(let messages):
-                messages.reduce(into: []) { result, message in
-                    result.append(contentsOf: message.videos)
-                }
-            }
-        }
-        set {
-            switch prompt {
-            case .text, .messages:
-                _videos = newValue
-            case .chat:
-                break
-            }
-        }
-    }
-
-    private var _videos = [Video]()
+    public var videos = [Video]()
 
     public var tools: [ToolSpec]?
 
@@ -285,6 +259,14 @@ public struct UserInput: Sendable {
         additionalContext: [String: Any]? = nil
     ) {
         self.prompt = .chat(chat)
+
+        // note: prompt.didSet is not triggered in init
+        self.images = chat.reduce(into: []) { result, message in
+            result.append(contentsOf: message.images)
+        }
+        self.videos = chat.reduce(into: []) { result, message in
+            result.append(contentsOf: message.videos)
+        }
         self.tools = tools
         self.additionalContext = additionalContext
     }
@@ -313,8 +295,8 @@ public struct UserInput: Sendable {
         self.prompt = prompt
         switch prompt {
         case .text, .messages:
-            _images = images
-            _videos = videos
+            self.images = images
+            self.videos = videos
         case .chat:
             break
         }

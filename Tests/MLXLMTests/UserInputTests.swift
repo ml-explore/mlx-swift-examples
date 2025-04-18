@@ -135,6 +135,9 @@ public class UserInputTests: XCTestCase {
         ]
 
         assertEqual(expected, messages)
+
+        let userInput = UserInput(chat: chat)
+        XCTAssertEqual(userInput.images.count, 1)
     }
 
 }
