@@ -560,7 +560,8 @@ public class Qwen2VLProcessor: UserInputProcessor {
     }
 
     public func prepare(input: UserInput) async throws -> LMInput {
-        let messages = input.prompt.asMessages()
+        let messages = Qwen2VLMessageGenerator().generate(from: input)
+
         var promptTokens = try tokenizer.applyChatTemplate(messages: messages)
 
         // Text-only input
@@ -896,5 +897,26 @@ public struct Qwen2VLProcessorConfiguration: Codable, Sendable {
         case _maxPixels = "max_pixels"
         case _minPixels = "min_pixels"
         case _size = "size"
+    }
+}
+
+/// Message Generator for Qwen2VL
+public struct Qwen2VLMessageGenerator: MessageGenerator {
+    public init() {}
+
+    public func generate(message: Chat.Message) -> Message {
+        [
+            "role": message.role.rawValue,
+            "content": [
+                ["type": "text", "text": message.content]
+            ]
+                // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
+                + message.images.map { _ in
+                    ["type": "image"]
+                }
+                + message.videos.map { _ in
+                    ["type": "video"]
+                },
+        ]
     }
 }

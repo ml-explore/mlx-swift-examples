@@ -718,7 +718,7 @@ public class Qwen25VLProcessor: UserInputProcessor {
     }
 
     public func prepare(input: UserInput) async throws -> LMInput {
-        let messages = input.prompt.asMessages()
+        let messages = Qwen2VLMessageGenerator().generate(from: input)
 
         var promptTokens = try tokenizer.applyChatTemplate(messages: messages)
 

@@ -478,7 +478,7 @@ public class PaliGemmaProcessor: UserInputProcessor {
         }
 
         // this doesn't have a chat template so just use the last message.
-        var prompt = input.prompt.asMessages().last?["content"] as? String ?? ""
+        var prompt = prompt(from: input)
 
         // based on transformers/processing_paligemma
         let count = input.images.count * config.imageSequenceLength
@@ -493,6 +493,17 @@ public class PaliGemmaProcessor: UserInputProcessor {
         let pixels = try prepare(image: input.images[0].asCIImage(), processing: input.processing)
 
         return LMInput(text: .init(tokens: promptArray, mask: mask), image: .init(pixels: pixels))
+    }
+
+    private func prompt(from userInput: UserInput) -> String {
+        switch userInput.prompt {
+        case .text(let text):
+            text
+        case .messages(let messages):
+            messages.last?["content"] as? String ?? ""
+        case .chat(let messages):
+            messages.last?.content ?? ""
+        }
     }
 
 }

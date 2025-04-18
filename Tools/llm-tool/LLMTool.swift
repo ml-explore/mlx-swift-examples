@@ -227,31 +227,12 @@ struct EvaluateCommand: AsyncParsableCommand {
             ?? modelConfiguration.defaultPrompt
         let images = image.map { UserInput.Image.url($0) }
         let videos = video.map { UserInput.Video.url($0) }
-        let messages: [[String: Any]] =
-            if !images.isEmpty || !videos.isEmpty {
-                [
-                    [
-                        "role": "user",
-                        "content": [
-                            [
-                                "type": "text",
-                                "text": generate.system,
-                            ]
-                        ]
-                            // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
-                            + images.map { _ in ["type": "image"] }
-                            + videos.map { _ in ["type": "video"] },
-                    ]
-                ]
-            } else {
-                [
-                    [
-                        "role": "user",
-                        "content": prompt,
-                    ]
-                ]
-            }
-        var userInput = UserInput(messages: messages, images: images, videos: videos)
+        var userInput = UserInput(
+            chat: [
+                .system(generate.system),
+                .user(prompt, images: images, videos: videos),
+            ]
+        )
         if !resize.isEmpty {
             let size: CGSize
             if resize.count == 1 {
