@@ -41,7 +41,7 @@ public struct UserInput: Sendable {
     }
 
     /// Representation of a video resource.
-    public enum Video: Sendable {
+    public enum Video: Sendable, Hashable {
         case avAsset(AVAsset)
         case url(URL)
 
@@ -56,7 +56,7 @@ public struct UserInput: Sendable {
     }
 
     /// Representation of an image resource.
-    public enum Image: Sendable {
+    public enum Image: Sendable, Hashable {
         case ciImage(CIImage)
         case url(URL)
         case array(MLXArray)
@@ -115,6 +115,30 @@ public struct UserInput: Sendable {
                     bitmapData: arrayData.data, bytesPerRow: W * 4,
                     size: .init(width: W, height: H),
                     format: .RGBA8, colorSpace: cs)
+            }
+        }
+
+        public func hash(into hasher: inout Hasher) {
+            switch self {
+            case .ciImage(let image):
+                hasher.combine(image)
+            case .url(let url):
+                hasher.combine(url)
+            case .array(let array):
+                hasher.combine(0)
+            }
+        }
+
+        public static func == (lhs: UserInput.Image, rhs: UserInput.Image) -> Bool {
+            switch (lhs, rhs) {
+            case (.ciImage(let lhs), .ciImage(let rhs)):
+                lhs == rhs
+            case (.url(let lhs), .url(let rhs)):
+                lhs == rhs
+            case (.array(let lhs), .array(let rhs)):
+                lhs === rhs
+            default:
+                false
             }
         }
     }

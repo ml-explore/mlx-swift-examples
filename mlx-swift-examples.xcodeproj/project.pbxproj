@@ -928,7 +928,7 @@
 				C34E491A2B69C43600FCB841 /* XCRemoteSwiftPackageReference "GzipSwift" */,
 				81695B3F2BA373D300F260D8 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				C36BEFF02BC32A8C002D4AFE /* XCRemoteSwiftPackageReference "Progress" */,
-				C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */,
+				C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */,
 				C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */,
 				C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 			);
@@ -2872,9 +2872,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */ = {
+		C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = Source/..;
+			relativePath = Libraries/..;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -2932,7 +2932,7 @@
 /* Begin XCSwiftPackageProductDependency section */
 		0AC74ED92D136223003C90A7 /* MLXVLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXVLM;
 		};
 		81695B402BA373D300F260D8 /* MarkdownUI */ = {
@@ -2957,37 +2957,37 @@
 		};
 		C32A17FC2CFFB98A0092A5B6 /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXLLM;
 		};
 		C32A17FE2CFFB98A0092A5B6 /* MLXVLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXVLM;
 		};
 		C32A18002CFFD1810092A5B6 /* MLXMNIST */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXMNIST;
 		};
 		C32A18022CFFD1920092A5B6 /* MLXMNIST */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXMNIST;
 		};
 		C32A18042CFFD19F0092A5B6 /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXLLM;
 		};
 		C32A18062CFFD1AA0092A5B6 /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXLLM;
 		};
 		C32A18082CFFD1B70092A5B6 /* StableDiffusion */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = StableDiffusion;
 		};
 		C32A18452D00E1490092A5B6 /* MLX */ = {
@@ -3042,7 +3042,7 @@
 		};
 		C3E7D94C2CF6C9B20056C095 /* StableDiffusion */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = StableDiffusion;
 		};
 /* End XCSwiftPackageProductDependency section */
