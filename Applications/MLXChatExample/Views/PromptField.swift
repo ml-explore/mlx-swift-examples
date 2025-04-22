@@ -52,5 +52,7 @@ struct PromptField: View {
 }
 
 #Preview {
-    PromptField(prompt: .constant("")) { } mediaButtonAction: { }
+    PromptField(prompt: .constant("")) {
+    } mediaButtonAction: {
+    }
 }

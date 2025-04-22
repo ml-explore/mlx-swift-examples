@@ -5,9 +5,9 @@
 //  Created by İbrahim Çetin on 21.04.2025.
 //
 
-import SwiftUI
-import AVKit
 import AVFoundation
+import AVKit
+import SwiftUI
 
 /// A view that displays a horizontal scrollable list of media previews (images and videos).
 struct MediaPreviewsView: View {

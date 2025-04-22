@@ -5,9 +5,9 @@
 //  Created by İbrahim Çetin on 20.04.2025.
 //
 
-import SwiftUI
 import AVFoundation
 import AVKit
+import SwiftUI
 
 /// Main chat interface view that manages the conversation UI and user interactions.
 /// Displays messages, handles media attachments, and provides input controls.
@@ -39,9 +39,10 @@ struct ChatView: View {
                     prompt: $vm.prompt,
                     sendButtonAction: vm.generate,
                     // Only show media button for vision-capable models
-                    mediaButtonAction: vm.selectedModel.isVisionModel ? {
-                        vm.mediaSelection.isShowing = true
-                    } : nil
+                    mediaButtonAction: vm.selectedModel.isVisionModel
+                        ? {
+                            vm.mediaSelection.isShowing = true
+                        } : nil
                 )
                 .padding()
             }

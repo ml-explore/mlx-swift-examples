@@ -6,10 +6,9 @@
 //
 
 import Foundation
-
 import MLX
-import MLXLMCommon
 import MLXLLM
+import MLXLMCommon
 import MLXVLM
 
 /// A service class that manages machine learning models for text and vision-language tasks.
@@ -22,9 +21,10 @@ class MLXService {
         LMModel(name: "llama3.2:1b", configuration: LLMRegistry.llama3_2_1B_4bit, type: .llm),
         LMModel(name: "qwen2.5:1.5b", configuration: LLMRegistry.qwen2_5_1_5b, type: .llm),
         LMModel(name: "smolLM:135m", configuration: LLMRegistry.smolLM_135M_4bit, type: .llm),
-        LMModel(name: "qwen2.5VL:3b", configuration: VLMRegistry.qwen2_5VL3BInstruct4Bit, type: .vlm),
+        LMModel(
+            name: "qwen2.5VL:3b", configuration: VLMRegistry.qwen2_5VL3BInstruct4Bit, type: .vlm),
         LMModel(name: "qwen2VL:2b", configuration: VLMRegistry.qwen2VL2BInstruct4Bit, type: .vlm),
-        LMModel(name: "smolVLM", configuration: VLMRegistry.smolvlminstruct4bit, type: .vlm)
+        LMModel(name: "smolVLM", configuration: VLMRegistry.smolvlminstruct4bit, type: .vlm),
     ]
 
     /// Cache to store loaded model containers to avoid reloading.
@@ -48,15 +48,18 @@ class MLXService {
             return container
         } else {
             // Select appropriate factory based on model type
-            let factory: ModelFactory = switch model.type {
-            case .llm:
-                LLMModelFactory.shared
-            case .vlm:
-                VLMModelFactory.shared
-            }
+            let factory: ModelFactory =
+                switch model.type {
+                case .llm:
+                    LLMModelFactory.shared
+                case .vlm:
+                    VLMModelFactory.shared
+                }
 
             // Load model and track download progress
-            let container = try await factory.loadContainer(hub: .default, configuration: model.configuration) { progress in
+            let container = try await factory.loadContainer(
+                hub: .default, configuration: model.configuration
+            ) { progress in
                 Task { @MainActor in
                     self.modelDownloadProgress = progress
                 }
@@ -81,20 +84,22 @@ class MLXService {
 
         // Map app-specific Message type to Chat.Message for model input
         let chat = messages.map { message in
-            let role: Chat.Message.Role = switch message.role {
-            case .assistant:
-                .assistant
-            case .user:
-                .user
-            case .system:
-                .system
-            }
+            let role: Chat.Message.Role =
+                switch message.role {
+                case .assistant:
+                    .assistant
+                case .user:
+                    .user
+                case .system:
+                    .system
+                }
 
             // Process any attached media for VLM models
-            let images: [UserInput.Image] = message.images.map { imageURL in .url(imageURL)}
-            let videos: [UserInput.Video] = message.videos.map { videoURL in .url(videoURL)}
+            let images: [UserInput.Image] = message.images.map { imageURL in .url(imageURL) }
+            let videos: [UserInput.Video] = message.videos.map { videoURL in .url(videoURL) }
 
-            return Chat.Message(role: role, content: message.content, images: images, videos: videos)
+            return Chat.Message(
+                role: role, content: message.content, images: images, videos: videos)
         }
 
         // Prepare input for model processing
@@ -106,7 +111,8 @@ class MLXService {
             // Set temperature for response randomness (0.7 provides good balance)
             let parameters = GenerateParameters(temperature: 0.7)
 
-            return try MLXLMCommon.generate(input: lmInput, parameters: parameters, context: context)
+            return try MLXLMCommon.generate(
+                input: lmInput, parameters: parameters, context: context)
         }
     }
 }

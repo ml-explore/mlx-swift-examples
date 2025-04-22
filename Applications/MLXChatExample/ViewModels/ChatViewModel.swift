@@ -77,7 +77,9 @@ class ChatViewModel {
 
         generateTask = Task {
             // Process generation chunks and update UI
-            for await generation in try await mlxService.generate(messages: messages, model: selectedModel) {
+            for await generation in try await mlxService.generate(
+                messages: messages, model: selectedModel)
+            {
                 switch generation {
                 case .chunk(let chunk):
                     // Append new text to the current assistant message

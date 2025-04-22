@@ -5,8 +5,8 @@
 //  Created by İbrahim Çetin on 20.04.2025.
 //
 
-import SwiftUI
 import AVKit
+import SwiftUI
 
 /// A view that displays a single message in the chat interface.
 /// Supports different message roles (user, assistant, system) and media attachments.
