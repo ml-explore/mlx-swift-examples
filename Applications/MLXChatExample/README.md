@@ -2,6 +2,8 @@
 
 A lightweight chat application demonstrating MLX integration for iOS and macOS. Built with SwiftUI, this example project shows how to implement both Large Language Models (LLMs) and Vision Language Models (VLMs) using MLX.
 
+<img alt="MLX Chat Example Screenshot" src="https://github.com/user-attachments/assets/9a20c081-61c2-4b0a-88df-f54500464d77" />
+
 ## Features
 
 - 🤖 LLM and VLM support with real-time text generation
@@ -42,7 +44,7 @@ The project follows MVVM architecture with clear separation between UI and busin
 
 ### MLXService
 
-Core ML service handling all model operations:
+Core service handling all model operations:
 - Model loading and caching with memory management
 - Async text generation with streaming support
 - GPU memory optimization
