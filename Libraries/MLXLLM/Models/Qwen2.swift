@@ -243,7 +243,8 @@ public struct Qwen2Configuration: Codable, Sendable {
         let container: KeyedDecodingContainer<Qwen2Configuration.CodingKeys> =
             try decoder.container(
                 keyedBy: Qwen2Configuration.CodingKeys.self)
-
+        self.quantization = try container.decodeIfPresent(
+            BaseConfiguration.Quantization.self, forKey: .quantization)
         self.hiddenSize = try container.decode(
             Int.self, forKey: Qwen2Configuration.CodingKeys.hiddenSize)
         self.hiddenLayers = try container.decode(
