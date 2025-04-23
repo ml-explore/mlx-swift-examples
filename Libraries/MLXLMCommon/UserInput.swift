@@ -41,7 +41,7 @@ public struct UserInput: Sendable {
     }
 
     /// Representation of a video resource.
-    public enum Video: Sendable, Hashable {
+    public enum Video: Sendable {
         case avAsset(AVAsset)
         case url(URL)
 
@@ -56,7 +56,7 @@ public struct UserInput: Sendable {
     }
 
     /// Representation of an image resource.
-    public enum Image: Sendable, Hashable {
+    public enum Image: Sendable {
         case ciImage(CIImage)
         case url(URL)
         case array(MLXArray)
@@ -115,30 +115,6 @@ public struct UserInput: Sendable {
                     bitmapData: arrayData.data, bytesPerRow: W * 4,
                     size: .init(width: W, height: H),
                     format: .RGBA8, colorSpace: cs)
-            }
-        }
-
-        public func hash(into hasher: inout Hasher) {
-            switch self {
-            case .ciImage(let image):
-                hasher.combine(image)
-            case .url(let url):
-                hasher.combine(url)
-            case .array(let array):
-                hasher.combine(0)
-            }
-        }
-
-        public static func == (lhs: UserInput.Image, rhs: UserInput.Image) -> Bool {
-            switch (lhs, rhs) {
-            case (.ciImage(let lhs), .ciImage(let rhs)):
-                lhs == rhs
-            case (.url(let lhs), .url(let rhs)):
-                lhs == rhs
-            case (.array(let lhs), .array(let rhs)):
-                lhs === rhs
-            default:
-                false
             }
         }
     }
@@ -273,12 +249,14 @@ public struct UserInput: Sendable {
     /// - Parameters:
     ///   - chat: structured content
     ///   - tools: optional tool specifications
+    ///   - processing: optional processing to be applied to media
     ///   - additionalContext: optional context (model specific)
     /// ### See Also
     /// - ``Prompt-swift.enum/text(_:)``
     /// - ``init(chat:tools:additionalContext:)``
     public init(
         chat: [Chat.Message],
+        processing: Processing = .init(),
         tools: [ToolSpec]? = nil,
         additionalContext: [String: Any]? = nil
     ) {
@@ -291,6 +269,8 @@ public struct UserInput: Sendable {
         self.videos = chat.reduce(into: []) { result, message in
             result.append(contentsOf: message.videos)
         }
+
+        self.processing = processing
         self.tools = tools
         self.additionalContext = additionalContext
     }

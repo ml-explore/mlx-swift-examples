@@ -63,6 +63,44 @@ struct PromptArguments: ParsableArguments, Sendable {
     }
 }
 
+/// Argument package for supplying media files
+struct MediaArguments: ParsableArguments, Sendable {
+
+    @Option(parsing: .upToNextOption, help: "Resize images to this size (width, height)")
+    var resize: [Int] = []
+
+    @Option(parsing: .upToNextOption, help: "Paths or URLs for input images")
+    var image: [URL] = []
+
+    @Option(parsing: .upToNextOption, help: "Paths or URLs for input videos")
+    var video: [URL] = []
+
+    var images: [UserInput.Image] {
+        image.map { UserInput.Image.url($0) }
+    }
+    var videos: [UserInput.Video] {
+        video.map { UserInput.Video.url($0) }
+    }
+
+    var processing: UserInput.Processing {
+        var processing = UserInput.Processing()
+        if !resize.isEmpty {
+            let size: CGSize
+            if resize.count == 1 {
+                // Single value represents width/height
+                let v = resize[0]
+                size = CGSize(width: v, height: v)
+            } else {
+                let v0 = resize[0]
+                let v1 = resize[1]
+                size = CGSize(width: v0, height: v1)
+            }
+            processing.resize = size
+        }
+        return processing
+    }
+}
+
 /// Command line arguments for controlling generation of text.
 struct GenerateArguments: ParsableArguments, Sendable {
 
@@ -216,42 +254,20 @@ struct EvaluateCommand: AsyncParsableCommand {
     @OptionGroup var memory: MemoryArguments
     @OptionGroup var generate: GenerateArguments
     @OptionGroup var prompt: PromptArguments
-
-    @Option(parsing: .upToNextOption, help: "Resize images to this size (width, height)")
-    var resize: [Int] = []
-
-    @Option(parsing: .upToNextOption, help: "Paths or URLs for input images")
-    var image: [URL] = []
-
-    @Option(parsing: .upToNextOption, help: "Paths or URLs for input videos")
-    var video: [URL] = []
+    @OptionGroup var media: MediaArguments
 
     private func userInput(modelConfiguration: ModelConfiguration) -> UserInput {
         let prompt =
             (try? self.prompt.resolvePrompt(configuration: modelConfiguration))
             ?? modelConfiguration.defaultPrompt
-        let images = image.map { UserInput.Image.url($0) }
-        let videos = video.map { UserInput.Video.url($0) }
-        var userInput = UserInput(
+
+        return UserInput(
             chat: [
                 .system(generate.system),
-                .user(prompt, images: images, videos: videos),
-            ]
+                .user(prompt, images: media.images, videos: media.videos),
+            ],
+            processing: media.processing
         )
-        if !resize.isEmpty {
-            let size: CGSize
-            if resize.count == 1 {
-                // Single value represents width/height
-                let v = resize[0]
-                size = CGSize(width: v, height: v)
-            } else {
-                let v0 = resize[0]
-                let v1 = resize[1]
-                size = CGSize(width: v0, height: v1)
-            }
-            userInput.processing.resize = size
-        }
-        return userInput
     }
 
     @MainActor
@@ -260,7 +276,7 @@ struct EvaluateCommand: AsyncParsableCommand {
         let defaultModel: ModelConfiguration
 
         // Switch between LLM and VLM based on presence of media
-        let vlm = !image.isEmpty || !video.isEmpty
+        let vlm = !media.image.isEmpty || !media.video.isEmpty
         if vlm {
             modelFactory = VLMModelFactory.shared
             defaultModel = MLXVLM.VLMRegistry.qwen2VL2BInstruct4Bit
@@ -303,167 +319,6 @@ struct EvaluateCommand: AsyncParsableCommand {
             print(result.summary())
 
             memory.reportMemoryStatistics()
-        }
-    }
-}
-
-struct ChatCommand: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(
-        commandName: "chat",
-        abstract: "interactive chat with model"
-    )
-
-    @OptionGroup var args: ModelArguments
-    @OptionGroup var memory: MemoryArguments
-    @OptionGroup var generate: GenerateArguments
-
-    @Option(parsing: .upToNextOption, help: "Resize images to this size (width, height)")
-    var resize: [Int] = []
-
-    @Option(parsing: .upToNextOption, help: "Paths or URLs for input images")
-    var image: [URL] = []
-
-    @Option(parsing: .upToNextOption, help: "Paths or URLs for input videos")
-    var video: [URL] = []
-
-    // TODO replace
-    private func userInput(modelConfiguration: ModelConfiguration) -> UserInput {
-        let images = image.map { UserInput.Image.url($0) }
-        let videos = video.map { UserInput.Video.url($0) }
-        var userInput = UserInput(
-            chat: [
-                .system(generate.system)
-            ]
-        )
-        if !resize.isEmpty {
-            let size: CGSize
-            if resize.count == 1 {
-                // Single value represents width/height
-                let v = resize[0]
-                size = CGSize(width: v, height: v)
-            } else {
-                let v0 = resize[0]
-                let v1 = resize[1]
-                size = CGSize(width: v0, height: v1)
-            }
-            userInput.processing.resize = size
-        }
-        return userInput
-    }
-
-    @MainActor
-    mutating func run() async throws {
-        let defaultModel = MLXLLM.LLMRegistry.mistral7B4bit
-
-        var images = image.map { UserInput.Image.url($0) }
-        var videos = video.map { UserInput.Video.url($0) }
-
-        // Load the model
-        let modelContainer = try await memory.start { [args] in
-            do {
-                return try await args.load(
-                    defaultModel: defaultModel.name, modelFactory: LLMModelFactory.shared)
-            } catch ModelFactoryError.unsupportedModelType {
-                return try await args.load(
-                    defaultModel: defaultModel.name, modelFactory: VLMModelFactory.shared)
-            }
-        }
-
-        // update the context/configuration with any command line parameters
-        await modelContainer.update { [generate] context in
-            generate.prepare(&context)
-        }
-
-        // Get the resolved configuration (this has the default prompt)
-        let modelConfiguration = await modelContainer.configuration
-
-        var userInput = self.userInput(modelConfiguration: modelConfiguration)
-        var chat = [Chat.Message.system(generate.system)]
-
-        // TODO: need to figure out the proper ownrship for this -- maybe the loop
-        // below needs to go inside the context?
-        var cache: [KVCache]?
-
-        print("> ", terminator: "")
-        while let line = readLine() {
-            if line.hasPrefix("/") {
-                let command = line.split(separator: " ")[0]
-                let rest = String(
-                    line.dropFirst(command.count).trimmingCharacters(in: .whitespaces))
-                switch line {
-                case "/quit":
-                    return
-                case "/memory":
-                    let memory = GPU.snapshot()
-                    print("Memory size: \(GPU.memoryLimit / 1024)K")
-                    print("Cache size:  \(GPU.cacheLimit / 1024)K")
-                    print(memory.description)
-
-                // TODO: /image -- load an image
-                // TODO: /video -- load a video
-                // TODO: /reset -- reset the chat session
-                // TODO: /stats -- toggle stats on/off
-
-                default:
-                    break
-                }
-                print("\n\n> ", terminator: "")
-                continue
-            }
-
-            chat.append(.user(line))
-
-            // TODO: this works fine with a single image (in the chat) but how do we
-            // deal with multiple images in the conversation?  note that it only gets injected once
-            // (which isn't quite right) and the KVCache keeps hold of it but we end up
-            // reprocessing it multiple times.  anyway, clean this up
-            var chatWithMedia = chat
-            if chat.count >= 2 {
-                chatWithMedia[1].images = images
-                chatWithMedia[1].videos = videos
-            }
-            userInput.prompt = .chat(chatWithMedia)
-
-            //            print(chatWithMedia)
-
-            let (result, output) = try await modelContainer.perform {
-                [generate, userInput] context in
-                let input = try await context.processor.prepare(input: userInput)
-                //                print(context.tokenizer.decode(tokens: input.text.tokens.asArray(Int.self)))
-
-                // TODO: figure out ownership here
-                if cache == nil {
-                    cache = context.model.newCache(parameters: generate.generateParameters)
-                }
-
-                // TODO: does this way so we can pass the cache.  maybe
-                // it should be a paramter to the higher level generate?
-                var iterator = try TokenIterator(
-                    input: input, model: context.model, cache: cache,
-                    parameters: generate.generateParameters)
-
-                var output = ""
-                for await item in MLXLMCommon.generate(
-                    input: input, context: context, iterator: iterator)
-                {
-                    switch item {
-                    case .chunk(let string):
-                        output += string
-                        print(string, terminator: "")
-                    case .info(let info):
-                        return (info, output)
-                    }
-                }
-
-                fatalError()
-                //                return try await generate.generate(input: input, context: context)
-            }
-
-            chat.append(.assistant(output))
-            print(
-                "\nttft: \(result.promptTime.formatted()) tps: \(result.tokensPerSecond.formatted())"
-            )
-            print("\n\n> ", terminator: "")
         }
     }
 }

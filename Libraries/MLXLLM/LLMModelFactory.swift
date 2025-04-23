@@ -264,7 +264,7 @@ public class LLMModelFactory: ModelFactory {
         let modelDirectory = try await downloadModel(
             hub: hub, configuration: configuration, progressHandler: progressHandler)
 
-        // load the generic config to unerstand which model and how to load the weights
+        // load the generic config to understand which model and how to load the weights
         let configurationURL = modelDirectory.appending(component: "config.json")
         let baseConfig = try JSONDecoder().decode(
             BaseConfiguration.self, from: Data(contentsOf: configurationURL))
