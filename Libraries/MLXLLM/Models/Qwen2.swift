@@ -221,7 +221,7 @@ public struct Qwen2Configuration: Codable, Sendable {
     var ropeTraditional: Bool = false
     var ropeScaling: [String: StringOrNumber]? = nil
     var tieWordEmbeddings = false
-    var quantization: BaseConfiguration.Quantization?
+    public var quantization: BaseConfiguration.Quantization?
 
     enum CodingKeys: String, CodingKey {
         case hiddenSize = "hidden_size"
