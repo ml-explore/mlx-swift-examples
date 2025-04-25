@@ -13,6 +13,8 @@
 		0AC74ED12D13622A003C90A7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC74ECC2D13622A003C90A7 /* ContentView.swift */; };
 		0AC74ED22D13622A003C90A7 /* VLMEvalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC74ECD2D13622A003C90A7 /* VLMEvalApp.swift */; };
 		0AC74ED32D136265003C90A7 /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
+		0F5AD8002DB70E6300745C06 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FC2CFFB98A0092A5B6 /* MLXLLM */; };
+		0F5AD8012DB70E6300745C06 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FE2CFFB98A0092A5B6 /* MLXVLM */; };
 		12305EAF2B9D864400C92FEE /* PredictionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12305EAE2B9D864400C92FEE /* PredictionView.swift */; };
 		81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 81695B402BA373D300F260D8 /* MarkdownUI */; };
 		819BEFF82BAF8B4E0002CCEE /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
@@ -195,6 +197,7 @@
 		0AC74ECD2D13622A003C90A7 /* VLMEvalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VLMEvalApp.swift; sourceTree = "<group>"; };
 		0AC74ED42D13630D003C90A7 /* VLMEval.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = VLMEval.entitlements; sourceTree = "<group>"; };
 		0AC74F282D1376F1003C90A7 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		0F5AD7412DB70C0300745C06 /* MLXChatExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MLXChatExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		12305EAE2B9D864400C92FEE /* PredictionView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PredictionView.swift; sourceTree = "<group>"; };
 		819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceStat.swift; sourceTree = "<group>"; };
 		C3056BA12BCD973400A31D04 /* test.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = test.jsonl; sourceTree = "<group>"; };
@@ -267,6 +270,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		0F5AD7422DB70C0300745C06 /* MLXChatExample */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = MLXChatExample; sourceTree = "<group>"; };
 		C397D92E2CD440EF00B87EE2 /* Libraries */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Libraries; sourceTree = "<group>"; };
 		C3C7C4222DB16A02000373CF /* Tests */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C3208F272DB19614006AE6CA /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Tests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -279,6 +283,15 @@
 				C3C7C4FB2DB19026000373CF /* AVKit.framework in Frameworks */,
 				0A8284222D13863900BEF338 /* MLXVLM in Frameworks */,
 				C32B4C6D2DA7136000EF663D /* AsyncAlgorithms in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0F5AD73E2DB70C0300745C06 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0F5AD8012DB70E6300745C06 /* MLXVLM in Frameworks */,
+				0F5AD8002DB70E6300745C06 /* MLXLLM in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -536,6 +549,7 @@
 				C36BF0012BC5CE55002D4AFE /* StableDiffusionExample.app */,
 				0AC74EBB2D136221003C90A7 /* VLMEval.app */,
 				C3208E6E2DB19451006AE6CA /* MLXLMTests.xctest */,
+				0F5AD7412DB70C0300745C06 /* MLXChatExample.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -579,6 +593,7 @@
 				C3A8B3EB2B92A2A90002EFB8 /* LLMEval */,
 				C3A8B3C12B92951E0002EFB8 /* MNISTTrainer */,
 				0AC74ECE2D13622A003C90A7 /* VLMEval */,
+				0F5AD7422DB70C0300745C06 /* MLXChatExample */,
 			);
 			path = Applications;
 			sourceTree = "<group>";
@@ -658,6 +673,30 @@
 			);
 			productName = VLMEval;
 			productReference = 0AC74EBB2D136221003C90A7 /* VLMEval.app */;
+			productType = "com.apple.product-type.application";
+		};
+		0F5AD7402DB70C0300745C06 /* MLXChatExample */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0F5AD74C2DB70C0400745C06 /* Build configuration list for PBXNativeTarget "MLXChatExample" */;
+			buildPhases = (
+				0F5AD73D2DB70C0300745C06 /* Sources */,
+				0F5AD73E2DB70C0300745C06 /* Frameworks */,
+				0F5AD73F2DB70C0300745C06 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				0F5AD7422DB70C0300745C06 /* MLXChatExample */,
+			);
+			name = MLXChatExample;
+			packageProductDependencies = (
+				C32A17FC2CFFB98A0092A5B6 /* MLXLLM */,
+				C32A17FE2CFFB98A0092A5B6 /* MLXVLM */,
+			);
+			productName = MLXChatExample;
+			productReference = 0F5AD7412DB70C0300745C06 /* MLXChatExample.app */;
 			productType = "com.apple.product-type.application";
 		};
 		C3056BAA2BCD97B700A31D04 /* LoRATrainingExample */ = {
@@ -882,9 +921,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1530;
+				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
+					0F5AD7402DB70C0300745C06 = {
+						CreatedOnToolsVersion = 16.2;
+					};
 					C3056BAA2BCD97B700A31D04 = {
 						CreatedOnToolsVersion = 15.3;
 					};
@@ -947,6 +989,7 @@
 				C36BF0002BC5CE55002D4AFE /* StableDiffusionExample */,
 				0AC74EBA2D136221003C90A7 /* VLMEval */,
 				C3208E6D2DB19451006AE6CA /* MLXLMTests */,
+				0F5AD7402DB70C0300745C06 /* MLXChatExample */,
 			);
 		};
 /* End PBXProject section */
@@ -958,6 +1001,13 @@
 			files = (
 				0AC74ECF2D13622A003C90A7 /* Preview Assets.xcassets in Resources */,
 				0AC74ED02D13622A003C90A7 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0F5AD73F2DB70C0300745C06 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1017,6 +1067,13 @@
 				0AC74ED12D13622A003C90A7 /* ContentView.swift in Sources */,
 				0AC74ED32D136265003C90A7 /* DeviceStat.swift in Sources */,
 				0AC74ED22D13622A003C90A7 /* VLMEvalApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0F5AD73D2DB70C0300745C06 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1235,6 +1292,131 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		0F5AD74D2DB70C0400745C06 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_ASSET_PATHS = "\"Applications/MLXChatExample/Support/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "mlx.MLXChatExample${DISAMBIGUATOR}";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = NO;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Debug;
+		};
+		0F5AD74E2DB70C0400745C06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_ASSET_PATHS = "\"Applications/MLXChatExample/Support/Preview Content\"";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "mlx.MLXChatExample${DISAMBIGUATOR}";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = NO;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				VALIDATE_PRODUCT = YES;
+				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
 			name = Release;
 		};
@@ -2766,6 +2948,15 @@
 			buildConfigurations = (
 				0AC74EC72D136223003C90A7 /* Debug */,
 				0AC74EC82D136223003C90A7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0F5AD74C2DB70C0400745C06 /* Build configuration list for PBXNativeTarget "MLXChatExample" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0F5AD74D2DB70C0400745C06 /* Debug */,
+				0F5AD74E2DB70C0400745C06 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

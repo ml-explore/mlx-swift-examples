@@ -16,21 +16,23 @@ Example [MLX Swift](https://github.com/ml-explore/mlx-swift) programs.
 
 - [MNISTTrainer](Applications/MNISTTrainer/README.md): An example that runs on
   both iOS and macOS that downloads MNIST training data and trains a
-  [LeNet](https://en.wikipedia.org/wiki/LeNet). 
+  [LeNet](https://en.wikipedia.org/wiki/LeNet).
 
 - [LLMEval](Applications/LLMEval/README.md): An example that runs on both iOS
-  and macOS that downloads an LLM and tokenizer from Hugging Face and 
-  generates text from a given prompt. 
-  
+  and macOS that downloads an LLM and tokenizer from Hugging Face and
+  generates text from a given prompt.
+
 - [VLMEval](Applications/VLMEval/README.md): An example that runs on iOS, macOS and visionOS to download a VLM and tokenizer from Hugging Face and
   analyzes the given image and describe it in text.
+
+- [MLXChatExample](Applications/MLXChatExample/README.md): An example chat app that runs on both iOS and macOS that supports LLMs and VLMs.
 
 - [LinearModelTraining](Tools/LinearModelTraining/README.md): An example that
   trains a simple linear model.
 
-- [StableDiffusionExample](Applications/StableDiffusionExample/README.md): An 
+- [StableDiffusionExample](Applications/StableDiffusionExample/README.md): An
   example that runs on both iOS and macOS that downloads a stable diffusion model
-  from Hugging Face and  and generates an image from a given prompt. 
+  from Hugging Face and  and generates an image from a given prompt.
 
 - [llm-tool](Tools/llm-tool/README.md): A command line tool for generating text
   using a variety of LLMs available on the Hugging Face hub.
@@ -40,7 +42,7 @@ Example [MLX Swift](https://github.com/ml-explore/mlx-swift) programs.
 
 - [mnist-tool](Tools/mnist-tool/README.md): A command line tool for training a
   a LeNet on MNIST.
-  
+
 ## Running
 
 The application and command line tool examples can be run from Xcode or from
@@ -65,7 +67,7 @@ as Swift Packages.
 
 Add the following dependency to your Package.swift
 
-```swift  
+```swift
 .package(url: "https://github.com/ml-explore/mlx-swift-examples/", branch: "main"),
 ```
 
@@ -79,4 +81,4 @@ Then add one or more libraries to the target as a dependency:
     ]),
 ```
 
-Alternatively, add `https://github.com/ml-explore/mlx-swift-examples/` to the `Project Dependencies` and set the `Dependency Rule` to `Branch` and `main` in Xcode. 
+Alternatively, add `https://github.com/ml-explore/mlx-swift-examples/` to the `Project Dependencies` and set the `Dependency Rule` to `Branch` and `main` in Xcode.
