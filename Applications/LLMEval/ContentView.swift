@@ -241,7 +241,12 @@ class LLMEvaluator {
     private func generate(prompt: String) async {
 
         self.output = ""
-        let userInput = UserInput(prompt: prompt)
+
+        let chat: [Chat.Message] = [
+            .system("You are a helpful assistant"),
+            .user(prompt),
+        ]
+        let userInput = UserInput(chat: chat)
 
         do {
             let modelContainer = try await load()
