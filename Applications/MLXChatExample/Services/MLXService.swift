@@ -58,7 +58,7 @@ class MLXService {
 
             // Load model and track download progress
             let container = try await factory.loadContainer(
-                hub: .default, configuration: model.configuration
+                configuration: model.configuration
             ) { progress in
                 Task { @MainActor in
                     self.modelDownloadProgress = progress
