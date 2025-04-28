@@ -224,7 +224,7 @@ public struct Qwen3Configuration: Codable, Sendable {
     var headDim: Int
     var ropeScaling: [String: StringOrNumber]? = nil
     var tieWordEmbeddings = false
-    var maxPositionEmbeddings: Int = 4096
+    var maxPositionEmbeddings: Int = 32768
 
     enum CodingKeys: String, CodingKey {
         case hiddenSize = "hidden_size"
@@ -271,7 +271,7 @@ public struct Qwen3Configuration: Codable, Sendable {
         self.tieWordEmbeddings =
             try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
         self.maxPositionEmbeddings = 
-            try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 4096
+            try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 32768
     }
 }
 
