@@ -45,6 +45,7 @@ Currently supported model types are:
 - Phi3
 - PhiMoE
 - Qwen2
+- Qwen3
 - Starcoder2
 
 See [llm-tool](../../Tools/llm-tool)

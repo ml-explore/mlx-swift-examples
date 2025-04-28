@@ -36,6 +36,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "gemma": create(GemmaConfiguration.self, GemmaModel.init),
             "gemma2": create(Gemma2Configuration.self, Gemma2Model.init),
             "qwen2": create(Qwen2Configuration.self, Qwen2Model.init),
+            "qwen3": create(Qwen3Configuration.self, Qwen3Model.init),
             "starcoder2": create(Starcoder2Configuration.self, Starcoder2Model.init),
             "cohere": create(CohereConfiguration.self, CohereModel.init),
             "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
