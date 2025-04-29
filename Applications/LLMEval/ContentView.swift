@@ -40,7 +40,8 @@ struct ContentView: View {
                     .frame(maxWidth: 350, alignment: .leading)
                     Toggle(isOn: $llm.enableThinking) {
                         Text("Thinking")
-                            .help("Switches between thinking and non-thinking modes. Support: Qwen3")
+                            .help(
+                                "Switches between thinking and non-thinking modes. Support: Qwen3")
                     }
                     Spacer()
                     if llm.running {
