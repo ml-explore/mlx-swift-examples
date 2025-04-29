@@ -36,6 +36,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "gemma": create(GemmaConfiguration.self, GemmaModel.init),
             "gemma2": create(Gemma2Configuration.self, Gemma2Model.init),
             "qwen2": create(Qwen2Configuration.self, Qwen2Model.init),
+            "qwen3": create(Qwen3Configuration.self, Qwen3Model.init),
             "starcoder2": create(Starcoder2Configuration.self, Starcoder2Model.init),
             "cohere": create(CohereConfiguration.self, CohereModel.init),
             "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
@@ -141,6 +142,26 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
+    static public let qwen3_0_6b_4bit = ModelConfiguration(
+        id: "mlx-community/Qwen3-0.6B-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let qwen3_1_7b_4bit = ModelConfiguration(
+        id: "mlx-community/Qwen3-1.7B-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let qwen3_4b_4bit = ModelConfiguration(
+        id: "mlx-community/Qwen3-4B-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let qwen3_8b_4bit = ModelConfiguration(
+        id: "mlx-community/Qwen3-8B-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
     static public let openelm270m4bit = ModelConfiguration(
         id: "mlx-community/OpenELM-270M-Instruct",
         // https://huggingface.co/apple/OpenELM
@@ -193,6 +214,10 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen205b4bit,
             qwen2_5_7b,
             qwen2_5_1_5b,
+            qwen3_0_6b_4bit,
+            qwen3_1_7b_4bit,
+            qwen3_4b_4bit,
+            qwen3_8b_4bit,
             smolLM_135M_4bit,
         ]
     }
