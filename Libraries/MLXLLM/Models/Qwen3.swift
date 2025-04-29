@@ -11,7 +11,7 @@ import MLXFast
 import MLXLMCommon
 import MLXNN
 
-// Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/qwen3.py
+// Port of https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/qwen3.py
 
 private class Attention: Module {
     let args: Qwen3Configuration
