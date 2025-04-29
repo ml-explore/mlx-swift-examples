@@ -227,6 +227,8 @@ public struct UserInput: Sendable {
         additionalContext: [String: Any]? = nil
     ) {
         self.prompt = .messages(messages)
+        self.images = images
+        self.videos = videos
         self.tools = tools
         self.additionalContext = additionalContext
     }
