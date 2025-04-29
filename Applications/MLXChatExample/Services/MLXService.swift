@@ -21,6 +21,11 @@ class MLXService {
         LMModel(name: "llama3.2:1b", configuration: LLMRegistry.llama3_2_1B_4bit, type: .llm),
         LMModel(name: "qwen2.5:1.5b", configuration: LLMRegistry.qwen2_5_1_5b, type: .llm),
         LMModel(name: "smolLM:135m", configuration: LLMRegistry.smolLM_135M_4bit, type: .llm),
+        LMModel(name: "qwen3:0.6b", configuration: LLMRegistry.qwen3_0_6B_4bit, type: .llm),
+        LMModel(name: "qwen3:1.7b", configuration: LLMRegistry.qwen3_1_7B_4bit, type: .llm),
+        LMModel(name: "qwen3:4b", configuration: LLMRegistry.qwen3_4B_4bit, type: .llm),
+        LMModel(name: "qwen3:8b", configuration: LLMRegistry.qwen3_8B_4bit, type: .llm),
+        LMModel(name: "qwen3:30b", configuration: LLMRegistry.qwen3_30B_A3B_4bit, type: .llm),
         LMModel(
             name: "qwen2.5VL:3b", configuration: VLMRegistry.qwen2_5VL3BInstruct4Bit, type: .vlm),
         LMModel(name: "qwen2VL:2b", configuration: VLMRegistry.qwen2VL2BInstruct4Bit, type: .vlm),
