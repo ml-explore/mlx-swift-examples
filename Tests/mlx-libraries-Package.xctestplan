@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "CCE21325-5E68-419C-8EB1-B868EF7688F7",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:mlx-swift-examples.xcodeproj",
+        "identifier" : "C3208E6D2DB19451006AE6CA",
+        "name" : "MLXLMTests"
+      }
+    }
+  ],
+  "version" : 1
+}

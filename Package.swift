@@ -91,6 +91,26 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
+        .testTarget(
+            name: "MLXLMTests",
+            dependencies: [
+                .product(name: "MLX", package: "mlx-swift"),
+                .product(name: "MLXNN", package: "mlx-swift"),
+                .product(name: "MLXOptimizers", package: "mlx-swift"),
+                .product(name: "MLXRandom", package: "mlx-swift"),
+                .product(name: "Transformers", package: "swift-transformers"),
+                "MLXLMCommon",
+                "MLXLLM",
+                "MLXVLM",
+            ],
+            path: "Tests/MLXLMTests",
+            exclude: [
+                "README.md"
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
         .target(
             name: "MLXEmbedders",
             dependencies: [

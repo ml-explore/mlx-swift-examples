@@ -817,10 +817,19 @@ public class Idefics3Processor: UserInputProcessor {
         self.tokenizer = tokenizer
     }
 
+    private func prompt(from userInput: UserInput) -> String {
+        switch userInput.prompt {
+        case .text(let text):
+            text
+        case .messages(let messages):
+            messages.last?["content"] as? String ?? ""
+        case .chat(let messages):
+            messages.last?.content ?? ""
+        }
+    }
+
     public func prepare(input: UserInput) throws -> LMInput {
-
-        let prompt = input.prompt.asMessages().last?["content"] as? String ?? ""
-
+        let prompt = prompt(from: input)
         if input.images.isEmpty {
             // No image scenario
             let tokens = try tokenizer.encode(text: prompt)
@@ -851,7 +860,7 @@ public class Idefics3Processor: UserInputProcessor {
                 height: fixedImageSize
             )
             image = MediaProcessing.apply(image, processing: input.processing)
-            image = MediaProcessing.resampleBicubic(image, to: targetSize)
+            image = try MediaProcessing.resampleBicubic(image, to: targetSize)
             image = MediaProcessing.normalize(
                 image,
                 mean: config.imageMeanTuple,

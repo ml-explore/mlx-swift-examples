@@ -224,23 +224,29 @@ private struct LLMUserInputProcessor: UserInputProcessor {
 
     let tokenizer: Tokenizer
     let configuration: ModelConfiguration
+    let messageGenerator: MessageGenerator
 
-    internal init(tokenizer: any Tokenizer, configuration: ModelConfiguration) {
+    internal init(
+        tokenizer: any Tokenizer, configuration: ModelConfiguration,
+        messageGenerator: MessageGenerator
+    ) {
         self.tokenizer = tokenizer
         self.configuration = configuration
+        self.messageGenerator = messageGenerator
     }
 
     func prepare(input: UserInput) throws -> LMInput {
+        let messages = messageGenerator.generate(from: input)
+
         do {
-            let messages = input.prompt.asMessages()
             let promptTokens = try tokenizer.applyChatTemplate(
                 messages: messages, tools: input.tools, additionalContext: input.additionalContext)
             return LMInput(tokens: MLXArray(promptTokens))
         } catch {
             // #150 -- it might be a TokenizerError.chatTemplate("No chat template was specified")
             // but that is not public so just fall back to text
-            let prompt = input.prompt
-                .asMessages()
+            let prompt =
+                messages
                 .compactMap { $0["content"] as? String }
                 .joined(separator: ". ")
             let promptTokens = tokenizer.encode(text: prompt)
@@ -256,7 +262,7 @@ private struct LLMUserInputProcessor: UserInputProcessor {
 ///
 /// ```swift
 /// let modelContainer = try await LLMModelFactory.shared.loadContainer(
-///     configuration: ModelRegistry.llama3_8B_4bit)
+///     configuration: LLMRegistry.llama3_8B_4bit)
 /// ```
 public class LLMModelFactory: ModelFactory {
 
@@ -298,7 +304,9 @@ public class LLMModelFactory: ModelFactory {
 
         return .init(
             configuration: configuration, model: model,
-            processor: LLMUserInputProcessor(tokenizer: tokenizer, configuration: configuration),
+            processor: LLMUserInputProcessor(
+                tokenizer: tokenizer, configuration: configuration,
+                messageGenerator: DefaultMessageGenerator()),
             tokenizer: tokenizer)
     }
 
