@@ -37,6 +37,10 @@ struct ContentView: View {
                         Text("Include \"get current weather\" tool")
                     }
                     .frame(maxWidth: 350, alignment: .leading)
+                    Toggle(isOn: $llm.enableThinking) {
+                        Text("Thinking")
+                            .help("Switches between thinking and non-thinking modes. Support: Qwen3")
+                    }
                     Spacer()
                     if llm.running {
                         ProgressView()
@@ -158,6 +162,7 @@ class LLMEvaluator {
     var running = false
 
     var includeWeatherTool = false
+    var enableThinking = false
 
     var prompt = ""
     var output = ""
@@ -241,7 +246,10 @@ class LLMEvaluator {
     private func generate(prompt: String) async {
 
         self.output = ""
-        let userInput = UserInput(prompt: prompt)
+        let userInput = UserInput(
+            prompt: prompt,
+            additionalContext: ["enable_thinking": enableThinking]
+        )
 
         do {
             let modelContainer = try await load()
