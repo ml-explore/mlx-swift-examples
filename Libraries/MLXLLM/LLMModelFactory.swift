@@ -161,11 +161,6 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
-    static public let qwen3_30B_A3B_4bit = ModelConfiguration(
-        id: "mlx-community/Qwen3-30B-A3B-4bit",
-        defaultPrompt: "Why is the sky blue?"
-    )
-
     static public let openelm270m4bit = ModelConfiguration(
         id: "mlx-community/OpenELM-270M-Instruct",
         // https://huggingface.co/apple/OpenELM
@@ -216,7 +211,6 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen3_1_7B_4bit,
             qwen3_4B_4bit,
             qwen3_8B_4bit,
-            qwen3_30B_A3B_4bit,
             smolLM_135M_4bit,
         ]
     }
