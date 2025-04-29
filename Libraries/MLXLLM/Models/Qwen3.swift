@@ -66,7 +66,7 @@ private class Attention: Module {
         }
 
         self.rope = RoPE(
-            dimensions: headDim, traditional: false, // Qwen3 uses traditional=False
+            dimensions: headDim, traditional: false,  // Qwen3 uses traditional=False
             base: args.ropeTheta,
             scale: ropeScale
         )
@@ -280,7 +280,8 @@ public struct Qwen3Configuration: Codable, Sendable {
         self.headDim = try container.decode(Int.self, forKey: .headDim)
         self.maxPositionEmbeddings = try container.decode(Int.self, forKey: .maxPositionEmbeddings)
         self.ropeTheta = try container.decode(Float.self, forKey: .ropeTheta)
-        self.ropeScaling = try container.decodeIfPresent([String: StringOrNumber].self, forKey: .ropeScaling)
+        self.ropeScaling = try container.decodeIfPresent(
+            [String: StringOrNumber].self, forKey: .ropeScaling)
         self.tieWordEmbeddings = try container.decode(Bool.self, forKey: .tieWordEmbeddings)
     }
 }
