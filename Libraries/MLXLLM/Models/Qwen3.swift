@@ -21,7 +21,7 @@ private class Attention: Module {
     @ModuleInfo(key: "k_proj") var wk: Linear
     @ModuleInfo(key: "v_proj") var wv: Linear
     @ModuleInfo(key: "o_proj") var wo: Linear
-    
+
     @ModuleInfo(key: "q_norm") var qNorm: RMSNorm
     @ModuleInfo(key: "k_norm") var kNorm: RMSNorm
 
@@ -41,7 +41,7 @@ private class Attention: Module {
         _wk.wrappedValue = Linear(dim, kvHeads * headDim, bias: false)
         _wv.wrappedValue = Linear(dim, kvHeads * headDim, bias: false)
         _wo.wrappedValue = Linear(heads * headDim, dim, bias: false)
-        
+
         _qNorm.wrappedValue = RMSNorm(dimensions: headDim, eps: args.rmsNormEps)
         _kNorm.wrappedValue = RMSNorm(dimensions: headDim, eps: args.rmsNormEps)
 
@@ -207,7 +207,7 @@ public class Qwen3Model: Module, LLMModel, KVCacheDimensionProvider {
         if configuration.tieWordEmbeddings {
             weights["lm_head.weight"] = nil
         }
-        
+
         return weights
     }
 }
@@ -270,7 +270,7 @@ public struct Qwen3Configuration: Codable, Sendable {
             [String: StringOrNumber].self, forKey: Qwen3Configuration.CodingKeys.ropeScaling)
         self.tieWordEmbeddings =
             try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
-        self.maxPositionEmbeddings = 
+        self.maxPositionEmbeddings =
             try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 32768
     }
 }

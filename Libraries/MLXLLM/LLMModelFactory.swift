@@ -140,22 +140,22 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         id: "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
-    
+
     static public let qwen3_0_6b_4bit = ModelConfiguration(
         id: "mlx-community/Qwen3-0.6B-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
-    
+
     static public let qwen3_1_7b_4bit = ModelConfiguration(
         id: "mlx-community/Qwen3-1.7B-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
-    
+
     static public let qwen3_4b_4bit = ModelConfiguration(
         id: "mlx-community/Qwen3-4B-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
-    
+
     static public let qwen3_8b_4bit = ModelConfiguration(
         id: "mlx-community/Qwen3-8B-4bit",
         defaultPrompt: "Why is the sky blue?"
