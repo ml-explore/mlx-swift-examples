@@ -141,9 +141,11 @@ public actor ModelContainer<M> {
 
     /// create a ``ModelContainer`` that supports ``TextToImageGenerator``
     static public func createTextToImageGenerator(
-        configuration: StableDiffusionConfiguration, loadConfiguration: LoadConfiguration = .init()
+        configuration: StableDiffusionConfiguration,
+        hub: HubApi = HubApi(),
+        loadConfiguration: LoadConfiguration = .init()
     ) throws -> ModelContainer<TextToImageGenerator> {
-        if let model = try configuration.textToImageGenerator(configuration: loadConfiguration) {
+        if let model = try configuration.textToImageGenerator(hub: hub, configuration: loadConfiguration) {
             return .init(model: model)
         } else {
             throw ModelContainerError.unableToCreate(configuration.id, "TextToImageGenerator")

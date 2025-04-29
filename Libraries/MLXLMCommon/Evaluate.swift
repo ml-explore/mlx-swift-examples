@@ -55,7 +55,7 @@ public protocol LogitProcessor: Sendable {
 public struct GenerateParameters: Sendable {
 
     /// Step size for processing the prompt
-    public var prefillStepSize = 512
+    public var prefillStepSize: Int
 
     /// Maximum tokens to generate
     public var maxTokens: Int?
@@ -74,14 +74,18 @@ public struct GenerateParameters: Sendable {
 
     public init(
         maxTokens: Int? = nil,
-        temperature: Float = 0.6, topP: Float = 1.0, repetitionPenalty: Float? = nil,
-        repetitionContextSize: Int = 20
+        temperature: Float = 0.6,
+        topP: Float = 1.0,
+        repetitionPenalty: Float? = nil,
+        repetitionContextSize: Int = 20,
+        prefillStepSize: Int = 512
     ) {
         self.maxTokens = maxTokens
         self.temperature = temperature
         self.topP = topP
         self.repetitionPenalty = repetitionPenalty
         self.repetitionContextSize = repetitionContextSize
+        self.prefillStepSize = prefillStepSize
     }
 
     public func sampler() -> LogitSampler {

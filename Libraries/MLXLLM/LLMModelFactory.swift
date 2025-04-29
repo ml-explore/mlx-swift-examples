@@ -260,29 +260,49 @@ public class LLMModelFactory: ModelFactory {
         hub: HubApi, configuration: ModelConfiguration,
         progressHandler: @Sendable @escaping (Progress) -> Void
     ) async throws -> ModelContext {
-        // download weights and config
-        let modelDirectory = try await downloadModel(
-            hub: hub, configuration: configuration, progressHandler: progressHandler)
+        // Create progress tracker
+        let progress = Progress(totalUnitCount: 100)
 
-        // load the generic config to unerstand which model and how to load the weights
+        // Step 1: Download (0-30%)
+        progressHandler(progress)
+        let modelDirectory = try await downloadModel(
+            hub: hub,
+            configuration: configuration) { _ in
+                progress.completedUnitCount = 30
+                progressHandler(progress)
+            }
+
+        // Step 2: Load config and create model (30-50%)
         let configurationURL = modelDirectory.appending(component: "config.json")
         let baseConfig = try JSONDecoder().decode(
             BaseConfiguration.self, from: Data(contentsOf: configurationURL))
         let model = try typeRegistry.createModel(
             configuration: configurationURL, modelType: baseConfig.modelType)
 
-        // apply the weights to the bare model
-        try loadWeights(
-            modelDirectory: modelDirectory, model: model, quantization: baseConfig.quantization)
+        progress.completedUnitCount = 50
+        progressHandler(progress)
 
+        // Step 3: Load weights (50-80%)
+        try loadWeights(
+            modelDirectory: modelDirectory,
+            model: model,
+            quantization: baseConfig.quantization
+        )
+
+        progress.completedUnitCount = 80
+        progressHandler(progress)
+
+        // Step 4: Load tokenizer (80-100%)
         let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
 
-        return .init(
-            configuration: configuration, model: model,
-            processor: LLMUserInputProcessor(
-                tokenizer: tokenizer, configuration: configuration,
-                messageGenerator: DefaultMessageGenerator()),
-            tokenizer: tokenizer)
-    }
+        progress.completedUnitCount = 100
+        progressHandler(progress)
 
+        return .init(
+            configuration: configuration,
+            model: model,
+            processor: LLMUserInputProcessor(tokenizer: tokenizer, configuration: configuration, messageGenerator: DefaultMessageGenerator()),
+            tokenizer: tokenizer
+        )
+    }
 }
