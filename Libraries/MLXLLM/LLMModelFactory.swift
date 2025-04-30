@@ -42,6 +42,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "cohere": create(CohereConfiguration.self, CohereModel.init),
             "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
             "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
+            "deepseek_v3": create(DeepseekV3Configuration.self, DeepseekV3Model.init),
         ]
     }
 
@@ -192,6 +193,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         id: "mlx-community/Llama-3.2-3B-Instruct-4bit",
         defaultPrompt: "What is the difference between a fruit and a vegetable?"
     )
+  
+    static public let deepseek_r1_4bit = ModelConfiguration(
+        id: "mlx-community/DeepSeek-R1-4bit",
+        defaultPrompt: "Tell me about the history of Spain."
+    )
 
     private static func all() -> [ModelConfiguration] {
         [
@@ -218,6 +224,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen3_4b_4bit,
             qwen3_8b_4bit,
             smolLM_135M_4bit,
+            deepseek_r1_4bit,
         ]
     }
 
