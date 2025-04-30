@@ -37,6 +37,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "gemma2": create(Gemma2Configuration.self, Gemma2Model.init),
             "qwen2": create(Qwen2Configuration.self, Qwen2Model.init),
             "qwen3": create(Qwen3Configuration.self, Qwen3Model.init),
+            "qwen3_moe": create(Qwen3MoEConfiguration.self, Qwen3MoEModel.init),
             "starcoder2": create(Starcoder2Configuration.self, Starcoder2Model.init),
             "cohere": create(CohereConfiguration.self, CohereModel.init),
             "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
@@ -158,6 +159,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
 
     static public let qwen3_8b_4bit = ModelConfiguration(
         id: "mlx-community/Qwen3-8B-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let qwen3MoE_30b_a3b_4bit = ModelConfiguration(
+        id: "mlx-community/Qwen3-30B-A3B-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
 
