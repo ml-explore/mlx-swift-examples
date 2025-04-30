@@ -243,18 +243,18 @@ private struct LLMUserInputProcessor: UserInputProcessor {
 
     func prepare(input: UserInput) throws -> LMInput {
         let messages = messageGenerator.generate(from: input)
-
         do {
             let promptTokens = try tokenizer.applyChatTemplate(
                 messages: messages, tools: input.tools, additionalContext: input.additionalContext)
             return LMInput(tokens: MLXArray(promptTokens))
-        } catch {
-            // #150 -- it might be a TokenizerError.chatTemplate("No chat template was specified")
-            // but that is not public so just fall back to text
+        } catch TokenizerError.missingChatTemplate {
+            print(
+                "No chat template was included or provided, so converting messages to simple text format. This is not optimal for model performance, so applications should provide a chat template if none is included with the model."
+            )
             let prompt =
                 messages
                 .compactMap { $0["content"] as? String }
-                .joined(separator: ". ")
+                .joined(separator: "\n\n")
             let promptTokens = tokenizer.encode(text: prompt)
             return LMInput(tokens: MLXArray(promptTokens))
         }
