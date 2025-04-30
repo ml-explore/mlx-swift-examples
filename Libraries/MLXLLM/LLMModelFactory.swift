@@ -42,6 +42,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "cohere": create(CohereConfiguration.self, CohereModel.init),
             "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
             "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
+            "granite": create(GraniteConfiguration.self, GraniteModel.init),
         ]
     }
 
@@ -193,6 +194,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "What is the difference between a fruit and a vegetable?"
     )
 
+    static public let granite3_3_2b_4bit = ModelConfiguration(
+        id: "mlx-community/granite-3.3-2b-instruct-4bit",
+        defaultPrompt: ""
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -200,6 +206,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             gemma2bQuantized,
             gemma_2_2b_it_4bit,
             gemma_2_9b_it_4bit,
+            granite3_3_2b_4bit,
             llama3_1_8B_4bit,
             llama3_2_1B_4bit,
             llama3_2_3B_4bit,
