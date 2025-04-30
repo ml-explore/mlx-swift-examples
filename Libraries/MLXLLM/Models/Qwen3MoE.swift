@@ -47,7 +47,7 @@ private class Attention: Module {
 
         let ropeScale: Float
         if let ropeScaling = args.ropeScaling, ropeScaling["type"] == .string("linear"),
-           let factor = ropeScaling["factor"]
+            let factor = ropeScaling["factor"]
         {
             if let v = factor.asFloat() {
                 ropeScale = 1 / v
@@ -87,9 +87,10 @@ private class Attention: Module {
         }
 
         let output = MLXFast.scaledDotProductAttention(
-            queries: queries, keys: keys, values: values, scale: scale, mask: mask)
-            .transposed(0, 2, 1, 3)
-            .reshaped(B, L, -1)
+            queries: queries, keys: keys, values: values, scale: scale, mask: mask
+        )
+        .transposed(0, 2, 1, 3)
+        .reshaped(B, L, -1)
 
         return wo(output)
     }
@@ -126,7 +127,8 @@ private class Qwen3MoESparseMoeBlock: Module, UnaryLayer {
 
         _gate.wrappedValue = Linear(args.hiddenSize, numExperts, bias: false)
         _switchMLP.wrappedValue = SwitchGLU(
-            inputDims: args.hiddenSize, hiddenDims: args.moeIntermediateSize, numExperts: numExperts)
+            inputDims: args.hiddenSize, hiddenDims: args.moeIntermediateSize, numExperts: numExperts
+        )
     }
 
     func callAsFunction(_ x: MLXArray) -> MLXArray {
@@ -162,10 +164,11 @@ private class Qwen3MoeDecoderLayer: Module {
 
         _selfAttn.wrappedValue = Attention(args, layerIdx: layerIdx)
         _inputLayerNorm.wrappedValue = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
-        _postAttentionLayerNorm.wrappedValue = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+        _postAttentionLayerNorm.wrappedValue = RMSNorm(
+            dimensions: args.hiddenSize, eps: args.rmsNormEps)
 
         if !args.mlpOnlyLayers.contains(layerIdx),
-           args.numExperts > 0, (layerIdx + 1) % args.decoderSparseStep == 0
+            args.numExperts > 0, (layerIdx + 1) % args.decoderSparseStep == 0
         {
             self.mlp = Qwen3MoESparseMoeBlock(args)
         } else {
@@ -262,7 +265,8 @@ public class Qwen3MoEModel: Module, LLMModel, KVCacheDimensionProvider {
             for n in ["up_proj", "down_proj", "gate_proj"] {
                 if sanitizedWeights["\(prefix).mlp.experts.0.\(n).weight"] != nil {
                     let toJoin = (0 ..< configuration.numExperts).map { e in
-                        sanitizedWeights.removeValue(forKey: "\(prefix).mlp.experts.\(e).\(n).weight")!
+                        sanitizedWeights.removeValue(
+                            forKey: "\(prefix).mlp.experts.\(e).\(n).weight")!
                     }
                     sanitizedWeights["\(prefix).mlp.switch_mlp.\(n).weight"] = MLX.stacked(toJoin)
                 }
@@ -319,7 +323,8 @@ public struct Qwen3MoEConfiguration: Codable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        self.modelType = try container.decodeIfPresent(String.self, forKey: .modelType) ?? "qwen3_moe"
+        self.modelType =
+            try container.decodeIfPresent(String.self, forKey: .modelType) ?? "qwen3_moe"
         self.hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
         self.hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
         self.intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
@@ -334,10 +339,13 @@ public struct Qwen3MoEConfiguration: Codable, Sendable {
         self.kvHeads = try container.decode(Int.self, forKey: .kvHeads)
         self.headDim = try container.decode(Int.self, forKey: .headDim)
         self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 1_000_000
-        self.tieWordEmbeddings = try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
-        self.maxPositionEmbeddings = try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 32768
+        self.tieWordEmbeddings =
+            try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
+        self.maxPositionEmbeddings =
+            try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 32768
         self.normTopkProb = try container.decodeIfPresent(Bool.self, forKey: .normTopkProb) ?? false
-        self.ropeScaling = try container.decodeIfPresent([String: StringOrNumber].self, forKey: .ropeScaling)
+        self.ropeScaling = try container.decodeIfPresent(
+            [String: StringOrNumber].self, forKey: .ropeScaling)
     }
 }
 
