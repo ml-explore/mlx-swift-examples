@@ -42,6 +42,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "cohere": create(CohereConfiguration.self, CohereModel.init),
             "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
             "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
+            "gemma3_text": create(Gemma3TextConfiguration.self, Gemma3TextModel.init),
             "granite": create(GraniteConfiguration.self, GraniteModel.init),
         ]
     }
@@ -194,6 +195,10 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "What is the difference between a fruit and a vegetable?"
     )
 
+    static public let gemma3_1B_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-1b-it-4bit",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?"
+
     static public let granite3_3_2b_4bit = ModelConfiguration(
         id: "mlx-community/granite-3.3-2b-instruct-4bit",
         defaultPrompt: ""
@@ -225,6 +230,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen3_4b_4bit,
             qwen3_8b_4bit,
             smolLM_135M_4bit,
+            gemma3_1B_4bit,
         ]
     }
 
@@ -253,6 +259,11 @@ private struct LLMUserInputProcessor: UserInputProcessor {
         do {
             let promptTokens = try tokenizer.applyChatTemplate(
                 messages: messages, tools: input.tools, additionalContext: input.additionalContext)
+
+            let decoded = try tokenizer.decode(tokens: promptTokens)
+            print("decoded prompt:")
+            print(decoded)
+
             return LMInput(tokens: MLXArray(promptTokens))
         } catch TokenizerError.missingChatTemplate {
             print(
