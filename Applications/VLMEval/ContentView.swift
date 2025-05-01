@@ -395,58 +395,22 @@ class VLMEvaluator {
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
             try await modelContainer.perform { (context: ModelContext) -> Void in
+                let images: [UserInput.Image] = if let image { [.ciImage(image)] } else { [] }
+                let videos: [UserInput.Video] = if let videoURL { [.url(videoURL)] } else { [] }
 
-                let images: [UserInput.Image] =
-                    if let image {
-                        [UserInput.Image.ciImage(image)]
-                    } else {
-                        []
-                    }
-                let videos: [UserInput.Video] =
-                    if let videoURL {
-                        [.url(videoURL)]
-                    } else {
-                        []
-                    }
-                let messages: [[String: Any]] =
-                    if !images.isEmpty || !videos.isEmpty {
-                        [
-                            [
-                                "role": "system",
-                                "content": [
-                                    [
-                                        "type": "text",
-                                        "text": videoURL != nil
-                                            ? videoSystemPrompt : imageSystemPrompt,
-                                    ]
-                                ],
-                            ],
-                            [
-                                "role": "user",
-                                "content": [
-                                    [
-                                        "type": "text",
-                                        "text": prompt,
-                                    ]
-                                ]
-                                    // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
-                                    + images.map { _ in
-                                        ["type": "image"]
-                                    }
-                                    + videos.map { _ in
-                                        ["type": "video"]
-                                    },
-                            ],
-                        ]
-                    } else {
-                        [
-                            [
-                                "role": "user",
-                                "content": prompt,
-                            ]
-                        ]
-                    }
-                var userInput = UserInput(messages: messages, images: images, videos: videos)
+                let systemPrompt =
+                    if !videos.isEmpty {
+                        videoSystemPrompt
+                    } else if !images.isEmpty {
+                        imageSystemPrompt
+                    } else { "You are a helpful assistant." }
+
+                let chat: [Chat.Message] = [
+                    .system(systemPrompt),
+                    .user(prompt, images: images, videos: videos),
+                ]
+
+                var userInput = UserInput(chat: chat)
                 userInput.processing.resize = .init(width: 448, height: 448)
 
                 let lmInput = try await context.processor.prepare(input: userInput)
