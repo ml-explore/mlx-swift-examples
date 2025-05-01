@@ -38,6 +38,11 @@ struct ContentView: View {
                         Text("Include \"get current weather\" tool")
                     }
                     .frame(maxWidth: 350, alignment: .leading)
+                    Toggle(isOn: $llm.enableThinking) {
+                        Text("Thinking")
+                            .help(
+                                "Switches between thinking and non-thinking modes. Support: Qwen3")
+                    }
                     Spacer()
                     if llm.running {
                         ProgressView()
@@ -159,6 +164,7 @@ class LLMEvaluator {
     var running = false
 
     var includeWeatherTool = false
+    var enableThinking = false
 
     var prompt = ""
     var output = ""
@@ -167,7 +173,7 @@ class LLMEvaluator {
 
     /// This controls which model loads. `qwen2_5_1_5b` is one of the smaller ones, so this will fit on
     /// more devices.
-    let modelConfiguration = LLMRegistry.qwen2_5_1_5b
+    let modelConfiguration = LLMRegistry.qwen3_1_7b_4bit
 
     /// parameters controlling the output
     let generateParameters = GenerateParameters(maxTokens: 240, temperature: 0.6)
@@ -241,7 +247,12 @@ class LLMEvaluator {
     private func generate(prompt: String) async {
 
         self.output = ""
-        let userInput = UserInput(prompt: prompt)
+        let chat: [Chat.Message] = [
+            .system("You are a helpful assistant"),
+            .user(prompt),
+        ]
+        let userInput = UserInput(
+            chat: chat, additionalContext: ["enable_thinking": enableThinking])
 
         do {
             let modelContainer = try await load()

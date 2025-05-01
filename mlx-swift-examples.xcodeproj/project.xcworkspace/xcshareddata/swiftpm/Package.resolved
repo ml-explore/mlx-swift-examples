@@ -1,5 +1,5 @@
 {
-  "originHash" : "0777c427cd29bb45ee52257882d29c3c2063039870a79b9b91a32154eb35f7b5",
+  "originHash" : "5b8f479687d916677158d7747e9b766ff83f08092c1595079ff9b70c909c6250",
   "pins" : [
     {
       "identity" : "gzipswift",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/johnmai-dev/Jinja",
       "state" : {
-        "revision" : "bbddb92fc51ae420b87300298370fd1dfc308f73",
-        "version" : "1.1.1"
+        "revision" : "31c4dd39bcdc07eaa42a384bdc88ea599022b800",
+        "version" : "1.1.2"
       }
     },
     {
@@ -60,8 +60,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-async-algorithms.git",
       "state" : {
-        "revision" : "4c3ea81f81f0a25d0470188459c6d4bf20cf2f97",
-        "version" : "1.0.3"
+        "revision" : "042e1c4d9d19748c9c228f8d4ebc97bb1e339b0b",
+        "version" : "1.0.4"
       }
     },
     {
@@ -69,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swiftlang/swift-cmark",
       "state" : {
-        "revision" : "3ccff77b2dc5b96b77db3da0d68d28068593fa53",
-        "version" : "0.5.0"
+        "revision" : "b022b08312decdc46585e0b3440d97f6f22ef703",
+        "version" : "0.6.0"
       }
     },
     {
@@ -105,8 +105,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/huggingface/swift-transformers",
       "state" : {
-        "revision" : "be855fac725dbae27264e47a3eb535cc422a4ba8",
-        "version" : "0.1.18"
+        "revision" : "940a4fac109d7d68817b22382de4894a8ea945c3",
+        "version" : "0.1.20"
       }
     }
   ],

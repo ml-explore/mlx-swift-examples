@@ -28,6 +28,7 @@ Example implementations of various Large Language Models (LLMs).
 - ``Phi3Model``
 - ``PhiMoEModel``
 - ``Qwen2Model``
+- ``Qwen3Model``
 - ``Starcoder2Model``
 
 
