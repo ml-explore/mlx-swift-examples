@@ -56,6 +56,7 @@ Currently supported model types are:
 - Qwen2
 - Qwen3
 - Starcoder2
+- GLM4
 
 See [llm-tool](../../Tools/llm-tool)
 
