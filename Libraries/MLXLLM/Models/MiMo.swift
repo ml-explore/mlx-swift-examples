@@ -136,7 +136,7 @@ private class MiMoModelInner: Module {
 
     fileprivate let layers: [TransformerBlock]
     let norm: RMSNorm
-    
+
     let numNextnPredictLayers: Int
 
     public init(_ args: MiMoConfiguration) {
@@ -145,7 +145,7 @@ private class MiMoModelInner: Module {
         _embedTokens.wrappedValue = Embedding(
             embeddingCount: args.vocabularySize, dimensions: args.hiddenSize)
 
-        self.layers = (0..<args.hiddenLayers).map { _ in
+        self.layers = (0 ..< args.hiddenLayers).map { _ in
             TransformerBlock(args)
         }
         self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
@@ -177,7 +177,7 @@ public class MiMoModel: Module, LLMModel, KVCacheDimensionProvider {
     public init(_ args: MiMoConfiguration) {
         self.configuration = args
         self.vocabularySize = args.vocabularySize
-        self.kvHeads = (0..<args.hiddenLayers).map { _ in args.kvHeads }
+        self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
         self.model = MiMoModelInner(args)
 
         if !args.tieWordEmbeddings {
@@ -187,7 +187,7 @@ public class MiMoModel: Module, LLMModel, KVCacheDimensionProvider {
 
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
         let out = model(inputs, cache: cache)
-        
+
         if let lmHead = lmHead {
             return lmHead(out)
         } else {
@@ -197,15 +197,14 @@ public class MiMoModel: Module, LLMModel, KVCacheDimensionProvider {
 
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
         var weights = weights
-        
+
         if configuration.tieWordEmbeddings {
             weights.removeValue(forKey: "lm_head.weight")
         }
 
         // Remove unused precomputed rotary freqs and mtp_layers
         return weights.filter { key, _ in
-            !key.contains("self_attn.rotary_emb.inv_freq") &&
-            !key.hasPrefix("model.mtp_layers.")
+            !key.contains("self_attn.rotary_emb.inv_freq") && !key.hasPrefix("model.mtp_layers.")
         }
     }
 }
@@ -251,12 +250,17 @@ public struct MiMoConfiguration: Codable, Sendable {
         self.rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
         self.vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
         self.kvHeads = try container.decode(Int.self, forKey: .kvHeads)
-        self.maxPositionEmbeddings = try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 32768
+        self.maxPositionEmbeddings =
+            try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 32768
         self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 10000.0
-        self.ropeTraditional = try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
-        self.ropeScaling = try container.decodeIfPresent([String: StringOrNumber].self, forKey: .ropeScaling)
-        self.tieWordEmbeddings = try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
-        self.numNextnPredictLayers = try container.decodeIfPresent(Int.self, forKey: .numNextnPredictLayers) ?? 2
+        self.ropeTraditional =
+            try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
+        self.ropeScaling = try container.decodeIfPresent(
+            [String: StringOrNumber].self, forKey: .ropeScaling)
+        self.tieWordEmbeddings =
+            try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
+        self.numNextnPredictLayers =
+            try container.decodeIfPresent(Int.self, forKey: .numNextnPredictLayers) ?? 2
     }
 }
 
