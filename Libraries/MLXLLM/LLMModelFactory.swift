@@ -44,6 +44,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
             "granite": create(GraniteConfiguration.self, GraniteModel.init),
             "mimo": create(MiMoConfiguration.self, MiMoModel.init),
+            "glm4": create(GLM4Configuration.self, GLM4Model.init),
         ]
     }
 
@@ -204,6 +205,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         id: "mlx-community/MiMo-7B-SFT-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
+  
+    static public let glm4_9b_4bit = ModelConfiguration(
+        id: "mlx-community/GLM-4-9B-0414-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
 
     private static func all() -> [ModelConfiguration] {
         [
@@ -232,6 +238,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen3_8b_4bit,
             smolLM_135M_4bit,
             mimo_7b_sft_4bit,
+            glm4_9b_4bit,
         ]
     }
 
