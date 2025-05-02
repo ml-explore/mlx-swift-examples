@@ -49,6 +49,11 @@ class ChatViewModel {
         generateCompletionInfo?.tokensPerSecond ?? 0
     }
 
+    /// Time to generate the first token in seconds
+    var timeToFirstToken: Double {
+        generateCompletionInfo?.promptTime ?? 0
+    }
+
     /// Progress of the current model download, if any
     var modelDownloadProgress: Progress? {
         mlxService.modelDownloadProgress
