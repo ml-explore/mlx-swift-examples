@@ -341,7 +341,7 @@ In [VLMModelFactory.swift](VLMModelFactory.swift) register the model type itself
 (this is independent of the model id):
 
 ```swift
-public class ModelTypeRegistry: @unchecked Sendable {
+public class VLMTypeRegistry: @unchecked Sendable {
 ...
     private var creators: [String: @Sendable (URL) throws -> any LanguageModel] = [
         "yourModel": create(YourModelConfiguration.self, YourModel.init),
@@ -350,7 +350,7 @@ public class ModelTypeRegistry: @unchecked Sendable {
 Similarly, register the UserInputProcessor type (`preprocessor_config.json`):
 
 ```swift
-public class ProcessorTypeRegistry: @unchecked Sendable {
+public class VLMProcessorTypeRegistry: @unchecked Sendable {
 ...
     private var creators:
         [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor] = [
@@ -358,11 +358,11 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
                 YourModelProcessorConfiguration.self, YourModelProcessor.init),
 ```
 
-Add a constant for the model in the ModelRegistry (not strictly required but useful
+Add a constant for the model in the VLMRegistry (not strictly required but useful
 for callers to refer to it in code):
 
 ```swift
-public class ModelRegistry: @unchecked Sendable {
+public class VLMRegistry: @unchecked Sendable {
 ...
     static public let yourModel_4bit = ModelConfiguration(
         id: "mlx-community/YourModel-4bit",
