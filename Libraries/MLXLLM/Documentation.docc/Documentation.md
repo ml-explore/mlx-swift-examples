@@ -30,5 +30,5 @@ Example implementations of various Large Language Models (LLMs).
 - ``Qwen2Model``
 - ``Qwen3Model``
 - ``Starcoder2Model``
-
+- ``MiMoModel``
 

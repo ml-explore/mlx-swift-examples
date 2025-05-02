@@ -43,6 +43,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
             "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
             "granite": create(GraniteConfiguration.self, GraniteModel.init),
+            "mimo": create(MiMoConfiguration.self, MiMoModel.init),
         ]
     }
 
@@ -198,6 +199,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         id: "mlx-community/granite-3.3-2b-instruct-4bit",
         defaultPrompt: ""
     )
+    
+    static public let mimo_7b_sft_4bit = ModelConfiguration(
+        id: "mlx-community/MiMo-7B-SFT-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
 
     private static func all() -> [ModelConfiguration] {
         [
@@ -225,6 +231,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen3_4b_4bit,
             qwen3_8b_4bit,
             smolLM_135M_4bit,
+            mimo_7b_sft_4bit,
         ]
     }
 
