@@ -205,7 +205,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         id: "mlx-community/MiMo-7B-SFT-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
-  
+
     static public let glm4_9b_4bit = ModelConfiguration(
         id: "mlx-community/GLM-4-9B-0414-4bit",
         defaultPrompt: "Why is the sky blue?"
