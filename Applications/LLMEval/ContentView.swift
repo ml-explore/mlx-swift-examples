@@ -199,7 +199,7 @@ class LLMEvaluator {
             .optional(
                 "unit",
                 type: .string,
-                description: "The type of the temperature unit",
+                description: "The unit of temperature",
                 extraProperties: [
                     "enum": ["celsius", "fahrenheit"]
                 ]

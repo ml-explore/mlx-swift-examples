@@ -25,7 +25,7 @@ struct ToolSchemaTests {
                 .optional(
                     "unit",
                     type: .string,
-                    description: "The type of the temperature unit",
+                    description: "The unit of temperature",
                     extraProperties: [
                         "enum": ["celsius", "fahrenheit"]
                     ]
@@ -51,7 +51,7 @@ struct ToolSchemaTests {
                         ],
                         "unit": [
                             "type": "string",
-                            "description": "The type of the temperature unit",
+                            "description": "The unit of temperature",
                             "enum": ["celsius", "fahrenheit"],
                         ],
                     ],
