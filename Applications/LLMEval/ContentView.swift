@@ -189,28 +189,25 @@ class LLMEvaluator {
 
     var loadState = LoadState.idle
 
-    let currentWeatherToolSpec: [String: any Sendable] =
-        [
-            "type": "function",
-            "function": [
-                "name": "get_current_weather",
-                "description": "Get the current weather in a given location",
-                "parameters": [
-                    "type": "object",
-                    "properties": [
-                        "location": [
-                            "type": "string",
-                            "description": "The city and state, e.g. San Francisco, CA",
-                        ] as [String: String],
-                        "unit": [
-                            "type": "string",
-                            "enum": ["celsius", "fahrenheit"],
-                        ] as [String: any Sendable],
-                    ] as [String: [String: any Sendable]],
-                    "required": ["location"],
-                ] as [String: any Sendable],
-            ] as [String: any Sendable],
-        ] as [String: any Sendable]
+    let currentWeatherTool = Tool<WeatherInput, WeatherOutput>(
+        name: "get_current_weather",
+        description: "Get the current weather in a given location",
+        parameters: [
+            .required(
+                "location", type: .string, description: "The city and state, e.g. San Francisco, CA"
+            ),
+            .optional(
+                "unit",
+                type: .string,
+                description: "The type of the temperature unit",
+                extraProperties: [
+                    "enum": ["celsius", "fahrenheit"]
+                ]
+            ),
+        ]
+    ) { input in
+        WeatherOutput(temperature: 14.0, conditions: "Sunny")
+    }
 
     /// load and return the model -- can be called multiple times, subsequent calls will
     /// just return the loaded model
@@ -252,7 +249,10 @@ class LLMEvaluator {
             .user(prompt),
         ]
         let userInput = UserInput(
-            chat: chat, additionalContext: ["enable_thinking": enableThinking])
+            chat: chat,
+            tools: includeWeatherTool ? [currentWeatherTool.schema] : nil,
+            additionalContext: ["enable_thinking": enableThinking]
+        )
 
         do {
             let modelContainer = try await load()
@@ -304,4 +304,14 @@ class LLMEvaluator {
         generationTask?.cancel()
         running = false
     }
+}
+
+struct WeatherInput: Codable {
+    let location: String
+    let unit: String?
+}
+
+struct WeatherOutput: Codable {
+    let temperature: Double
+    let conditions: String
 }
