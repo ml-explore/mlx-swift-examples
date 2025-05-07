@@ -19,6 +19,7 @@ class MLXService {
     /// Includes both language models (LLM) and vision-language models (VLM).
     static let availableModels: [LMModel] = [
         LMModel(name: "llama3.2:1b", configuration: LLMRegistry.llama3_2_1B_4bit, type: .llm),
+        LMModel(name: "llama3.2:3b", configuration: LLMRegistry.llama3_2_3B_4bit, type: .llm),
         LMModel(name: "qwen2.5:1.5b", configuration: LLMRegistry.qwen2_5_1_5b, type: .llm),
         LMModel(name: "smolLM:135m", configuration: LLMRegistry.smolLM_135M_4bit, type: .llm),
         LMModel(name: "qwen3:0.6b", configuration: LLMRegistry.qwen3_0_6b_4bit, type: .llm),
@@ -33,6 +34,9 @@ class MLXService {
 
     /// Cache to store loaded model containers to avoid reloading.
     private let modelCache = NSCache<NSString, ModelContainer>()
+
+    /// Stores a prompt cache for each loaded model
+    private let promptCache = NSCache<NSString, PromptCache>()
 
     /// Tracks the current model download progress.
     /// Access this property to monitor model download status.
@@ -51,6 +55,7 @@ class MLXService {
         if let container = modelCache.object(forKey: model.name as NSString) {
             return container
         } else {
+            print("Model not loaded \(model.name), loading model...")
             // Select appropriate factory based on model type
             let factory: ModelFactory =
                 switch model.type {
@@ -68,6 +73,9 @@ class MLXService {
                     self.modelDownloadProgress = progress
                 }
             }
+
+            // Clear out the promptCache
+            promptCache.removeObject(forKey: model.name as NSString)
 
             // Cache the loaded model for future use
             modelCache.setObject(container, forKey: model.name as NSString)
@@ -111,12 +119,51 @@ class MLXService {
 
         // Generate response using the model
         return try await modelContainer.perform { (context: ModelContext) in
-            let lmInput = try await context.processor.prepare(input: userInput)
-            // Set temperature for response randomness (0.7 provides good balance)
+
+            let fullPrompt = try await context.processor.prepare(input: userInput)
+
             let parameters = GenerateParameters(temperature: 0.7)
 
+            // TODO: Prompt cache access isn't isolated
+            // Get the prompt cache and adjust new prompt to remove
+            // prefix already in cache, trim cache if cache is
+            // inconsistent with new prompt.
+            let (cache, lmInput) = getPromptCache(
+                fullPrompt: fullPrompt, parameters: parameters, context: context,
+                modelName: model.name)
+
+            // TODO: The generated tokens should be added to the prompt cache but not possible with AsyncStream
             return try MLXLMCommon.generate(
-                input: lmInput, parameters: parameters, context: context)
+                input: lmInput, parameters: parameters, context: context, cache: cache.cache)
         }
+    }
+
+    func getPromptCache(
+        fullPrompt: LMInput, parameters: GenerateParameters, context: ModelContext,
+        modelName: String
+    ) -> (PromptCache, LMInput) {
+        let cache: PromptCache
+        if let existingCache = promptCache.object(forKey: modelName as NSString) {
+            cache = existingCache
+        } else {
+            // Create cache if it doesn't exist yet
+            cache = PromptCache(cache: context.model.newCache(parameters: parameters))
+            self.promptCache.setObject(cache, forKey: modelName as NSString)
+        }
+
+        let lmInput: LMInput
+
+        /// Remove prefix from prompt that is already in cache
+        if let suffix = cache.getUncachedSuffix(prompt: fullPrompt.text.tokens) {
+            lmInput = LMInput(text: LMInput.Text(tokens: suffix))
+        } else {
+            // If suffix is nil, the cache is inconsistent with the new prompt
+            // and the cache doesn't support trimming so create a new one here.
+            let newCache = PromptCache(cache: context.model.newCache(parameters: parameters))
+            self.promptCache.setObject(newCache, forKey: modelName as NSString)
+            lmInput = fullPrompt
+        }
+
+        return (cache, lmInput)
     }
 }

@@ -12,6 +12,10 @@ public protocol KVCache: Evaluatable {
     var offset: Int { get }
 
     func update(keys: MLXArray, values: MLXArray) -> (MLXArray, MLXArray)
+
+    func isTrimmable() -> Bool
+
+    func trim(n: Int) -> Int
 }
 
 func createAdditiveCausalMask(n: Int, offset: Int) -> MLXArray {
@@ -97,4 +101,13 @@ public class KVCacheSimple: KVCache, Evaluatable {
         )
     }
 
+    public func isTrimmable() -> Bool {
+        return true
+    }
+
+    public func trim(n: Int) -> Int {
+        let toTrim = min(self.offset, n)
+        self.offset -= toTrim
+        return toTrim
+    }
 }

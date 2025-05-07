@@ -29,7 +29,8 @@ struct ChatToolbarView: View {
             vm.clear([.chat, .meta])
         } label: {
             GenerationInfoView(
-                tokensPerSecond: vm.tokensPerSecond
+                tokensPerSecond: vm.tokensPerSecond,
+                timeToFirstToken: vm.timeToFirstToken
             )
         }
 
