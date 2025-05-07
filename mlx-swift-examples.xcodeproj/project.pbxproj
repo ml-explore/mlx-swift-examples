@@ -18,6 +18,7 @@
 		12305EAF2B9D864400C92FEE /* PredictionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12305EAE2B9D864400C92FEE /* PredictionView.swift */; };
 		81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 81695B402BA373D300F260D8 /* MarkdownUI */; };
 		819BEFF82BAF8B4E0002CCEE /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
+		C2C855DC2DC587EC0013D533 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = C2C855DB2DC587EC0013D533 /* MarkdownUI */; };
 		C3056BAE2BCD97B700A31D04 /* LoRATrainingExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAD2BCD97B700A31D04 /* LoRATrainingExampleApp.swift */; };
 		C3056BB02BCD97B700A31D04 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAF2BCD97B700A31D04 /* ContentView.swift */; };
 		C3056BB22BCD97B800A31D04 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3056BB12BCD97B800A31D04 /* Assets.xcassets */; };
@@ -291,6 +292,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C2C855DC2DC587EC0013D533 /* MarkdownUI in Frameworks */,
 				0F5AD8012DB70E6300745C06 /* MLXVLM in Frameworks */,
 				0F5AD8002DB70E6300745C06 /* MLXLLM in Frameworks */,
 			);
@@ -696,6 +698,7 @@
 			packageProductDependencies = (
 				C32A17FC2CFFB98A0092A5B6 /* MLXLLM */,
 				C32A17FE2CFFB98A0092A5B6 /* MLXVLM */,
+				C2C855DB2DC587EC0013D533 /* MarkdownUI */,
 			);
 			productName = MLXChatExample;
 			productReference = 0F5AD7412DB70C0300745C06 /* MLXChatExample.app */;
@@ -1319,6 +1322,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_ASSET_PATHS = "\"Applications/MLXChatExample/Support/Preview Content\"";
+				DEVELOPMENT_TEAM = MHKLLWN2V4;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -1385,6 +1389,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"Applications/MLXChatExample/Support/Preview Content\"";
+				DEVELOPMENT_TEAM = MHKLLWN2V4;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -3131,6 +3136,11 @@
 			productName = MLXVLM;
 		};
 		81695B402BA373D300F260D8 /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 81695B3F2BA373D300F260D8 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
+		};
+		C2C855DB2DC587EC0013D533 /* MarkdownUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 81695B3F2BA373D300F260D8 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
 			productName = MarkdownUI;

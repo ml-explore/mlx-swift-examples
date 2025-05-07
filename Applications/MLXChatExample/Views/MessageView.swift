@@ -6,6 +6,7 @@
 //
 
 import AVKit
+import MarkdownUI
 import SwiftUI
 
 /// A view that displays a single message in the chat interface.
@@ -14,10 +15,13 @@ struct MessageView: View {
     /// The message to be displayed
     let message: Message
 
+    var displayMode: MessageDisplayMode = .markdown
+
     /// Creates a message view
     /// - Parameter message: The message model to display
-    init(_ message: Message) {
+    init(_ message: Message, displayMode: MessageDisplayMode = .markdown) {
         self.message = message
+        self.displayMode = displayMode
     }
 
     var body: some View {
@@ -59,8 +63,13 @@ struct MessageView: View {
         case .assistant:
             // Assistant messages are left-aligned without background
             HStack {
-                Text(message.content)
-                    .textSelection(.enabled)
+                if displayMode == .markdown {
+                    Markdown(message.content)
+                        .textSelection(.enabled)
+                } else {
+                    Text(message.content)
+                        .textSelection(.enabled)
+                }
 
                 Spacer()
             }
