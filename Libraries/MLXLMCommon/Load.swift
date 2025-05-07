@@ -59,7 +59,9 @@ public func downloadModel(
 /// calls ``LanguageModel/sanitize(weights:)``, applies optional quantization, and
 /// updates the model with the weights.
 public func loadWeights(
-    modelDirectory: URL, model: LanguageModel, quantization: BaseConfiguration.Quantization? = nil
+    modelDirectory: URL, model: LanguageModel,
+    quantization: BaseConfiguration.Quantization? = nil,
+    perLayerQuantization: BaseConfiguration.PerLayerQuantization? = nil
 ) throws {
     // load the weights
     var weights = [String: MLXArray]()
@@ -78,10 +80,17 @@ public func loadWeights(
     weights = model.sanitize(weights: weights)
 
     // quantize if needed
-    if let quantization {
-        quantize(model: model, groupSize: quantization.groupSize, bits: quantization.bits) {
-            path, module in
-            weights["\(path).scales"] != nil
+    if quantization != nil || perLayerQuantization != nil {
+        quantize(model: model) { path, module in
+            if weights["\(path).scales"] != nil {
+                if let perLayerQuantization {
+                    return perLayerQuantization.quantization(layer: path)?.asTuple
+                } else {
+                    return quantization?.asTuple
+                }
+            } else {
+                return nil
+            }
         }
     }
 
@@ -90,4 +99,27 @@ public func loadWeights(
     try model.update(parameters: parameters, verify: [.all])
 
     eval(model)
+}
+
+// TODO remove once mlx-swift update is adopted
+func quantize(
+    model: Module,
+    filter: (String, Module) -> (groupSize: Int, bits: Int)?,
+    apply: (Module, Int, Int) -> Module? = quantizeSingle(layer:groupSize:bits:)
+) {
+    let updates =
+        model
+        .leafModules()
+        .flattened()
+        .compactMap { (path, m) -> (String, Module)? in
+            if let (groupSize, bits) = filter(path, m) {
+                if let quantized = apply(m, groupSize, bits) {
+                    return (path, quantized)
+                }
+            }
+
+            return nil
+        }
+
+    model.update(modules: ModuleChildren.unflattened(updates))
 }

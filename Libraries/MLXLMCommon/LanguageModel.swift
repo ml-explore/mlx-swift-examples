@@ -208,34 +208,3 @@ extension LanguageModel where Self: KVCacheDimensionProvider {
         }
     }
 }
-
-/// Base ``LanguageModel`` configuration -- provides `modelType`
-/// and `quantization` (used in loading the model).
-///
-/// This is used by ``ModelFactory/load(hub:configuration:progressHandler:)``
-/// to determine the type of model to load.
-public struct BaseConfiguration: Codable, Sendable {
-    public let modelType: String
-
-    public struct Quantization: Codable, Sendable {
-        public init(groupSize: Int, bits: Int) {
-            self.groupSize = groupSize
-            self.bits = bits
-        }
-
-        public let groupSize: Int
-        public let bits: Int
-
-        enum CodingKeys: String, CodingKey {
-            case groupSize = "group_size"
-            case bits = "bits"
-        }
-    }
-
-    public var quantization: Quantization?
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case quantization
-    }
-}

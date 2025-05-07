@@ -62,7 +62,8 @@ func loadSynchronous(modelDirectory: URL) throws -> EmbeddingModel {
     let baseConfig = try JSONDecoder().decode(
         BaseConfiguration.self, from: Data(contentsOf: configurationURL))
 
-    let model = try baseConfig.modelType.createModel(configuration: configurationURL)
+    let modelType = ModelType(rawValue: baseConfig.modelType)
+    let model = try modelType.createModel(configuration: configurationURL)
 
     // load the weights
     var weights = [String: MLXArray]()
@@ -81,6 +82,16 @@ func loadSynchronous(modelDirectory: URL) throws -> EmbeddingModel {
     weights = model.sanitize(weights: weights)
 
     // quantize if needed
+    if let perLayerQuantization = baseConfig.perLayerQuantization {
+        quantize(model: model) { path, module in
+            if weights["\(path).scales"] != nil {
+                return perLayerQuantization.quantization(layer: path)?.asTuple
+            } else {
+                return nil
+            }
+        }
+    }
+
     if let quantization = baseConfig.quantization {
         quantize(model: model, groupSize: quantization.groupSize, bits: quantization.bits) {
             path, module in
@@ -107,4 +118,27 @@ public func loadModelContainer(
         hub: hub, configuration: configuration, progressHandler: progressHandler)
     return try await ModelContainer(
         hub: hub, modelDirectory: modelDirectory, configuration: configuration)
+}
+
+// TODO remove once mlx-swift update is adopted
+func quantize(
+    model: Module,
+    filter: (String, Module) -> (groupSize: Int, bits: Int)?,
+    apply: (Module, Int, Int) -> Module? = quantizeSingle(layer:groupSize:bits:)
+) {
+    let updates =
+        model
+        .leafModules()
+        .flattened()
+        .compactMap { (path, m) -> (String, Module)? in
+            if let (groupSize, bits) = filter(path, m) {
+                if let quantized = apply(m, groupSize, bits) {
+                    return (path, quantized)
+                }
+            }
+
+            return nil
+        }
+
+    model.update(modules: ModuleChildren.unflattened(updates))
 }
