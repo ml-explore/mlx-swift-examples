@@ -221,6 +221,7 @@ public struct Qwen2Configuration: Codable, Sendable {
     var ropeTraditional: Bool = false
     var ropeScaling: [String: StringOrNumber]? = nil
     var tieWordEmbeddings = false
+    public var quantization: BaseConfiguration.Quantization?
 
     enum CodingKeys: String, CodingKey {
         case hiddenSize = "hidden_size"
@@ -234,6 +235,7 @@ public struct Qwen2Configuration: Codable, Sendable {
         case ropeTraditional = "rope_traditional"
         case ropeScaling = "rope_scaling"
         case tieWordEmbeddings = "tie_word_embeddings"
+        case quantization = "quantization"
     }
 
     public init(from decoder: Decoder) throws {
@@ -241,7 +243,8 @@ public struct Qwen2Configuration: Codable, Sendable {
         let container: KeyedDecodingContainer<Qwen2Configuration.CodingKeys> =
             try decoder.container(
                 keyedBy: Qwen2Configuration.CodingKeys.self)
-
+        self.quantization = try container.decodeIfPresent(
+            BaseConfiguration.Quantization.self, forKey: .quantization)
         self.hiddenSize = try container.decode(
             Int.self, forKey: Qwen2Configuration.CodingKeys.hiddenSize)
         self.hiddenLayers = try container.decode(
