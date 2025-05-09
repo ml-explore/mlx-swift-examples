@@ -39,7 +39,7 @@ public func createAttentionMask(h: MLXArray, cache: [KVCache]?) -> MLXArray? {
 }
 
 /// See https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/base.py#L11
-public class KVCacheSimple: KVCache, Evaluatable {
+public class KVCacheSimple: KVCache, Evaluatable, CustomDebugStringConvertible {
     var keys: MLXArray?
     var values: MLXArray?
 
@@ -97,4 +97,7 @@ public class KVCacheSimple: KVCache, Evaluatable {
         )
     }
 
+    public var debugDescription: String {
+        "\(String(describing: Self.self)) \(Unmanaged.passUnretained(self).toOpaque()), offset: \(offset), step: \(step), keys: \(keys?.shape.description ?? "-"), values: \(values?.shape.description ?? "-")"
+    }
 }

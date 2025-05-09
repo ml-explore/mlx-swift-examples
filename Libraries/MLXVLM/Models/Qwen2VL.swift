@@ -103,14 +103,14 @@ private enum Language {
             values = values.reshaped(B, L, kvHeads, headDim).transposed(0, 2, 1, 3)
 
             let offset = cache?.offset ?? 0
-            let mask = mask?[0..., 0 ..< keys.dim(-2)]
-
             queries = rotaryEmbedding(queries, offset: offset)
             keys = rotaryEmbedding(keys, offset: offset)
 
             if let cache {
                 (keys, values) = cache.update(keys: keys, values: values)
             }
+
+            let mask = mask?[.ellipsis, 0 ..< keys.dim(-2)]
 
             let output = MLXFast.scaledDotProductAttention(
                 queries: queries, keys: keys, values: values, scale: scale, mask: mask
