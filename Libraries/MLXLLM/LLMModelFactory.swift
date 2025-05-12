@@ -316,7 +316,7 @@ public class LLMModelFactory: ModelFactory {
         let modelDirectory = try await downloadModel(
             hub: hub, configuration: configuration, progressHandler: progressHandler)
 
-        // load the generic config to unerstand which model and how to load the weights
+        // load the generic config to understand which model and how to load the weights
         let configurationURL = modelDirectory.appending(component: "config.json")
         let baseConfig = try JSONDecoder().decode(
             BaseConfiguration.self, from: Data(contentsOf: configurationURL))
@@ -325,7 +325,8 @@ public class LLMModelFactory: ModelFactory {
 
         // apply the weights to the bare model
         try loadWeights(
-            modelDirectory: modelDirectory, model: model, quantization: baseConfig.quantization)
+            modelDirectory: modelDirectory, model: model,
+            perLayerQuantization: baseConfig.perLayerQuantization)
 
         let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
 

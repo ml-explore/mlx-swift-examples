@@ -126,17 +126,17 @@ In [LLMModelFactory.swift](LLMModelFactory.swift) register the model type itself
 (this is independent of the model id):
 
 ```swift
-public class ModelTypeRegistry: @unchecked Sendable {
+public class LLMTypeRegistry: @unchecked Sendable {
 ...
     private var creators: [String: @Sendable (URL) throws -> any LanguageModel] = [
         "yourModel": create(YourModelConfiguration.self, YourModel.init),
 ```
 
-Add a constant for the model in the `ModelRegistry` (not strictly required but useful
+Add a constant for the model in the `LLMRegistry` (not strictly required but useful
 for callers to refer to it in code):
 
 ```swift
-public class ModelRegistry: @unchecked Sendable {
+public class LLMRegistry: @unchecked Sendable {
 ...
     static public let yourModel_4bit = ModelConfiguration(
         id: "mlx-community/YourModel-4bit",

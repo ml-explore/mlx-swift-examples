@@ -57,6 +57,7 @@
 		C36BF0082BC5CE56002D4AFE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C36BF0072BC5CE56002D4AFE /* Assets.xcassets */; };
 		C36BF00C2BC5CE56002D4AFE /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C36BF00B2BC5CE56002D4AFE /* Preview Assets.xcassets */; };
 		C36BF0352BC70F11002D4AFE /* Arguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BF0342BC70F11002D4AFE /* Arguments.swift */; };
+		C38BA3AA2DB8321600BAFA88 /* Chat.swift in Sources */ = {isa = PBXBuildFile; fileRef = C38BA3A92DB8321600BAFA88 /* Chat.swift */; };
 		C392737D2B606A1D00368D5D /* Tutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = C392737C2B606A1D00368D5D /* Tutorial.swift */; };
 		C397C59C2B62C6D0004B084D /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C397C59B2B62C6D0004B084D /* ArgumentParser */; };
 		C3A8B3CB2B92951E0002EFB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3C32B92951E0002EFB8 /* Assets.xcassets */; };
@@ -232,6 +233,7 @@
 		C36BF0092BC5CE56002D4AFE /* StableDiffusionExample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StableDiffusionExample.entitlements; sourceTree = "<group>"; };
 		C36BF00B2BC5CE56002D4AFE /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		C36BF0342BC70F11002D4AFE /* Arguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Arguments.swift; sourceTree = "<group>"; };
+		C38BA3A92DB8321600BAFA88 /* Chat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chat.swift; sourceTree = "<group>"; };
 		C39273742B606A0A00368D5D /* Tutorial */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Tutorial; sourceTree = BUILT_PRODUCTS_DIR; };
 		C392737C2B606A1D00368D5D /* Tutorial.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Tutorial.swift; sourceTree = "<group>"; };
 		C397C58B2B62C6A9004B084D /* llm-tool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "llm-tool"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -264,7 +266,8 @@
 		C3208F272DB19614006AE6CA /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				MLXLMTests/ToolTests.swift,
+				MLXLMTests/BaseConfigurationTests.swift,
+        MLXLMTests/ToolTests.swift,
 				MLXLMTests/UserInputTests.swift,
 			);
 			target = C3208E6D2DB19451006AE6CA /* MLXLMTests */;
@@ -478,6 +481,7 @@
 				C34E48F42B696F0B00FCB841 /* LLMTool.swift */,
 				C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */,
 				C36BEFB62BBDECBC002D4AFE /* Arguments.swift */,
+				C38BA3A92DB8321600BAFA88 /* Chat.swift */,
 			);
 			path = "llm-tool";
 			sourceTree = "<group>";
@@ -973,7 +977,7 @@
 				C34E491A2B69C43600FCB841 /* XCRemoteSwiftPackageReference "GzipSwift" */,
 				81695B3F2BA373D300F260D8 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				C36BEFF02BC32A8C002D4AFE /* XCRemoteSwiftPackageReference "Progress" */,
-				C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */,
+				C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */,
 				C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */,
 				C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 			);
@@ -1143,6 +1147,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C36BEFB82BBDED51002D4AFE /* Arguments.swift in Sources */,
+				C38BA3AA2DB8321600BAFA88 /* Chat.swift in Sources */,
 				C34E48F52B696F0B00FCB841 /* LLMTool.swift in Sources */,
 				C36BEFB52BBDEAD8002D4AFE /* LoraCommands.swift in Sources */,
 			);
@@ -3068,9 +3073,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */ = {
+		C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = Source/..;
+			relativePath = Libraries/..;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -3128,7 +3133,7 @@
 /* Begin XCSwiftPackageProductDependency section */
 		0AC74ED92D136223003C90A7 /* MLXVLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXVLM;
 		};
 		81695B402BA373D300F260D8 /* MarkdownUI */ = {
@@ -3153,37 +3158,37 @@
 		};
 		C32A17FC2CFFB98A0092A5B6 /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXLLM;
 		};
 		C32A17FE2CFFB98A0092A5B6 /* MLXVLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXVLM;
 		};
 		C32A18002CFFD1810092A5B6 /* MLXMNIST */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXMNIST;
 		};
 		C32A18022CFFD1920092A5B6 /* MLXMNIST */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXMNIST;
 		};
 		C32A18042CFFD19F0092A5B6 /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXLLM;
 		};
 		C32A18062CFFD1AA0092A5B6 /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXLLM;
 		};
 		C32A18082CFFD1B70092A5B6 /* StableDiffusion */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = StableDiffusion;
 		};
 		C32A18452D00E1490092A5B6 /* MLX */ = {
@@ -3238,7 +3243,7 @@
 		};
 		C3E7D94C2CF6C9B20056C095 /* StableDiffusion */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Source/.." */;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = StableDiffusion;
 		};
 /* End XCSwiftPackageProductDependency section */

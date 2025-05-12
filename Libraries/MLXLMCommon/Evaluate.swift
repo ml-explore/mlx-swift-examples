@@ -700,6 +700,7 @@ public func generate(
 ///
 /// - Parameters:
 ///   - input: The input for the language model.
+///   - cache: optional ``KVCache``
 ///   - parameters: The configuration options for token generation.
 ///   - context: The model context, including the model itself and associated tokenizer.
 /// - Returns: An `AsyncStream` that emits `Generation` values, including generated tokens (`.token`)
@@ -729,10 +730,10 @@ public func generate(
 /// }
 /// ```
 public func generate(
-    input: LMInput, parameters: GenerateParameters, context: ModelContext
+    input: LMInput, cache: [KVCache]? = nil, parameters: GenerateParameters, context: ModelContext
 ) throws -> AsyncStream<Generation> {
     let iterator = try TokenIterator(
-        input: input, model: context.model, parameters: parameters)
+        input: input, model: context.model, cache: cache, parameters: parameters)
     return generate(
         input: input, context: context, iterator: iterator)
 }
