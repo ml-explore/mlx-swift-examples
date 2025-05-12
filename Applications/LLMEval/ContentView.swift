@@ -35,7 +35,7 @@ struct ContentView: View {
                 }
                 HStack {
                     Toggle(isOn: $llm.includeWeatherTool) {
-                        Text("Include \"get current weather\" tool")
+                        Text("Include tools")
                     }
                     .frame(maxWidth: 350, alignment: .leading)
                     Toggle(isOn: $llm.enableThinking) {
@@ -201,12 +201,37 @@ class LLMEvaluator {
                 type: .string,
                 description: "The unit of temperature",
                 extraProperties: [
-                    "enum": ["celsius", "fahrenheit"]
+                    "enum": ["celsius", "fahrenheit"],
+                    "default": "celsius",
                 ]
             ),
         ]
     ) { input in
-        WeatherOutput(temperature: 14.0, conditions: "Sunny")
+        let range = input.unit == "celsius" ? (min: -20.0, max: 40.0) : (min: 0, max: 100)
+        let temperature = Double.random(in: range.min ... range.max)
+
+        let conditions = ["Sunny", "Cloudy", "Rainy", "Snowy", "Windy", "Stormy"].randomElement()!
+
+        return WeatherOutput(temperature: temperature, conditions: conditions)
+    }
+
+    let addTool = Tool<AddInput, AddOutput>(
+        name: "add_two_numbers",
+        description: "Add two numbers together",
+        parameters: [
+            .required("first", type: .int, description: "The first number to add"),
+            .required("second", type: .int, description: "The second number to add"),
+        ]
+    ) { input in
+        AddOutput(result: input.first + input.second)
+    }
+
+    let timeTool = Tool<EmptyInput, TimeOutput>(
+        name: "get_time",
+        description: "Get the current time",
+        parameters: [],
+    ) { _ in
+        TimeOutput(time: Date.now.formatted())
     }
 
     /// load and return the model -- can be called multiple times, subsequent calls will
@@ -241,16 +266,22 @@ class LLMEvaluator {
         }
     }
 
-    private func generate(prompt: String) async {
+    private func generate(prompt: String, toolResult: String? = nil) async {
 
         self.output = ""
-        let chat: [Chat.Message] = [
+        var chat: [Chat.Message] = [
             .system("You are a helpful assistant"),
             .user(prompt),
         ]
+
+        if let toolResult {
+            chat.append(.tool(toolResult))
+        }
+
         let userInput = UserInput(
             chat: chat,
-            tools: includeWeatherTool ? [currentWeatherTool.schema] : nil,
+            tools: includeWeatherTool
+                ? [currentWeatherTool.schema, addTool.schema, timeTool.schema] : nil,
             additionalContext: ["enable_thinking": enableThinking]
         )
 
@@ -281,6 +312,10 @@ class LLMEvaluator {
                             self.stat = "\(completion.tokensPerSecond) tokens/s"
                         }
                     }
+
+                    if let toolCall = batch.compactMap({ $0.toolCall }).first {
+                        try await handleToolCall(toolCall, prompt: prompt)
+                    }
                 }
             }
 
@@ -304,6 +339,22 @@ class LLMEvaluator {
         generationTask?.cancel()
         running = false
     }
+
+    private func handleToolCall(_ toolCall: ToolCall, prompt: String) async throws {
+        let result =
+            switch toolCall.function.name {
+            case currentWeatherTool.name:
+                try await toolCall.execute(with: currentWeatherTool).toolResult
+            case addTool.name:
+                try await toolCall.execute(with: addTool).toolResult
+            case timeTool.name:
+                try await toolCall.execute(with: timeTool).toolResult
+            default:
+                "No tool match"
+            }
+
+        await generate(prompt: prompt, toolResult: result)
+    }
 }
 
 struct WeatherInput: Codable {
@@ -314,4 +365,19 @@ struct WeatherInput: Codable {
 struct WeatherOutput: Codable {
     let temperature: Double
     let conditions: String
+}
+
+struct AddInput: Codable {
+    let first: Int
+    let second: Int
+}
+
+struct AddOutput: Codable {
+    let result: Int
+}
+
+struct EmptyInput: Codable {}
+
+struct TimeOutput: Codable {
+    let time: String
 }
