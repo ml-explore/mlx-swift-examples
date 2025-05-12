@@ -4,7 +4,6 @@ import Foundation
 @preconcurrency import Hub
 import MLX
 import MLXNN
-import MLXRandom
 import Tokenizers
 
 struct EmbedderError: Error {

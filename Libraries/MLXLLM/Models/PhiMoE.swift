@@ -1,9 +1,7 @@
 import Foundation
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
-import MLXRandom
 
 // Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/phimoe.py
 

@@ -1,7 +1,6 @@
 // Copyright © 2024 Apple Inc.
 
 import MLX
-import MLXFast
 import MLXNN
 
 extension MLXArray {

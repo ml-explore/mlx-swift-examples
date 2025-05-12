@@ -2,7 +2,6 @@
 
 import Foundation
 import MLX
-import MLXFast
 import MLXNN
 
 class NomicEmbedding: Module {
