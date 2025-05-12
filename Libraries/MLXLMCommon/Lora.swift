@@ -4,7 +4,6 @@ import Foundation
 import MLX
 import MLXNN
 import MLXOptimizers
-import MLXRandom
 import Tokenizers
 
 /// Layers to apply LoRA adapters to.

@@ -16,7 +16,7 @@ public protocol KVCache: Evaluatable {
     var maxSize: Int? { get }
 }
 
-func createAdditiveCausalMask(n: Int, offset: Int, windowSize: Int? = nil) -> MLXArray {
+func createCausalMask(n: Int, offset: Int, windowSize: Int? = nil) -> MLXArray {
     var rinds = MLXArray(Int32(0) ..< Int32(offset + n))
     var linds = offset != 0 ? MLXArray(Int32(offset) ..< Int32(offset + n)) : rinds
     linds = linds[0..., .newAxis]
@@ -42,7 +42,7 @@ public func createAttentionMask(h: MLXArray, cache: [KVCache]?) -> MLXArray? {
         if let c = cache?.first {
             offset = c.offset
         }
-        return createAdditiveCausalMask(n: t, offset: offset)
+        return createCausalMask(n: t, offset: offset)
     }
     return nil
 }
@@ -67,7 +67,7 @@ public func createAttentionMask(h: MLXArray, cache: [KVCache]?, returnArray: Boo
         }
 
         if returnArray {
-            return .array(createAdditiveCausalMask(n: t, offset: offset, windowSize: windowSize))
+            return .array(createCausalMask(n: t, offset: offset, windowSize: windowSize))
         } else {
             return .causal
         }
