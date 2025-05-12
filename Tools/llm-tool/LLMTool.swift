@@ -15,7 +15,7 @@ import Tokenizers
 struct LLMTool: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Command line tool for generating text and manipulating LLMs",
-        subcommands: [EvaluateCommand.self, LoRACommand.self],
+        subcommands: [EvaluateCommand.self, ChatCommand.self, LoRACommand.self],
         defaultSubcommand: EvaluateCommand.self)
 }
 
@@ -44,15 +44,65 @@ struct ModelArguments: ParsableArguments, Sendable {
     }
 }
 
-/// Command line arguments for controlling generation of text.
-struct GenerateArguments: ParsableArguments, Sendable {
-
+struct PromptArguments: ParsableArguments, Sendable {
     @Option(
         name: .shortAndLong,
         help:
             "The message to be processed by the model.  Use @path,@path to load from files, e.g. @/tmp/prompt.txt"
     )
     var prompt: String?
+
+    func resolvePrompt(configuration: ModelConfiguration) throws -> String {
+        let prompt = self.prompt ?? configuration.defaultPrompt
+        if prompt.hasPrefix("@") {
+            let names = prompt.split(separator: ",").map { String($0.dropFirst()) }
+            return try names.map { try String(contentsOfFile: $0) }.joined(separator: "\n")
+        } else {
+            return prompt
+        }
+    }
+}
+
+/// Argument package for supplying media files
+struct MediaArguments: ParsableArguments, Sendable {
+
+    @Option(parsing: .upToNextOption, help: "Resize images to this size (width, height)")
+    var resize: [Int] = []
+
+    @Option(parsing: .upToNextOption, help: "Paths or URLs for input images")
+    var image: [URL] = []
+
+    @Option(parsing: .upToNextOption, help: "Paths or URLs for input videos")
+    var video: [URL] = []
+
+    var images: [UserInput.Image] {
+        image.map { UserInput.Image.url($0) }
+    }
+    var videos: [UserInput.Video] {
+        video.map { UserInput.Video.url($0) }
+    }
+
+    var processing: UserInput.Processing {
+        var processing = UserInput.Processing()
+        if !resize.isEmpty {
+            let size: CGSize
+            if resize.count == 1 {
+                // Single value represents width/height
+                let v = resize[0]
+                size = CGSize(width: v, height: v)
+            } else {
+                let v0 = resize[0]
+                let v1 = resize[1]
+                size = CGSize(width: v0, height: v1)
+            }
+            processing.resize = size
+        }
+        return processing
+    }
+}
+
+/// Command line arguments for controlling generation of text.
+struct GenerateArguments: ParsableArguments, Sendable {
 
     @Option(
         name: .shortAndLong,
@@ -92,16 +142,6 @@ struct GenerateArguments: ParsableArguments, Sendable {
             repetitionContextSize: repetitionContextSize)
     }
 
-    func resolvePrompt(configuration: ModelConfiguration) throws -> String {
-        let prompt = self.prompt ?? configuration.defaultPrompt
-        if prompt.hasPrefix("@") {
-            let names = prompt.split(separator: ",").map { String($0.dropFirst()) }
-            return try names.map { try String(contentsOfFile: $0) }.joined(separator: "\n")
-        } else {
-            return prompt
-        }
-    }
-
     func prepare(
         _ context: inout ModelContext
     ) {
@@ -112,15 +152,17 @@ struct GenerateArguments: ParsableArguments, Sendable {
 
     func generate(
         input: LMInput, context: ModelContext
-    ) async throws -> GenerateCompletionInfo {
+    ) async throws -> (GenerateCompletionInfo, String) {
+        var output = ""
         for await item in try MLXLMCommon.generate(
             input: input, parameters: generateParameters, context: context)
         {
             switch item {
             case .chunk(let string):
+                output += string
                 print(string, terminator: "")
             case .info(let info):
-                return info
+                return (info, output)
             }
         }
         fatalError("exited loop without seeing .info")
@@ -211,42 +253,21 @@ struct EvaluateCommand: AsyncParsableCommand {
     @OptionGroup var args: ModelArguments
     @OptionGroup var memory: MemoryArguments
     @OptionGroup var generate: GenerateArguments
-
-    @Option(parsing: .upToNextOption, help: "Resize images to this size (width, height)")
-    var resize: [Int] = []
-
-    @Option(parsing: .upToNextOption, help: "Paths or URLs for input images")
-    var image: [URL] = []
-
-    @Option(parsing: .upToNextOption, help: "Paths or URLs for input videos")
-    var video: [URL] = []
+    @OptionGroup var prompt: PromptArguments
+    @OptionGroup var media: MediaArguments
 
     private func userInput(modelConfiguration: ModelConfiguration) -> UserInput {
         let prompt =
-            (try? generate.resolvePrompt(configuration: modelConfiguration))
+            (try? self.prompt.resolvePrompt(configuration: modelConfiguration))
             ?? modelConfiguration.defaultPrompt
-        let images = image.map { UserInput.Image.url($0) }
-        let videos = video.map { UserInput.Video.url($0) }
-        var userInput = UserInput(
+
+        return UserInput(
             chat: [
                 .system(generate.system),
-                .user(prompt, images: images, videos: videos),
-            ]
+                .user(prompt, images: media.images, videos: media.videos),
+            ],
+            processing: media.processing
         )
-        if !resize.isEmpty {
-            let size: CGSize
-            if resize.count == 1 {
-                // Single value represents width/height
-                let v = resize[0]
-                size = CGSize(width: v, height: v)
-            } else {
-                let v0 = resize[0]
-                let v1 = resize[1]
-                size = CGSize(width: v0, height: v1)
-            }
-            userInput.processing.resize = size
-        }
-        return userInput
     }
 
     @MainActor
@@ -255,7 +276,7 @@ struct EvaluateCommand: AsyncParsableCommand {
         let defaultModel: ModelConfiguration
 
         // Switch between LLM and VLM based on presence of media
-        let vlm = !image.isEmpty || !video.isEmpty
+        let vlm = !media.image.isEmpty || !media.video.isEmpty
         if vlm {
             modelFactory = VLMModelFactory.shared
             defaultModel = MLXVLM.VLMRegistry.qwen2VL2BInstruct4Bit
@@ -288,7 +309,7 @@ struct EvaluateCommand: AsyncParsableCommand {
             print(userInput.prompt, terminator: " ")
         }
 
-        let result = try await modelContainer.perform { [generate] context in
+        let (result, _) = try await modelContainer.perform { [generate] context in
             let input = try await context.processor.prepare(input: userInput)
             return try await generate.generate(input: input, context: context)
         }
