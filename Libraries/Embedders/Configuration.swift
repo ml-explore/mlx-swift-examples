@@ -110,29 +110,3 @@ public struct ModelType: RawRepresentable, Codable, Sendable {
         try modelTypeRegistry.createModel(configuration: configuration, rawValue: rawValue)
     }
 }
-
-public struct BaseConfiguration: Codable, Sendable {
-    public let modelType: ModelType
-
-    public struct Quantization: Codable, Sendable {
-        public init(groupSize: Int, bits: Int) {
-            self.groupSize = groupSize
-            self.bits = bits
-        }
-
-        let groupSize: Int
-        let bits: Int
-
-        enum CodingKeys: String, CodingKey {
-            case groupSize = "group_size"
-            case bits = "bits"
-        }
-    }
-
-    public var quantization: Quantization?
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case quantization
-    }
-}

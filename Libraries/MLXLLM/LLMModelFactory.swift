@@ -325,7 +325,8 @@ public class LLMModelFactory: ModelFactory {
 
         // apply the weights to the bare model
         try loadWeights(
-            modelDirectory: modelDirectory, model: model, quantization: baseConfig.quantization)
+            modelDirectory: modelDirectory, model: model,
+            perLayerQuantization: baseConfig.perLayerQuantization)
 
         let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
 
