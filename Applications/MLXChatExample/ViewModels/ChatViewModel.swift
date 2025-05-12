@@ -17,6 +17,9 @@ class ChatViewModel {
     /// Service responsible for ML model operations
     private let mlxService: MLXService
 
+    /// Assistant display mode
+    var displayMode: MessageDisplayMode = .markdown
+
     init(mlxService: MLXService) {
         self.mlxService = mlxService
     }
@@ -181,4 +184,21 @@ struct ClearOption: RawRepresentable, OptionSet {
     static let chat = ClearOption(rawValue: 1 << 1)
     /// Clears generation metadata
     static let meta = ClearOption(rawValue: 1 << 2)
+}
+
+enum MessageDisplayMode: String, CaseIterable, Identifiable {
+    case markdown
+    case plainText
+
+    var id: String { rawValue }
+
+    /// User-friendly display name for the mode
+    var displayName: String {
+        switch self {
+        case .markdown:
+            "Markdown"
+        case .plainText:
+            "Plain Text"
+        }
+    }
 }

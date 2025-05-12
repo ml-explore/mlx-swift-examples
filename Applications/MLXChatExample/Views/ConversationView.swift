@@ -12,11 +12,13 @@ struct ConversationView: View {
     /// Array of messages to display in the conversation
     let messages: [Message]
 
+    @Binding var displayMode: MessageDisplayMode
+
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(messages) { message in
-                    MessageView(message)
+                    MessageView(message, displayMode: displayMode)
                         .padding(.horizontal, 12)
                 }
             }
@@ -28,5 +30,8 @@ struct ConversationView: View {
 
 #Preview {
     // Display sample conversation in preview
-    ConversationView(messages: SampleData.conversation)
+    ConversationView(
+        messages: SampleData.conversation,
+        displayMode: .constant(.markdown)
+    )
 }

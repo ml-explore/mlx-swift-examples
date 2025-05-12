@@ -24,8 +24,7 @@ struct ChatView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Display conversation history
-                ConversationView(messages: vm.messages)
+                ConversationView(messages: vm.messages, displayMode: $vm.displayMode)
 
                 Divider()
 
