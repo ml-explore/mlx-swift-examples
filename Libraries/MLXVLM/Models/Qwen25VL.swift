@@ -549,14 +549,14 @@ private enum Vision {
             // Create attention mask
             let attentionMask = full(
                 [1, sequenceLength, sequenceLength],
-                values: Int8(-127))
+                values: false)
 
             // Update mask for each sequence
             let cuSeqlens = cuSeqlens.asArray(Int.self)
             for i in 1 ..< cuSeqlens.count {
                 let start = cuSeqlens[i - 1]
                 let end = cuSeqlens[i]
-                attentionMask[0..., start ..< end, start ..< end] = MLXArray(Int8(0))
+                attentionMask[0..., start ..< end, start ..< end] = MLXArray(true)
             }
 
             return attentionMask
