@@ -73,7 +73,7 @@ class SwitchGLU: Module {
 
         let xUp = upProj(x, idx, sortedIndices: doSort)
         let xGate = gateProj(x, idx, sortedIndices: doSort)
-        let xDown = downProj(
+        x = downProj(
             activation(xGate) * xUp,
             idx,
             sortedIndices: doSort)
@@ -82,7 +82,7 @@ class SwitchGLU: Module {
             x = scatterUnsort(x: x, invOrder: inverseOrder, shape: indices.shape)
         }
 
-        return MLX.squeezed(xDown, axis: -2)
+        return MLX.squeezed(x, axis: -2)
     }
 }
 
@@ -147,7 +147,7 @@ class SwitchLinear: Module, Quantizable {
     }
 }
 
-class QuantizedSwitchLinear: SwitchLinear {
+class QuantizedSwitchLinear: SwitchLinear, Quantized {
     @ModuleInfo(key: "scales") var scales: MLXArray
     @ModuleInfo(key: "biases") var biases: MLXArray
 
