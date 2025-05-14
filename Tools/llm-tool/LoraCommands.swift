@@ -8,7 +8,6 @@ import MLXLLM
 import MLXLMCommon
 import MLXNN
 import MLXOptimizers
-import MLXRandom
 import Tokenizers
 
 struct LoRACommand: AsyncParsableCommand {

@@ -2,7 +2,6 @@
 
 import Foundation
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
 
@@ -176,7 +175,7 @@ private class Attention: Module {
     }
 
     func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
     ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
 
@@ -243,7 +242,7 @@ private class TransformerBlock: Module {
     }
 
     func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
     ) -> MLXArray {
         var r = attention(inputLayerNorm(x), mask: mask, cache: cache)
         let h = x + r
@@ -273,7 +272,7 @@ private class LlamaModelInner: Module {
     func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
         var h = embedTokens(inputs)
 
-        let mask: MLXArray? = createAttentionMask(h: h, cache: cache)
+        let mask = createAttentionMask(h: h, cache: cache)
 
         for (i, layer) in layers.enumerated() {
             h = layer(h, mask: mask, cache: cache?[i])
@@ -336,6 +335,30 @@ public struct LlamaConfiguration: Codable, Sendable {
     var tieWordEmbeddings: Bool = true
     var attentionBias: Bool = false
     var mlpBias: Bool = false
+
+    public init(
+        hiddenSize: Int, hiddenLayers: Int, intermediateSize: Int, attentionHeads: Int,
+        headDimensions: Int? = nil, rmsNormEps: Float, vocabularySize: Int, kvHeads: Int,
+        maxPositionEmbeddings: Int? = nil, ropeTheta: Float = 10_000, ropeTraditional: Bool = false,
+        ropeScaling: [String: StringOrNumber]? = nil, tieWordEmbeddings: Bool = true,
+        attentionBias: Bool = false, mlpBias: Bool = false
+    ) {
+        self.hiddenSize = hiddenSize
+        self.hiddenLayers = hiddenLayers
+        self.intermediateSize = intermediateSize
+        self.attentionHeads = attentionHeads
+        self.headDimensions = headDimensions
+        self.rmsNormEps = rmsNormEps
+        self.vocabularySize = vocabularySize
+        self.kvHeads = kvHeads
+        self.maxPositionEmbeddings = maxPositionEmbeddings
+        self.ropeTheta = ropeTheta
+        self.ropeTraditional = ropeTraditional
+        self.ropeScaling = ropeScaling
+        self.tieWordEmbeddings = tieWordEmbeddings
+        self.attentionBias = attentionBias
+        self.mlpBias = mlpBias
+    }
 
     var resolvedHeadDimensions: Int {
         headDimensions ?? (hiddenSize / attentionHeads)

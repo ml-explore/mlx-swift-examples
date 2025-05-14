@@ -5,7 +5,6 @@ import MLX
 import MLXLMCommon
 import MLXNN
 import MLXOptimizers
-import MLXRandom
 import Tokenizers
 
 /// Equivalent to `lora.py/iterate_batches()`.  Used internally by ``LoRATrain``.

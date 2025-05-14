@@ -1,10 +1,29 @@
 import Foundation
 import MLX
-import MLXFast
 import MLXNN
-import MLXRandom
 
 // Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/switch_layers.py
+
+private func gatherSort(x: MLXArray, indices: MLXArray) -> (MLXArray, MLXArray, MLXArray) {
+    let m = indices.dim(-1)
+    let indices = indices.flattened()
+    let order = argSort(indices)
+    let inverseOrder = argSort(order)
+
+    return (
+        x.flattened(start: 0, end: -3)[order.floorDivide(m)],
+        indices[order],
+        inverseOrder
+    )
+}
+
+private func scatterUnsort(x: MLXArray, invOrder: MLXArray, shape: [Int]? = nil) -> MLXArray {
+    var x = x[invOrder]
+    if let shape {
+        x = unflatten(x, axis: 0, shape: shape)
+    }
+    return x
+}
 
 // MARK: - SwitchGLU
 
@@ -41,13 +60,29 @@ class SwitchGLU: Module {
     }
 
     func callAsFunction(_ x: MLXArray, _ indices: MLXArray) -> MLXArray {
-        let x = MLX.expandedDimensions(x, axes: [-2, -3])
+        var x = MLX.expandedDimensions(x, axes: [-2, -3])
 
-        let xUp = upProj(x, indices)
-        let xGate = gateProj(x, indices)
-        let xDown = downProj(activation(xGate) * xUp, indices)
+        let doSort = indices.size > 64
 
-        return MLX.squeezed(xDown, axis: -2)
+        var idx = indices
+        var inverseOrder = MLXArray()
+
+        if doSort {
+            (x, idx, inverseOrder) = gatherSort(x: x, indices: indices)
+        }
+
+        let xUp = upProj(x, idx, sortedIndices: doSort)
+        let xGate = gateProj(x, idx, sortedIndices: doSort)
+        x = downProj(
+            activation(xGate) * xUp,
+            idx,
+            sortedIndices: doSort)
+
+        if doSort {
+            x = scatterUnsort(x: x, invOrder: inverseOrder, shape: indices.shape)
+        }
+
+        return MLX.squeezed(x, axis: -2)
     }
 }
 
@@ -94,9 +129,11 @@ class SwitchLinear: Module, Quantizable {
         self._bias.wrappedValue = bias
     }
 
-    func callAsFunction(_ x: MLXArray, _ indices: MLXArray) -> MLXArray {
+    func callAsFunction(
+        _ x: MLXArray, _ indices: MLXArray, sortedIndices: Bool = false
+    ) -> MLXArray {
         let weightT = self.weight.swappedAxes(-1, -2)
-        var result = MLX.gatherMatmul(x, weightT, rhsIndices: indices)
+        var result = MLX.gatherMatmul(x, weightT, rhsIndices: indices, sortedIndices: sortedIndices)
 
         if let bias = self.bias {
             result = result + MLX.expandedDimensions(bias[indices], axis: -2)
@@ -110,7 +147,7 @@ class SwitchLinear: Module, Quantizable {
     }
 }
 
-class QuantizedSwitchLinear: SwitchLinear {
+class QuantizedSwitchLinear: SwitchLinear, Quantized {
     @ModuleInfo(key: "scales") var scales: MLXArray
     @ModuleInfo(key: "biases") var biases: MLXArray
 
@@ -134,7 +171,9 @@ class QuantizedSwitchLinear: SwitchLinear {
         self.freeze()
     }
 
-    override func callAsFunction(_ x: MLXArray, _ indices: MLXArray) -> MLXArray {
+    override func callAsFunction(
+        _ x: MLXArray, _ indices: MLXArray, sortedIndices: Bool = false
+    ) -> MLXArray {
         var result = MLX.gatherQuantizedMatmul(
             x,
             self.weight,
@@ -143,7 +182,8 @@ class QuantizedSwitchLinear: SwitchLinear {
             rhsIndices: indices,
             transpose: true,
             groupSize: self.groupSize,
-            bits: self.bits
+            bits: self.bits,
+            sortedIndices: sortedIndices
         )
 
         if let bias = self.bias {

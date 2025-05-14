@@ -9,7 +9,6 @@
 
 import Foundation
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
 
@@ -55,7 +54,9 @@ private class Attention: Module {
         rope = RoPE(dimensions: headDim, traditional: false, base: args.ropeTheta, scale: ropeScale)
     }
 
-    public func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?) -> MLXArray {
+    public func callAsFunction(
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
+    ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
 
         var queries = wq(x)
@@ -130,7 +131,9 @@ private class TransformerBlock: Module {
         self.residualMultiplier = args.residualMultiplier
     }
 
-    public func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?) -> MLXArray {
+    public func callAsFunction(
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
+    ) -> MLXArray {
         var r = attention(inputLayerNorm(x), mask: mask, cache: cache)
         let h = x + r * residualMultiplier
         r = mlp(postAttentionLayerNorm(h))
@@ -162,7 +165,7 @@ private class GraniteModelInner: Module {
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
         var h = embedTokens(inputs) * embeddingMultiplier
 
-        let mask: MLXArray? = createAttentionMask(h: h, cache: cache)
+        let mask = createAttentionMask(h: h, cache: cache)
 
         for (i, layer) in layers.enumerated() {
             h = layer(h, mask: mask, cache: cache?[i])

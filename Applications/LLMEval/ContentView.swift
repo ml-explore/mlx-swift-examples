@@ -4,7 +4,6 @@ import AsyncAlgorithms
 import MLX
 import MLXLLM
 import MLXLMCommon
-import MLXRandom
 import MarkdownUI
 import Metal
 import SwiftUI

@@ -4,7 +4,6 @@ import CoreImage
 import Foundation
 import Hub
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
 import Tokenizers
@@ -196,7 +195,7 @@ private enum Language {
                 fatalError("one of inputs or inputEmbedding must be non-nil")
             }
 
-            let mask = createAttentionMask(h: h, cache: cache)
+            let mask: MLXArray? = createAttentionMask(h: h, cache: cache)
 
             for (i, layer) in layers.enumerated() {
                 h = layer(h, mask: mask, cache: cache?[i])
@@ -550,14 +549,14 @@ private enum Vision {
             // Create attention mask
             let attentionMask = full(
                 [1, sequenceLength, sequenceLength],
-                values: Int8(-127))
+                values: false)
 
             // Update mask for each sequence
             let cuSeqlens = cuSeqlens.asArray(Int.self)
             for i in 1 ..< cuSeqlens.count {
                 let start = cuSeqlens[i - 1]
                 let end = cuSeqlens[i]
-                attentionMask[0..., start ..< end, start ..< end] = MLXArray(Int8(0))
+                attentionMask[0..., start ..< end, start ..< end] = MLXArray(true)
             }
 
             return attentionMask

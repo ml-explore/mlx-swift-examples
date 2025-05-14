@@ -1,7 +1,6 @@
 // Copyright © 2024 Apple Inc.
 
 import MLX
-import MLXFast
 import MLXNN
 
 extension MLXArray {
@@ -41,7 +40,7 @@ private class BertEmbedding: Module {
         tokenTypeIds: MLXArray? = nil
     ) -> MLXArray {
         let posIds = positionIds ?? broadcast(MLXArray.arange(inputIds.dim(1)), to: inputIds.shape)
-        let words = wordEmbeddings(inputIds) + positionEmbeddings(posIds)
+        var words = wordEmbeddings(inputIds) + positionEmbeddings(posIds)
         if let tokenTypeIds, let tokenTypeEmbeddings {
             words += tokenTypeEmbeddings(tokenTypeIds)
         }

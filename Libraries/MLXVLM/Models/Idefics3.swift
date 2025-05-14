@@ -9,7 +9,6 @@ import CoreImage
 import Foundation
 import Hub
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
 import Tokenizers
@@ -220,8 +219,9 @@ private enum Language {
             )
         }
 
-        func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache? = nil) -> MLXArray
-        {
+        func callAsFunction(
+            _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache? = nil
+        ) -> MLXArray {
             let B = x.dim(0)
             let L = x.dim(1)
             var q = q_proj(x)
@@ -296,7 +296,9 @@ private enum Language {
             )
         }
 
-        func callAsFunction(_ x: MLXArray, mask: MLXArray?, cache: KVCache?) -> MLXArray {
+        func callAsFunction(
+            _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
+        ) -> MLXArray {
             let a = selfAttn(inputLayerNorm(x), mask: mask, cache: cache)
             let h = x + a
             let m = mlp(postAttentionLayerNorm(h))
