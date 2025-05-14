@@ -194,7 +194,8 @@ public class GLM4Model: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct GLM4Configuration: Codable, Sendable {
+@Codable
+public struct GLM4Configuration: Sendable {
     @CodingKey("hidden_size") public var hiddenSize: Int
     @CodingKey("num_hidden_layers") public var hiddenLayers: Int
     @CodingKey("intermediate_size") public var intermediateSize: Int
