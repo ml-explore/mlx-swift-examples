@@ -38,7 +38,7 @@ public func createAttentionMask(h: MLXArray, cache: [KVCache]?) -> MLXArray? {
     return nil
 }
 
-/// See https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/base.py#L11
+/// See https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/base.py#L11
 public class KVCacheSimple: KVCache, Evaluatable, CustomDebugStringConvertible {
     var keys: MLXArray?
     var values: MLXArray?

@@ -4,7 +4,7 @@ import MLXFast
 import MLXNN
 import MLXRandom
 
-// Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/switch_layers.py
+// Port of https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/switch_layers.py
 
 // MARK: - SwitchGLU
 

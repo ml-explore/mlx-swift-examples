@@ -6,7 +6,7 @@ import MLXFast
 import MLXLMCommon
 import MLXNN
 
-// https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/phi.py
+// https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/phi.py
 
 private class PhiAttention: Module {
 

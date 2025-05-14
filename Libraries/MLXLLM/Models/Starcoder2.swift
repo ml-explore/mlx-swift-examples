@@ -11,7 +11,7 @@ import MLXFast
 import MLXLMCommon
 import MLXNN
 
-// port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/starcoder2.py
+// port of https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/starcoder2.py
 
 private class Attention: Module {
     let args: Starcoder2Configuration

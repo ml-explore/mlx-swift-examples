@@ -11,7 +11,7 @@
 
 This is a port of several models from:
 
-- https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/
+- https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/
 
 using the Hugging Face swift transformers package to provide tokenization:
 

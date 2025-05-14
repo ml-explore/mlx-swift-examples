@@ -222,7 +222,7 @@ public class Phi3Model: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-struct RopeScalingWithFactorArrays: Codable {
+struct RopeScalingWithFactorArrays: Codable, Sendable {
     let longFactor: [Float]?
     let shortFactor: [Float]?
     let factor: Float?
