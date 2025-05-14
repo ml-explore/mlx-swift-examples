@@ -11,6 +11,7 @@ import MLXFast
 import MLXLMCommon
 import MLXNN
 import Tokenizers
+import ReerCodable
 
 // port of https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/bitnet.py
 
@@ -155,112 +156,31 @@ private class BitLinear: Module {
 
 // MARK: - Model Configuration
 
-public struct BitnetConfiguration: Codable, Sendable {
-    var modelType: String
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var headDimensions: Int?
-    var maxPositionEmbeddings: Int?
-    var kvHeads: Int?
-    var attentionBias: Bool
-    var mlpBias: Bool
-    var ropeTheta: Float
-    var ropeTraditional: Bool
-    var ropeScaling: [String: StringOrNumber]?
-    var tieWordEmbeddings: Bool
+@Codable
+public struct BitnetConfiguration: Sendable {
+    @CodingKey("model_type") public var modelType: String = "bitnet"
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("head_dim") public var headDimensions: Int?
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int?
+    @CodingKey("num_key_value_heads") public var kvHeads: Int?
+    @CodingKey("attention_bias") public var attentionBias: Bool = false
+    @CodingKey("mlp_bias") public var mlpBias: Bool = false
+    @CodingKey("rope_theta") public var ropeTheta: Float = 10000
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]?
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = true
 
-    public init(
-        modelType: String = "bitnet",
-        hiddenSize: Int,
-        hiddenLayers: Int,
-        intermediateSize: Int,
-        attentionHeads: Int,
-        rmsNormEps: Float,
-        vocabularySize: Int,
-        headDimensions: Int? = nil,
-        maxPositionEmbeddings: Int? = nil,
-        kvHeads: Int? = nil,
-        attentionBias: Bool = false,
-        mlpBias: Bool = false,
-        ropeTheta: Float = 10000,
-        ropeTraditional: Bool = false,
-        ropeScaling: [String: StringOrNumber]? = nil,
-        tieWordEmbeddings: Bool = true
-    ) {
-        self.modelType = modelType
-        self.hiddenSize = hiddenSize
-        self.hiddenLayers = hiddenLayers
-        self.intermediateSize = intermediateSize
-        self.attentionHeads = attentionHeads
-        self.rmsNormEps = rmsNormEps
-        self.vocabularySize = vocabularySize
-        self.headDimensions = headDimensions
-        self.maxPositionEmbeddings = maxPositionEmbeddings
-        self.kvHeads = kvHeads ?? attentionHeads
-        self.attentionBias = attentionBias
-        self.mlpBias = mlpBias
-        self.ropeTheta = ropeTheta
-        self.ropeTraditional = ropeTraditional
-        self.ropeScaling = ropeScaling
-        self.tieWordEmbeddings = tieWordEmbeddings
-    }
-
-    var resolvedKvHeads: Int {
+    public var resolvedKvHeads: Int {
         kvHeads ?? attentionHeads
     }
 
-    var resolvedHeadDimensions: Int {
+    public var resolvedHeadDimensions: Int {
         headDimensions ?? (hiddenSize / attentionHeads)
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case headDimensions = "head_dim"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case kvHeads = "num_key_value_heads"
-        case attentionBias = "attention_bias"
-        case mlpBias = "mlp_bias"
-        case ropeTheta = "rope_theta"
-        case ropeTraditional = "rope_traditional"
-        case ropeScaling = "rope_scaling"
-        case tieWordEmbeddings = "tie_word_embeddings"
-    }
-
-    public init(from decoder: Swift.Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-
-        modelType = try container.decodeIfPresent(String.self, forKey: .modelType) ?? "bitnet"
-        hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
-        intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
-        attentionHeads = try container.decode(Int.self, forKey: .attentionHeads)
-        rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
-        vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
-        headDimensions = try container.decodeIfPresent(Int.self, forKey: .headDimensions)
-        maxPositionEmbeddings = try container.decodeIfPresent(
-            Int.self, forKey: .maxPositionEmbeddings
-        )
-        kvHeads = try container.decodeIfPresent(Int.self, forKey: .kvHeads) ?? attentionHeads
-        attentionBias = try container.decodeIfPresent(Bool.self, forKey: .attentionBias) ?? false
-        mlpBias = try container.decodeIfPresent(Bool.self, forKey: .mlpBias) ?? false
-        ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 10000
-        ropeTraditional =
-            try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
-        ropeScaling = try container.decodeIfPresent(
-            [String: StringOrNumber].self, forKey: .ropeScaling
-        )
-        tieWordEmbeddings =
-            try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? true
     }
 }
 

@@ -5,8 +5,9 @@ import MLX
 import MLXLMCommon
 import MLXNN
 import Tokenizers
+import ReerCodable
 
-// Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/gemma.py
+// Port of https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/gemma.py
 
 // Specialized norm for Gemma
 private class RMSNorm: Module, UnaryLayer {
@@ -178,11 +179,9 @@ public class GemmaModel: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
     public let kvHeads: [Int]
 
-    let modelType: String
     private let model: GemmaModelInner
 
     public init(_ args: GemmaConfiguration) {
-        self.modelType = args.modelType
         self.vocabularySize = args.vocabularySize
         self.kvHeads = Array(repeating: args.kvHeads, count: args.hiddenLayers)
         self.model = GemmaModelInner(args)
@@ -198,34 +197,18 @@ public class GemmaModel: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct GemmaConfiguration: Codable, Sendable {
-    var modelType: String
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var headDimensions: Int
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var kvHeads: Int
-    private let _ropeTheta: Float?
-    public var ropeTheta: Float { _ropeTheta ?? 10_000 }
-    private let _ropeTraditional: Bool?
-    public var ropeTraditional: Bool { _ropeTraditional ?? false }
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case headDimensions = "head_dim"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case kvHeads = "num_key_value_heads"
-        case _ropeTheta = "rope_theta"
-        case _ropeTraditional = "rope_traditional"
-    }
+@Codable
+public struct GemmaConfiguration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("head_dim") public var headDimensions: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("rope_theta") public var ropeTheta: Float = 10_000
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
 }
 
 // MARK: - LoRA

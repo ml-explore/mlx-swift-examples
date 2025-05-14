@@ -8,6 +8,7 @@
 import Foundation
 import MLX
 import MLXNN
+import ReerCodable
 
 /// Configuration for how LoRA or DoRA should be applied.
 ///
@@ -24,43 +25,24 @@ import MLXNN
 ///   }
 /// }
 /// ```
-public struct LoRAConfiguration: Codable {
+@Codable
+public struct LoRAConfiguration {
 
     public enum FineTuneType: String, Codable {
         case lora
         case dora
     }
 
-    public struct LoRAParameters: Codable {
+    @Codable
+    public struct LoRAParameters {
 
-        public let rank: Int
-        public let scale: Float
-
-        public init(rank: Int = 8, scale: Float = 10.0) {
-            self.rank = rank
-            self.scale = scale
-        }
+        public var rank = 8
+        public var scale: Float = 10.0
     }
 
-    public let numLayers: Int
-    public let fineTuneType: FineTuneType
-    public let loraParameters: LoRAParameters
-
-    public init(
-        numLayers: Int = 16,
-        fineTuneType: FineTuneType = .lora,
-        loraParameters: LoRAParameters = .init()
-    ) {
-        self.numLayers = numLayers
-        self.fineTuneType = fineTuneType
-        self.loraParameters = loraParameters
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case numLayers = "num_layers"
-        case fineTuneType = "fine_tune_type"
-        case loraParameters = "lora_parameters"
-    }
+    @CodingKey("num_layers") public var numLayers: Int = 16
+    @CodingKey("fine_tune_type") public var fineTuneType: FineTuneType = .lora
+    @CodingKey("lora_parameters") public var loraParameters = LoRAParameters()
 }
 
 /// A container for managing LoRA or DoRA adapters and applying them to a language model.

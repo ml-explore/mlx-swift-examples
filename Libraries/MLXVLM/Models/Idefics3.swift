@@ -11,110 +11,50 @@ import Hub
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 import Tokenizers
 
 // MARK: - Configuration
 
-public struct Idefics3Configuration: Codable, Sendable {
+@Codable
+public struct Idefics3Configuration: Sendable {
 
-    public struct TextConfiguration: Codable, Sendable {
-        public let modelType: String
-        public let hiddenSize: Int
-        public var numHiddenLayers: Int { _numHiddenLayers ?? 32 }
-        public let intermediateSize: Int
-        public let numAttentionHeads: Int
-        public let rmsNormEps: Float
-        public let vocabSize: Int
-        public let numKeyValueHeads: Int
-        public let ropeTheta: Float
-        public var ropeTraditional: Bool { _ropeTraditional ?? false }
-        public var tieWordEmbeddings: Bool { _tieWordEmbeddings ?? false }
-
-        private let _numHiddenLayers: Int?
-        private let _ropeTraditional: Bool?
-        private let _tieWordEmbeddings: Bool?
-
-        enum CodingKeys: String, CodingKey {
-            case modelType = "model_type"
-            case hiddenSize = "hidden_size"
-            case _numHiddenLayers = "num_hidden_layers"
-            case intermediateSize = "intermediate_size"
-            case numAttentionHeads = "num_attention_heads"
-            case rmsNormEps = "rms_norm_eps"
-            case vocabSize = "vocab_size"
-            case numKeyValueHeads = "num_key_value_heads"
-            case ropeTheta = "rope_theta"
-            case _ropeTraditional = "rope_traditional"
-            case _tieWordEmbeddings = "tie_word_embeddings"
-        }
+    @Codable
+    public struct TextConfiguration: Sendable {
+        @CodingKey("model_type") public var modelType: String
+        @CodingKey("hidden_size") public var hiddenSize: Int
+        @CodingKey("num_hidden_layers") public var numHiddenLayers: Int = 32
+        @CodingKey("intermediate_size") public var intermediateSize: Int
+        @CodingKey("num_attention_heads") public var numAttentionHeads: Int
+        @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+        @CodingKey("vocab_size") public var vocabSize: Int
+        @CodingKey("num_key_value_heads") public var numKeyValueHeads: Int
+        @CodingKey("rope_theta") public var ropeTheta: Float
+        @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
+        @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = false
     }
 
-    public struct VisionConfiguration: Codable, Sendable {
-        public let modelType: String
-        public var numHiddenLayers: Int { _numHiddenLayers ?? 12 }
-        public let hiddenSize: Int
-        public var intermediateSize: Int { _intermediateSize ?? 3072 }
-        public let numAttentionHeads: Int
-        public let patchSize: Int
-        public let imageSize: Int
-        public var numChannels: Int { _numChannels ?? 3 }
-        public var layerNormEps: Float { _layerNormEps ?? 1e-6 }
-
-        private let _numHiddenLayers: Int?
-        private let _intermediateSize: Int?
-        private let _numChannels: Int?
-        private let _layerNormEps: Float?
-
-        enum CodingKeys: String, CodingKey {
-            case modelType = "model_type"
-            case _numHiddenLayers = "num_hidden_layers"
-            case hiddenSize = "hidden_size"
-            case _intermediateSize = "intermediate_size"
-            case numAttentionHeads = "num_attention_heads"
-            case patchSize = "patch_size"
-            case imageSize = "image_size"
-            case _numChannels = "num_channels"
-            case _layerNormEps = "layer_norm_eps"
-        }
+    @Codable
+    public struct VisionConfiguration: Sendable {
+        @CodingKey("model_type") public var modelType: String
+        @CodingKey("num_hidden_layers") public var numHiddenLayers: Int = 12
+        @CodingKey("hidden_size") public var hiddenSize: Int
+        @CodingKey("intermediate_size") public var intermediateSize: Int = 3072
+        @CodingKey("num_attention_heads") public var numAttentionHeads: Int
+        @CodingKey("patch_size") public var patchSize: Int
+        @CodingKey("image_size") public var imageSize: Int
+        @CodingKey("num_channels") public var numChannels: Int = 3
+        @CodingKey("layer_norm_eps") public var layerNormEps: Float = 1e-6
     }
 
-    public let textConfig: TextConfiguration
-    public let visionConfig: VisionConfiguration
-    public let modelType: String
-    public let ignoreIndex: Int
-    public let vocabSize: Int
-    public let scaleFactor: Int
-    public let imageTokenId: Int
-    public let imageTokenIndex: Int
-
-    enum CodingKeys: String, CodingKey {
-        case textConfig = "text_config"
-        case visionConfig = "vision_config"
-        case modelType = "model_type"
-        case ignoreIndex = "ignore_index"
-        case vocabSize = "vocab_size"
-        case scaleFactor = "scale_factor"
-        case imageTokenId = "image_token_id"
-        case imageTokenIndex = "image_token_index"
-    }
-
-    public init(from decoder: any Swift.Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-
-        self.textConfig =
-            try container
-            .decode(TextConfiguration.self, forKey: .textConfig)
-        self.visionConfig =
-            try container
-            .decode(VisionConfiguration.self, forKey: .visionConfig)
-        self.modelType = try container.decode(String.self, forKey: .modelType)
-        self.ignoreIndex = (try? container.decode(Int.self, forKey: .ignoreIndex)) ?? -100
-        self.vocabSize = (try? container.decode(Int.self, forKey: .vocabSize)) ?? 128259
-        self.scaleFactor = (try? container.decode(Int.self, forKey: .scaleFactor)) ?? 2
-        self.imageTokenId = (try? container.decode(Int.self, forKey: .imageTokenId)) ?? 49153
-        self.imageTokenIndex =
-            (try? container.decode(Int.self, forKey: .imageTokenIndex)) ?? self.imageTokenId
-    }
+    @CodingKey("text_config") public var textConfig: TextConfiguration
+    @CodingKey("vision_config") public var visionConfig: VisionConfiguration
+    @CodingKey("model_type") public var modelType: String
+    @CodingKey("ignore_index") public var ignoreIndex: Int = -10
+    @CodingKey("vocab_size") public var vocabSize: Int = 128259
+    @CodingKey("scale_factor") public var scaleFactor: Int = 2
+    @CodingKey("image_token_id") public var imageTokenId: Int = 49153
+    @CodingKey("image_token_index", "image_token_id") public var imageTokenIndex: Int
 }
 
 // MARK: - Connector
@@ -776,31 +716,24 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
 }
 
 // MARK: - Processor Configuration
-public struct Idefics3ProcessorConfiguration: Codable, Sendable {
-    public struct Size: Codable, Sendable {
-        public let longestEdge: Int
-        enum CodingKeys: String, CodingKey {
-            case longestEdge = "longest_edge"
-        }
+@Codable
+public struct Idefics3ProcessorConfiguration: Sendable {
+
+    @Codable
+    public struct Size: Sendable {
+        @CodingKey("longest_edge") public var longestEdge: Int
     }
 
-    public let imageMean: [CGFloat]
-    public let imageStd: [CGFloat]
-    public let size: Size
-    public let imageSequenceLength: Int?
+    @CodingKey("image_mean") public var imageMean: [CGFloat]
+    @CodingKey("image_std") public var imageStd: [CGFloat]
+    public var size: Size
+    @CodingKey("image_seq_len") public var imageSequenceLength: Int?
 
     public var imageMeanTuple: (CGFloat, CGFloat, CGFloat) {
         (imageMean[0], imageMean[1], imageMean[2])
     }
     public var imageStdTuple: (CGFloat, CGFloat, CGFloat) {
         (imageStd[0], imageStd[1], imageStd[2])
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case imageMean = "image_mean"
-        case imageStd = "image_std"
-        case size
-        case imageSequenceLength = "image_seq_len"
     }
 }
 

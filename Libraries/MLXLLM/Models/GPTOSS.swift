@@ -11,63 +11,27 @@ import MLXFast
 import MLXLMCommon
 import MLXNN
 import MLXRandom
+import ReerCodable
 
 // MARK: - Configuration
 
-public struct GPTOSSConfiguration: Codable, Sendable {
-    public var modelType: String = "gpt_oss"
-    public var hiddenLayers: Int = 36
-    public var localExperts: Int = 128
-    public var expertsPerToken: Int = 4
-    public var vocabularySize: Int = 201088
-    public var rmsNormEps: Float = 1e-5
-    public var hiddenSize: Int = 2880
-    public var intermediateSize: Int = 2880
-    public var headDim: Int = 64
-    public var attentionHeads: Int = 64
-    public var kvHeads: Int = 8
-    public var slidingWindow: Int = 128
-    public var ropeTheta: Float = 150000
-    public var ropeScaling: [String: StringOrNumber]? = nil
-    public var layerTypes: [String]? = nil
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case hiddenLayers = "num_hidden_layers"
-        case localExperts = "num_local_experts"
-        case expertsPerToken = "num_experts_per_tok"
-        case vocabularySize = "vocab_size"
-        case rmsNormEps = "rms_norm_eps"
-        case hiddenSize = "hidden_size"
-        case intermediateSize = "intermediate_size"
-        case headDim = "head_dim"
-        case attentionHeads = "num_attention_heads"
-        case kvHeads = "num_key_value_heads"
-        case slidingWindow = "sliding_window"
-        case ropeTheta = "rope_theta"
-        case ropeScaling = "rope_scaling"
-        case layerTypes = "layer_types"
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.modelType = try container.decode(String.self, forKey: .modelType)
-        self.hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
-        self.localExperts = try container.decode(Int.self, forKey: .localExperts)
-        self.expertsPerToken = try container.decode(Int.self, forKey: .expertsPerToken)
-        self.vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
-        self.rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
-        self.hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        self.intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
-        self.headDim = try container.decode(Int.self, forKey: .headDim)
-        self.attentionHeads = try container.decode(Int.self, forKey: .attentionHeads)
-        self.kvHeads = try container.decode(Int.self, forKey: .kvHeads)
-        self.slidingWindow = try container.decode(Int.self, forKey: .slidingWindow)
-        self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 150000
-        self.ropeScaling = try container.decodeIfPresent(
-            [String: StringOrNumber].self, forKey: .ropeScaling)
-        self.layerTypes = try container.decodeIfPresent([String].self, forKey: .layerTypes)
-    }
+@Codable
+public struct GPTOSSConfiguration: Sendable {
+    @CodingKey("model_type") public var modelType: String = "gpt_oss"
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int = 36
+    @CodingKey("num_local_experts") public var localExperts: Int = 128
+    @CodingKey("num_experts_per_tok") public var expertsPerToken: Int = 4
+    @CodingKey("vocab_size") public var vocabularySize: Int = 201088
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float = 1e-5
+    @CodingKey("hidden_size") public var hiddenSize: Int = 2880
+    @CodingKey("intermediate_size") public var intermediateSize: Int = 2880
+    @CodingKey("head_dim") public var headDim: Int = 64
+    @CodingKey("num_attention_heads") public var attentionHeads: Int = 64
+    @CodingKey("num_key_value_heads") public var kvHeads: Int = 8
+    @CodingKey("sliding_window") public var slidingWindow: Int = 128
+    @CodingKey("rope_theta") public var ropeTheta: Float = 150000
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]? = nil
+    @CodingKey("layer_types") public var layerTypes: [String]? = nil
 }
 
 private func mlxTopK(_ a: MLXArray, k: Int, axis: Int = -1) -> (values: MLXArray, indices: MLXArray)

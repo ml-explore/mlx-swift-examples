@@ -13,78 +13,47 @@ import MLXFast
 import MLXLLM
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
-public struct Gemma3TextConfiguration: Codable {
-    let modelType: String
-    let hiddenSize: Int
-    let hiddenLayers: Int
-    let intermediateSize: Int
-    let attentionHeads: Int
-    let headDim: Int
-    let rmsNormEps: Float
-    let vocabularySize: Int
-    let kvHeads: Int
-    let ropeGlobalBaseFreq: Float
-    let ropeLocalBaseFreq: Float
-    let ropeTraditional: Bool
-    let queryPreAttnScalar: Float
-    let slidingWindow: Int
-    let slidingWindowPattern: Int
+@Codable
+public struct Gemma3TextConfiguration: Sendable {
+    @CodingKey("model_type") public var modelType: String
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int = 4
+    @CodingKey("head_dim") public var headDim: Int = 256
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float = 1.0e-6
+    @CodingKey("vocab_size") public var vocabularySize: Int = 262144
+    @CodingKey("num_key_value_heads") public var kvHeads: Int = 1
+    @CodingKey("rope_global_base_freq") public var ropeGlobalBaseFreq: Float = 1_000_000.0
+    @CodingKey("rope_local_base_freq") public var ropeLocalBaseFreq: Float = 10_000.0
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
+    @CodingKey("query_pre_attn_scalar") public var queryPreAttnScalar: Float = 256
+    @CodingKey("sliding_window") public var slidingWindow: Int = 512
+    @CodingKey("sliding_window_pattern") public var slidingWindowPattern: Int = 6
+}
 
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case headDim = "head_dim"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case kvHeads = "num_key_value_heads"
-        case ropeGlobalBaseFreq = "rope_global_base_freq"
-        case ropeLocalBaseFreq = "rope_local_base_freq"
-        case ropeTraditional = "rope_traditional"
-        case queryPreAttnScalar = "query_pre_attn_scalar"
-        case slidingWindow = "sliding_window"
-        case slidingWindowPattern = "sliding_window_pattern"
-    }
-
+public struct Gemma3TextConfigurationContainer: Codable, Sendable {
+    public var configuration: Gemma3TextConfiguration
+    
     enum VLMCodingKeys: String, CodingKey {
         case textConfig = "text_config"
     }
 
-    public init(from decoder: Decoder) throws {
-        let nestedContainer = try decoder.container(keyedBy: VLMCodingKeys.self)
-
+    public init(from decoder: any Decoder) throws {
         // in the case of VLM models convertered using mlx_lm.convert
         // the configuration will still match the VLMs and be under text_config
-        let container =
-            if nestedContainer.contains(.textConfig) {
-                try nestedContainer.nestedContainer(keyedBy: CodingKeys.self, forKey: .textConfig)
-            } else {
-                try decoder.container(keyedBy: CodingKeys.self)
-            }
-
-        modelType = try container.decode(String.self, forKey: .modelType)
-        hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
-        intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
-        attentionHeads = try container.decodeIfPresent(Int.self, forKey: .attentionHeads) ?? 4
-        headDim = try container.decodeIfPresent(Int.self, forKey: .headDim) ?? 256
-        rmsNormEps = try container.decodeIfPresent(Float.self, forKey: .rmsNormEps) ?? 1.0e-6
-        vocabularySize = try container.decodeIfPresent(Int.self, forKey: .vocabularySize) ?? 262144
-        kvHeads = try container.decodeIfPresent(Int.self, forKey: .kvHeads) ?? 1
-        ropeGlobalBaseFreq =
-            try container.decodeIfPresent(Float.self, forKey: .ropeGlobalBaseFreq) ?? 1_000_000.0
-        ropeLocalBaseFreq =
-            try container.decodeIfPresent(Float.self, forKey: .ropeLocalBaseFreq) ?? 10_000.0
-        ropeTraditional =
-            try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
-        queryPreAttnScalar =
-            try container.decodeIfPresent(Float.self, forKey: .queryPreAttnScalar) ?? 256
-        slidingWindow = try container.decodeIfPresent(Int.self, forKey: .slidingWindow) ?? 512
-        slidingWindowPattern =
-            try container.decodeIfPresent(Int.self, forKey: .slidingWindowPattern) ?? 6
+        let nestedContainer = try decoder.container(keyedBy: VLMCodingKeys.self)
+        if let configuration = try nestedContainer.decodeIfPresent(Gemma3TextConfiguration.self, forKey: .textConfig) {
+            self.configuration = configuration
+        } else {
+            self.configuration = try Gemma3TextConfiguration(from: decoder)
+        }
+    }
+    
+    public func encode(to encoder: any Encoder) throws {
+        try configuration.encode(to: encoder)
     }
 }
 
@@ -335,6 +304,10 @@ public class Gemma3TextModel: Module, LLMModel {
 
     public let config: Gemma3TextConfiguration
     public var vocabularySize: Int { config.vocabularySize }
+    
+    convenience public init(_ config: Gemma3TextConfigurationContainer) {
+        self.init(config.configuration)
+    }
 
     public init(_ config: Gemma3TextConfiguration) {
         self.config = config

@@ -10,6 +10,7 @@ import CoreMedia
 import Foundation
 import MLX
 import MLXLMCommon
+import ReerCodable
 import Tokenizers
 
 // MARK: - Configuration and modeling are Idefics3
@@ -18,62 +19,34 @@ typealias SmolVLM2Configuration = Idefics3Configuration
 typealias SmolVLM2 = Idefics3
 
 // MARK: - SmolVLMProcessor and configuration
+@Codable
+public struct SmolVLMProcessorConfiguration: Sendable {
 
-public struct SmolVLMProcessorConfiguration: Codable, Sendable {
-    public struct Size: Codable, Sendable {
-        public let longestEdge: Int
-        enum CodingKeys: String, CodingKey {
-            case longestEdge = "longest_edge"
-        }
+    @Codable
+    public struct Size: Sendable {
+        @CodingKey("longest_edge") public var longestEdge: Int
     }
 
-    public struct VideoSampling: Codable, Sendable {
-        public let fps: Int
-        public let maxFrames: Int
+    @Codable
+    public struct VideoSampling: Sendable {
+        public var fps: Int
+        @CodingKey("max_frames") public var maxFrames: Int
         // Intentionally ignoring videoSize because I believe it's still wrong in the config files
         //        public let videoSize: Size
-
-        enum CodingKeys: String, CodingKey {
-            case fps
-            case maxFrames = "max_frames"
-        }
     }
 
-    public let imageMean: [CGFloat]
-    public let imageStd: [CGFloat]
-    public let size: Size
-    public let maxImageSize: Size
-    public let videoSampling: VideoSampling
-    private let _imageSequenceLength: Int?
-    // TODO: this does not come in preprocessor_config.json, verify where transformers gets it from
-    public var imageSequenceLength: Int { _imageSequenceLength ?? 64 }
-
-    init(
-        imageMean: [CGFloat], imageStd: [CGFloat], size: Size, maxImageSize: Size,
-        videoSampling: VideoSampling, imageSequenceLength: Int?
-    ) {
-        self.imageMean = imageMean
-        self.imageStd = imageStd
-        self.size = size
-        self.maxImageSize = maxImageSize
-        self.videoSampling = videoSampling
-        self._imageSequenceLength = imageSequenceLength
-    }
+    @CodingKey("image_mean") public var imageMean: [CGFloat]
+    @CodingKey("image_std") public var imageStd: [CGFloat]
+    public var size: Size
+    @CodingKey("max_image_size") public var maxImageSize: Size
+    @CodingKey("video_sampling") public var videoSampling: VideoSampling
+    @CodingKey("image_seq_len") public var imageSequenceLength: Int
 
     public var imageMeanTuple: (CGFloat, CGFloat, CGFloat) {
         (imageMean[0], imageMean[1], imageMean[2])
     }
     public var imageStdTuple: (CGFloat, CGFloat, CGFloat) {
         (imageStd[0], imageStd[1], imageStd[2])
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case imageMean = "image_mean"
-        case imageStd = "image_std"
-        case size
-        case maxImageSize = "max_image_size"
-        case videoSampling = "video_sampling"
-        case _imageSequenceLength = "image_seq_len"
     }
 }
 

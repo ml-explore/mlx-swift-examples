@@ -58,38 +58,24 @@ This will be loaded from a JSON file and used to configure the model, including 
 
 This translates naturally into a `Codable` struct in Swift with a few details:
 
-- The keys in the JSON file will be `snake_case`. The simplest way to accommodate that is to specify `CodingKeys` to name them explicitly.
+- The keys in the JSON file will be `snake_case`.  If using ReerCodable (recommended) you can explicitly give the coding key name as shown or by annotating the property or type with `@SnakeCase`.
 - Some of the parameters have default values.
 
 ```swift
-public struct GemmaConfiguration: Codable, Sendable {
-    var modelType: String
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var headDimensions: Int
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var kvHeads: Int
-    private let _ropeTheta: Float?
-    public var ropeTheta: Float { _ropeTheta ?? 10_000 }
-    private let _ropeTraditional: Bool?
-    public var ropeTraditional: Bool { _ropeTraditional ?? false }
+import ReerCodable
 
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case headDimensions = "head_dim"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case kvHeads = "num_key_value_heads"
-        case _ropeTheta = "rope_theta"
-        case _ropeTraditional = "rope_traditional"
-    }
+@Codable
+public struct GemmaConfiguration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("head_dim") public var headDimensions: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("rope_theta") public var ropeTheta: Float = 10_000
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
 }
 ```
 

@@ -9,55 +9,24 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
 // Port of https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/ernie4_5.py
 
-public struct Ernie45Configuration: Codable {
-    var hiddenSize: Int
-    var intermediateSize: Int
-    var maxPositionEmbeddings: Int
-    var numAttentionHeads: Int
-    var numKeyValueHeads: Int
-    var headDim: Int?
-    var numHiddenLayers: Int
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var ropeTheta: Float
-    var useBias: Bool
-    var tieWordEmbeddings: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case hiddenSize = "hidden_size"
-        case intermediateSize = "intermediate_size"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case numAttentionHeads = "num_attention_heads"
-        case numKeyValueHeads = "num_key_value_heads"
-        case headDim = "head_dim"
-        case numHiddenLayers = "num_hidden_layers"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case ropeTheta = "rope_theta"
-        case useBias = "use_bias"
-        case tieWordEmbeddings = "tie_word_embeddings"
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container: KeyedDecodingContainer<Ernie45Configuration.CodingKeys> =
-            try decoder.container(keyedBy: Ernie45Configuration.CodingKeys.self)
-
-        self.hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        self.intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
-        self.maxPositionEmbeddings = try container.decode(Int.self, forKey: .maxPositionEmbeddings)
-        self.numAttentionHeads = try container.decode(Int.self, forKey: .numAttentionHeads)
-        self.numKeyValueHeads = try container.decode(Int.self, forKey: .numKeyValueHeads)
-        self.headDim = try container.decode(Int.self, forKey: .headDim)
-        self.numHiddenLayers = try container.decode(Int.self, forKey: .numHiddenLayers)
-        self.rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
-        self.vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
-        self.ropeTheta = try container.decode(Float.self, forKey: .ropeTheta)
-        self.useBias = try container.decode(Bool.self, forKey: .useBias)
-        self.tieWordEmbeddings = try container.decode(Bool.self, forKey: .tieWordEmbeddings)
-    }
+@Codable
+public struct Ernie45Configuration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int
+    @CodingKey("num_attention_heads") public var numAttentionHeads: Int
+    @CodingKey("num_key_value_heads") public var numKeyValueHeads: Int
+    @CodingKey("head_dim") public var headDim: Int?
+    @CodingKey("num_hidden_layers") public var numHiddenLayers: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("rope_theta") public var ropeTheta: Float
+    @CodingKey("use_bias") public var useBias: Bool
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool
 }
 
 private class Attention: Module {

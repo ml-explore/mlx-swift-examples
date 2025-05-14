@@ -5,8 +5,9 @@ import MLX
 import MLXLMCommon
 import MLXNN
 import Tokenizers
+import ReerCodable
 
-// Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/gemma2.py
+// Port of https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/gemma2.py
 
 private class Attention: Module {
     let args: Gemma2Configuration
@@ -203,70 +204,21 @@ public class Gemma2Model: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct Gemma2Configuration: Codable {
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var headDimensions: Int
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var kvHeads: Int
-    var ropeTheta: Float = 10_000
-    var ropeTraditional: Bool = false
-    var attnLogitSoftcapping: Float = 50.0
-    var finalLogitSoftcapping: Float = 30.0
-    var queryPreAttnScalar: Float = 144.0
-
-    enum CodingKeys: String, CodingKey {
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case headDimensions = "head_dim"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case kvHeads = "num_key_value_heads"
-        case ropeTheta = "rope_theta"
-        case ropeTraditional = "rope_traditional"
-        case attnLogitSoftcapping = "attn_logit_softcapping"
-        case finalLogitSoftcapping = "final_logit_softcapping"
-        case queryPreAttnScalar = "query_pre_attn_scalar"
-    }
-
-    public init(from decoder: Swift.Decoder) throws {
-        // Custom implementation to handle optional keys with required values
-        let container: KeyedDecodingContainer<CodingKeys> = try decoder.container(
-            keyedBy: CodingKeys.self)
-
-        self.hiddenSize = try container.decode(
-            Int.self, forKey: CodingKeys.hiddenSize)
-        self.hiddenLayers = try container.decode(
-            Int.self, forKey: CodingKeys.hiddenLayers)
-        self.intermediateSize = try container.decode(
-            Int.self, forKey: CodingKeys.intermediateSize)
-        self.attentionHeads = try container.decode(
-            Int.self, forKey: CodingKeys.attentionHeads)
-        self.headDimensions = try container.decode(
-            Int.self, forKey: CodingKeys.headDimensions)
-        self.rmsNormEps = try container.decode(
-            Float.self, forKey: CodingKeys.rmsNormEps)
-        self.vocabularySize = try container.decode(
-            Int.self, forKey: CodingKeys.vocabularySize)
-        self.kvHeads = try container.decode(Int.self, forKey: CodingKeys.kvHeads)
-        self.ropeTheta =
-            try container.decodeIfPresent(Float.self, forKey: CodingKeys.ropeTheta)
-            ?? 10_000
-        self.ropeTraditional =
-            try container.decodeIfPresent(
-                Bool.self, forKey: CodingKeys.ropeTraditional) ?? false
-        self.attnLogitSoftcapping = try container.decode(
-            Float.self, forKey: CodingKeys.attnLogitSoftcapping)
-        self.finalLogitSoftcapping = try container.decode(
-            Float.self, forKey: CodingKeys.finalLogitSoftcapping)
-        self.queryPreAttnScalar = try container.decode(
-            Float.self, forKey: CodingKeys.queryPreAttnScalar)
-    }
+@Codable
+public struct Gemma2Configuration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("head_dim") public var headDimensions: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("rope_theta") public var ropeTheta: Float = 10_000
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
+    @CodingKey("attn_logit_softcapping") public var attnLogitSoftcapping: Float = 50.0
+    @CodingKey("final_logit_softcapping") public var finalLogitSoftcapping: Float = 30.0
+    @CodingKey("query_pre_attn_scalar") public var queryPreAttnScalar: Float = 144.0
 }
 
 // MARK: - LoRA

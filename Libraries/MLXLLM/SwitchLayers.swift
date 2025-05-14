@@ -2,7 +2,7 @@ import Foundation
 import MLX
 import MLXNN
 
-// Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/switch_layers.py
+// Port of https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/switch_layers.py
 
 public func gatherSort(x: MLXArray, indices: MLXArray) -> (MLXArray, MLXArray, MLXArray) {
     let m = indices.dim(-1)

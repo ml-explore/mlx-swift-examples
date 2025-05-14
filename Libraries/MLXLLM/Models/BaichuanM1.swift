@@ -11,39 +11,24 @@ import MLXFast
 import MLXLMCommon
 import MLXNN
 import MLXRandom
+import ReerCodable
 
-public struct BaichuanM1Configuration: Codable, Sendable {
-    var vocabularySize: Int
-    var hiddenSize: Int
-    var intermediateSize: Int
-    var hiddenLayers: Int
-    var attentionHeads: Int
-    var kvHeads: Int
-    var ropeTheta: Float
-    var slidingWindow: Int
-    var slidingWindowLayers: [Int]
-    var convWindow: Int
-    var rmsNormEps: Float
-    var swaAttentionHeads: Int?
-    var swaKvHeads: Int?
-    var tieWordEmbeddings: Bool = false
-
-    enum CodingKeys: String, CodingKey {
-        case vocabularySize = "vocab_size"
-        case hiddenSize = "hidden_size"
-        case intermediateSize = "intermediate_size"
-        case hiddenLayers = "num_hidden_layers"
-        case attentionHeads = "num_attention_heads"
-        case kvHeads = "num_key_value_heads"
-        case ropeTheta = "rope_theta"
-        case slidingWindow = "sliding_window"
-        case slidingWindowLayers = "sliding_window_layers"
-        case convWindow = "conv_window"
-        case rmsNormEps = "rms_norm_eps"
-        case swaAttentionHeads = "num_swa_attention_heads"
-        case swaKvHeads = "num_swa_key_value_heads"
-        case tieWordEmbeddings = "tie_word_embeddings"
-    }
+@Codable
+public struct BaichuanM1Configuration: Sendable {
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("rope_theta") public var ropeTheta: Float
+    @CodingKey("sliding_window") public var slidingWindow: Int
+    @CodingKey("sliding_window_layers") public var slidingWindowLayers: [Int]
+    @CodingKey("conv_window") public var convWindow: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("num_swa_attention_heads") public var swaAttentionHeads: Int?
+    @CodingKey("num_swa_key_value_heads") public var swaKvHeads: Int?
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = false
 }
 
 private class Attention: Module {

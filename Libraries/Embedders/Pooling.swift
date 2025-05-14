@@ -4,21 +4,15 @@ import Foundation
 import MLX
 import MLXLinalg
 import MLXNN
+import ReerCodable
 
-public struct PoolingConfiguration: Codable {
-    public let dimension: Int
-    public let poolingModeClsToken: Bool
-    public let poolingModeMeanTokens: Bool
-    public let poolingModeMaxTokens: Bool
-    public let poolingModeLastToken: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case dimension = "word_embedding_dimension"
-        case poolingModeClsToken = "pooling_mode_cls_token"
-        case poolingModeMeanTokens = "pooling_mode_mean_tokens"
-        case poolingModeMaxTokens = "pooling_mode_max_tokens"
-        case poolingModeLastToken = "pooling_mode_lasttoken"
-    }
+@Codable
+public struct PoolingConfiguration: Sendable {
+    @CodingKey("word_embedding_dimension") public let dimension: Int
+    @CodingKey("pooling_mode_cls_token") public let poolingModeClsToken: Bool
+    @CodingKey("pooling_mode_mean_tokens") public let poolingModeMeanTokens: Bool
+    @CodingKey("pooling_mode_max_tokens") public let poolingModeMaxTokens: Bool
+    @CodingKey("pooling_mode_lasttoken") public let poolingModeLastToken: Bool
 }
 
 func loadPooling(modelDirectory: URL) -> Pooling {

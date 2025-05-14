@@ -11,7 +11,7 @@
 
 This is a port of several models from:
 
-- https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/
+- https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/
 
 using the Hugging Face swift transformers package to provide tokenization:
 
@@ -93,17 +93,12 @@ and create a `.swift` file for your new model:
 Create a configuration struct to match the `config.json` (any parameters needed).
 
 ```swift
-public struct YourModelConfiguration: Codable, Sendable {
-    public let hiddenSize: Int
-    
-    // use this pattern for values that need defaults
-    public let _layerNormEps: Float?
-    public var layerNormEps: Float { _layerNormEps ?? 1e-6 }
-    
-    enum CodingKeys: String, CodingKey {
-        case hiddenSize = "hidden_size"
-        case _layerNormEps = "layer_norm_eps"
-    }
+import ReerCodable
+
+@Codable
+public struct YourModelConfiguration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("layer_norm_eps") public var layerNormEps: Float = 1e-6
 }
 ```
 

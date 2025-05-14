@@ -26,7 +26,7 @@ struct ListLLMCommand: AsyncParsableCommand {
     func run() async throws {
         for configuration in LLMRegistry.shared.models {
             switch configuration.id {
-            case .id(let id): print(id)
+            case .id(let id, let revision): print(id)
             case .directory: break
             }
         }
@@ -43,7 +43,7 @@ struct ListVLMCommand: AsyncParsableCommand {
     func run() async throws {
         for configuration in VLMRegistry.shared.models {
             switch configuration.id {
-            case .id(let id): print(id)
+            case .id(let id, let revision): print(id)
             case .directory: break
             }
         }

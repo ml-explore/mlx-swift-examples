@@ -2,8 +2,9 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
-// port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/cohere.py
+// port of https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/cohere.py
 
 private class Attention: Module {
 
@@ -172,63 +173,21 @@ public class CohereModel: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct CohereConfiguration: Codable, Sendable {
+@Codable
+public struct CohereConfiguration: Sendable {
 
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var layerNormEps: Float
-    var vocabularySize: Int
-    var kvHeads: Int
-    var ropeTheta: Float = 8000000.0
-    var ropeTraditional: Bool = true
-    var ropeScaling: [String: StringOrNumber]? = nil
-    var logitScale: Float
+    @CodingKey("hidden_size") public var hiddenSize: Int = 8192
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int = 40
+    @CodingKey("intermediate_size") public var intermediateSize: Int = 22528
+    @CodingKey("num_attention_heads") public var attentionHeads: Int = 64
+    @CodingKey("layer_norm_eps") public var layerNormEps: Float = 1e-5
+    @CodingKey("vocab_size") public var vocabularySize: Int = 256000
+    @CodingKey("num_key_value_heads") public var kvHeads: Int = 64
+    @CodingKey("rope_theta") public var ropeTheta: Float = 8000000.0
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = true
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]? = nil
+    @CodingKey("logit_scale") public var logitScale: Float = 0.0625
 
-    enum CodingKeys: String, CodingKey {
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case kvHeads = "num_key_value_heads"
-        case ropeTheta = "rope_theta"
-        case vocabularySize = "vocab_size"
-        case layerNormEps = "layer_norm_eps"
-        case logitScale = "logit_scale"
-        case ropeTraditional = "rope_traditional"
-        case ropeScaling = "rope_scaling"
-    }
-
-    public init(from decoder: Decoder) throws {
-        // custom implementation to handle optional keys with required values
-        let container: KeyedDecodingContainer<CohereConfiguration.CodingKeys> =
-            try decoder.container(
-                keyedBy: CohereConfiguration.CodingKeys.self)
-
-        self.hiddenSize = try container.decode(
-            Int.self, forKey: CohereConfiguration.CodingKeys.hiddenSize)
-        self.hiddenLayers = try container.decode(
-            Int.self, forKey: CohereConfiguration.CodingKeys.hiddenLayers)
-        self.intermediateSize = try container.decode(
-            Int.self, forKey: CohereConfiguration.CodingKeys.intermediateSize)
-        self.attentionHeads = try container.decode(
-            Int.self, forKey: CohereConfiguration.CodingKeys.attentionHeads)
-        self.layerNormEps = try container.decode(
-            Float.self, forKey: CohereConfiguration.CodingKeys.layerNormEps)
-        self.vocabularySize = try container.decode(
-            Int.self, forKey: CohereConfiguration.CodingKeys.vocabularySize)
-        self.kvHeads = try container.decode(
-            Int.self, forKey: CohereConfiguration.CodingKeys.kvHeads)
-        self.ropeTheta =
-            try container.decodeIfPresent(
-                Float.self, forKey: CohereConfiguration.CodingKeys.ropeTheta)
-            ?? 8000000.0
-        self.ropeScaling = try container.decodeIfPresent(
-            [String: StringOrNumber].self, forKey: CohereConfiguration.CodingKeys.ropeScaling)
-        self.logitScale = try container.decode(
-            Float.self, forKey: CohereConfiguration.CodingKeys.logitScale)
-    }
 }
 
 // MARK: - LoRA

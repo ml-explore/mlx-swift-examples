@@ -4,144 +4,82 @@ import MLXFast
 import MLXLMCommon
 import MLXNN
 import Tokenizers
+import ReerCodable
 
 // Based on https://github.com/Blaizzy/mlx-vlm/tree/main/mlx_vlm/models/gemma3
 
 // MARK: - Text Configuration
 
-public struct Gemma3TextConfiguration: Codable, Sendable {
-    public let modelType: String
-    public let hiddenSize: Int
-    public let hiddenLayers: Int
-    public let intermediateSize: Int
-    public let slidingWindow: Int
-    public let ropeScaling: [String: StringOrNumber]?
-    public let finalLogitSoftcapping: Float?
+@Codable
+public struct Gemma3TextConfiguration: Sendable {
+    @CodingKey("model_type") public var modelType: String
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("sliding_window") public var slidingWindow: Int
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]?
+    @CodingKey("final_logit_softcapping") public var finalLogitSoftcapping: Float?
 
-    public let vocabularySize: Int = 262208
-    public let rmsNormEps: Float = 1.0e-6
+    @CodingKey("vocab_size") public var vocabularySize: Int = 262208
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float = 1.0e-6
 
     // Decoded from JSON when present, with fallback if not
+    @CodingKey("num_attention_heads") public var attentionHeads: Int = 8
+    @CodingKey("num_key_value_heads") public var kvHeads: Int = 4
+    @CodingKey("head_dim") public var headDim: Int = 256
+    @CodingKey("query_pre_attn_scalar") public var queryPreAttnScalar: Float = 256
 
-    private let _attentionHeads: Int?
-    private let _kvHeads: Int?
-    private let _headDim: Int?
-    private let _queryPreAttnScalar: Float?
-
-    // Not included in 4B model config.json, included for 12B and 27B models
-    public var attentionHeads: Int {
-        _attentionHeads ?? 8
-    }
-
-    // Not included in 4B model config.json, included for 12B and 27B models
-    public var kvHeads: Int {
-        _kvHeads ?? 4
-    }
-
-    // Not included in 4B and 12B model config.json, included for 27B model
-    public var headDim: Int {
-        _headDim ?? 256
-    }
-
-    // Not included in 4B and 12B model config.json, included for 27B model
-    public var queryPreAttnScalar: Float {
-        _queryPreAttnScalar ?? 256
-    }
-
-    public let ropeGlobalBaseFreq: Float = 1_000_000.0
-    public let ropeLocalBaseFreq: Float = 10_000.0
-    public let ropeTraditional: Bool = false
-    public let mmTokensPerImage: Int = 256
-    public let slidingWindowPattern: Int = 6
-    public let maxPositionEmbeddings: Int = 4096
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case slidingWindow = "sliding_window"
-        case ropeScaling = "rope_scaling"
-        case finalLogitSoftcapping = "final_logit_softcapping"
-        case _attentionHeads = "num_attention_heads"
-        case _kvHeads = "num_key_value_heads"
-        case _headDim = "head_dim"
-        case _queryPreAttnScalar = "query_pre_attn_scalar"
-    }
+    @CodingKey("rope_global_base_freq") public var ropeGlobalBaseFreq: Float = 1_000_000.0
+    @CodingKey("rope_local_base_freq") public var ropeLocalBaseFreq: Float = 10_000.0
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
+    @CodingKey("mm_tokens_per_image") public var mmTokensPerImage: Int = 256
+    @CodingKey("sliding_window_pattern") public var slidingWindowPattern: Int = 6
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int = 4096
 }
 
 // MARK: - Vision Configuration
 
-public struct Gemma3VisionConfiguration: Codable, Sendable {
-    public let modelType: String
-    public let hiddenLayers: Int
-    public let hiddenSize: Int
-    public let intermediateSize: Int
-    public let attentionHeads: Int
-    public let patchSize: Int
-    public let imageSize: Int
+@Codable
+public struct Gemma3VisionConfiguration: Sendable {
+    @CodingKey("model_type") public var modelType: String
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("patch_size") public var patchSize: Int
+    @CodingKey("image_size") public var imageSize: Int = 224
 
-    public let numChannels: Int = 3
-    public let layerNormEps: Float = 1e-6
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case hiddenLayers = "num_hidden_layers"
-        case hiddenSize = "hidden_size"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case patchSize = "patch_size"
-        case imageSize = "image_size"
-    }
+    @CodingKey("num_channels") public var numChannels: Int = 3
+    @CodingKey("layer_norm_eps") public var layerNormEps: Float = 1e-6
 }
 
 // MARK: - Quantization Configuration
 
-public struct QuantizationConfig: Codable, Sendable {
-    public let groupSize: Int
-    public let bits: Int
-
-    enum CodingKeys: String, CodingKey {
-        case groupSize = "group_size"
-        case bits
-    }
+@Codable
+public struct QuantizationConfig: Sendable {
+    @CodingKey("group_size") public var groupSize: Int
+    public var bits: Int
 }
 
 // MARK: - Model Configuration
 
-public struct Gemma3Configuration: Codable, Sendable {
-    public let textConfiguration: Gemma3TextConfiguration
-    public let visionConfiguration: Gemma3VisionConfiguration
-    public let modelType: String
-    public let mmTokensPerImage: Int
-    public let quantization: QuantizationConfig?
+@Codable
+public struct Gemma3Configuration: Sendable {
+    @CodingKey("text_config") public var textConfiguration: Gemma3TextConfiguration
+    @CodingKey("vision_config") public var visionConfiguration: Gemma3VisionConfiguration
+    @CodingKey("model_type") public var modelType: String
+    @CodingKey("mm_tokens_per_image") public var mmTokensPerImage: Int
+    public var quantization: QuantizationConfig?
 
-    private let _vocabularySize: Int?
-    private let _padTokenId: Int?
+    @CodingKey("vocab_size") public var vocabularySize: Int = 257152
+    @CodingKey("ignore_index") public var ignoreIndex: Int = -100
+    @CodingKey("image_token_index") public var imageTokenIndex: Int = 262144
+    @CodingKey("hidden_size") public var hiddenSize: Int = 2048
+    @CodingKey("pad_token_id") public var padTokenId: Int = 0
+    @CodingKey("eos_token_id") public var eosTokenId: [Int]?
 
-    // Computed properties that use the text configuration or provide defaults
-
-    public var vocabularySize: Int {
-        _vocabularySize ?? textConfiguration.vocabularySize
-    }
-
-    public var hiddenSize: Int {
-        textConfiguration.hiddenSize
-    }
-
-    public var padTokenId: Int {
-        _padTokenId ?? 0
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case textConfiguration = "text_config"
-        case visionConfiguration = "vision_config"
-        case modelType = "model_type"
-        case mmTokensPerImage = "mm_tokens_per_image"
-        case quantization
-
-        case _vocabularySize = "vocab_size"
-        case _padTokenId = "pad_token_id"
+    public var textVocabularySize: Int {
+        textConfiguration.vocabularySize
     }
 }
 
@@ -624,7 +562,7 @@ private class EncoderLayer: Module {
     }
 }
 
-private class Encoder: Module {
+private class GemmaEncoder: Module {
     @ModuleInfo var layers: [EncoderLayer]
 
     init(config: Gemma3VisionConfiguration) {
@@ -715,12 +653,12 @@ private class VisionEmbeddings: Module, UnaryLayer {
 
 private class SigLipVisionModel: Module {
     @ModuleInfo var embeddings: VisionEmbeddings
-    @ModuleInfo var encoder: Encoder
+    @ModuleInfo var encoder: GemmaEncoder
     @ModuleInfo(key: "post_layernorm") var postLayerNorm: LayerNorm
 
     init(config: Gemma3VisionConfiguration) {
         self.embeddings = VisionEmbeddings(config: config)
-        self.encoder = Encoder(config: config)
+        self.encoder = GemmaEncoder(config: config)
         self._postLayerNorm.wrappedValue = LayerNorm(dimensions: config.hiddenSize)
         super.init()
     }
@@ -920,7 +858,7 @@ public class Gemma3: Module, VLMModel, KVCacheDimensionProvider {
 
     public let config: Gemma3Configuration
 
-    public var vocabularySize: Int { config.vocabularySize }
+    public var vocabularySize: Int { config.textVocabularySize }
     public var kvHeads: [Int] { languageModel.kvHeads }
 
     /// Create cache with proper types for each layer
@@ -1159,33 +1097,35 @@ public class Gemma3Processor: UserInputProcessor {
     }
 }
 
-public struct Gemma3ProcessorConfiguration: Codable, Sendable {
+@Codable
+public struct Gemma3ProcessorConfiguration: Sendable {
     // Fields from the preprocessor_config.json
-    public let processorClass: String
-    public let imageProcessorType: String
-    public let doNormalize: Bool
-    public let doRescale: Bool
-    public let doResize: Bool
-    public let imageMean: [CGFloat]
-    public let imageStd: [CGFloat]
-    public let imageSeqLength: Int
-    public let resample: Int
-    public let rescaleFactor: Float
-    public let size: ImageSize
+    @CodingKey("processor_class") public var processorClass: String
+    @CodingKey("image_processor_type") public var imageProcessorType: String
+    @CodingKey("do_normalize") public var doNormalize: Bool
+    @CodingKey("do_rescale") public var doRescale: Bool
+    @CodingKey("do_resize") public var doResize: Bool
+    @CodingKey("image_mean") public var imageMean: [CGFloat]
+    @CodingKey("image_std") public var imageStd: [CGFloat]
+    @CodingKey("image_seq_length") public var imageSeqLength: Int
+    public var resample: Int
+    @CodingKey("rescale_factor") public var rescaleFactor: Float
+    public var size: ImageSize
 
     // Optional fields
-    public let doConvertRgb: Bool?
-    public let doPanAndScan: Bool?
-    public let panAndScanMaxNumCrops: Int?
-    public let panAndScanMinCropSize: Int?
-    public let panAndScanMinRatioToActivate: Float?
+    @CodingKey("do_convert_rgb") public var doConvertRgb: Bool?
+    @CodingKey("do_pan_and_scan") public var doPanAndScan: Bool?
+    @CodingKey("pan_and_scan_max_num_crops") public var panAndScanMaxNumCrops: Int?
+    @CodingKey("pan_and_scan_min_crop_size") public var panAndScanMinCropSize: Int?
+    @CodingKey("pan_and_scan_min_ratio_to_activate") public var panAndScanMinRatioToActivate: Float?
 
     // Image token identifier from model configuration
-    public let imageTokenId: Int = 262144
+    public var imageTokenId: Int = 262144
 
-    public struct ImageSize: Codable, Sendable {
-        public let height: Int
-        public let width: Int
+    @Codable
+    public struct ImageSize: Sendable {
+        public var height: Int
+        public var width: Int
     }
 
     // Computed properties for convenience
@@ -1197,25 +1137,6 @@ public struct Gemma3ProcessorConfiguration: Codable, Sendable {
 
     public var imageStdTuple: (CGFloat, CGFloat, CGFloat) {
         (imageStd[0], imageStd[1], imageStd[2])
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case processorClass = "processor_class"
-        case imageProcessorType = "image_processor_type"
-        case doNormalize = "do_normalize"
-        case doRescale = "do_rescale"
-        case doResize = "do_resize"
-        case doConvertRgb = "do_convert_rgb"
-        case doPanAndScan = "do_pan_and_scan"
-        case imageMean = "image_mean"
-        case imageStd = "image_std"
-        case imageSeqLength = "image_seq_length"
-        case resample
-        case rescaleFactor = "rescale_factor"
-        case size
-        case panAndScanMaxNumCrops = "pan_and_scan_max_num_crops"
-        case panAndScanMinCropSize = "pan_and_scan_min_crop_size"
-        case panAndScanMinRatioToActivate = "pan_and_scan_min_ratio_to_activate"
     }
 }
 
