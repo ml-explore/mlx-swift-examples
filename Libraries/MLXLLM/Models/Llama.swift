@@ -336,6 +336,30 @@ public struct LlamaConfiguration: Codable, Sendable {
     var attentionBias: Bool = false
     var mlpBias: Bool = false
 
+    public init(
+        hiddenSize: Int, hiddenLayers: Int, intermediateSize: Int, attentionHeads: Int,
+        headDimensions: Int? = nil, rmsNormEps: Float, vocabularySize: Int, kvHeads: Int,
+        maxPositionEmbeddings: Int? = nil, ropeTheta: Float = 10_000, ropeTraditional: Bool = false,
+        ropeScaling: [String: StringOrNumber]? = nil, tieWordEmbeddings: Bool = true,
+        attentionBias: Bool = false, mlpBias: Bool = false
+    ) {
+        self.hiddenSize = hiddenSize
+        self.hiddenLayers = hiddenLayers
+        self.intermediateSize = intermediateSize
+        self.attentionHeads = attentionHeads
+        self.headDimensions = headDimensions
+        self.rmsNormEps = rmsNormEps
+        self.vocabularySize = vocabularySize
+        self.kvHeads = kvHeads
+        self.maxPositionEmbeddings = maxPositionEmbeddings
+        self.ropeTheta = ropeTheta
+        self.ropeTraditional = ropeTraditional
+        self.ropeScaling = ropeScaling
+        self.tieWordEmbeddings = tieWordEmbeddings
+        self.attentionBias = attentionBias
+        self.mlpBias = mlpBias
+    }
+
     var resolvedHeadDimensions: Int {
         headDimensions ?? (hiddenSize / attentionHeads)
     }
