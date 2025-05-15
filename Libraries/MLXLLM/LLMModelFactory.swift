@@ -331,11 +331,18 @@ public class LLMModelFactory: ModelFactory {
 
         let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
 
+        let messageGenerator =
+            if let model = model as? LLMModel {
+                model.messageGenerator(tokenizer: tokenizer)
+            } else {
+                DefaultMessageGenerator()
+            }
+
         return .init(
             configuration: configuration, model: model,
             processor: LLMUserInputProcessor(
                 tokenizer: tokenizer, configuration: configuration,
-                messageGenerator: DefaultMessageGenerator()),
+                messageGenerator: messageGenerator),
             tokenizer: tokenizer)
     }
 

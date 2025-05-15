@@ -4,6 +4,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import Tokenizers
 
 // port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/llama.py
 
@@ -316,6 +317,23 @@ public class LlamaModel: Module, LLMModel, KVCacheDimensionProvider {
             !$0.key.contains("self_attn.rotary_emb.inv_freq")
         }
     }
+
+    public func messageGenerator(tokenizer: any Tokenizer) -> any MessageGenerator {
+        // some models allow the system role and some do not -- this is enforced
+        // by the chat template (code).
+        do {
+            let probe = [
+                [
+                    "role": "system",
+                    "content": "test",
+                ]
+            ]
+            _ = try tokenizer.applyChatTemplate(messages: probe)
+            return DefaultMessageGenerator()
+        } catch {
+            return NoSystemMessageGenerator()
+        }
+    }
 }
 
 public struct LlamaConfiguration: Codable, Sendable {
@@ -382,7 +400,7 @@ public struct LlamaConfiguration: Codable, Sendable {
         case mlpBias = "mlp_bias"
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: Swift.Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)

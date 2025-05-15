@@ -4,6 +4,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import Tokenizers
 
 // Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/gemma2.py
 
@@ -212,6 +213,10 @@ public class Gemma2Model: Module, LLMModel, KVCacheDimensionProvider {
         out = tanh(out / logitSoftCap) * logitSoftCap
         return out
     }
+
+    public func messageGenerator(tokenizer: any Tokenizer) -> any MessageGenerator {
+        NoSystemMessageGenerator()
+    }
 }
 
 public struct Gemma2Configuration: Codable {
@@ -245,7 +250,7 @@ public struct Gemma2Configuration: Codable {
         case queryPreAttnScalar = "query_pre_attn_scalar"
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: Swift.Decoder) throws {
         // Custom implementation to handle optional keys with required values
         let container: KeyedDecodingContainer<CodingKeys> = try decoder.container(
             keyedBy: CodingKeys.self)

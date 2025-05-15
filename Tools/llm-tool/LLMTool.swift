@@ -329,7 +329,7 @@ struct EvaluateCommand: AsyncParsableCommand {
 
         // wait for any asynchronous cleanup, e.g. tearing down compiled functions
         // before the task exits -- this would race with mlx::core shutdown
-        try await Task.sleep(for: .milliseconds(10))
+        try await Task.sleep(for: .milliseconds(30))
 
         if !generate.quiet {
             print("------")
