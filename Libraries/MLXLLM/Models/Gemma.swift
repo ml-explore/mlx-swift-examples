@@ -5,6 +5,7 @@ import MLX
 import MLXFast
 import MLXLMCommon
 import MLXNN
+import Tokenizers
 
 // Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/gemma.py
 
@@ -187,6 +188,10 @@ public class GemmaModel: Module, LLMModel, KVCacheDimensionProvider {
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
         let out = model(inputs, cache: cache)
         return model.embedTokens.asLinear(out)
+    }
+
+    public func messageGenerator(tokenizer: any Tokenizer) -> any MessageGenerator {
+        NoSystemMessageGenerator()
     }
 }
 

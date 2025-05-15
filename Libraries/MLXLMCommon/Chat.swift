@@ -63,12 +63,25 @@ public enum Chat {
 /// ```
 public protocol MessageGenerator {
 
+    /// Generates messages from the input.
+    func generate(from input: UserInput) -> [Message]
+
+    /// Returns array of `[String: Any]` aka ``Message``
+    func generate(messages: [Chat.Message]) -> [Message]
+
     /// Returns `[String: Any]` aka ``Message``.
     func generate(message: Chat.Message) -> Message
 }
 
 extension MessageGenerator {
-    /// Returns array of `[String: Any]` aka ``Message``
+
+    public func generate(message: Chat.Message) -> Message {
+        [
+            "role": message.role.rawValue,
+            "content": message.content,
+        ]
+    }
+
     public func generate(messages: [Chat.Message]) -> [Message] {
         var rawMessages: [Message] = []
 
@@ -80,7 +93,6 @@ extension MessageGenerator {
         return rawMessages
     }
 
-    /// Generates messages from the input.
     public func generate(from input: UserInput) -> [Message] {
         switch input.prompt {
         case .text(let text):
@@ -110,5 +122,24 @@ public struct DefaultMessageGenerator: MessageGenerator {
             "role": message.role.rawValue,
             "content": message.content,
         ]
+    }
+}
+
+/// Implementation of ``MessageGenerator`` that produces a
+/// `role` and `content` but omits `system` roles.
+///
+/// ```swift
+/// [
+///     "role": message.role.rawValue,
+///     "content": message.content,
+/// ]
+/// ```
+public struct NoSystemMessageGenerator: MessageGenerator {
+    public init() {}
+
+    public func generate(messages: [Chat.Message]) -> [Message] {
+        messages
+            .filter { $0.role != .system }
+            .map { generate(message: $0) }
     }
 }
