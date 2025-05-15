@@ -57,6 +57,7 @@
 		C36BF0082BC5CE56002D4AFE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C36BF0072BC5CE56002D4AFE /* Assets.xcassets */; };
 		C36BF00C2BC5CE56002D4AFE /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C36BF00B2BC5CE56002D4AFE /* Preview Assets.xcassets */; };
 		C36BF0352BC70F11002D4AFE /* Arguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BF0342BC70F11002D4AFE /* Arguments.swift */; };
+		C37133A22DD6524B00D19830 /* ListCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C37133A12DD6524B00D19830 /* ListCommands.swift */; };
 		C38BA3AA2DB8321600BAFA88 /* Chat.swift in Sources */ = {isa = PBXBuildFile; fileRef = C38BA3A92DB8321600BAFA88 /* Chat.swift */; };
 		C392737D2B606A1D00368D5D /* Tutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = C392737C2B606A1D00368D5D /* Tutorial.swift */; };
 		C397C59C2B62C6D0004B084D /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C397C59B2B62C6D0004B084D /* ArgumentParser */; };
@@ -233,6 +234,7 @@
 		C36BF0092BC5CE56002D4AFE /* StableDiffusionExample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StableDiffusionExample.entitlements; sourceTree = "<group>"; };
 		C36BF00B2BC5CE56002D4AFE /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		C36BF0342BC70F11002D4AFE /* Arguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Arguments.swift; sourceTree = "<group>"; };
+		C37133A12DD6524B00D19830 /* ListCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListCommands.swift; sourceTree = "<group>"; };
 		C38BA3A92DB8321600BAFA88 /* Chat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chat.swift; sourceTree = "<group>"; };
 		C39273742B606A0A00368D5D /* Tutorial */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Tutorial; sourceTree = BUILT_PRODUCTS_DIR; };
 		C392737C2B606A1D00368D5D /* Tutorial.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Tutorial.swift; sourceTree = "<group>"; };
@@ -482,6 +484,7 @@
 				C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */,
 				C36BEFB62BBDECBC002D4AFE /* Arguments.swift */,
 				C38BA3A92DB8321600BAFA88 /* Chat.swift */,
+				C37133A12DD6524B00D19830 /* ListCommands.swift */,
 			);
 			path = "llm-tool";
 			sourceTree = "<group>";
@@ -1150,6 +1153,7 @@
 				C38BA3AA2DB8321600BAFA88 /* Chat.swift in Sources */,
 				C34E48F52B696F0B00FCB841 /* LLMTool.swift in Sources */,
 				C36BEFB52BBDEAD8002D4AFE /* LoraCommands.swift in Sources */,
+				C37133A22DD6524B00D19830 /* ListCommands.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
