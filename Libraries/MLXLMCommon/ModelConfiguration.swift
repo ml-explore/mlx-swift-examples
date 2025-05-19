@@ -9,7 +9,7 @@ import Hub
 public struct ModelConfiguration: Sendable {
 
     public enum Identifier: Sendable {
-        case id(String, revision: String = "main")
+        case id(String, revision: String)
         case directory(URL)
     }
 
@@ -37,12 +37,13 @@ public struct ModelConfiguration: Sendable {
     public var extraEOSTokens: Set<String>
 
     public init(
-        id: String, tokenizerId: String? = nil, overrideTokenizer: String? = nil,
+        id: String, revision: String = "main",
+        tokenizerId: String? = nil, overrideTokenizer: String? = nil,
         defaultPrompt: String = "hello",
         extraEOSTokens: Set<String> = [],
         preparePrompt: (@Sendable (String) -> String)? = nil
     ) {
-        self.id = .id(id)
+        self.id = .id(id, revision: revision)
         self.tokenizerId = tokenizerId
         self.overrideTokenizer = overrideTokenizer
         self.defaultPrompt = defaultPrompt
@@ -50,7 +51,8 @@ public struct ModelConfiguration: Sendable {
     }
 
     public init(
-        directory: URL, tokenizerId: String? = nil, overrideTokenizer: String? = nil,
+        directory: URL,
+        tokenizerId: String? = nil, overrideTokenizer: String? = nil,
         defaultPrompt: String = "hello",
         extraEOSTokens: Set<String> = []
     ) {
