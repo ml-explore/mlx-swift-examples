@@ -28,9 +28,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ml-explore/mlx-swift", .upToNextMinor(from: "0.21.2")),
-        .package(
-            url: "https://github.com/huggingface/swift-transformers", .upToNextMinor(from: "0.1.20")
-        ),
+        .package(url: "https://github.com/petrukha-ivan/swift-transformers", revision: "df5df84655a89e2be1a5ae55b05816dd560686b4"),
         .package(url: "https://github.com/1024jp/GzipSwift", "6.0.1" ... "6.0.1"),  // Only needed by MLXMNIST
     ],
     targets: [
