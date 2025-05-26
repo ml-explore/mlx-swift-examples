@@ -339,7 +339,7 @@ class VLMEvaluator {
     let modelConfiguration = VLMRegistry.smolvlm
 
     /// parameters controlling the output – use values appropriate for the model selected above
-    let generateParameters = MLXLMCommon.GenerateParameters(
+    let generateParameters = MLXLMCommon.DefaultGenerateParameters(
         maxTokens: 800, temperature: 0.7, topP: 0.9)
     let updateInterval = Duration.seconds(0.25)
 

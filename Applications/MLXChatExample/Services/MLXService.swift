@@ -113,7 +113,7 @@ class MLXService {
         return try await modelContainer.perform { (context: ModelContext) in
             let lmInput = try await context.processor.prepare(input: userInput)
             // Set temperature for response randomness (0.7 provides good balance)
-            let parameters = GenerateParameters(temperature: 0.7)
+            let parameters = DefaultGenerateParameters(temperature: 0.7)
 
             return try MLXLMCommon.generate(
                 input: lmInput, parameters: parameters, context: context)

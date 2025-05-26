@@ -518,7 +518,7 @@ let modelConfiguration = ModelConfiguration(id: "mlx-community/quantized-gemma-2
 let container = try await MLXModelFactory.shared.loadContainer(configuration: modelConfiguration)
 
 // prepare the prompt and parameters used to generate the response
-let generateParameters = GenerateParameters()
+let generateParameters = DefaultGenerateParameters()
 let input = UserInput(prompt: "Are cherries sweet?")
 
 // run inference

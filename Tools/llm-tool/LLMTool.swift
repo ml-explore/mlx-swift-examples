@@ -136,7 +136,7 @@ struct GenerateArguments: ParsableArguments, Sendable {
     var quiet = false
 
     var generateParameters: GenerateParameters {
-        GenerateParameters(
+        DefaultGenerateParameters(
             maxTokens: maxTokens,
             temperature: temperature, topP: topP, repetitionPenalty: repetitionPenalty,
             repetitionContextSize: repetitionContextSize)

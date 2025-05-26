@@ -130,7 +130,7 @@ class LoRAEvaluator {
     private let learningRate: Float = 1e-5
     private let parameters = LoRATrain.Parameters(batchSize: 1, iterations: 200)
 
-    private let generateParameters = GenerateParameters(temperature: 0.6, topP: 0.9)
+    private let generateParameters = DefaultGenerateParameters(temperature: 0.6, topP: 0.9)
     private let evaluateShowEvery = 8
     private let maxTokens = 200
 

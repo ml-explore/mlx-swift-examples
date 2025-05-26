@@ -52,21 +52,39 @@ public protocol LogitProcessor: Sendable {
 /// - ``LogitProcessor``
 ///
 /// for the `TokenIterator`.
-public struct GenerateParameters: Sendable {
-
+public protocol GenerateParameters: Sendable {
     /// Step size for processing the prompt
-    public var prefillStepSize = 512
+    var prefillStepSize: Int { get }
 
     /// Maximum tokens to generate
-    public var maxTokens: Int?
+    var maxTokens: Int? { get }
 
     /// sampling temperature
-    public var temperature: Float = 0.6
+    var temperature: Float { get }
 
     /// top p sampling
-    public var topP: Float = 1.0
+    var topP: Float { get }
 
     /// penalty factor for repeating tokens
+    var repetitionPenalty: Float? { get }
+
+    var repetitionContextSize: Int { get }
+
+    func sampler() -> LogitSampler
+
+    func processor() -> LogitProcessor?
+}
+
+public struct DefaultGenerateParameters: GenerateParameters {
+
+    public var prefillStepSize = 512
+
+    public var maxTokens: Int?
+
+    public var temperature: Float = 0.6
+
+    public var topP: Float = 1.0
+
     public var repetitionPenalty: Float?
 
     /// number of tokens to consider for repetition penalty

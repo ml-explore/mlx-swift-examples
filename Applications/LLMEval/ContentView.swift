@@ -176,7 +176,7 @@ class LLMEvaluator {
     let modelConfiguration = LLMRegistry.qwen3_1_7b_4bit
 
     /// parameters controlling the output
-    let generateParameters = GenerateParameters(maxTokens: 240, temperature: 0.6)
+    let generateParameters = DefaultGenerateParameters(maxTokens: 240, temperature: 0.6)
     let updateInterval = Duration.seconds(0.25)
 
     /// A task responsible for handling the generation process.
