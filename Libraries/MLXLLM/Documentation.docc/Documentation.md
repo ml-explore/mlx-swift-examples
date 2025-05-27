@@ -32,3 +32,4 @@ Example implementations of various Large Language Models (LLMs).
 - ``Starcoder2Model``
 - ``MiMoModel``
 - ``GLM4Model``
+- ``AceReason``

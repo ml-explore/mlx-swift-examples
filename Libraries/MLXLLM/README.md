@@ -58,6 +58,7 @@ Currently supported model types are:
 - Starcoder2
 - MiMo
 - GLM4
+- AceReason
 
 See [llm-tool](../../Tools/llm-tool)
 
