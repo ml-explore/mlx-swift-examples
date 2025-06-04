@@ -42,10 +42,15 @@ public enum Chat {
             Self(role: .user, content: content, images: images, videos: videos)
         }
 
+        public static func tool(_ content: String) -> Self {
+            Self(role: .tool, content: content)
+        }
+
         public enum Role: String {
             case user
             case assistant
             case system
+            case tool
         }
     }
 }
