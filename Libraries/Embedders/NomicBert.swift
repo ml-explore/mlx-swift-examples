@@ -35,7 +35,7 @@ class NomicEmbedding: Module {
         _ inputIds: MLXArray, positionIds: MLXArray? = nil,
         tokenTypeIds: MLXArray? = nil
     ) -> MLXArray {
-        let words = wordEmbeddings(inputIds)
+        var words = wordEmbeddings(inputIds)
 
         if let tokenTypeIds, let tokenTypeEmbeddings {
             words += tokenTypeEmbeddings(tokenTypeIds)
