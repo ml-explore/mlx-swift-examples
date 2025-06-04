@@ -76,7 +76,8 @@ public class LoRALinear: Linear, LoRALayer {
             return QLoRALinear.from(linear: linear, rank: rank, scale: scale)
         }
         let (outputDimensions, inputDimensions) = linear.shape
-        return LoRALinear(inputDimensions, outputDimensions, rank: rank, scale: scale, linear: linear)
+        return LoRALinear(
+            inputDimensions, outputDimensions, rank: rank, scale: scale, linear: linear)
     }
 
     /// Convert back into a fused `Linear` layer.
@@ -93,7 +94,7 @@ public class LoRALinear: Linear, LoRALayer {
         let loraA = loraA.T.asType(dtype)
         return Linear(weight: weight + matmul(loraB, loraA), bias: bias)
     }
-    
+
     public override func callAsFunction(_ x: MLXArray) -> MLXArray {
         let y = super.callAsFunction(x.asType(weight.dtype))
         let z = matmul(matmul(x, self.loraA), self.loraB)
@@ -154,9 +155,12 @@ public class QLoRALinear: QuantizedLinear, LoRALayer {
     /// ### See Also
     /// - ``LoRATrain/convert(model:layers:)``
     /// - ``LoRALinear/from(linear:rank:)``
-    public static func from(linear: QuantizedLinear, rank: Int = 8, scale: Float = 20.0) -> LoRALayer {
+    public static func from(linear: QuantizedLinear, rank: Int = 8, scale: Float = 20.0)
+        -> LoRALayer
+    {
         var (outputDimensions, inputDimensions) = linear.expandedShape
-        return QLoRALinear(inputDimensions, outputDimensions, rank: rank, scale: scale, linear: linear)
+        return QLoRALinear(
+            inputDimensions, outputDimensions, rank: rank, scale: scale, linear: linear)
     }
 
     /// Convert back into a fused `QuantizedLinear` layer.

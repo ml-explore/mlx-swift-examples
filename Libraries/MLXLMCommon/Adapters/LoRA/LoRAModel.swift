@@ -46,17 +46,17 @@ extension LoRAModel {
 /// A protocol representing a module that includes a LoRA adapter and can be converted
 /// back to its original, unadapted form.
 public protocol LoRALayer: Module {
-    
+
     /// Returns a version of the module with the LoRA adapter permanently fused in.
     func fused() -> Module
-    
+
     /// Returns the original module, without the LoRA adapter applied.
     func reverted() -> Module
 }
 
 /// Default implementation of `reverted()` for `Linear` layers, including support for quantized layers.
-public extension LoRALayer where Self: Linear {
-    func reverted() -> Module {
+extension LoRALayer where Self: Linear {
+    public func reverted() -> Module {
         if let quantized = self as? QuantizedLinear {
             return QuantizedLinear(
                 weight: quantized.weight, bias: quantized.bias,
@@ -71,14 +71,14 @@ public extension LoRALayer where Self: Linear {
 
 /// Extension for `QuantizedLinear` to provide helper properties.
 extension QuantizedLinear {
-    
+
     /// Computes the dequantized input and output shape of the layer.
     var expandedShape: (Int, Int) {
         var (outputDimensions, inputDimensions) = shape
         inputDimensions = inputDimensions * 32 / bits
         return (outputDimensions, inputDimensions)
     }
-    
+
     /// Computes the dequantized weight matrix using the stored quantization parameters.
     var dequantizedWeight: MLXArray {
         dequantized(
