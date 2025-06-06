@@ -13,12 +13,11 @@ import MLXRandom
 
 /// Performs the forward pass for a DoRA linear layer.
 private func forward(
-    x: MLXArray,
+    x: MLXArray, y: MLXArray,
     weight: MLXArray, bias: MLXArray?,
     loraA: MLXArray, loraB: MLXArray,
     scale: Float, magnitude: MLXArray
 ) -> MLXArray {
-    let y = matmul(x, weight.T)
     let z = matmul(matmul(x, loraA), loraB)
     var out = y + (scale * z).asType(x.dtype)
 
@@ -111,8 +110,9 @@ public class DoRALinear: Linear, LoRALayer {
     }
 
     public override func callAsFunction(_ x: MLXArray) -> MLXArray {
-        forward(
-            x: x,
+        let y = matmul(x, weight.T)
+        return forward(
+            x: x, y: y,
             weight: weight, bias: bias,
             loraA: loraA, loraB: loraB,
             scale: scale, magnitude: magnitude
@@ -170,8 +170,10 @@ public class QDoRALinear: QuantizedLinear, LoRALayer {
     }
 
     public override func callAsFunction(_ x: MLXArray) -> MLXArray {
-        forward(
-            x: x,
+        let y = quantizedMatmul(
+            x, weight, scales: scales, biases: biases, groupSize: groupSize, bits: bits)
+        return forward(
+            x: x, y: y,
             weight: dequantizedWeight, bias: bias,
             loraA: loraA, loraB: loraB,
             scale: scale, magnitude: magnitude
