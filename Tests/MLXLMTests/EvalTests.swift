@@ -14,7 +14,7 @@ public class EvalTests: XCTestCase {
 
     func testLlamaEval() throws {
         let config = LlamaConfiguration(
-            hiddenSize: 128, hiddenLayers: 128, intermediateSize: 512, attentionHeads: 32,
+            hiddenSize: 128, hiddenLayers: 16, intermediateSize: 512, attentionHeads: 32,
             rmsNormEps: 0.00001, vocabularySize: 1500, kvHeads: 8)
         let model = LlamaModel(config)
         quantize(model: model, groupSize: 64, bits: 4)
@@ -27,7 +27,7 @@ public class EvalTests: XCTestCase {
 
     func testLlamaLora() throws {
         let config = LlamaConfiguration(
-            hiddenSize: 128, hiddenLayers: 128, intermediateSize: 512, attentionHeads: 32,
+            hiddenSize: 128, hiddenLayers: 16, intermediateSize: 512, attentionHeads: 32,
             rmsNormEps: 0.00001, vocabularySize: 1500, kvHeads: 8)
         let model = LlamaModel(config)
         quantize(model: model, groupSize: 64, bits: 4)
