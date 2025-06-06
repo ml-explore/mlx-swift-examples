@@ -12,6 +12,7 @@ import MLXNN
 
 /// Errors that can occur when working with a `ModelAdapter`.
 public enum ModelAdapterError: Error {
+    case unsupportedAdapterType(String)
     case incompatibleModelType
 }
 
@@ -21,11 +22,11 @@ public protocol ModelAdapter: Sendable {
     /// Loads the adapter into the specified model.
     func load(into model: LanguageModel) throws
 
-    /// Unloads the adapter from the specified model.
-    func unload(from model: LanguageModel)
-
     /// Permanently fuses the adapter into the specified model.
     func fuse(with model: LanguageModel) throws
+
+    /// Unloads the adapter from the specified model.
+    func unload(from model: LanguageModel)
 }
 
 /// Extension to `LanguageModel` providing convenience methods for adapter usage.
@@ -43,18 +44,6 @@ extension LanguageModel {
         try adapter.load(into: self)
     }
 
-    /// Unloads an adapter from the model.
-    ///
-    /// Example:
-    /// ```swift
-    /// let model: any LanguageModel = ...
-    /// let adapter: any ModelAdapter = ...
-    /// model.unload(adapter: adapter)
-    /// ```
-    public func unload(adapter: ModelAdapter) {
-        adapter.unload(from: self)
-    }
-
     /// Fuses an adapter permanently into the model.
     ///
     /// Example:
@@ -65,6 +54,18 @@ extension LanguageModel {
     /// ```
     public func fuse(with adapter: ModelAdapter) throws {
         try adapter.fuse(with: self)
+    }
+
+    /// Unloads an adapter from the model.
+    ///
+    /// Example:
+    /// ```swift
+    /// let model: any LanguageModel = ...
+    /// let adapter: any ModelAdapter = ...
+    /// model.unload(adapter: adapter)
+    /// ```
+    public func unload(adapter: ModelAdapter) {
+        adapter.unload(from: self)
     }
 
     /// Temporarily loads an adapter, performs a synchronous action, then unloads the adapter.
@@ -78,7 +79,9 @@ extension LanguageModel {
     /// }
     /// // Adapter is automatically unloaded after execution
     /// ```
-    public func perform<R>(with adapter: ModelAdapter, perform: () throws -> R) throws -> R {
+    public func perform<R>(
+        with adapter: ModelAdapter, perform: () throws -> R
+    ) throws -> R {
         defer {
             adapter.unload(from: self)
         }
@@ -98,9 +101,9 @@ extension LanguageModel {
     /// }
     /// // Adapter is automatically unloaded after execution
     /// ```
-    public func perform<R>(with adapter: ModelAdapter, perform: () async throws -> R) async throws
-        -> R
-    {
+    public func perform<R>(
+        with adapter: ModelAdapter, perform: () async throws -> R
+    ) async throws -> R {
         defer {
             adapter.unload(from: self)
         }
