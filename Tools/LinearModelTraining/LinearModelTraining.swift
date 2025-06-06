@@ -5,7 +5,6 @@ import Foundation
 import MLX
 import MLXNN
 import MLXOptimizers
-import MLXRandom
 
 #if swift(>=5.10)
     extension MLX.DeviceType: @retroactive ExpressibleByArgument {

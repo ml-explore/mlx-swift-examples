@@ -2,7 +2,6 @@
 
 import Foundation
 import MLX
-import MLXRandom
 import Tokenizers
 
 /// A `LogitSampler` is responsible for sampling `logits` produced by
