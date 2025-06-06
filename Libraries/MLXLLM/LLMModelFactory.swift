@@ -45,6 +45,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "granite": create(GraniteConfiguration.self, GraniteModel.init),
             "mimo": create(MiMoConfiguration.self, MiMoModel.init),
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
+            "acereason": create(Qwen2Configuration.self, Qwen2Model.init),
         ]
     }
 
@@ -211,6 +212,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
+    static public let acereason_7b_4bit = ModelConfiguration(
+        id: "mlx-community/AceReason-Nemotron-7B-4bit",
+        defaultPrompt: ""
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -240,6 +246,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             smolLM_135M_4bit,
             mimo_7b_sft_4bit,
             glm4_9b_4bit,
+            acereason_7b_4bit,
         ]
     }
 
