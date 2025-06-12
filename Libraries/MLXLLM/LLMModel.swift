@@ -2,9 +2,15 @@
 
 import MLX
 import MLXLMCommon
+import Tokenizers
 
 /// Marker protocol for LLMModels
 public protocol LLMModel: LanguageModel, LoRAModel {
+
+    /// Models can implement this is they need a custom `MessageGenerator`.
+    ///
+    /// The default implementation returns `DefaultMessageGenerator`.
+    func messageGenerator(tokenizer: Tokenizer) -> MessageGenerator
 }
 
 extension LLMModel {
@@ -29,5 +35,9 @@ extension LLMModel {
         }
 
         return .tokens(y)
+    }
+
+    public func messageGenerator(tokenizer: Tokenizer) -> MessageGenerator {
+        DefaultMessageGenerator()
     }
 }

@@ -100,26 +100,3 @@ public func loadWeights(
 
     eval(model)
 }
-
-// TODO remove once mlx-swift update is adopted
-func quantize(
-    model: Module,
-    filter: (String, Module) -> (groupSize: Int, bits: Int)?,
-    apply: (Module, Int, Int) -> Module? = quantizeSingle(layer:groupSize:bits:)
-) {
-    let updates =
-        model
-        .leafModules()
-        .flattened()
-        .compactMap { (path, m) -> (String, Module)? in
-            if let (groupSize, bits) = filter(path, m) {
-                if let quantized = apply(m, groupSize, bits) {
-                    return (path, quantized)
-                }
-            }
-
-            return nil
-        }
-
-    model.update(modules: ModuleChildren.unflattened(updates))
-}
