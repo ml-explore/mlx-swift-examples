@@ -36,14 +36,14 @@ public class StreamlinedTests: XCTestCase {
 
     func testOneShot() async throws {
         let model = modelContainer()
-        let result = try await generate(model, "Tell me about things")
+        let result = try await ChatSession(model).respond(to: "Tell me about things")
         print(result)
     }
 
     func testOneShotStream() async throws {
         let model = modelContainer()
-        for try await token in stream(model, "Tell me about things") {
-            print(token, terminator: " ")
+        for try await token in ChatSession(model).streamResponse(to: "Tell me about things") {
+            print(token, terminator: "")
         }
     }
 

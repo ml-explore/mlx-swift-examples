@@ -123,58 +123,6 @@ private class Generator {
     }
 }
 
-public func generate(
-    _ model: ModelContainer, instructions: String? = nil, _ prompt: String,
-    image: UserInput.Image? = nil, video: UserInput.Video? = nil,
-    processing: UserInput.Processing = .init(resize: CGSize(width: 512, height: 512)),
-    generateParameters: GenerateParameters = .init()
-) async throws -> String {
-    let generator = Generator(
-        model: .container(model), instructions: instructions, prompt: prompt, image: image,
-        video: video,
-        processing: processing, generateParameters: generateParameters)
-    return try await generator.generate()
-}
-
-public func generate(
-    _ model: ModelContext, instructions: String? = nil, _ prompt: String,
-    image: UserInput.Image? = nil, video: UserInput.Video? = nil,
-    processing: UserInput.Processing = .init(resize: CGSize(width: 512, height: 512)),
-    generateParameters: GenerateParameters = .init()
-) async throws -> String {
-    let generator = Generator(
-        model: .context(model), instructions: instructions, prompt: prompt, image: image,
-        video: video,
-        processing: processing, generateParameters: generateParameters)
-    return try await generator.generate()
-}
-
-public func stream(
-    _ model: ModelContainer, instructions: String? = nil, _ prompt: String,
-    image: UserInput.Image? = nil, video: UserInput.Video? = nil,
-    processing: UserInput.Processing = .init(resize: CGSize(width: 512, height: 512)),
-    generateParameters: GenerateParameters = .init()
-) -> AsyncThrowingStream<String, Error> {
-    let generator = Generator(
-        model: .container(model), instructions: instructions, prompt: prompt, image: image,
-        video: video,
-        processing: processing, generateParameters: generateParameters)
-    return generator.stream()
-}
-
-public func stream(
-    _ model: ModelContext, instructions: String? = nil, _ prompt: String,
-    image: UserInput.Image? = nil, video: UserInput.Video? = nil,
-    processing: UserInput.Processing = .init(resize: CGSize(width: 512, height: 512)),
-    generateParameters: GenerateParameters = .init()
-) -> AsyncThrowingStream<String, Error> {
-    let generator = Generator(
-        model: .context(model), instructions: instructions, prompt: prompt, image: image,
-        video: video,
-        processing: processing, generateParameters: generateParameters)
-    return generator.stream()
-}
-
 public class ChatSession {
 
     private let generator: Generator

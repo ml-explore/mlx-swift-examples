@@ -8,6 +8,7 @@ public enum ModelFactoryError: LocalizedError {
     case unsupportedModelType(String)
     case unsupportedProcessorType(String)
     case configurationDecodingError(String, String, DecodingError)
+    case noModelFactoryAvailable
 
     public var errorDescription: String? {
         switch self {
@@ -15,6 +16,8 @@ public enum ModelFactoryError: LocalizedError {
             return "Unsupported model type: \(type)"
         case .unsupportedProcessorType(let type):
             return "Unsupported processor type: \(type)"
+        case .noModelFactoryAvailable: 
+            return "No model factory available via ModelFactoryRegistry"
         case .configurationDecodingError(let file, let modelName, let decodingError):
             let errorDetail = extractDecodingErrorDetail(decodingError)
             return "Failed to parse \(file) for model '\(modelName)': \(errorDetail)"
@@ -182,4 +185,93 @@ extension ModelFactory {
         return ModelContainer(context: context)
     }
 
+}
+
+private func load<R>(loader: (ModelFactory) async throws -> sending R) async throws -> sending R {
+    let factories = ModelFactoryRegistry.shared.modelFactories()
+    var lastError: Error?
+    for factory in factories {
+        do {
+            let model = try await loader(factory)
+            return model
+        } catch {
+            lastError = error
+        }
+    }
+
+    if let lastError {
+        throw lastError
+    } else {
+        throw ModelFactoryError.noModelFactoryAvailable
+    }
+}
+
+public func loadModel(
+    hub: HubApi = defaultHubApi, id: String,
+    progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
+) async throws -> sending ModelContext {
+    try await load { try await $0.load(hub: hub, id: id, progressHandler: progressHandler) }
+}
+
+public func loadModelContainer(
+    hub: HubApi = defaultHubApi, id: String,
+    progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
+) async throws -> sending ModelContainer {
+    try await load {
+        try await $0.loadContainer(hub: hub, id: id, progressHandler: progressHandler)
+    }
+}
+
+public func loadModel(
+    hub: HubApi = defaultHubApi, directory: URL,
+    progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
+) async throws -> sending ModelContext {
+    try await load {
+        try await $0.load(hub: hub, directory: directory, progressHandler: progressHandler)
+    }
+}
+
+public func loadModelContainer(
+    hub: HubApi = defaultHubApi, directory: URL,
+    progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
+) async throws -> sending ModelContainer {
+    try await load {
+        try await $0.loadContainer(hub: hub, directory: directory, progressHandler: progressHandler)
+    }
+}
+
+public protocol ModelFactoryTrampoline {
+    static func modelFactory() -> ModelFactory?
+}
+
+final public class ModelFactoryRegistry: @unchecked Sendable {
+    public static let shared = ModelFactoryRegistry()
+
+    private let lock = NSLock()
+    private var trampolines: [() -> ModelFactory?]
+
+    private init() {
+        self.trampolines = [
+            {
+                (NSClassFromString("MLXVLM.TrampolineModelFactory") as? ModelFactoryTrampoline.Type)?
+                    .modelFactory()
+            },
+            {
+                (NSClassFromString("MLXLLM.TrampolineModelFactory") as? ModelFactoryTrampoline.Type)?
+                    .modelFactory()
+            },
+        ]
+    }
+
+    public func addTrampoline(_ trampoline: @escaping () -> ModelFactory?) {
+        lock.withLock {
+            trampolines.append(trampoline)
+        }
+    }
+
+    public func modelFactories() -> [ModelFactory] {
+        lock.withLock {
+            trampolines.compactMap { $0() }
+        }
+    }
 }

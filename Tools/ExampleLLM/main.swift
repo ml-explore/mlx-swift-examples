@@ -1,7 +1,6 @@
-import MLXLLM
 import MLXLMCommon
 
-let model = try await LLMModelFactory.shared.load(id: "mlx-community/Qwen3-4B-4bit")
+let model = try await loadModel(id: "mlx-community/Qwen3-4B-4bit")
 
 let prompt = "What are three things to see in Paris?"
 
@@ -12,7 +11,7 @@ print(
     \(prompt)
 
     """)
-print(try await generate(model, prompt))
+print(try await ChatSession(model).respond(to: prompt))
 
 // MARK: - one-shot streaming output
 print(
@@ -21,13 +20,14 @@ print(
     \(prompt)
 
     """)
-for try await item in stream(model, prompt) {
+for try await item in ChatSession(model).streamResponse(to: prompt) {
     print(item, terminator: "")
 }
 print()
 
 // MARK: - conversation with follow-on questions
 let session = ChatSession(model)
+print(try await session.respond(to: "hello"))
 
 let questions = [
     "What are two things to see in San Francisco?",

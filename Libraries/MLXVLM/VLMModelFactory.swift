@@ -265,3 +265,9 @@ public class VLMModelFactory: ModelFactory {
     }
 
 }
+
+public class TrampolineModelFactory: NSObject, ModelFactoryTrampoline {
+    public static func modelFactory() -> (any MLXLMCommon.ModelFactory)? {
+        VLMModelFactory.shared
+    }
+}
