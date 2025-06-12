@@ -12,19 +12,29 @@ public protocol KVCache: Evaluatable {
     var offset: Int { get }
 
     func update(keys: MLXArray, values: MLXArray) -> (MLXArray, MLXArray)
+
+    var maxSize: Int? { get }
 }
 
-func createAdditiveCausalMask(n: Int, offset: Int) -> MLXArray {
-    let rinds = MLXArray(Int32(0) ..< Int32(offset + n))
-    let linds = offset != 0 ? MLXArray(Int32(offset) ..< Int32(offset + n)) : rinds
-    let mask = linds[0..., .newAxis] .< rinds[.newAxis]
-    return mask * Float32(-1e9)
+func createCausalMask(n: Int, offset: Int, windowSize: Int? = nil) -> MLXArray {
+    var rinds = MLXArray(Int32(0) ..< Int32(offset + n))
+    var linds = offset != 0 ? MLXArray(Int32(offset) ..< Int32(offset + n)) : rinds
+    linds = linds[0..., .newAxis]
+    rinds = rinds[.newAxis]
+    var mask = linds .>= rinds
+
+    if let windowSize {
+        mask = mask & (linds .< rinds + windowSize)
+    }
+
+    return mask
 }
 
 /// create an attention mask using the parameters from the KVCache.
 ///
 /// See also ``MultiHeadAttention/createAdditiveCausalMask(_:dtype:)`` -- same idea
 /// but doesn't honor the cache offset.
+@_disfavoredOverload
 public func createAttentionMask(h: MLXArray, cache: [KVCache]?) -> MLXArray? {
     let t = h.dim(1)
     if t > 1 {
@@ -32,10 +42,37 @@ public func createAttentionMask(h: MLXArray, cache: [KVCache]?) -> MLXArray? {
         if let c = cache?.first {
             offset = c.offset
         }
-        return createAdditiveCausalMask(n: t, offset: offset)
-            .asType(h.dtype)
+        return createCausalMask(n: t, offset: offset)
     }
     return nil
+}
+
+public func createAttentionMask(h: MLXArray, cache: [KVCache]?, returnArray: Bool = false)
+    -> MLXFast.ScaledDotProductAttentionMaskMode
+{
+    let t = h.dim(1)
+    if t > 1 {
+        var returnArray = returnArray
+        var offset = 0
+        var windowSize: Int? = nil
+        if let c = cache?.first {
+            offset = c.offset
+            if let maxSize = c.maxSize {
+                windowSize = maxSize
+                offset = min(maxSize, offset)
+                if !returnArray {
+                    returnArray = offset + t > maxSize
+                }
+            }
+        }
+
+        if returnArray {
+            return .array(createCausalMask(n: t, offset: offset, windowSize: windowSize))
+        } else {
+            return .causal
+        }
+    }
+    return .none
 }
 
 /// See https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/base.py#L11
@@ -45,6 +82,8 @@ public class KVCacheSimple: KVCache, Evaluatable, CustomDebugStringConvertible {
 
     public var offset = 0
     var step = 256
+
+    public let maxSize: Int? = nil
 
     public init() {}
 

@@ -59,15 +59,15 @@ public func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) 
 }
 
 private func updateTokenizerConfig(_ tokenizerConfig: Config) -> Config {
-    // workaround: replacement tokenizers for unhandled values in swift-transform
+    // Workaround: replacement tokenizers for unhandled values in swift-transformers
     if let tokenizerClass = tokenizerConfig.tokenizerClass?.string(),
-        let replacement = replacementTokenizers[tokenizerClass],
-        var dictionary = tokenizerConfig.dictionary()
+        let replacement = replacementTokenizers[tokenizerClass]
     {
-        dictionary["tokenizer_class"] = Config(replacement)
-        return Config(dictionary)
+        if var dictionary = tokenizerConfig.dictionary() {
+            dictionary["tokenizer_class"] = .init(replacement)
+            return Config(dictionary)
+        }
     }
-
     return tokenizerConfig
 }
 

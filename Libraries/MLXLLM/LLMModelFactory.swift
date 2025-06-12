@@ -236,6 +236,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen3_1_7b_4bit,
             qwen3_4b_4bit,
             qwen3_8b_4bit,
+            qwen3MoE_30b_a3b_4bit,
             smolLM_135M_4bit,
             mimo_7b_sft_4bit,
             glm4_9b_4bit,
@@ -330,11 +331,18 @@ public class LLMModelFactory: ModelFactory {
 
         let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
 
+        let messageGenerator =
+            if let model = model as? LLMModel {
+                model.messageGenerator(tokenizer: tokenizer)
+            } else {
+                DefaultMessageGenerator()
+            }
+
         return .init(
             configuration: configuration, model: model,
             processor: LLMUserInputProcessor(
                 tokenizer: tokenizer, configuration: configuration,
-                messageGenerator: DefaultMessageGenerator()),
+                messageGenerator: messageGenerator),
             tokenizer: tokenizer)
     }
 

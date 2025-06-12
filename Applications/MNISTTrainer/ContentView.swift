@@ -4,7 +4,6 @@ import MLX
 import MLXMNIST
 import MLXNN
 import MLXOptimizers
-import MLXRandom
 import SwiftUI
 
 struct TrainingView: View {
