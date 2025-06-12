@@ -81,7 +81,7 @@ public protocol ModelFactory: Sendable {
     func _load(
         hub: HubApi, configuration: ModelConfiguration,
         progressHandler: @Sendable @escaping (Progress) -> Void
-    ) async throws -> ModelContext
+    ) async throws -> sending ModelContext
 
     func _loadContainer(
         hub: HubApi, configuration: ModelConfiguration,
@@ -111,7 +111,49 @@ extension ModelFactory {
 
 }
 
+// TODO dkoski - HubApi download to ~/Downloads
+// TODO dkoski - ModelConfiguration should allow "huggingFace" or URL
+
+/// Default instance of HubApi to use.  This is configured to save downloads into the caches directory.
+public var defaultHubApi: HubApi = {
+    HubApi(downloadBase: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first)
+}()
+
 extension ModelFactory {
+
+    public func load(
+        hub: HubApi = defaultHubApi, id: String,
+        progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
+    ) async throws -> sending ModelContext {
+        try await _load(
+            hub: hub, configuration: .init(id: id), progressHandler: progressHandler)
+    }
+
+    public func load(
+        hub: HubApi = defaultHubApi, directory: URL,
+        progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
+    ) async throws -> sending ModelContext {
+        try await _load(
+            hub: hub, configuration: .init(directory: directory),
+            progressHandler: progressHandler)
+    }
+
+    public func loadContainer(
+        hub: HubApi = defaultHubApi, id: String,
+        progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
+    ) async throws -> ModelContainer {
+        try await _loadContainer(
+            hub: hub, configuration: .init(id: id), progressHandler: progressHandler)
+    }
+
+    public func loadContainer(
+        hub: HubApi = defaultHubApi, directory: URL,
+        progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
+    ) async throws -> ModelContainer {
+        try await _loadContainer(
+            hub: hub, configuration: .init(directory: directory),
+            progressHandler: progressHandler)
+    }
 
     /// Load a model identified by a ``ModelConfiguration`` and produce a ``ModelContext``.
     ///
@@ -119,15 +161,15 @@ extension ModelFactory {
     /// ``loadContainer(hub:configuration:progressHandler:)`` for a method that
     /// returns a ``ModelContainer``.
     public func load(
-        hub: HubApi = HubApi(), configuration: ModelConfiguration,
+        hub: HubApi = defaultHubApi, configuration: ModelConfiguration,
         progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
-    ) async throws -> ModelContext {
+    ) async throws -> sending ModelContext {
         try await _load(hub: hub, configuration: configuration, progressHandler: progressHandler)
     }
 
     /// Load a model identified by a ``ModelConfiguration`` and produce a ``ModelContainer``.
     public func loadContainer(
-        hub: HubApi = HubApi(), configuration: ModelConfiguration,
+        hub: HubApi = defaultHubApi, configuration: ModelConfiguration,
         progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
     ) async throws -> ModelContainer {
         try await _loadContainer(
@@ -135,7 +177,7 @@ extension ModelFactory {
     }
 
     public func _loadContainer(
-        hub: HubApi = HubApi(), configuration: ModelConfiguration,
+        hub: HubApi = defaultHubApi, configuration: ModelConfiguration,
         progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
     ) async throws -> ModelContainer {
         let context = try await _load(

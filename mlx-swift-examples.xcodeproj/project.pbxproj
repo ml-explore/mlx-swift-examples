@@ -25,6 +25,9 @@
 		C3056BBA2BCD981900A31D04 /* train.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA22BCD973400A31D04 /* train.jsonl */; };
 		C3056BBB2BCD981900A31D04 /* test.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA12BCD973400A31D04 /* test.jsonl */; };
 		C3056BBC2BCD981900A31D04 /* valid.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA32BCD973400A31D04 /* valid.jsonl */; };
+		C3132C2C2DFB301A00270E8E /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3132C2A2DFB301A00270E8E /* main.swift */; };
+		C3132C2E2DFB317C00270E8E /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = C3132C2D2DFB317C00270E8E /* MLXVLM */; };
+		C3132C302DFB317C00270E8E /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C3132C2F2DFB317C00270E8E /* MLXLLM */; };
 		C3208E762DB1945D006AE6CA /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C3208E752DB1945D006AE6CA /* MLX */; };
 		C3208E7A2DB1945D006AE6CA /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = C3208E792DB1945D006AE6CA /* MLXNN */; };
 		C3208E7B2DB194ED006AE6CA /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FC2CFFB98A0092A5B6 /* MLXLLM */; };
@@ -83,6 +86,15 @@
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C3132C212DFB2FFB00270E8E /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
 		};
 		C3288D712B6D9313009FF608 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -213,6 +225,8 @@
 		C3056BB32BCD97B800A31D04 /* LoRATrainingExample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LoRATrainingExample.entitlements; sourceTree = "<group>"; };
 		C3056BB52BCD97B800A31D04 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		C3056BC42BCDAB8600A31D04 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		C3132C232DFB2FFB00270E8E /* ExampleLLM */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ExampleLLM; sourceTree = BUILT_PRODUCTS_DIR; };
+		C3132C2A2DFB301A00270E8E /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		C3208E6E2DB19451006AE6CA /* MLXLMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MLXLMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C325DE3F2B648CDB00628871 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C3288D732B6D9313009FF608 /* LinearModelTraining */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LinearModelTraining; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -269,6 +283,7 @@
 			membershipExceptions = (
 				MLXLMTests/BaseConfigurationTests.swift,
 				MLXLMTests/EvalTests.swift,
+				MLXLMTests/StreamlinedTests.swift,
 				MLXLMTests/UserInputTests.swift,
 			);
 			target = C3208E6D2DB19451006AE6CA /* MLXLMTests */;
@@ -306,6 +321,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				C32A18072CFFD1AA0092A5B6 /* MLXLLM in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C3132C202DFB2FFB00270E8E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C3132C2E2DFB317C00270E8E /* MLXVLM in Frameworks */,
+				C3132C302DFB317C00270E8E /* MLXLLM in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -466,6 +490,14 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
+		C3132C2B2DFB301A00270E8E /* ExampleLLM */ = {
+			isa = PBXGroup;
+			children = (
+				C3132C2A2DFB301A00270E8E /* main.swift */,
+			);
+			path = ExampleLLM;
+			sourceTree = "<group>";
+		};
 		C3288D742B6D9313009FF608 /* LinearModelTraining */ = {
 			isa = PBXGroup;
 			children = (
@@ -558,6 +590,7 @@
 				0AC74EBB2D136221003C90A7 /* VLMEval.app */,
 				C3208E6E2DB19451006AE6CA /* MLXLMTests.xctest */,
 				0F5AD7412DB70C0300745C06 /* MLXChatExample.app */,
+				C3132C232DFB2FFB00270E8E /* ExampleLLM */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -584,6 +617,7 @@
 		C39273812B606A7400368D5D /* Tools */ = {
 			isa = PBXGroup;
 			children = (
+				C3132C2B2DFB301A00270E8E /* ExampleLLM */,
 				C36BEFE12BC32988002D4AFE /* image-tool */,
 				C3288D742B6D9313009FF608 /* LinearModelTraining */,
 				C34E49222B6A026F00FCB841 /* mnist-tool */,
@@ -727,6 +761,27 @@
 			productName = LoRATrainingExample;
 			productReference = C3056BAB2BCD97B700A31D04 /* LoRATrainingExample.app */;
 			productType = "com.apple.product-type.application";
+		};
+		C3132C222DFB2FFB00270E8E /* ExampleLLM */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C3132C272DFB2FFB00270E8E /* Build configuration list for PBXNativeTarget "ExampleLLM" */;
+			buildPhases = (
+				C3132C1F2DFB2FFB00270E8E /* Sources */,
+				C3132C202DFB2FFB00270E8E /* Frameworks */,
+				C3132C212DFB2FFB00270E8E /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ExampleLLM;
+			packageProductDependencies = (
+				C3132C2D2DFB317C00270E8E /* MLXVLM */,
+				C3132C2F2DFB317C00270E8E /* MLXLLM */,
+			);
+			productName = ExampleLLM;
+			productReference = C3132C232DFB2FFB00270E8E /* ExampleLLM */;
+			productType = "com.apple.product-type.tool";
 		};
 		C3208E6D2DB19451006AE6CA /* MLXLMTests */ = {
 			isa = PBXNativeTarget;
@@ -929,7 +984,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
+				LastSwiftUpdateCheck = 1630;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					0F5AD7402DB70C0300745C06 = {
@@ -937,6 +992,9 @@
 					};
 					C3056BAA2BCD97B700A31D04 = {
 						CreatedOnToolsVersion = 15.3;
+					};
+					C3132C222DFB2FFB00270E8E = {
+						CreatedOnToolsVersion = 16.3;
 					};
 					C3288D722B6D9313009FF608 = {
 						CreatedOnToolsVersion = 15.0.1;
@@ -998,6 +1056,7 @@
 				0AC74EBA2D136221003C90A7 /* VLMEval */,
 				C3208E6D2DB19451006AE6CA /* MLXLMTests */,
 				0F5AD7402DB70C0300745C06 /* MLXChatExample */,
+				C3132C222DFB2FFB00270E8E /* ExampleLLM */,
 			);
 		};
 /* End PBXProject section */
@@ -1091,6 +1150,14 @@
 			files = (
 				C3056BB02BCD97B700A31D04 /* ContentView.swift in Sources */,
 				C3056BAE2BCD97B700A31D04 /* LoRATrainingExampleApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C3132C1F2DFB2FFB00270E8E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C3132C2C2DFB301A00270E8E /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1610,6 +1677,82 @@
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
+			};
+			name = Release;
+		};
+		C3132C282DFB2FFB00270E8E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 565ARCVNXV;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		C3132C292DFB2FFB00270E8E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 565ARCVNXV;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -2982,6 +3125,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		C3132C272DFB2FFB00270E8E /* Build configuration list for PBXNativeTarget "ExampleLLM" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C3132C282DFB2FFB00270E8E /* Debug */,
+				C3132C292DFB2FFB00270E8E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		C3208E722DB19451006AE6CA /* Build configuration list for PBXNativeTarget "MLXLMTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -3142,6 +3294,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 81695B3F2BA373D300F260D8 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
 			productName = MarkdownUI;
+		};
+		C3132C2D2DFB317C00270E8E /* MLXVLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
+			productName = MLXVLM;
+		};
+		C3132C2F2DFB317C00270E8E /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
+			productName = MLXLLM;
 		};
 		C3208E752DB1945D006AE6CA /* MLX */ = {
 			isa = XCSwiftPackageProductDependency;
