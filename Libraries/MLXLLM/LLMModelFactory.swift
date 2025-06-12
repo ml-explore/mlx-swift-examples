@@ -45,6 +45,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "granite": create(GraniteConfiguration.self, GraniteModel.init),
             "mimo": create(MiMoConfiguration.self, MiMoModel.init),
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
+            "bitnet": create(BitnetConfiguration.self, BitnetModel.init),
         ]
     }
 
@@ -208,6 +209,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
 
     static public let glm4_9b_4bit = ModelConfiguration(
         id: "mlx-community/GLM-4-9B-0414-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+    
+    static public let bitnet_b1_58_2b_4t_4bit = ModelConfiguration(
+        id: "mlx-community/bitnet-b1.58-2B-4T",
         defaultPrompt: "Why is the sky blue?"
     )
 
