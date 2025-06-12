@@ -57,9 +57,10 @@
     {
       "identity" : "swift-transformers",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/petrukha-ivan/swift-transformers",
+      "location" : "https://github.com/huggingface/swift-transformers",
       "state" : {
-        "revision" : "4b5a34f7f09682f4aed2587940b345a0350ce879"
+        "revision" : "c2f302a74cca59cbde683b1425ab43c05685515a",
+        "version" : "0.1.21"
       }
     }
   ],
