@@ -111,9 +111,6 @@ extension ModelFactory {
 
 }
 
-// TODO dkoski - HubApi download to ~/Downloads
-// TODO dkoski - ModelConfiguration should allow "huggingFace" or URL
-
 /// Default instance of HubApi to use.  This is configured to save downloads into the caches directory.
 public var defaultHubApi: HubApi = {
     HubApi(downloadBase: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first)
