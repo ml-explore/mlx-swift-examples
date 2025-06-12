@@ -158,7 +158,7 @@ public class QLoRALinear: QuantizedLinear, LoRALayer {
     public static func from(linear: QuantizedLinear, rank: Int = 8, scale: Float = 20.0)
         -> LoRALayer
     {
-        var (outputDimensions, inputDimensions) = linear.expandedShape
+        let (outputDimensions, inputDimensions) = linear.shape
         return QLoRALinear(
             inputDimensions, outputDimensions, rank: rank, scale: scale, linear: linear)
     }

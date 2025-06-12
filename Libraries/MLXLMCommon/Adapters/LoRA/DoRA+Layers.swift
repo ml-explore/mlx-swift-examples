@@ -135,7 +135,7 @@ public class QDoRALinear: QuantizedLinear, LoRALayer {
     @ParameterInfo(key: "m") var magnitude: MLXArray
 
     required public init(linear: QuantizedLinear, rank: Int = 8, scale: Float = 20.0) {
-        let (outputDimensions, inputDimensions) = linear.expandedShape
+        let (outputDimensions, inputDimensions) = linear.shape
         let loraScale = 1 / sqrt(Float(inputDimensions))
 
         self.scale = scale

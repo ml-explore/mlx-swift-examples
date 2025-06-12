@@ -72,13 +72,6 @@ extension LoRALayer where Self: Linear {
 /// Extension for `QuantizedLinear` to provide helper properties.
 extension QuantizedLinear {
 
-    /// Computes the dequantized input and output shape of the layer.
-    var expandedShape: (Int, Int) {
-        var (outputDimensions, inputDimensions) = shape
-        inputDimensions = inputDimensions * 32 / bits
-        return (outputDimensions, inputDimensions)
-    }
-
     /// Computes the dequantized weight matrix using the stored quantization parameters.
     var dequantizedWeight: MLXArray {
         dequantized(
