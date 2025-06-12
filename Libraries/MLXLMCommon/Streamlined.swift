@@ -3,8 +3,8 @@
 import Foundation
 import MLX
 
+/// Implementation of simplified API -- see ``ChatSession``.
 private class Generator {
-
     enum Model {
         case container(ModelContainer)
         case context(ModelContext)
@@ -51,12 +51,16 @@ private class Generator {
 
     func generate() async throws -> String {
         func generate(context: ModelContext) async throws -> String {
+            // prepare the input -- first the structured messages,
+            // next the tokens
             let userInput = UserInput(chat: messages, processing: processing)
             let input = try await context.processor.prepare(input: userInput)
 
             if cache.isEmpty {
                 cache = context.model.newCache(parameters: generateParameters)
             }
+
+            // generate the output
             let iterator = try TokenIterator(
                 input: input, model: context.model, cache: cache, parameters: generateParameters)
             let result: GenerateResult = MLXLMCommon.generate(
@@ -84,6 +88,8 @@ private class Generator {
             continuation: AsyncThrowingStream<String, Error>.Continuation
         ) async {
             do {
+                // prepare the input -- first the structured messages,
+                // next the tokens
                 let userInput = UserInput(chat: messages, processing: processing)
                 let input = try await context.processor.prepare(input: userInput)
 
@@ -91,6 +97,7 @@ private class Generator {
                     cache = context.model.newCache(parameters: generateParameters)
                 }
 
+                // stream the responses back
                 for await item in try MLXLMCommon.generate(
                     input: input, cache: cache, parameters: generateParameters, context: context)
                 {
@@ -123,10 +130,31 @@ private class Generator {
     }
 }
 
+/// Simplified API for loading models and preparing responses to prompts
+/// for both LLMs and VLMs.
+///
+/// For example:
+///
+/// ```swift
+/// let model = try await loadModel(id: "mlx-community/Qwen3-4B-4bit")
+/// let session = ChatSession(model)
+/// print(try await session.respond(to: "What are two things to see in San Francisco?")
+/// print(try await session.respond(to: "How about a great place to eat?")
+/// ```
+///
+/// This manages the chat context (KVCache) and can produce both single string responses or
+/// streaming responses.
 public class ChatSession {
 
     private let generator: Generator
 
+    /// Initialzie the ChatSession
+    ///
+    /// - Parameters:
+    ///   - model: the ``ModelContainer``
+    ///   - instructions: optional instructions to the chat session, e.g. describing what type of responses to give
+    ///   - generateParameters: parameters that control the generation of output, e.g. token limits and temperature
+    ///   - processing: optional media processing instructions
     public init(
         _ model: ModelContainer, instructions: String? = nil,
         generateParameters: GenerateParameters = .init(),
@@ -137,6 +165,13 @@ public class ChatSession {
             generateParameters: generateParameters)
     }
 
+    /// Initialzie the ChatSession
+    ///
+    /// - Parameters:
+    ///   - model: the ``ModelContext``
+    ///   - instructions: optional instructions to the chat session, e.g. describing what type of responses to give
+    ///   - generateParameters: parameters that control the generation of output, e.g. token limits and temperature
+    ///   - processing: optional media processing instructions
     public init(
         _ model: ModelContext, instructions: String? = nil,
         generateParameters: GenerateParameters = .init(),
@@ -147,6 +182,13 @@ public class ChatSession {
             generateParameters: generateParameters)
     }
 
+    /// Produces a response to a prompt.
+    ///
+    /// - Parameters:
+    ///   - prompt: the prompt
+    ///   - image: optional image (for use with VLMs)
+    ///   - video: optional video (for use with VLMs)
+    /// - Returns: response from the model
     public func respond(
         to prompt: String, image: UserInput.Image? = nil, video: UserInput.Video? = nil
     ) async throws -> String {
@@ -159,6 +201,13 @@ public class ChatSession {
         return try await generator.generate()
     }
 
+    /// Produces a response to a prompt.
+    ///
+    /// - Parameters:
+    ///   - prompt: the prompt
+    ///   - image: optional image (for use with VLMs)
+    ///   - video: optional video (for use with VLMs)
+    /// - Returns: a stream of tokens (as Strings) from the model
     public func streamResponse(
         to prompt: String, image: UserInput.Image? = nil, video: UserInput.Video? = nil
     ) -> AsyncThrowingStream<String, Error> {
@@ -170,5 +219,4 @@ public class ChatSession {
         ]
         return generator.stream()
     }
-
 }

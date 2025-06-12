@@ -27,7 +27,6 @@ print()
 
 // MARK: - conversation with follow-on questions
 let session = ChatSession(model)
-print(try await session.respond(to: "hello"))
 
 let questions = [
     "What are two things to see in San Francisco?",
