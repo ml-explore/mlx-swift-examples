@@ -24,11 +24,11 @@ public func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) 
     let config: LanguageModelConfigurationFromHub
 
     switch configuration.id {
-    case .id(let id):
+    case .id(let id, let revision):
         do {
             // the load can fail (async when we try to use it)
             let loaded = LanguageModelConfigurationFromHub(
-                modelName: configuration.tokenizerId ?? id, hubApi: hub)
+                modelName: configuration.tokenizerId ?? id, revision: revision, hubApi: hub)
             _ = try await loaded.tokenizerConfig
             config = loaded
         } catch {
