@@ -9,7 +9,7 @@ import Hub
 public struct ModelConfiguration: Sendable {
 
     public enum Identifier: Sendable {
-        case id(String, revision: String)
+        case id(String, revision: String = "main")
         case directory(URL)
     }
 
