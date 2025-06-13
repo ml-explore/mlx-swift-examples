@@ -331,7 +331,6 @@ public class RotatingKVCache: BaseKVCache, CustomDebugStringConvertible {
     private var keep: Int
     private var keys: MLXArray?
     private var values: MLXArray?
-    // TODO: `offset` from the Python implementation is not implemented here. Do we need it?
     private var maxCacheSize: Int?
     private var step: Int
     private var idx: Int = 0
@@ -558,7 +557,6 @@ public class RotatingKVCache: BaseKVCache, CustomDebugStringConvertible {
 public class QuantizedKVCache: BaseKVCache, QuantizedKVCacheProtocol {
     private var keys: (MLXArray, MLXArray, MLXArray)?
     private var values: (MLXArray, MLXArray, MLXArray)?
-    // TODO: `offset` from the Python implementation is not implemented here. Do we need it?
     private let step: Int
     public let groupSize: Int
     public let bits: Int
@@ -995,11 +993,11 @@ struct KVCacheError: Error {
 /// Save a pre-computed prompt cache to a file.
 ///
 /// - Parameters:
-///   - fileName: The `.safetensors` file name
+///   - url: The URL to the `.safetensors` file
 ///   - cache: The model cache state
 ///   - metadata: Optional metadata to save along with cache state
 public func savePromptCache(
-    fileName: String,
+    url: URL,
     cache: [KVCache],
     metadata: [String: String] = [:]
 ) throws {
@@ -1025,130 +1023,71 @@ public func savePromptCache(
         }
     }
 
-    // Flatten cache data into a dictionary with string keys
+    // Flatten cache data using tree_flatten compatible structure: "i.j" format
     var flattenedData: [String: MLXArray] = [:]
     for (i, arrays) in cacheData.enumerated() {
         for (j, array) in arrays.enumerated() {
-            flattenedData["cache_\(i)_\(j)"] = array
+            flattenedData["\(i).\(j)"] = array
         }
     }
 
-    // Store metadata and cache structure info as special arrays
-    // Since MLX Swift doesn't support metadata in safetensors, we encode it as arrays
+    // Create cache_metadata structure compatible with Python: [cache_info, metadata, cache_classes]
+    var flattenedMetadata: [String: String] = [:]
 
-    // Cache structure metadata
-    flattenedData["__metadata_num_caches"] = MLXArray([cacheData.count])
-    flattenedData["__metadata_cache_data_counts"] = MLXArray(cacheData.map { $0.count })
-    flattenedData["__metadata_cache_info_counts"] = MLXArray(cacheInfo.map { $0.count })
-
-    // Cache classes (encoded as integers to work around string limitation)
-    let classMapping = [
-        "KVCache": 0, "RotatingKVCache": 1, "QuantizedKVCache": 2,
-        "ChunkedKVCache": 3, "MambaCache": 4, "CacheList": 5,
-    ]
-    let classIndices = cacheClasses.map { classMapping[$0] ?? 0 }
-    flattenedData["__metadata_cache_classes"] = MLXArray(classIndices)
-
-    // Cache info (flattened)
-    var flatCacheInfo: [String] = []
-    for info in cacheInfo {
-        flatCacheInfo.append(contentsOf: info)
-    }
-    // Encode strings as UTF-8 bytes and store as arrays
-    for (i, infoString) in flatCacheInfo.enumerated() {
-        let bytes = Array(infoString.utf8)
-        if !bytes.isEmpty {
-            flattenedData["__metadata_cache_info_\(i)"] = MLXArray(bytes.map { Int32($0) })
+    // Flatten cache_info as "0.i.j" (first element of cache_metadata)
+    for (i, info) in cacheInfo.enumerated() {
+        for (j, metaValue) in info.enumerated() {
+            flattenedMetadata["0.\(i).\(j)"] = metaValue
         }
     }
 
-    // User metadata
-    for (i, (key, value)) in metadata.enumerated() {
-        let keyBytes = Array(key.utf8)
-        let valueBytes = Array(value.utf8)
-        if !keyBytes.isEmpty {
-            flattenedData["__metadata_user_key_\(i)"] = MLXArray(keyBytes.map { Int32($0) })
-        }
-        if !valueBytes.isEmpty {
-            flattenedData["__metadata_user_value_\(i)"] = MLXArray(valueBytes.map { Int32($0) })
-        }
+    // Flatten user metadata as "1.key" (second element of cache_metadata)
+    for (key, value) in metadata {
+        flattenedMetadata["1.\(key)"] = value
     }
-    flattenedData["__metadata_user_count"] = MLXArray([metadata.count])
 
-    try save(arrays: flattenedData, url: URL(fileURLWithPath: fileName))
+    // Flatten cache_classes as "2.i" (third element of cache_metadata)
+    for (i, className) in cacheClasses.enumerated() {
+        flattenedMetadata["2.\(i)"] = className
+    }
+
+    try save(arrays: flattenedData, metadata: flattenedMetadata, url: url)
 }
 
 /// Load a prompt cache from a file.
 ///
 /// - Parameters:
-///   - fileName: The `.safetensors` file name
-///   - returnMetadata: Whether to return metadata along with the cache
-/// - Returns: The prompt cache and optionally the metadata
+///   - url: The URL to the `.safetensors` file
+/// - Returns: The prompt cache and the metadata
 public func loadPromptCache(
-    fileName: String,
-    returnMetadata: Bool = false
+    url: URL
 ) throws -> ([KVCache], [String: String]?) {
-    let arrays = try loadArrays(url: URL(fileURLWithPath: fileName))
+    let (arrays, metadata) = try loadArraysAndMetadata(url: url)
 
-    // Extract metadata from special arrays
-    guard let numCachesArray = arrays["__metadata_num_caches"],
-        let dataCountsArray = arrays["__metadata_cache_data_counts"],
-        let infoCountsArray = arrays["__metadata_cache_info_counts"],
-        let classIndicesArray = arrays["__metadata_cache_classes"]
-    else {
-        throw KVCacheError(message: "Invalid cache file format - missing metadata")
+    // Unflatten arrays using tree_unflatten compatible logic
+    let cacheData = unflattenArrays(arrays)
+
+    // Unflatten metadata using tree_unflatten compatible logic
+    let unflattenedMetadata = unflattenMetadata(metadata)
+
+    // Extract cache_info, user_metadata, and cache_classes from unflattened structure
+    // Structure: [cache_info, user_metadata, cache_classes]
+    guard unflattenedMetadata.count >= 3 else {
+        throw KVCacheError(message: "Invalid cache metadata format")
     }
 
-    let numCaches = numCachesArray.item(Int.self)
-    let dataCounts = dataCountsArray.asArray(Int.self)
-    let infoCounts = infoCountsArray.asArray(Int.self)
-    let classIndices = classIndicesArray.asArray(Int.self)
+    let cacheInfo = unflattenedMetadata[0] as? [[String]] ?? []
+    let userMetadata = unflattenedMetadata[1] as? [String: String] ?? [:]
+    let cacheClasses = unflattenedMetadata[2] as? [String] ?? []
 
-    guard
-        dataCounts.count == numCaches && infoCounts.count == numCaches
-            && classIndices.count == numCaches
-    else {
+    guard cacheData.count == cacheInfo.count && cacheData.count == cacheClasses.count else {
         throw KVCacheError(message: "Mismatch in cache counts")
     }
 
-    // Reconstruct cache data
-    var cacheData: [[MLXArray]] = []
-    for i in 0 ..< numCaches {
-        var cacheArrays: [MLXArray] = []
-        for j in 0 ..< dataCounts[i] {
-            if let array = arrays["cache_\(i)_\(j)"] {
-                cacheArrays.append(array)
-            }
-        }
-        cacheData.append(cacheArrays)
-    }
-
-    // Reconstruct cache info
-    var cacheInfo: [[String]] = []
-    var infoIndex = 0
-    for i in 0 ..< numCaches {
-        var info: [String] = []
-        for _ in 0 ..< infoCounts[i] {
-            if let infoArray = arrays["__metadata_cache_info_\(infoIndex)"] {
-                let bytes = infoArray.asArray(Int32.self).map { UInt8($0) }
-                let infoString = String(bytes: bytes, encoding: .utf8) ?? ""
-                info.append(infoString)
-            }
-            infoIndex += 1
-        }
-        cacheInfo.append(info)
-    }
-
-    // Reconstruct cache classes
-    let classMapping = [
-        0: "KVCache", 1: "RotatingKVCache", 2: "QuantizedKVCache",
-        3: "ChunkedKVCache", 4: "MambaCache", 5: "CacheList",
-    ]
-
     // Reconstruct cache instances
     var caches: [KVCache] = []
-    for i in 0 ..< numCaches {
-        let className = classMapping[classIndices[i]] ?? "KVCache"
+    for i in 0 ..< cacheData.count {
+        let className = cacheClasses[i]
 
         var cache: KVCache
         switch className {
@@ -1173,38 +1112,94 @@ public func loadPromptCache(
         }
 
         cache.state = cacheData[i]
-        cache.metaState = cacheInfo[i]
+        if i < cacheInfo.count {
+            cache.metaState = cacheInfo[i]
+        }
         caches.append(cache)
     }
 
-    // Extract user metadata
+    return (caches, userMetadata)
+}
+
+/// Unflatten arrays from tree_flatten format (e.g., "0.1", "1.0") to nested structure
+private func unflattenArrays(_ flatArrays: [String: MLXArray]) -> [[MLXArray]] {
+    var arrayMap: [Int: [Int: MLXArray]] = [:]
+
+    // Parse all keys and organize by indices
+    for (key, array) in flatArrays {
+        let components = key.split(separator: ".")
+        if components.count >= 2,
+            let i = Int(components[0]),
+            let j = Int(components[1])
+        {
+            if arrayMap[i] == nil {
+                arrayMap[i] = [:]
+            }
+            arrayMap[i]![j] = array
+        }
+    }
+
+    // Convert to ordered array structure
+    var result: [[MLXArray]] = []
+    let maxI = arrayMap.keys.max() ?? -1
+
+    for i in 0 ... maxI {
+        if let innerMap = arrayMap[i] {
+            let maxJ = innerMap.keys.max() ?? -1
+            var innerArray: [MLXArray] = []
+            for j in 0 ... maxJ {
+                if let array = innerMap[j] {
+                    innerArray.append(array)
+                }
+            }
+            result.append(innerArray)
+        } else {
+            result.append([])
+        }
+    }
+
+    return result
+}
+
+/// Unflatten metadata from tree_flatten format to nested structure
+private func unflattenMetadata(_ flatMetadata: [String: String]) -> [Any] {
+    var cacheInfo: [[String]] = []
     var userMetadata: [String: String] = [:]
-    if let userCountArray = arrays["__metadata_user_count"] {
-        let userCount = userCountArray.item(Int.self)
-        for i in 0 ..< userCount {
-            var key = ""
-            var value = ""
+    var cacheClasses: [String] = []
 
-            if let keyArray = arrays["__metadata_user_key_\(i)"] {
-                let keyBytes = keyArray.asArray(Int32.self).map { UInt8($0) }
-                key = String(bytes: keyBytes, encoding: .utf8) ?? ""
+    for (key, value) in flatMetadata {
+        let components = key.split(separator: ".")
+
+        if components.count >= 3 && components[0] == "0" {
+            // Cache info: "0.i.j" format
+            if let i = Int(components[1]), let j = Int(components[2]) {
+                // Ensure cacheInfo is large enough
+                while cacheInfo.count <= i {
+                    cacheInfo.append([])
+                }
+                // Ensure inner array is large enough
+                while cacheInfo[i].count <= j {
+                    cacheInfo[i].append("")
+                }
+                cacheInfo[i][j] = value
             }
-
-            if let valueArray = arrays["__metadata_user_value_\(i)"] {
-                let valueBytes = valueArray.asArray(Int32.self).map { UInt8($0) }
-                value = String(bytes: valueBytes, encoding: .utf8) ?? ""
-            }
-
-            if !key.isEmpty {
-                userMetadata[key] = value
+        } else if components.count >= 2 && components[0] == "1" {
+            // User metadata: "1.key" format
+            let metaKey = components.dropFirst().joined(separator: ".")
+            userMetadata[metaKey] = value
+        } else if components.count >= 2 && components[0] == "2" {
+            // Cache classes: "2.i" format
+            if let i = Int(components[1]) {
+                // Ensure cacheClasses is large enough
+                while cacheClasses.count <= i {
+                    cacheClasses.append("")
+                }
+                cacheClasses[i] = value
             }
         }
     }
 
-    if returnMetadata {
-        return (caches, userMetadata)
-    }
-    return (caches, nil)
+    return [cacheInfo, userMetadata, cacheClasses]
 }
 
 /// Construct the model's cache for use when generating.
@@ -1368,7 +1363,7 @@ public func quantizedScaledDotProductAttention(
 ///   - cache: Array of KV caches to potentially quantize
 ///   - kvBits: Number of bits for quantization (nil = no quantization)
 ///   - kvGroupSize: Group size for quantization
-///   - quantizedKVStart: Step to begin quantizing
+///   - quantizedKVStart: Token count threshold to begin quantizing
 public func maybeQuantizeKVCache(
     cache: inout [KVCache],
     kvBits: Int?,
@@ -1384,10 +1379,12 @@ public func maybeQuantizeKVCache(
     }
 
     for i in 0 ..< cache.count {
+        // Handle cache types that support quantization
         if let simpleCache = cache[i] as? KVCacheSimple {
             cache[i] = simpleCache.toQuantized(groupSize: kvGroupSize, bits: kvBits)
         }
-        // Note: RotatingKVCache.toQuantized() is not implemented yet like in Python
+        // TODO: RotatingKVCache.toQuantized() is not implemented yet, like in Python.
         // When implemented, add: else if let rotatingCache = cache[i] as? RotatingKVCache { ... }
+        // MambaCache and CacheList don't use traditional KV quantization
     }
 }
