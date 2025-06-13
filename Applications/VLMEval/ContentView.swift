@@ -335,7 +335,8 @@ class VLMEvaluator {
 
     /// This controls which model loads. `smolvlm` is very small even unquantized, so it will fit on
     /// more devices.
-    let modelConfiguration = VLMRegistry.smolvlm
+    // TODO: revert to whatever main has before merge
+    let modelConfiguration = VLMRegistry.gemma3_4B_it_4bit
 
     /// parameters controlling the output – use values appropriate for the model selected above
     let generateParameters = MLXLMCommon.GenerateParameters(
