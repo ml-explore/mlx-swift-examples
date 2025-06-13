@@ -16,7 +16,7 @@ public enum ModelFactoryError: LocalizedError {
             return "Unsupported model type: \(type)"
         case .unsupportedProcessorType(let type):
             return "Unsupported processor type: \(type)"
-        case .noModelFactoryAvailable: 
+        case .noModelFactoryAvailable:
             return "No model factory available via ModelFactoryRegistry"
         case .configurationDecodingError(let file, let modelName, let decodingError):
             let errorDetail = extractDecodingErrorDetail(decodingError)
@@ -128,60 +128,6 @@ public var defaultHubApi: HubApi = {
 
 extension ModelFactory {
 
-    /// Load a ``ModelContext`` given a huggingface model identifier.
-    ///
-    /// ## See Also
-    /// - ``loadModel(hub:id:progressHandler:)``
-    /// - ``loadModelContainer(hub:id:progressHandler:)``
-    public func load(
-        hub: HubApi = defaultHubApi, id: String,
-        progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
-    ) async throws -> sending ModelContext {
-        try await _load(
-            hub: hub, configuration: .init(id: id), progressHandler: progressHandler)
-    }
-
-    /// Load a ``ModelContext`` given a directory of weights.
-    ///
-    /// ## See Also
-    /// - ``loadModel(hub:directory:progressHandler:)``
-    /// - ``loadModelContainer(hub:directory:progressHandler:)``
-    public func load(
-        hub: HubApi = defaultHubApi, directory: URL,
-        progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
-    ) async throws -> sending ModelContext {
-        try await _load(
-            hub: hub, configuration: .init(directory: directory),
-            progressHandler: progressHandler)
-    }
-
-    /// Load a ``ModelContainer`` given a huggingface model identifier.
-    ///
-    /// ## See Also
-    /// - ``loadModel(hub:id:progressHandler:)``
-    /// - ``loadModelContainer(hub:id:progressHandler:)``
-    public func loadContainer(
-        hub: HubApi = defaultHubApi, id: String,
-        progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
-    ) async throws -> ModelContainer {
-        try await _loadContainer(
-            hub: hub, configuration: .init(id: id), progressHandler: progressHandler)
-    }
-
-    /// Load a ``ModelContainer`` given a directory of weights.
-    ///
-    /// ## See Also
-    /// - ``loadModel(hub:directory:progressHandler:)``
-    /// - ``loadModelContainer(hub:directory:progressHandler:)``
-    public func loadContainer(
-        hub: HubApi = defaultHubApi, directory: URL,
-        progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
-    ) async throws -> ModelContainer {
-        try await _loadContainer(
-            hub: hub, configuration: .init(directory: directory),
-            progressHandler: progressHandler)
-    }
-
     /// Load a model identified by a ``ModelConfiguration`` and produce a ``ModelContext``.
     ///
     /// This method returns a ``ModelContext``.  See also
@@ -218,6 +164,46 @@ extension ModelFactory {
 
 }
 
+/// Load a model given a ``ModelConfiguration``.
+///
+/// This will load and return a ``ModelContext``.  This holds the model and tokenzier without
+/// an `actor` providing an isolation context.  Use this call when you control the isolation context
+/// and can hold the `ModelContext` directly.
+///
+/// - Parameters:
+///   - hub: optional HubApi -- by default uses ``defaultHubApi``
+///   - configuration: a ``ModelConfiguration``
+///   - progressHandler: optional callback for progress
+/// - Returns: a ModelContext
+public func loadModel(
+    hub: HubApi = defaultHubApi, configuration: ModelConfiguration,
+    progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
+) async throws -> sending ModelContext {
+    try await load {
+        try await $0.load(hub: hub, configuration: configuration, progressHandler: progressHandler)
+    }
+}
+
+/// Load a model given a ``ModelConfiguration``.
+///
+/// This will load and return a ``ModelContainer``.  This holds a ``ModelContext``
+/// inside an actor providing isolation control for the values.
+///
+/// - Parameters:
+///   - hub: optional HubApi -- by default uses ``defaultHubApi``
+///   - configuration: a ``ModelConfiguration``
+///   - progressHandler: optional callback for progress
+/// - Returns: a ModelContainer
+public func loadModelContainer(
+    hub: HubApi = defaultHubApi, configuration: ModelConfiguration,
+    progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
+) async throws -> sending ModelContainer {
+    try await load {
+        try await $0.loadContainer(
+            hub: hub, configuration: configuration, progressHandler: progressHandler)
+    }
+}
+
 /// Load a model given a huggingface identifier.
 ///
 /// This will load and return a ``ModelContext``.  This holds the model and tokenzier without
@@ -230,10 +216,14 @@ extension ModelFactory {
 ///   - progressHandler: optional callback for progress
 /// - Returns: a ModelContext
 public func loadModel(
-    hub: HubApi = defaultHubApi, id: String,
+    hub: HubApi = defaultHubApi, id: String, revision: String = "main",
     progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
 ) async throws -> sending ModelContext {
-    try await load { try await $0.load(hub: hub, id: id, progressHandler: progressHandler) }
+    try await load {
+        try await $0.load(
+            hub: hub, configuration: .init(id: id, revision: revision),
+            progressHandler: progressHandler)
+    }
 }
 
 /// Load a model given a huggingface identifier.
@@ -247,11 +237,13 @@ public func loadModel(
 ///   - progressHandler: optional callback for progress
 /// - Returns: a ModelContainer
 public func loadModelContainer(
-    hub: HubApi = defaultHubApi, id: String,
+    hub: HubApi = defaultHubApi, id: String, revision: String = "main",
     progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
 ) async throws -> sending ModelContainer {
     try await load {
-        try await $0.loadContainer(hub: hub, id: id, progressHandler: progressHandler)
+        try await $0.loadContainer(
+            hub: hub, configuration: .init(id: id, revision: revision),
+            progressHandler: progressHandler)
     }
 }
 
@@ -271,7 +263,8 @@ public func loadModel(
     progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
 ) async throws -> sending ModelContext {
     try await load {
-        try await $0.load(hub: hub, directory: directory, progressHandler: progressHandler)
+        try await $0.load(
+            hub: hub, configuration: .init(directory: directory), progressHandler: progressHandler)
     }
 }
 
@@ -290,7 +283,8 @@ public func loadModelContainer(
     progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
 ) async throws -> sending ModelContainer {
     try await load {
-        try await $0.loadContainer(hub: hub, directory: directory, progressHandler: progressHandler)
+        try await $0.loadContainer(
+            hub: hub, configuration: .init(directory: directory), progressHandler: progressHandler)
     }
 }
 

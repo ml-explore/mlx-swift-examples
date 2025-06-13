@@ -61,6 +61,22 @@ Currently supported model types are:
 
 See [llm-tool](../../Tools/llm-tool)
 
+# Quick Start
+
+Using LLMs and VLMs from MLXLMCommon is as easy as:
+
+```swift
+let model = try await loadModel(id: "mlx-community/Qwen3-4B-4bit")
+let session = ChatSession(model)
+print(try await session.respond(to: "What are two things to see in San Francisco?")
+print(try await session.respond(to: "How about a great place to eat?")
+```
+
+For more information see 
+[Evaluation](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/evaluation)
+or [Using Models](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/using-model)
+for more advanced API.
+
 # Adding a Model
 
 If the model follows the typical LLM pattern:
