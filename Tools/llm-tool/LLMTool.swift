@@ -145,12 +145,24 @@ struct GenerateArguments: ParsableArguments, Sendable {
     @Option(name: .long, help: "The PRNG seed")
     var seed: UInt64 = 0
 
+    @Option(name: .long, help: "Number of bits for KV cache quantization (nil = no quantization)")
+    var kvBits: Int?
+
+    @Option(name: .long, help: "Group size for KV cache quantization")
+    var kvGroupSize: Int = 64
+
+    @Option(name: .long, help: "Step to begin using quantized KV cache when kv-bits is set")
+    var quantizedKvStart: Int = 0
+
     @Flag(name: .shortAndLong, help: "If true only print the generated output")
     var quiet = false
 
     var generateParameters: GenerateParameters {
         GenerateParameters(
             maxTokens: maxTokens,
+            kvBits: kvBits,
+            kvGroupSize: kvGroupSize,
+            quantizedKVStart: quantizedKvStart,
             temperature: temperature, topP: topP, repetitionPenalty: repetitionPenalty,
             repetitionContextSize: repetitionContextSize)
     }

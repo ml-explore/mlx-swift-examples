@@ -203,8 +203,17 @@ public protocol KVCacheDimensionProvider {
 
 extension LanguageModel where Self: KVCacheDimensionProvider {
     public func newCache(parameters: GenerateParameters?) -> [KVCache] {
-        kvHeads.map { n in
-            KVCacheSimple()
+        // Create one cache per layer (kvHeads.count = number of layers)
+        // The number of heads per layer (kvHeads[i]) is not used for cache creation
+        let numLayers = kvHeads.count
+
+        // Follow Python logic: use RotatingKVCache if maxKVSize is provided
+        if let maxKVSize = parameters?.maxKVSize {
+            return (0 ..< numLayers).map { _ in
+                RotatingKVCache(maxSize: maxKVSize, keep: 4)
+            }
+        } else {
+            return (0 ..< numLayers).map { _ in KVCacheSimple() }
         }
     }
 }
