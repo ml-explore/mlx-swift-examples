@@ -7,6 +7,32 @@
 - [MLXLLM](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxllm) -- large language model example implementations
 - [MLXVLM](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxvlm) -- vision language model example implementations
 
+# Quick Start
+
+Using LLMs and VLMs from MLXLMCommon is as easy as:
+
+```swift
+let model = try await loadModel(id: "mlx-community/Qwen2.5-VL-3B-Instruct-4bit")
+let session = ChatSession(model)
+
+let answer1 = try await session.respond(
+    to: "what kind of creature is in the picture?"
+    image: .url(URL(fileURLWithPath: "support/test.jpg"))
+)
+print(answer1)
+
+// we can ask a followup question referring back to the previous image
+let answer2 = try await session.respond(
+    to: "What is behind the dog?"
+)
+print(answer2)
+```
+
+For more information see 
+[Evaluation](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/evaluation)
+or [Using Models](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/using-model)
+for more advanced API.
+
 # Contents
 
 This is a port of several models from:

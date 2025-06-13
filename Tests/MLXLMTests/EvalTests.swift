@@ -14,21 +14,21 @@ public class EvalTests: XCTestCase {
 
     func testLlamaEval() throws {
         let config = LlamaConfiguration(
-            hiddenSize: 128, hiddenLayers: 128, intermediateSize: 512, attentionHeads: 32,
-            rmsNormEps: 0.00001, vocabularySize: 1500, kvHeads: 8)
+            hiddenSize: 64, hiddenLayers: 16, intermediateSize: 512, attentionHeads: 32,
+            rmsNormEps: 0.00001, vocabularySize: 100, kvHeads: 8)
         let model = LlamaModel(config)
         quantize(model: model, groupSize: 64, bits: 4)
 
         let input = MLXArray([1, 2, 3, 4, 5])[.newAxis, .ellipsis]
         let output = model.callAsFunction(input, cache: nil)
 
-        XCTAssertEqual(output.shape, [1, 5, 1500])
+        XCTAssertEqual(output.shape, [1, 5, 100])
     }
 
     func testLlamaLora() throws {
         let config = LlamaConfiguration(
-            hiddenSize: 128, hiddenLayers: 128, intermediateSize: 512, attentionHeads: 32,
-            rmsNormEps: 0.00001, vocabularySize: 1500, kvHeads: 8)
+            hiddenSize: 64, hiddenLayers: 16, intermediateSize: 512, attentionHeads: 32,
+            rmsNormEps: 0.00001, vocabularySize: 100, kvHeads: 8)
         let model = LlamaModel(config)
         quantize(model: model, groupSize: 64, bits: 4)
 
@@ -54,14 +54,32 @@ public class EvalTests: XCTestCase {
         let input = MLXArray([1, 2, 3, 4, 5])[.newAxis, .ellipsis]
         let output = model.callAsFunction(input, cache: nil)
 
-        XCTAssertEqual(output.shape, [1, 5, 1500])
+        XCTAssertEqual(output.shape, [1, 5, 100])
     }
 
 }
 
-private struct TestTokenizer: Tokenizer {
+struct TestTokenizer: Tokenizer {
 
     let length = 8
+
+    var vocabulary: [Int: String]
+
+    init(vocabularySize: Int = 100) {
+        let letters = "abcdefghijklmnopqrstuvwxyz"
+        self.vocabulary = Dictionary(
+            uniqueKeysWithValues: (0 ..< vocabularySize)
+                .map { t in
+                    (
+                        t,
+                        String(
+                            (0 ..< ((3 ..< 8).randomElement() ?? 3)).compactMap { _ in
+                                letters.randomElement()
+                            })
+                    )
+                }
+        )
+    }
 
     func tokenize(text: String) -> [String] {
         text.split(separator: " ").map { String($0) }
@@ -78,7 +96,11 @@ private struct TestTokenizer: Tokenizer {
     }
 
     func decode(tokens: [Int], skipSpecialTokens: Bool) -> String {
-        "token"
+        var tokens = tokens
+        if tokens.count > 50 {
+            tokens.append(19)
+        }
+        return tokens.map { convertIdToToken($0) ?? "" }.joined(separator: " ")
     }
 
     func convertTokenToId(_ token: String) -> Int? {
@@ -86,7 +108,10 @@ private struct TestTokenizer: Tokenizer {
     }
 
     func convertIdToToken(_ id: Int) -> String? {
-        "token"
+        if id == 19 {
+            return "EOS"
+        }
+        return vocabulary[id]
     }
 
     var bosToken: String? = nil

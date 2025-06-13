@@ -37,11 +37,28 @@ Example [MLX Swift](https://github.com/ml-explore/mlx-swift) programs.
 - [llm-tool](Tools/llm-tool/README.md): A command line tool for generating text
   using a variety of LLMs available on the Hugging Face hub.
 
+- [ExampleLLM](Tools/ExampleLLM/README.md): A command line tool using the simplified API to interact with LLMs.
+
 - [image-tool](Tools/image-tool/README.md): A command line tool for generating images
   using a stable diffusion model from Hugging Face.
 
 - [mnist-tool](Tools/mnist-tool/README.md): A command line tool for training a
   a LeNet on MNIST.
+
+## Interacting with LLMs
+
+See also [MLXLMCommon](Libraries/MLXLMCommon).  You can easily use
+a wide variety of open weight LLM and VLMs in your code.  You can use
+this simplified API:
+
+```swift
+let model = try await loadModel(id: "mlx-community/Qwen3-4B-4bit")
+let session = ChatSession(model)
+print(try await session.respond(to: "What are two things to see in San Francisco?")
+print(try await session.respond(to: "How about a great place to eat?")
+```
+
+Or use the underlying API to control everything aspect of the evaluation.
 
 ## Running
 
