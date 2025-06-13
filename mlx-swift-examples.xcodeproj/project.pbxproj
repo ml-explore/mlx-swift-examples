@@ -57,7 +57,6 @@
 		C36BF0082BC5CE56002D4AFE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C36BF0072BC5CE56002D4AFE /* Assets.xcassets */; };
 		C36BF00C2BC5CE56002D4AFE /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C36BF00B2BC5CE56002D4AFE /* Preview Assets.xcassets */; };
 		C36BF0352BC70F11002D4AFE /* Arguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BF0342BC70F11002D4AFE /* Arguments.swift */; };
-		C37133A22DD6524B00D19830 /* ListCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C37133A12DD6524B00D19830 /* ListCommands.swift */; };
 		C38BA3AA2DB8321600BAFA88 /* Chat.swift in Sources */ = {isa = PBXBuildFile; fileRef = C38BA3A92DB8321600BAFA88 /* Chat.swift */; };
 		C392737D2B606A1D00368D5D /* Tutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = C392737C2B606A1D00368D5D /* Tutorial.swift */; };
 		C397C59C2B62C6D0004B084D /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C397C59B2B62C6D0004B084D /* ArgumentParser */; };
@@ -192,6 +191,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0A7C100B2DC37CEA00FD5155 /* MLXChatExample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MLXChatExample.entitlements; sourceTree = "<group>"; };
 		0AC74EBB2D136221003C90A7 /* VLMEval.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VLMEval.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0AC74EC92D13622A003C90A7 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		0AC74ECB2D13622A003C90A7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -233,7 +233,6 @@
 		C36BF0092BC5CE56002D4AFE /* StableDiffusionExample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StableDiffusionExample.entitlements; sourceTree = "<group>"; };
 		C36BF00B2BC5CE56002D4AFE /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		C36BF0342BC70F11002D4AFE /* Arguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Arguments.swift; sourceTree = "<group>"; };
-		C37133A12DD6524B00D19830 /* ListCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListCommands.swift; sourceTree = "<group>"; };
 		C38BA3A92DB8321600BAFA88 /* Chat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chat.swift; sourceTree = "<group>"; };
 		C39273742B606A0A00368D5D /* Tutorial */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Tutorial; sourceTree = BUILT_PRODUCTS_DIR; };
 		C392737C2B606A1D00368D5D /* Tutorial.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Tutorial.swift; sourceTree = "<group>"; };
@@ -268,7 +267,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				MLXLMTests/BaseConfigurationTests.swift,
-				MLXLMTests/EvalTests.swift,
 				MLXLMTests/UserInputTests.swift,
 			);
 			target = C3208E6D2DB19451006AE6CA /* MLXLMTests */;
@@ -483,7 +481,6 @@
 				C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */,
 				C36BEFB62BBDECBC002D4AFE /* Arguments.swift */,
 				C38BA3A92DB8321600BAFA88 /* Chat.swift */,
-				C37133A12DD6524B00D19830 /* ListCommands.swift */,
 			);
 			path = "llm-tool";
 			sourceTree = "<group>";
@@ -530,6 +527,7 @@
 		C39273672B60697700368D5D = {
 			isa = PBXGroup;
 			children = (
+				0A7C100B2DC37CEA00FD5155 /* MLXChatExample.entitlements */,
 				C325DE3F2B648CDB00628871 /* README.md */,
 				F8D7023A2BB4E223003D7CF5 /* Package.swift */,
 				C3C36A6C2CA714600099FFA4 /* Configuration */,
@@ -1151,7 +1149,6 @@
 				C38BA3AA2DB8321600BAFA88 /* Chat.swift in Sources */,
 				C34E48F52B696F0B00FCB841 /* LLMTool.swift in Sources */,
 				C36BEFB52BBDEAD8002D4AFE /* LoraCommands.swift in Sources */,
-				C37133A22DD6524B00D19830 /* ListCommands.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1321,7 +1318,7 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_ENTITLEMENTS = Applications/MLXChatExample/MLXChatExample.entitlements;
+				CODE_SIGN_ENTITLEMENTS = MLXChatExample.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
@@ -1387,7 +1384,7 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_ENTITLEMENTS = Applications/MLXChatExample/MLXChatExample.entitlements;
+				CODE_SIGN_ENTITLEMENTS = MLXChatExample.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
@@ -3095,7 +3092,7 @@
 			repositoryURL = "https://github.com/ml-explore/mlx-swift";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.25.4;
+				minimumVersion = 0.21.2;
 			};
 		};
 		C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
