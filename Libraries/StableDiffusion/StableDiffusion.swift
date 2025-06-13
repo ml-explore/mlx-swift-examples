@@ -4,7 +4,6 @@ import Foundation
 import Hub
 import MLX
 import MLXNN
-import MLXRandom
 
 // port of https://github.com/ml-explore/mlx-examples/blob/main/stable_diffusion/stable_diffusion/__init__.py
 

@@ -9,7 +9,7 @@ import Hub
 public struct ModelConfiguration: Sendable {
 
     public enum Identifier: Sendable {
-        case id(String)
+        case id(String, revision: String = "main")
         case directory(URL)
     }
 
@@ -17,8 +17,8 @@ public struct ModelConfiguration: Sendable {
 
     public var name: String {
         switch id {
-        case .id(let string):
-            string
+        case .id(let id, _):
+            id
         case .directory(let url):
             url.deletingLastPathComponent().lastPathComponent + "/" + url.lastPathComponent
         }
@@ -37,12 +37,13 @@ public struct ModelConfiguration: Sendable {
     public var extraEOSTokens: Set<String>
 
     public init(
-        id: String, tokenizerId: String? = nil, overrideTokenizer: String? = nil,
+        id: String, revision: String = "main",
+        tokenizerId: String? = nil, overrideTokenizer: String? = nil,
         defaultPrompt: String = "hello",
         extraEOSTokens: Set<String> = [],
         preparePrompt: (@Sendable (String) -> String)? = nil
     ) {
-        self.id = .id(id)
+        self.id = .id(id, revision: revision)
         self.tokenizerId = tokenizerId
         self.overrideTokenizer = overrideTokenizer
         self.defaultPrompt = defaultPrompt
@@ -50,7 +51,8 @@ public struct ModelConfiguration: Sendable {
     }
 
     public init(
-        directory: URL, tokenizerId: String? = nil, overrideTokenizer: String? = nil,
+        directory: URL,
+        tokenizerId: String? = nil, overrideTokenizer: String? = nil,
         defaultPrompt: String = "hello",
         extraEOSTokens: Set<String> = []
     ) {
@@ -63,7 +65,7 @@ public struct ModelConfiguration: Sendable {
 
     public func modelDirectory(hub: HubApi = HubApi()) -> URL {
         switch id {
-        case .id(let id):
+        case .id(let id, _):
             // download the model weights and config
             let repo = Hub.Repo(id: id)
             return hub.localRepoLocation(repo)
@@ -84,8 +86,8 @@ extension ModelConfiguration.Identifier: Equatable {
         -> Bool
     {
         switch (lhs, rhs) {
-        case (.id(let lhsID), .id(let rhsID)):
-            lhsID == rhsID
+        case (.id(let lhsID, let lhsRevision), .id(let rhsID, let rhsRevision)):
+            lhsID == rhsID && lhsRevision == rhsRevision
         case (.directory(let lhsURL), .directory(let rhsURL)):
             lhsURL == rhsURL
         default:

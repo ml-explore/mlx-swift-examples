@@ -7,11 +7,40 @@ import Tokenizers
 public enum ModelFactoryError: LocalizedError {
     case unsupportedModelType(String)
     case unsupportedProcessorType(String)
+    case configurationDecodingError(String, String, DecodingError)
 
     public var errorDescription: String? {
         switch self {
-        case .unsupportedModelType(let type): "Unsupported model type: \(type)"
-        case .unsupportedProcessorType(let type): "Unsupported processor type: \(type)"
+        case .unsupportedModelType(let type):
+            return "Unsupported model type: \(type)"
+        case .unsupportedProcessorType(let type):
+            return "Unsupported processor type: \(type)"
+        case .configurationDecodingError(let file, let modelName, let decodingError):
+            let errorDetail = extractDecodingErrorDetail(decodingError)
+            return "Failed to parse \(file) for model '\(modelName)': \(errorDetail)"
+        }
+    }
+
+    private func extractDecodingErrorDetail(_ error: DecodingError) -> String {
+        switch error {
+        case .keyNotFound(let key, let context):
+            let path = (context.codingPath + [key]).map { $0.stringValue }.joined(separator: ".")
+            return "Missing field '\(path)'"
+        case .typeMismatch(_, let context):
+            let path = context.codingPath.map { $0.stringValue }.joined(separator: ".")
+            return "Type mismatch at '\(path)'"
+        case .valueNotFound(_, let context):
+            let path = context.codingPath.map { $0.stringValue }.joined(separator: ".")
+            return "Missing value at '\(path)'"
+        case .dataCorrupted(let context):
+            if context.codingPath.isEmpty {
+                return "Invalid JSON"
+            } else {
+                let path = context.codingPath.map { $0.stringValue }.joined(separator: ".")
+                return "Invalid data at '\(path)'"
+            }
+        @unknown default:
+            return error.localizedDescription
         }
     }
 }

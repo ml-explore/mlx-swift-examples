@@ -4,7 +4,6 @@ import Foundation
 import MLX
 import MLXNN
 import MLXOptimizers
-import MLXRandom
 import Tokenizers
 
 /// Layers to apply LoRA adapters to.
@@ -198,8 +197,7 @@ public class QLoRALinear: QuantizedLinear, LoRAConvertToLinear {
     /// - ``LoRATrain/convert(model:layers:)``
     /// - ``LoRALinear/from(linear:rank:)``
     public static func from(linear: QuantizedLinear, rank: Int = 8) -> Linear {
-        var (outputDimensions, inputDimensions) = linear.shape
-        inputDimensions = inputDimensions * 32 / linear.bits
+        let (outputDimensions, inputDimensions) = linear.shape
         return QLoRALinear(inputDimensions, outputDimensions, rank: rank, linear: linear)
     }
 

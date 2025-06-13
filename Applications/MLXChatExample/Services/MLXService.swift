@@ -108,7 +108,8 @@ class MLXService {
         }
 
         // Prepare input for model processing
-        let userInput = UserInput(chat: chat)
+        let userInput = UserInput(
+            chat: chat, processing: .init(resize: .init(width: 1024, height: 1024)))
 
         // Generate response using the model
         return try await modelContainer.perform { (context: ModelContext) in

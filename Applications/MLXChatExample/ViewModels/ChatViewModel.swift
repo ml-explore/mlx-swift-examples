@@ -160,14 +160,28 @@ class MediaSelection {
     var isShowing = false
 
     /// Currently selected image URLs
-    var images: [URL] = []
+    var images: [URL] = [] {
+        didSet {
+            didSetURLs(oldValue, images)
+        }
+    }
 
     /// Currently selected video URLs
-    var videos: [URL] = []
+    var videos: [URL] = [] {
+        didSet {
+            didSetURLs(oldValue, videos)
+        }
+    }
 
     /// Whether any media is currently selected
     var isEmpty: Bool {
         images.isEmpty && videos.isEmpty
+    }
+
+    private func didSetURLs(_ old: [URL], _ new: [URL]) {
+        // the urls we get from fileImporter require SSB calls to access
+        new.filter { !old.contains($0) }.forEach { _ = $0.startAccessingSecurityScopedResource() }
+        old.filter { !new.contains($0) }.forEach { $0.stopAccessingSecurityScopedResource() }
     }
 }
 

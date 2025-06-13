@@ -242,6 +242,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen3_1_7b_4bit,
             qwen3_4b_4bit,
             qwen3_8b_4bit,
+            qwen3MoE_30b_a3b_4bit,
             smolLM_135M_4bit,
             mimo_7b_sft_4bit,
             glm4_9b_4bit,
@@ -323,12 +324,26 @@ public class LLMModelFactory: ModelFactory {
         let modelDirectory = try await downloadModel(
             hub: hub, configuration: configuration, progressHandler: progressHandler)
 
-        // load the generic config to understand which model and how to load the weights
+        // Load the generic config to understand which model and how to load the weights
         let configurationURL = modelDirectory.appending(component: "config.json")
-        let baseConfig = try JSONDecoder().decode(
-            BaseConfiguration.self, from: Data(contentsOf: configurationURL))
-        let model = try typeRegistry.createModel(
-            configuration: configurationURL, modelType: baseConfig.modelType)
+
+        let baseConfig: BaseConfiguration
+        do {
+            baseConfig = try JSONDecoder().decode(
+                BaseConfiguration.self, from: Data(contentsOf: configurationURL))
+        } catch let error as DecodingError {
+            throw ModelFactoryError.configurationDecodingError(
+                configurationURL.lastPathComponent, configuration.name, error)
+        }
+
+        let model: LanguageModel
+        do {
+            model = try typeRegistry.createModel(
+                configuration: configurationURL, modelType: baseConfig.modelType)
+        } catch let error as DecodingError {
+            throw ModelFactoryError.configurationDecodingError(
+                configurationURL.lastPathComponent, configuration.name, error)
+        }
 
         // apply the weights to the bare model
         try loadWeights(
@@ -337,12 +352,19 @@ public class LLMModelFactory: ModelFactory {
 
         let tokenizer = try await loadTokenizer(configuration: configuration, hub: hub)
 
+        let messageGenerator =
+            if let model = model as? LLMModel {
+                model.messageGenerator(tokenizer: tokenizer)
+            } else {
+                DefaultMessageGenerator()
+            }
+
+        let processor = LLMUserInputProcessor(
+            tokenizer: tokenizer, configuration: configuration,
+            messageGenerator: messageGenerator)
+
         return .init(
-            configuration: configuration, model: model,
-            processor: LLMUserInputProcessor(
-                tokenizer: tokenizer, configuration: configuration,
-                messageGenerator: DefaultMessageGenerator()),
-            tokenizer: tokenizer)
+            configuration: configuration, model: model, processor: processor, tokenizer: tokenizer)
     }
 
 }

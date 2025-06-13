@@ -212,11 +212,24 @@ public class VLMModelFactory: ModelFactory {
         let configurationURL = modelDirectory.appending(
             component: "config.json"
         )
-        let baseConfig = try JSONDecoder().decode(
-            BaseConfiguration.self, from: Data(contentsOf: configurationURL))
 
-        let model = try typeRegistry.createModel(
-            configuration: configurationURL, modelType: baseConfig.modelType)
+        let baseConfig: BaseConfiguration
+        do {
+            baseConfig = try JSONDecoder().decode(
+                BaseConfiguration.self, from: Data(contentsOf: configurationURL))
+        } catch let error as DecodingError {
+            throw ModelFactoryError.configurationDecodingError(
+                configurationURL.lastPathComponent, configuration.name, error)
+        }
+
+        let model: LanguageModel
+        do {
+            model = try typeRegistry.createModel(
+                configuration: configurationURL, modelType: baseConfig.modelType)
+        } catch let error as DecodingError {
+            throw ModelFactoryError.configurationDecodingError(
+                configurationURL.lastPathComponent, configuration.name, error)
+        }
 
         // apply the weights to the bare model
         try loadWeights(
@@ -228,17 +241,23 @@ public class VLMModelFactory: ModelFactory {
             hub: hub
         )
 
-        let processorConfiguration = modelDirectory.appending(
+        let processorConfigurationURL = modelDirectory.appending(
             component: "preprocessor_config.json"
         )
-        let baseProcessorConfig = try JSONDecoder().decode(
-            BaseProcessorConfiguration.self,
-            from: Data(
-                contentsOf: processorConfiguration
+
+        let baseProcessorConfig: BaseProcessorConfiguration
+        do {
+            baseProcessorConfig = try JSONDecoder().decode(
+                BaseProcessorConfiguration.self,
+                from: Data(contentsOf: processorConfigurationURL)
             )
-        )
+        } catch let error as DecodingError {
+            throw ModelFactoryError.configurationDecodingError(
+                processorConfigurationURL.lastPathComponent, configuration.name, error)
+        }
+
         let processor = try processorRegistry.createModel(
-            configuration: processorConfiguration,
+            configuration: processorConfigurationURL,
             processorType: baseProcessorConfig.processorClass, tokenizer: tokenizer)
 
         return .init(
