@@ -148,7 +148,7 @@ public class ChatSession {
 
     private let generator: Generator
 
-    /// Initialzie the ChatSession
+    /// Initialize the `ChatSession`.
     ///
     /// - Parameters:
     ///   - model: the ``ModelContainer``
@@ -165,7 +165,7 @@ public class ChatSession {
             generateParameters: generateParameters)
     }
 
-    /// Initialzie the ChatSession
+    /// Initialize the `ChatSession`.
     ///
     /// - Parameters:
     ///   - model: the ``ModelContext``

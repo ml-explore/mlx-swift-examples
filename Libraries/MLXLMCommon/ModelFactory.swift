@@ -168,13 +168,13 @@ extension ModelFactory {
 ///
 /// This will load and return a ``ModelContext``.  This holds the model and tokenzier without
 /// an `actor` providing an isolation context.  Use this call when you control the isolation context
-/// and can hold the `ModelContext` directly.
+/// and can hold the ``ModelContext`` directly.
 ///
 /// - Parameters:
 ///   - hub: optional HubApi -- by default uses ``defaultHubApi``
 ///   - configuration: a ``ModelConfiguration``
 ///   - progressHandler: optional callback for progress
-/// - Returns: a ModelContext
+/// - Returns: a ``ModelContext``
 public func loadModel(
     hub: HubApi = defaultHubApi, configuration: ModelConfiguration,
     progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
@@ -193,7 +193,7 @@ public func loadModel(
 ///   - hub: optional HubApi -- by default uses ``defaultHubApi``
 ///   - configuration: a ``ModelConfiguration``
 ///   - progressHandler: optional callback for progress
-/// - Returns: a ModelContainer
+/// - Returns: a ``ModelContainer``
 public func loadModelContainer(
     hub: HubApi = defaultHubApi, configuration: ModelConfiguration,
     progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
@@ -208,13 +208,13 @@ public func loadModelContainer(
 ///
 /// This will load and return a ``ModelContext``.  This holds the model and tokenzier without
 /// an `actor` providing an isolation context.  Use this call when you control the isolation context
-/// and can hold the `ModelContext` directly.
+/// and can hold the ``ModelContext`` directly.
 ///
 /// - Parameters:
 ///   - hub: optional HubApi -- by default uses ``defaultHubApi``
 ///   - id: huggingface model identifier, e.g "mlx-community/Qwen3-4B-4bit"
 ///   - progressHandler: optional callback for progress
-/// - Returns: a ModelContext
+/// - Returns: a ``ModelContext``
 public func loadModel(
     hub: HubApi = defaultHubApi, id: String, revision: String = "main",
     progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
@@ -235,7 +235,7 @@ public func loadModel(
 ///   - hub: optional HubApi -- by default uses ``defaultHubApi``
 ///   - id: huggingface model identifier, e.g "mlx-community/Qwen3-4B-4bit"
 ///   - progressHandler: optional callback for progress
-/// - Returns: a ModelContainer
+/// - Returns: a ``ModelContainer``
 public func loadModelContainer(
     hub: HubApi = defaultHubApi, id: String, revision: String = "main",
     progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
@@ -251,13 +251,13 @@ public func loadModelContainer(
 ///
 /// This will load and return a ``ModelContext``.  This holds the model and tokenzier without
 /// an `actor` providing an isolation context.  Use this call when you control the isolation context
-/// and can hold the `ModelContext` directly.
+/// and can hold the ``ModelContext`` directly.
 ///
 /// - Parameters:
 ///   - hub: optional HubApi -- by default uses ``defaultHubApi``
 ///   - directory: directory of configuration and weights
 ///   - progressHandler: optional callback for progress
-/// - Returns: a ModelContext
+/// - Returns: a ``ModelContext``
 public func loadModel(
     hub: HubApi = defaultHubApi, directory: URL,
     progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
@@ -277,7 +277,7 @@ public func loadModel(
 ///   - hub: optional HubApi -- by default uses ``defaultHubApi``
 ///   - directory: directory of configuration and weights
 ///   - progressHandler: optional callback for progress
-/// - Returns: a ModelContainer
+/// - Returns: a ``ModelContainer``
 public func loadModelContainer(
     hub: HubApi = defaultHubApi, directory: URL,
     progressHandler: @Sendable @escaping (Progress) -> Void = { _ in }
