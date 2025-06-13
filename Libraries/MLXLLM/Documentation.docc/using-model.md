@@ -2,6 +2,9 @@
 
 Using a model is easy:  load the weights, tokenize and evaluate.
 
+There is a high level API described in <doc:evaluation> and this documentation
+describes the lower level API if you need more control.
+
 ## Loading a Model
 
 A model is typically loaded by using a `ModelFactory` and a `ModelConfiguration`:
