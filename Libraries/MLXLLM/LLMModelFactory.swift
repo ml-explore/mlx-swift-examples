@@ -219,7 +219,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
     )
 
     static public let bitnet_b1_58_2b_4t_4bit = ModelConfiguration(
-        id: "mlx-community/bitnet-b1.58-2B-4T",
+        id: "mlx-community/bitnet-b1.58-2B-4T-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
 
@@ -253,6 +253,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             mimo_7b_sft_4bit,
             glm4_9b_4bit,
             acereason_7b_4bit,
+            bitnet_b1_58_2b_4t_4bit,
         ]
     }
 
