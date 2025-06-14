@@ -252,7 +252,7 @@ public struct BitnetConfiguration: Codable, Sendable {
 // MARK: - ReLU²
 
 private func relu2(_ x: MLXArray) -> MLXArray {
-    square(relu(x))
+    compile(shapeless: true) { square(relu($0)) }(x)
 }
 
 // MARK: - Attention
