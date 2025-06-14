@@ -133,8 +133,12 @@ struct ContentView: View {
 
         }
         .task {
-            // pre-load the weights on launch to speed up the first generation
-            _ = try? await llm.load()
+            do {
+                // pre-load the weights on launch to speed up the first generation
+                _ = try await llm.load()
+            } catch {
+                llm.output = "Failed: \(error)"
+            }
         }
     }
 
