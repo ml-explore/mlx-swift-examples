@@ -266,8 +266,10 @@ public struct BitnetConfiguration: Codable, Sendable {
 
 // MARK: - ReLU²
 
-private func relu2(_ x: MLXArray) -> MLXArray {
-    compile(shapeless: true) { square(relu($0)) }(x)
+private func reluSquared(_ x: MLXArray) -> MLXArray {
+    compile(shapeless: true) {
+        relu($0).square()
+    }(x)
 }
 
 // MARK: - Attention
@@ -380,7 +382,7 @@ private class MLP: Module {
     }
 
     func callAsFunction(_ x: MLXArray) -> MLXArray {
-        let gated = relu2(gateProj(x)) * upProj(x)
+        let gated = reluSquared(gateProj(x)) * upProj(x)
         let normed = ffnSubNorm(gated)
         return downProj(normed)
     }
