@@ -19,7 +19,7 @@ import MLXNN
 /// **Quantized cache:**
 /// ```swift
 /// let quantizedCache = QuantizedKVCache(groupSize: 64, bits: 4)
-/// let (qKeys, qValues) = quantizedCache.updateAndFetchQuantized(keys: keys, values: values)
+/// let (qKeys, qValues) = quantizedCache.updateQuantized(keys: keys, values: values)
 ///
 /// let output = quantizedScaledDotProductAttention(
 ///     queries: queries,
@@ -65,7 +65,7 @@ public protocol KVCache: Evaluatable {
 /// ```swift
 /// // Efficient quantized path
 /// if let quantizedCache = cache as? QuantizedKVCacheProtocol {
-///     let (qKeys, qValues) = quantizedCache.updateAndFetchQuantized(keys: k, values: v)
+///     let (qKeys, qValues) = quantizedCache.updateQuantized(keys: k, values: v)
 ///     // Use native quantized operations
 ///     let scores = quantizedMatmul(queries, w: qKeys.0, scales: qKeys.1, biases: qKeys.2, ...)
 /// } else {
@@ -298,7 +298,7 @@ public class KVCacheSimple: BaseKVCache, CustomDebugStringConvertible {
 
     /// Convert to quantized cache for maximum efficiency
     ///
-    /// Use `updateAndFetchQuantized()` and `quantizedScaledDotProductAttention()` for zero-overhead operation.
+    /// Use `updateQuantized()` and `quantizedScaledDotProductAttention()` for zero-overhead operation.
     public func toQuantized(groupSize: Int = 64, bits: Int = 4) -> QuantizedKVCache {
         let quantizedCache = QuantizedKVCache(groupSize: groupSize, bits: bits)
         quantizedCache.offset = self.offset
@@ -331,13 +331,13 @@ public class RotatingKVCache: BaseKVCache, CustomDebugStringConvertible {
     private var keep: Int
     private var keys: MLXArray?
     private var values: MLXArray?
-    private var maxCacheSize: Int?
+    private var maxCacheSize: Int
     private var step: Int
     private var idx: Int = 0
 
     public override var maxSize: Int? { maxCacheSize }
 
-    public init(maxSize: Int?, keep: Int = 0, step: Int = 256) {
+    public init(maxSize: Int, keep: Int = 0, step: Int = 256) {
         self.maxCacheSize = maxSize
         self.keep = keep
         self.step = step
@@ -382,24 +382,19 @@ public class RotatingKVCache: BaseKVCache, CustomDebugStringConvertible {
 
     private func updateConcat(keys: MLXArray, values: MLXArray) -> (MLXArray, MLXArray) {
         if self.keys == nil {
-            // For initial forward pass with long sequences, store all tokens
-            // Sliding window should only be applied during generation phase
             self.keys = keys
             self.values = values
         } else {
             // Put the keys/values in temporal order to preserve context
             self.keys = temporalOrder(self.keys!)
             self.values = temporalOrder(self.values!)
-
-            // The largest size is maxSize + S to ensure every token gets at least maxSize context
-            let trimSize = idx - (maxCacheSize ?? idx)
+            let trimSize = idx - maxCacheSize
             self.keys = trim(trimSize: trimSize, self.keys!, append: keys)
             self.values = trim(trimSize: trimSize, self.values!, append: values)
         }
-        // Update offset and idx based on actual processing
-        let actualTokensStored = self.keys!.dim(2)
-        offset += keys.dim(2)  // Still track total tokens processed
-        idx = actualTokensStored  // But idx reflects actual cache size
+
+        offset += keys.dim(2)
+        idx = self.keys!.dim(2)
 
         return (self.keys!, self.values!)
     }
@@ -414,14 +409,9 @@ public class RotatingKVCache: BaseKVCache, CustomDebugStringConvertible {
 
         // May not have hit the max size yet, so potentially keep growing the cache
         if self.keys == nil
-            || (prev >= self.keys!.dim(2) && self.keys!.dim(2) < (maxCacheSize ?? Int.max))
+            || (prev >= self.keys!.dim(2) && self.keys!.dim(2) < maxCacheSize)
         {
-            let newSize: Int
-            if let maxCacheSize = maxCacheSize {
-                newSize = min(step, maxCacheSize - prev)
-            } else {
-                newSize = step  // If no max size, just grow by step size
-            }
+            let newSize = min(step, maxCacheSize - prev)
 
             let kShape = [B, nKVHeads, newSize, kHeadDim]
             let vShape = [B, nKVHeads, newSize, vHeadDim]
@@ -439,28 +429,27 @@ public class RotatingKVCache: BaseKVCache, CustomDebugStringConvertible {
         }
 
         // Trim if needed
-        if let maxCacheSize = maxCacheSize {
-            let trimSize = self.keys!.dim(2) - maxCacheSize
-            if trimSize > 0 {
-                self.keys = trim(trimSize: trimSize, self.keys!)
-                self.values = trim(trimSize: trimSize, self.values!)
-                idx = maxCacheSize
-            }
+        let trimSize = self.keys!.dim(2) - maxCacheSize
+        if trimSize > 0 {
+            self.keys = trim(trimSize: trimSize, self.keys!)
+            self.values = trim(trimSize: trimSize, self.values!)
+            idx = maxCacheSize
         }
 
-        // Rotate
-        if let maxCacheSize = maxCacheSize, idx == maxCacheSize {
+        // Rotate if we've hit the end
+        if idx == maxCacheSize {
             idx = keep
         }
 
         // Assign
         self.keys![.ellipsis, idx ..< (idx + S), 0...] = keys
         self.values![.ellipsis, idx ..< (idx + S), 0...] = values
+
         offset += S
         idx += S
 
-        // If the buffer is not full, slice off the end
-        if let maxCacheSize = maxCacheSize, offset < maxCacheSize {
+        // Return the appropriate cache slice
+        if offset < maxCacheSize {
             return (
                 self.keys![.ellipsis, ..<offset, 0...],
                 self.values![.ellipsis, ..<offset, 0...]
@@ -470,10 +459,13 @@ public class RotatingKVCache: BaseKVCache, CustomDebugStringConvertible {
     }
 
     public override func update(keys: MLXArray, values: MLXArray) -> (MLXArray, MLXArray) {
-        if keys.dim(2) == 1 {
-            return updateInPlace(keys: keys, values: values)
-        }
-        return updateConcat(keys: keys, values: values)
+        let result =
+            if keys.dim(2) == 1 {
+                updateInPlace(keys: keys, values: values)
+            } else {
+                updateConcat(keys: keys, values: values)
+            }
+        return result
     }
 
     public override var state: [MLXArray] {
@@ -501,26 +493,36 @@ public class RotatingKVCache: BaseKVCache, CustomDebugStringConvertible {
 
     public override var metaState: [String] {
         get {
-            // Use "None" string for nil values to match Python behavior
-            let maxSizeStr = maxCacheSize?.description ?? "None"
-            return [String(keep), maxSizeStr, String(step), String(offset), String(idx)]
+            return [String(keep), String(maxCacheSize), String(step), String(offset), String(idx)]
         }
         set {
             guard newValue.count == 5 else {
                 fatalError("RotatingKVCache metaState must have exactly 5 values")
             }
-            self.keep = Int(newValue[0]) ?? 0
-            if newValue[1] == "None" {
-                self.maxCacheSize = nil
+            guard let keepVal = Int(newValue[0]),
+                let stepVal = Int(newValue[2]),
+                let offsetVal = Int(newValue[3]),
+                let idxVal = Int(newValue[4])
+            else {
+                fatalError("Failed to convert metaState values to integers")
             }
-            self.step = Int(newValue[2]) ?? 256
-            self.offset = Int(newValue[3]) ?? 0
-            self.idx = Int(newValue[4]) ?? 0
+            if newValue[1] == "None" {
+                fatalError(
+                    "RotatingKVCache requires a non-nil maxSize. Cannot load cache with maxSize=None."
+                )
+            }
+            guard let maxSizeVal = Int(newValue[1]) else {
+                fatalError("Failed to convert maxCacheSize '\(newValue[1])' to integer")
+            }
+            self.keep = keepVal
+            self.maxCacheSize = maxSizeVal
+            self.step = stepVal
+            self.offset = offsetVal
+            self.idx = idxVal
         }
     }
 
     public override var isTrimmable: Bool {
-        guard let maxCacheSize = maxCacheSize else { return true }
         return offset < maxCacheSize
     }
 
@@ -533,7 +535,7 @@ public class RotatingKVCache: BaseKVCache, CustomDebugStringConvertible {
     }
 
     public var debugDescription: String {
-        "\(String(describing: Self.self)) offset: \(offset), maxSize: \(maxCacheSize?.description ?? "nil"), keep: \(keep), idx: \(idx)"
+        "\(String(describing: Self.self)) offset: \(offset), maxSize: \(maxCacheSize.description), keep: \(keep), idx: \(idx)"
     }
 
     /// Convert to quantized cache
@@ -756,16 +758,6 @@ public class QuantizedKVCache: BaseKVCache, QuantizedKVCacheProtocol {
             let expectedStep = Int(newValue[0]) ?? 256
             let expectedGroupSize = Int(newValue[2]) ?? 64
             let expectedBits = Int(newValue[3]) ?? 8
-
-            if expectedStep != step || expectedGroupSize != groupSize || expectedBits != bits {
-                print(
-                    "Warning: QuantizedKVCache metaState mismatch - loaded cache has different parameters"
-                )
-                print("Expected: step=\(step), groupSize=\(groupSize), bits=\(bits)")
-                print(
-                    "Loaded: step=\(expectedStep), groupSize=\(expectedGroupSize), bits=\(expectedBits)"
-                )
-            }
         }
     }
 
@@ -869,7 +861,6 @@ public class ChunkedKVCache: KVCacheSimple {
 
     public override var metaState: [String] {
         get {
-            // Use "None" string for nil values to match Python behavior
             let chunkSizeStr = chunkSize?.description ?? "None"
             return [chunkSizeStr, String(startPosition)]
         }
@@ -879,6 +870,8 @@ public class ChunkedKVCache: KVCacheSimple {
             }
             if newValue[0] == "None" {
                 self.chunkSize = nil
+            } else {
+                self.chunkSize = Int(newValue[0])
             }
             self.startPosition = Int(newValue[1]) ?? 0
         }
@@ -1094,7 +1087,22 @@ public func loadPromptCache(
         case "KVCache", "KVCacheSimple":  // Handle both Python and Swift names
             cache = KVCacheSimple()
         case "RotatingKVCache":
-            cache = RotatingKVCache(maxSize: nil)  // Will be set from metaState
+            // Parse metaState first to get maxSize, then create cache
+            let info = i < cacheInfo.count ? cacheInfo[i] : []
+            guard info.count >= 5 else {
+                throw KVCacheError(message: "Invalid RotatingKVCache metaState - expected 5 values")
+            }
+            if info[1] == "None" {
+                throw KVCacheError(
+                    message:
+                        "RotatingKVCache with maxSize=None is not supported. This cache was created with invalid parameters."
+                )
+            }
+            guard let maxSize = Int(info[1]) else {
+                throw KVCacheError(
+                    message: "Failed to parse RotatingKVCache maxSize from: \(info[1])")
+            }
+            cache = RotatingKVCache(maxSize: maxSize)  // Create with parsed maxSize
         case "QuantizedKVCache":
             cache = QuantizedKVCache()
         case "ChunkedKVCache":
