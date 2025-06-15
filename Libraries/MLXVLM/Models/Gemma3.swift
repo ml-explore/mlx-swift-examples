@@ -59,43 +59,42 @@ public struct Gemma3TextConfiguration: Codable, Sendable {
     public let ropeScaling: [String: StringOrNumber]?
     public let finalLogitSoftcapping: Float?
 
-    // These will be decoded from JSON when present, otherwise use defaults
+    public let vocabularySize: Int = 262208
+    public let rmsNormEps: Float = 1.0e-6
+
+    // Decoded from JSON when present, with fallback if not
+
     private let _attentionHeads: Int?
     private let _kvHeads: Int?
     private let _headDim: Int?
-    private let _rmsNormEps: Float?
-    private let _vocabularySize: Int?
+    private let _queryPreAttnScalar: Float?
 
-    // Public computed properties that provide the correct defaults for each model
+    // Not included in 4B model config.json, included for 12B and 27B models
     public var attentionHeads: Int {
-        _attentionHeads ?? 8  // 4B model default (not in config)
+        _attentionHeads ?? 8
     }
 
+    // Not included in 4B model config.json, included for 12B and 27B models
     public var kvHeads: Int {
-        _kvHeads ?? 4  // 4B model default (not in config), 12B has 8
+        _kvHeads ?? 4
     }
 
-    // Use fixed headDim = 256 that matches the actual quantized weights
+    // Not included in 4B and 12B model config.json, included for 27B model
     public var headDim: Int {
-        _headDim ?? 256  // This matches the actual quantized weights for both models
+        _headDim ?? 256
     }
 
-    public var rmsNormEps: Float {
-        _rmsNormEps ?? 1.0e-6
+    // Not included in 4B and 12B model config.json, included for 27B model
+    public var queryPreAttnScalar: Float {
+        _queryPreAttnScalar ?? 256
     }
 
-    public var vocabularySize: Int {
-        _vocabularySize ?? 262208
-    }
-
-    // Default values
-    public var ropeGlobalBaseFreq: Float = 1_000_000.0
-    public var ropeLocalBaseFreq: Float = 10_000.0
-    public var ropeTraditional: Bool = false
-    public var queryPreAttnScalar: Float = 256
-    public var mmTokensPerImage: Int = 256
-    public var slidingWindowPattern: Int = 6
-    public var maxPositionEmbeddings: Int = 4096
+    public let ropeGlobalBaseFreq: Float = 1_000_000.0
+    public let ropeLocalBaseFreq: Float = 10_000.0
+    public let ropeTraditional: Bool = false
+    public let mmTokensPerImage: Int = 256
+    public let slidingWindowPattern: Int = 6
+    public let maxPositionEmbeddings: Int = 4096
 
     enum CodingKeys: String, CodingKey {
         case modelType = "model_type"
@@ -108,8 +107,7 @@ public struct Gemma3TextConfiguration: Codable, Sendable {
         case _attentionHeads = "num_attention_heads"
         case _kvHeads = "num_key_value_heads"
         case _headDim = "head_dim"
-        case _rmsNormEps = "rms_norm_eps"
-        case _vocabularySize = "vocab_size"
+        case _queryPreAttnScalar = "query_pre_attn_scalar"
     }
 }
 
@@ -124,9 +122,8 @@ public struct Gemma3VisionConfiguration: Codable, Sendable {
     public let patchSize: Int
     public let imageSize: Int
 
-    // Default values
-    public var numChannels: Int = 3
-    public var layerNormEps: Float = 1e-6
+    public let numChannels: Int = 3
+    public let layerNormEps: Float = 1e-6
 
     enum CodingKeys: String, CodingKey {
         case modelType = "model_type"
