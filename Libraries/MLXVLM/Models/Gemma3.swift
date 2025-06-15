@@ -7,47 +7,6 @@ import Tokenizers
 
 // Based on https://github.com/Blaizzy/mlx-vlm/tree/main/mlx_vlm/models/gemma3
 
-/// Inserts image features into text embeddings at specified token positions
-/// Implements the multimodal fusion approach used in Gemma3 VLM
-private func maskedScatter(
-    finalEmbedding: MLXArray,
-    imageMaskExpanded: MLXArray,
-    scaledImageFeatures: MLXArray
-) -> MLXArray {
-    let finalEmbeddingShape = finalEmbedding.shape
-    let scaledImageFeaturesFlattened = scaledImageFeatures.flattened()
-    let finalEmbeddingFlattened = finalEmbedding.flattened()
-    let imageMaskExpandedFlattened = imageMaskExpanded.flattened()
-
-    let maskValues = imageMaskExpandedFlattened.asArray(Bool.self)
-    let imagePositionIndices = maskValues.enumerated().compactMap { index, value in
-        value ? Int32(index) : nil
-    }
-
-    guard !imagePositionIndices.isEmpty else {
-        return finalEmbedding
-    }
-
-    let imagePositions = MLXArray(imagePositionIndices)
-
-    guard scaledImageFeaturesFlattened.shape[0] == imagePositions.shape[0] else {
-        return finalEmbedding
-    }
-
-    finalEmbeddingFlattened[imagePositions] = scaledImageFeaturesFlattened
-    return finalEmbeddingFlattened.reshaped(finalEmbeddingShape)
-}
-
-/// Creates attention masks for layers based on cache state
-private func createAttentionMask(h: MLXArray, cache: [KVCache]?)
-    -> MLXFast.ScaledDotProductAttentionMaskMode
-{
-    guard let cache = cache, !cache.isEmpty else {
-        return .none
-    }
-    return .causal
-}
-
 // MARK: - Text Configuration
 
 public struct Gemma3TextConfiguration: Codable, Sendable {
@@ -154,30 +113,21 @@ public struct Gemma3Configuration: Codable, Sendable {
     public let textConfiguration: Gemma3TextConfiguration
     public let visionConfiguration: Gemma3VisionConfiguration
     public let modelType: String
-    public let architectures: [String]
-    public let imageTokenIndex: Int
     public let mmTokensPerImage: Int
-    public let boiTokenIndex: Int
-    public let eoiTokenIndex: Int
-    public let eosTokenId: [Int]
-    public let transformersVersion: String
     public let quantization: QuantizationConfig?
-    public let initializerRange: Float
 
-    // These need to be adaptive
     private let _vocabularySize: Int?
     private let _padTokenId: Int?
 
     // Computed properties that use the text configuration or provide defaults
+
     public var vocabularySize: Int {
         _vocabularySize ?? textConfiguration.vocabularySize
     }
 
     public var hiddenSize: Int {
-        textConfiguration.hiddenSize  // Use from text config, not hardcoded
+        textConfiguration.hiddenSize
     }
-
-    public var ignoreIndex: Int = -100
 
     public var padTokenId: Int {
         _padTokenId ?? 0
@@ -187,15 +137,9 @@ public struct Gemma3Configuration: Codable, Sendable {
         case textConfiguration = "text_config"
         case visionConfiguration = "vision_config"
         case modelType = "model_type"
-        case architectures
-        case imageTokenIndex = "image_token_index"
         case mmTokensPerImage = "mm_tokens_per_image"
-        case boiTokenIndex = "boi_token_index"
-        case eoiTokenIndex = "eoi_token_index"
-        case eosTokenId = "eos_token_id"
-        case transformersVersion = "transformers_version"
         case quantization
-        case initializerRange = "initializer_range"
+
         case _vocabularySize = "vocab_size"
         case _padTokenId = "pad_token_id"
     }
@@ -227,10 +171,10 @@ private class Attention: Module {
         self.numHeads = config.attentionHeads
         self.numKVHeads = config.kvHeads
         self.repeats = numHeads / numKVHeads
-        self.headDim = config.headDim  // Use config.headDim instead of hardcoded value
+        self.headDim = config.headDim
         self.layerIdx = layerIdx
 
-        self.scale = pow(Float(config.headDim), -0.5)
+        self.scale = pow(config.queryPreAttnScalar, -0.5)
 
         self._queryProj.wrappedValue = Linear(dim, numHeads * headDim, bias: false)
         self._keyProj.wrappedValue = Linear(dim, numKVHeads * headDim, bias: false)
@@ -273,7 +217,7 @@ private class Attention: Module {
         keys = keyNorm(keys)
 
         // Apply rotary position embedding
-        if let cache = cache {
+        if let cache {
             queries = rope(queries, offset: cache.offset)
             keys = rope(keys, offset: cache.offset)
             (keys, values) = cache.update(keys: keys, values: values)
@@ -459,9 +403,7 @@ private class LanguageModel: Module, KVCacheDimensionProvider {
     init(_ config: Gemma3TextConfiguration) {
         self.config = config
         self.model = GemmaModel(config)
-        // Start with regular Linear - will be replaced if quantized weights are detected
         self._lmHead.wrappedValue = Linear(config.hiddenSize, config.vocabularySize, bias: false)
-
         self.kvHeads = Array(repeating: config.kvHeads, count: config.hiddenLayers)
     }
 
@@ -470,17 +412,14 @@ private class LanguageModel: Module, KVCacheDimensionProvider {
         var caches: [any KVCache] = []
         let slidingWindow = config.slidingWindow > 0 ? config.slidingWindow : 4096
         let slidingWindowPattern = config.slidingWindowPattern
-
         for i in 0 ..< config.hiddenLayers {
             let isGlobalLayer = (i % slidingWindowPattern == slidingWindowPattern - 1)
-
             if isGlobalLayer {
                 caches.append(StandardKVCache())
             } else {
                 caches.append(RotatingKVCache(maxSize: slidingWindow, keep: 0))
             }
         }
-
         return caches
     }
 
@@ -517,7 +456,7 @@ private class LanguageModel: Module, KVCacheDimensionProvider {
     {
         var processedWeights = weights
 
-        // Step 1: Check if we have quantized weights
+        // Check if we have quantized weights
         let hasQuantizedLmHead = hasQuantizedWeights(
             layerPath: "language_model.lm_head", in: weights)
 
@@ -915,7 +854,6 @@ class Gemma3MultiModalProjector: Module, UnaryLayer {
 
         // Transpose to place spatial dimensions in indices 1, 2
         reshapedVisionOutputs = reshapedVisionOutputs.transposed(0, 2, 3, 1)
-
         // Use fixed average pooling
         var pooledVisionOutputs = avgPool(reshapedVisionOutputs)
         pooledVisionOutputs = pooledVisionOutputs.transposed(0, 3, 1, 2).flattened(start: 2)
@@ -931,6 +869,42 @@ class Gemma3MultiModalProjector: Module, UnaryLayer {
 
         return projectedVisionOutputs.asType(x.dtype)
     }
+}
+
+/// Inserts image features into text embeddings at specified token positions
+/// Implements the multimodal fusion approach used in Gemma3 VLM
+private func maskedScatter(
+    finalEmbedding: MLXArray,
+    imageMaskExpanded: MLXArray,
+    scaledImageFeatures: MLXArray
+) -> MLXArray {
+    // Reshape the tensors to 1D
+    let finalEmbeddingShape = finalEmbedding.shape
+    let scaledImageFeaturesFlattened = scaledImageFeatures.flattened()
+    let finalEmbeddingFlattened = finalEmbedding.flattened()
+    let imageMaskExpandedFlattened = imageMaskExpanded.flattened()
+
+    let maskValues = imageMaskExpandedFlattened.asArray(Bool.self)
+    let imagePositionIndices = maskValues.enumerated().compactMap { index, value in
+        value ? UInt32(index) : nil
+    }
+
+    guard !imagePositionIndices.isEmpty else {
+        return finalEmbedding
+    }
+
+    // Scatter the scaled image features into the special image token positions
+    let imagePositions = MLXArray(imagePositionIndices)
+    guard scaledImageFeaturesFlattened.shape[0] == imagePositions.shape[0] else {
+        fatalError(
+            """
+            Critical error in maskedScatter: Size mismatch between image features and positions.
+            Image features: \(scaledImageFeaturesFlattened.shape[0])
+            Image positions: \(imagePositions.shape[0])
+            """)
+    }
+    finalEmbeddingFlattened[imagePositions] = scaledImageFeaturesFlattened
+    return finalEmbeddingFlattened.reshaped(finalEmbeddingShape)
 }
 
 // MARK: - Gemma 3 Model
@@ -1089,11 +1063,11 @@ public class Gemma3: Module, VLMModel, KVCacheDimensionProvider {
                     || $0.contains("o_proj"))
         }
 
-        // Step 1: Handle language model sanitization first (quantization, weight tying, etc.)
+        // Handle language model sanitization first (quantization, weight tying, etc.)
         var processedWeights = languageModel.sanitize(
             weights: weights, quantizationConfig: config.quantization)
 
-        // Step 2: Handle vision model sanitization (conv2d weight reshaping, etc.)
+        // Handle vision model sanitization (conv2d weight reshaping, etc.)
         processedWeights = visionTower.sanitize(weights: processedWeights)
 
         return processedWeights
