@@ -7,22 +7,6 @@ import Tokenizers
 
 // Based on https://github.com/Blaizzy/mlx-vlm/tree/main/mlx_vlm/models/gemma3
 
-// TODO: Is this necessary? It will always return x + y, since the dtype is not float16
-/// Clips residual connections to prevent overflow in float16 operations
-/// This is essential for VLM models that process large image tensors
-private func clipResidual(_ x: MLXArray, _ y: MLXArray) -> MLXArray {
-    if x.dtype != .float16 {
-        return x + y
-    }
-    // IEEE 754 half-precision maximum finite value
-    let bound: Float = 65504.0  // Float16 maximum finite value
-    let xFloat32 = x.asType(.float32)
-    let yFloat32 = y.asType(.float32)
-    let result = xFloat32 + yFloat32
-
-    return clip(result, min: MLXArray(-bound), max: MLXArray(bound)).asType(.float16)
-}
-
 /// Inserts image features into text embeddings at specified token positions
 /// Implements the multimodal fusion approach used in Gemma3 VLM
 private func maskedScatter(
@@ -75,12 +59,36 @@ public struct Gemma3TextConfiguration: Codable, Sendable {
     public let ropeScaling: [String: StringOrNumber]?
     public let finalLogitSoftcapping: Float?
 
-    // Default values for Gemma3 architecture
-    public var attentionHeads: Int = 8
-    public var headDim: Int = 256
-    public var rmsNormEps: Float = 1.0e-6
-    public var vocabularySize: Int = 262208
-    public var kvHeads: Int = 4
+    // These will be decoded from JSON when present, otherwise use defaults
+    private let _attentionHeads: Int?
+    private let _kvHeads: Int?
+    private let _headDim: Int?
+    private let _rmsNormEps: Float?
+    private let _vocabularySize: Int?
+
+    // Public computed properties that provide the correct defaults for each model
+    public var attentionHeads: Int {
+        _attentionHeads ?? 8  // 4B model default (not in config)
+    }
+
+    public var kvHeads: Int {
+        _kvHeads ?? 4  // 4B model default (not in config), 12B has 8
+    }
+
+    // Use fixed headDim = 256 that matches the actual quantized weights
+    public var headDim: Int {
+        _headDim ?? 256  // This matches the actual quantized weights for both models
+    }
+
+    public var rmsNormEps: Float {
+        _rmsNormEps ?? 1.0e-6
+    }
+
+    public var vocabularySize: Int {
+        _vocabularySize ?? 262208
+    }
+
+    // Default values
     public var ropeGlobalBaseFreq: Float = 1_000_000.0
     public var ropeLocalBaseFreq: Float = 10_000.0
     public var ropeTraditional: Bool = false
@@ -97,6 +105,11 @@ public struct Gemma3TextConfiguration: Codable, Sendable {
         case slidingWindow = "sliding_window"
         case ropeScaling = "rope_scaling"
         case finalLogitSoftcapping = "final_logit_softcapping"
+        case _attentionHeads = "num_attention_heads"
+        case _kvHeads = "num_key_value_heads"
+        case _headDim = "head_dim"
+        case _rmsNormEps = "rms_norm_eps"
+        case _vocabularySize = "vocab_size"
     }
 }
 
@@ -154,11 +167,24 @@ public struct Gemma3Configuration: Codable, Sendable {
     public let quantization: QuantizationConfig?
     public let initializerRange: Float
 
-    // Default values
-    public var vocabularySize: Int = 257152
+    // These need to be adaptive
+    private let _vocabularySize: Int?
+    private let _padTokenId: Int?
+
+    // Computed properties that use the text configuration or provide defaults
+    public var vocabularySize: Int {
+        _vocabularySize ?? textConfiguration.vocabularySize
+    }
+
+    public var hiddenSize: Int {
+        textConfiguration.hiddenSize  // Use from text config, not hardcoded
+    }
+
     public var ignoreIndex: Int = -100
-    public var hiddenSize: Int = 2048
-    public var padTokenId: Int = 0
+
+    public var padTokenId: Int {
+        _padTokenId ?? 0
+    }
 
     enum CodingKeys: String, CodingKey {
         case textConfiguration = "text_config"
@@ -173,6 +199,8 @@ public struct Gemma3Configuration: Codable, Sendable {
         case transformersVersion = "transformers_version"
         case quantization
         case initializerRange = "initializer_range"
+        case _vocabularySize = "vocab_size"
+        case _padTokenId = "pad_token_id"
     }
 }
 
@@ -202,10 +230,10 @@ private class Attention: Module {
         self.numHeads = config.attentionHeads
         self.numKVHeads = config.kvHeads
         self.repeats = numHeads / numKVHeads
-        self.headDim = config.headDim
+        self.headDim = config.headDim  // Use config.headDim instead of hardcoded value
         self.layerIdx = layerIdx
 
-        self.scale = pow(config.queryPreAttnScalar, -0.5)
+        self.scale = pow(Float(config.headDim), -0.5)
 
         self._queryProj.wrappedValue = Linear(dim, numHeads * headDim, bias: false)
         self._keyProj.wrappedValue = Linear(dim, numKVHeads * headDim, bias: false)
@@ -243,7 +271,7 @@ private class Attention: Module {
         keys = keys.reshaped(B, L, numKVHeads, -1).transposed(0, 2, 1, 3)
         values = values.reshaped(B, L, numKVHeads, -1).transposed(0, 2, 1, 3)
 
-        // Apply normalization before RoPE
+        // Apply normalization
         queries = queryNorm(queries)
         keys = keyNorm(keys)
 
@@ -334,9 +362,9 @@ private class TransformerBlock: Module {
         cache: KVCache? = nil
     ) -> MLXArray {
         let r = selfAttention(inputLayerNorm(x), mask: mask, cache: cache)
-        let h = clipResidual(x, postAttentionLayerNorm(r))
+        let h = Gemma.clipResidual(x, postAttentionLayerNorm(r))
         let r2 = mlp(preFeedforwardLayerNorm(h))
-        let out = clipResidual(h, postFeedforwardLayerNorm(r2))
+        let out = Gemma.clipResidual(h, postFeedforwardLayerNorm(r2))
         return out
     }
 }
@@ -492,35 +520,28 @@ private class LanguageModel: Module, KVCacheDimensionProvider {
     {
         var processedWeights = weights
 
-        // Step 1: Apply the established quantization pattern from the repo
-        // The quantize() function will automatically convert Linear → QuantizedLinear
-        // when it detects quantized weights (presence of .scales)
+        // Step 1: Check if we have quantized weights
         let hasQuantizedLmHead = hasQuantizedWeights(
             layerPath: "language_model.lm_head", in: weights)
 
         if hasQuantizedLmHead {
-            print(
-                "🔧 Detected quantized language_model.lm_head weights - will use quantize() function"
-            )
-
             // Use quantization config from model configuration if available
             let groupSize = quantizationConfig?.groupSize ?? 64
             let bits = quantizationConfig?.bits ?? 4
 
-            print("📋 Using quantization config: groupSize=\(groupSize), bits=\(bits)")
-
-            // Use the established quantization infrastructure
+            // Only quantize layers that actually have quantized weights
             quantize(model: self) { path, module in
-                if weights["\(path).scales"] != nil {
+                // Check each specific layer path for quantized weights
+                let fullPath = "language_model.\(path)"
+                if weights["\(fullPath).scales"] != nil && weights["\(fullPath).biases"] != nil
+                    && weights["\(fullPath).weight"]?.dtype == .uint32
+                {
                     return (groupSize, bits)
                 }
                 return nil
             }
-
-            print(
-                "✅ Applied quantization - Linear layers converted to QuantizedLinear where needed")
         } else {
-            // Step 2: Handle weight tying for regular (non-quantized) lm_head (multimodal model uses language_model prefix)
+            // Handle weight tying for regular (non-quantized) lm_head
             if processedWeights["language_model.lm_head.weight"] == nil {
                 if let embedWeight = processedWeights["language_model.model.embed_tokens.weight"] {
                     processedWeights["language_model.lm_head.weight"] = embedWeight
@@ -528,7 +549,7 @@ private class LanguageModel: Module, KVCacheDimensionProvider {
             }
         }
 
-        // Step 3: Remove unused precomputed rotary freqs
+        // Remove unused precomputed rotary freqs
         return processedWeights.filter { key, _ in
             !key.contains("self_attn.rotary_emb.inv_freq")
         }
@@ -540,8 +561,11 @@ private class LanguageModel: Module, KVCacheDimensionProvider {
         let biasesKey = "\(layerPath).biases"
         let weightKey = "\(layerPath).weight"
 
-        return weights[scalesKey] != nil && weights[biasesKey] != nil
-            && weights[weightKey]?.dtype == .uint32
+        let hasScales = weights[scalesKey] != nil
+        let hasBiases = weights[biasesKey] != nil
+        let hasWeight = weights[weightKey]?.dtype == .uint32
+
+        return hasScales && hasBiases && hasWeight
     }
 }
 
@@ -684,7 +708,7 @@ private class Encoder: Module {
             }
         }
 
-        return (h, encoderStates)  // CRITICAL FIX: Return full tensor, not h[0]
+        return (h, encoderStates)
     }
 }
 
@@ -735,10 +759,10 @@ private class VisionEmbeddings: Module, UnaryLayer {
 
         // Add position embeddings only to the patches we have positions for
         if useNumPositions == actualNumPatches {
-            // Normal case - add position embeddings to all patches
+            // Normal case: add position embeddings to all patches
             embeddings = embeddings + positionEmbedding(positionIds)
         } else {
-            // Safety case - only add to first N patches to avoid broadcast error
+            // Safety case: only add to first N patches to avoid broadcast error
             let positionedPatches =
                 embeddings[0..., ..<useNumPositions, 0...] + positionEmbedding(positionIds)
             let remainingPatches = embeddings[0..., useNumPositions..., 0...]
@@ -815,7 +839,6 @@ private class VisionModel: Module {
         for (k, v) in weights {
             // Handle vision model quantized weights if they exist
             if k.contains("vision_tower") && hasQuantizedWeights(layerPath: k, in: weights) {
-                print("🔧 Detected quantized vision weights for \(k)")
                 // Keep quantized weights as-is - they will be handled by QuantizedLinear at runtime
                 sanitizedWeights[k] = v
             } else if k.contains("patch_embedding.weight") {
@@ -1060,6 +1083,15 @@ public class Gemma3: Module, VLMModel, KVCacheDimensionProvider {
     }
 
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
+        let lmHeadKeys = weights.keys.filter { $0.contains("lm_head") }
+
+        // Also check attention layer structures
+        let attnKeys = weights.keys.filter {
+            $0.contains("self_attn")
+                && ($0.contains("q_proj") || $0.contains("k_proj") || $0.contains("v_proj")
+                    || $0.contains("o_proj"))
+        }
+
         // Step 1: Handle language model sanitization first (quantization, weight tying, etc.)
         var processedWeights = languageModel.sanitize(
             weights: weights, quantizationConfig: config.quantization)
@@ -1084,7 +1116,7 @@ public class Gemma3Processor: UserInputProcessor {
         MLXArray, THW
     ) {
         var userProcessing = processing ?? UserInput.Processing()
-        // Always use the vision configuration's imageSize - ignore user resize settings for VLM
+        // Always use the vision configuration's imageSize. Ignore UserInput resize setting.
         let targetSize = CGSize(width: config.imageSize, height: config.imageSize)
 
         // Force the correct size for vision model alignment

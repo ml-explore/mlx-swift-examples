@@ -75,19 +75,6 @@ public struct Gemma3TextConfiguration: Codable {
     }
 }
 
-/// Clips residual connections to prevent overflow in float16 operations
-private func clipResidual(_ x: MLXArray, _ y: MLXArray) -> MLXArray {
-    if x.dtype != .float16 {
-        return x + y
-    }
-    // IEEE 754 half-precision maximum finite value
-    let bound: Float = 65504.0  // Matches mx.finfo(mx.float16).max
-    let xFloat32 = x.asType(.float32)
-    let yFloat32 = y.asType(.float32)
-    let result = xFloat32 + yFloat32
-    return clip(result, min: MLXArray(-bound), max: MLXArray(bound)).asType(.float16)
-}
-
 private class Attention: Module {
     let nHeads: Int
     let nKVHeads: Int
@@ -248,11 +235,11 @@ private class TransformerBlock: Module {
         let inputNorm = inputLayerNorm(x)
         let r = selfAttention(inputNorm, mask: mask, cache: cache)
         let attnNorm = postAttentionLayerNorm(r)
-        let h = clipResidual(x, attnNorm)
+        let h = Gemma.clipResidual(x, attnNorm)
         let preMLPNorm = preFeedforwardLayerNorm(h)
         let r2 = mlp(preMLPNorm)
         let postMLPNorm = postFeedforwardLayerNorm(r2)
-        let out = clipResidual(h, postMLPNorm)
+        let out = Gemma.clipResidual(h, postMLPNorm)
         return out
     }
 }

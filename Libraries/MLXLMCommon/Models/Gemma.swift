@@ -26,4 +26,17 @@ public enum Gemma {
             return MLXFast.rmsNorm(x, weight: 1.0 + self.weight, eps: self.eps)
         }
     }
+
+    /// Clips residual connections to prevent overflow in float16 operations
+    static public func clipResidual(_ x: MLXArray, _ y: MLXArray) -> MLXArray {
+        if x.dtype != .float16 {
+            return x + y
+        }
+        // IEEE 754 half-precision maximum finite value
+        let bound: Float = 65504.0  // Float16 maximum finite value
+        let xFloat32 = x.asType(.float32)
+        let yFloat32 = y.asType(.float32)
+        let result = xFloat32 + yFloat32
+        return clip(result, min: MLXArray(-bound), max: MLXArray(bound)).asType(.float16)
+    }
 }
