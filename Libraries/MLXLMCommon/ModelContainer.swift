@@ -39,7 +39,7 @@ public actor ModelContainer {
         self.context = context
     }
 
-    /// Perform an action on the model and/or tokenizer.  Callers _must_ eval any `MLXArray` before returning as
+    /// Perform an action on the model and/or tokenizer. Callers _must_ eval any `MLXArray` before returning as
     /// `MLXArray` is not `Sendable`.
     @available(*, deprecated, message: "prefer perform(_:) that uses a ModelContext")
     public func perform<R>(_ action: @Sendable (any LanguageModel, Tokenizer) throws -> R) rethrows
@@ -58,7 +58,7 @@ public actor ModelContainer {
         try action(context.model, context.tokenizer, values)
     }
 
-    /// Perform an action on the ``ModelContext``.  Callers _must_ eval any `MLXArray` before returning as
+    /// Perform an action on the ``ModelContext``. Callers _must_ eval any `MLXArray` before returning as
     /// `MLXArray` is not `Sendable`.
     public func perform<R>(_ action: @Sendable (ModelContext) async throws -> R) async rethrows -> R
     {

@@ -130,7 +130,7 @@ extension ModelFactory {
 
     /// Load a model identified by a ``ModelConfiguration`` and produce a ``ModelContext``.
     ///
-    /// This method returns a ``ModelContext``.  See also
+    /// This method returns a ``ModelContext``. See also
     /// ``loadContainer(hub:configuration:progressHandler:)`` for a method that
     /// returns a ``ModelContainer``.
     ///

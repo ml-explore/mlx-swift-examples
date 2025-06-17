@@ -14,7 +14,7 @@ This document talks primarily about the latter.
 ## Porting Models from MLX (Python)
 
 Let's consider a concrete example,
-[gemma.py](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/gemma.py).  For
+[gemma.py](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/gemma.py). For
 reference, here is the current port
 [Gemma.swift](https://github.com/ml-explore/mlx-swift-examples/blob/main/Libraries/MLXLLM/Models/Gemma.swift).
 
@@ -101,7 +101,7 @@ public struct GemmaConfiguration: Codable, Sendable {
 
 * Note: the type is called `ModelArgs` in Python and
 this is scoped to the file because of the way Python importing
-works.  In Swift we need this type to be public so we give it
+works. In Swift we need this type to be public so we give it
 a unique name, `GemmaConfiguration`.
 
 The default values are implemented with this pattern:
@@ -124,7 +124,7 @@ no value is given.
 
 ### Porting Layers -- No Children
 
-Now we can begin porting the layers (Modules).  Here is an example layer with
+Now we can begin porting the layers (Modules). Here is an example layer with
 no child layers (e.g. `Linear`) but it does have parameters (e.g. `MLXArray`).
 
 ```python
@@ -158,7 +158,7 @@ private class RMSNorm: Module, UnaryLayer {
 
 * Note: the Modules that make up the layers in the model are typically declared as `private` -- many models will use similarly named layers and this prevents the names from leaking between models.
 
-Here is a detailed breakdown of the conversion.  Consider the python initializer
+Here is a detailed breakdown of the conversion. Consider the python initializer
 for the class:
 
 ```python
@@ -169,7 +169,7 @@ def __init__(self, dims: int, eps: float = 1e-5):
 ```
 
 In Python, storing a value into a property is how instance variables (properties) are
-created -- it is a dictionary behind the scenes.  Swift requires that properties be
+created -- it is a dictionary behind the scenes. Swift requires that properties be
 declared and given types:
 
 ```swift
@@ -183,7 +183,7 @@ public init(dimensions: Int, eps: Float = 1e-5) {
 ```
 
 Note that the weight is given an initial value and shape based on the
-parameters to the initializer.  In typical inference use these values
+parameters to the initializer. In typical inference use these values
 will be replaced when the weights are loaded 
 (``loadWeights(modelDirectory:model:quantization:)``).
 
@@ -399,7 +399,7 @@ class GemmaModel(nn.Module):
 
 In this case the number of `TransformerBlock` layers depends on
 the configuration value `num_hidden_layers` -- it builds an
-array of children.  In the `__call__` it iterates through these
+array of children. In the `__call__` it iterates through these
 children, chaining the calls together sequentially.
 
 In Swift you do the same thing:
@@ -432,9 +432,9 @@ chaining the calls together.
 
 ### Model Class
 
-Finally we reach the top level of of the model.  In Python there is
+Finally we reach the top level of of the model. In Python there is
 typically a class named `Model` -- this is the public entrypoint into
-the model.  There is typically very little code in this module,
+the model. There is typically very little code in this module,
 though it may prepare the inputs and outputs.
 
 There is also usually a class named e.g. `GemmaModel`
@@ -457,7 +457,7 @@ class Model(nn.Module):
 
 In Swift we need to expose the `Model` class as a public
 type and leave the `GemmaModel` as a private implementation
-detail.  Typically these are named like this in Swift:
+detail. Typically these are named like this in Swift:
 
 ```swift
 private class GemmaModelInner: Module {
@@ -546,7 +546,7 @@ print(result.output)
 
 If you are porting a model and it is similar to an existing (already ported) model, you can often take a shortcut and look at the diffs.
 
-For example `gemma.py` and `gemma2.py` are related -- if you look at the diff between them it is roughly a dozen changes.  If you already have `Gemma.swift` you can copy that to `Gemma2.swift` (and make the appropriate naming changes) and then examine the diffs on the Python side and make the same changes.
+For example `gemma.py` and `gemma2.py` are related -- if you look at the diff between them it is roughly a dozen changes. If you already have `Gemma.swift` you can copy that to `Gemma2.swift` (and make the appropriate naming changes) and then examine the diffs on the Python side and make the same changes.
 
 Many models are related to each other so this can be a very effective way to create new models.
 
@@ -554,7 +554,7 @@ Many models are related to each other so this can be a very effective way to cre
 
 What do you do when your ported model spews random text or crashes with a broadcast error?
 
-Let's start with the latter:  a broadcast error means that the shapes of the `MLXArray`s are incorrect.  For example, if the broadcast error shows up in `Attention` (and it seems like it is usually in Attention) then you can make a helper function in Python:
+Let's start with the latter:  a broadcast error means that the shapes of the `MLXArray`s are incorrect. For example, if the broadcast error shows up in `Attention` (and it seems like it is usually in Attention) then you can make a helper function in Python:
 
 ```python
 def trace(name, x):
@@ -592,15 +592,15 @@ let output = MLXFast.scaledDotProductAttention(
 ```
 
 Often it will be a shape like `[1, 128, 256]` vs `[128, 256]` -- there is
-a missing `[.newAxis]` somewhere in the code.  It may be something more
+a missing `[.newAxis]` somewhere in the code. It may be something more
 complicated but either way you know which value is incorrect and you can
 track it down.
 
-Incorrect output can be investigated in a similar fashion but I usually start with making sure the inputs are correct -- compare the integer tokens from the Python side to what the Swift side generates.  The implementations of `transformers` and `swift-transformers` are similar but not identical.  If needed, the token array from the Python program can be used directly.
+Incorrect output can be investigated in a similar fashion but I usually start with making sure the inputs are correct -- compare the integer tokens from the Python side to what the Swift side generates. The implementations of `transformers` and `swift-transformers` are similar but not identical. If needed, the token array from the Python program can be used directly.
 
 After making sure the inputs are identical, make sure the generation parameters (temperature, seed, etc.) are the same.
 
-If the output still differs, then you must look at the contents of the arrays during inference, not just the shapes.  You can modify the `trace` functions like this:
+If the output still differs, then you must look at the contents of the arrays during inference, not just the shapes. You can modify the `trace` functions like this:
 
 ```python
 def trace(name, x):
@@ -615,11 +615,11 @@ func trace(_ name: String, _ x: MLXArray) {
 }
 ```
 
-This uses `sum()` to give an aggregate value -- if these produce the same (or close to) values then the contents of the array are _probably_ the same.  Certainly if they are wildly different then contents of the array are _certainly_ different.  If the arrays contain larger numbers you might try different aggregation functions or look at slices of the array, e.g. the first row.
+This uses `sum()` to give an aggregate value -- if these produce the same (or close to) values then the contents of the array are _probably_ the same. Certainly if they are wildly different then contents of the array are _certainly_ different. If the arrays contain larger numbers you might try different aggregation functions or look at slices of the array, e.g. the first row.
 
 You can use these calls on the values passed in to the `__call__`/`callAsFunction` methods and you can also use them on the parameters of the layers themselves.
 
-The nice thing about this technique is that it doesn't require understanding how the model works -- you have a reference implementation on the Python side and you only need to identify when it is different.  Once you determine the point where it is different you can track backward and figure out why (again, it is just calling functions and doing math).
+The nice thing about this technique is that it doesn't require understanding how the model works -- you have a reference implementation on the Python side and you only need to identify when it is different. Once you determine the point where it is different you can track backward and figure out why (again, it is just calling functions and doing math).
 
 ### Optional Modules and Parameters
 

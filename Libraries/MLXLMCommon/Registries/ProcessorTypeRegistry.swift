@@ -17,7 +17,7 @@ open class ProcessorTypeRegistry: @unchecked Sendable {
     }
 
     // Note: using NSLock as we have very small (just dictionary get/set)
-    // critical sections and expect no contention.  this allows the methods
+    // critical sections and expect no contention. this allows the methods
     // to remain synchronous.
     private let lock = NSLock()
 

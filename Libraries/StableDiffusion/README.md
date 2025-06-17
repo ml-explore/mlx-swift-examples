@@ -30,8 +30,8 @@ let generator = try configuration.textToImageGenerator(
 
 generator.ensureLoaded()
 
-// generate the latents -- these are the iterations for generating
-// the output image.  this is just generating the evaluation graph
+// Generate the latents, which are the iterations for generating
+// the output image. This is just generating the evaluation graph
 let parameters = generate.evaluateParameters(configuration: configuration)
 let latents = generator.generateLatents(parameters: parameters)
 

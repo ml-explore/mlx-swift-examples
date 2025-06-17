@@ -55,7 +55,7 @@ class TransformerBlock: Module {
         attn1 = MultiHeadAttention(dimensions: modelDimensions, numHeads: numHeads)
 
         // we want to self.attn1.out_proj.bias = mx.zeros(model_dims) turn enable the
-        // bias in one of the four Linears attached to attn1.  Since bias is nil we can't
+        // bias in one of the four Linears attached to attn1. Since bias is nil we can't
         // update it so just replace the layer.
         attn1.update(
             modules: ModuleChildren(

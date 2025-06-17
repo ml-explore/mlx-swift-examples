@@ -74,7 +74,7 @@ and create a `.swift` file for your new model:
 ## Create a Model Configuration
 
 Create a configuration struct for both the Text and Vision models
-that matches the structure in `config.json`.  A struct like this
+that matches the structure in `config.json`. A struct like this
 is recommended:
 
 ```swift
@@ -110,7 +110,7 @@ public struct YourModelConfiguration: Codable, Sendable {
 
 ## Create a Processor Configuration
 
-VLMs also require a image/video preprocessor.  Create a configuration to match 
+VLMs also require a image/video preprocessor. Create a configuration to match 
 the `preprocessor_config.json` file:
 
 ```swift
@@ -225,7 +225,7 @@ The exact signatures on the `init()` and `callAsFunction()` can vary as needed -
 these models are not exposed to callers.
 
 The top level model is the only piece of the model with public API and it
-should implement `VLMModel` (aka `LanguageModel`).  Here is an outline of how
+should implement `VLMModel` (aka `LanguageModel`). Here is an outline of how
 the top level model might work:
 
 ```swift
@@ -278,7 +278,7 @@ public class YourModel: Module, VLMModel, KVCacheDimensionProvider {
 ## Create the UserInputProcessor
 
 VLMs require custom `UserInputProcessor` instances to manipulate the prompts and
-media as needed.  For example it might:
+media as needed. For example it might:
 
 - apply resampling and normalization to the images
 - convert the images into an `MLXArray` and build a `THW` struct describing the layout
@@ -286,7 +286,7 @@ media as needed.  For example it might:
 
 In the python implementations, much of this code typically lives in the `transformers`
 package from huggingface -- inspection will be required to determine which code
-is called and what it does.  You can examine the processors in the `Models` directory:
+is called and what it does. You can examine the processors in the `Models` directory:
 they reference the files and functions that they are based on.
 
 The `UserInputProcessor` is initialized with the `ProcessorConfiguration` (defined above)
@@ -357,7 +357,7 @@ public class YourModelProcessor: UserInputProcessor {
 ```
 
 Note that the python code may rely on the chat template to inject the image tokens
-(paligemma does not).  This may have to be expressed in swift code as the current
+(paligemma does not). This may have to be expressed in swift code as the current
 interface does not support the structured parameters used for this (see Qwen2VL 
 processor for an example).
 

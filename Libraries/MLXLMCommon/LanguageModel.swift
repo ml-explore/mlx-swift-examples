@@ -29,7 +29,7 @@ public struct THW: Sendable {
 /// Representation of ``LanguageModel`` input.
 ///
 /// This can contain text (tokens), prepared images (`MLXArray`), or other media as
-/// needed.  ``LMInput`` is produced by ``UserInputProcessor`` in response
+/// needed. ``LMInput`` is produced by ``UserInputProcessor`` in response
 /// to ``UserInput``.
 ///
 /// The ``ModelContext`` holds the ``UserInputProcessor`` associated with a
@@ -111,7 +111,7 @@ public struct LMInput {
     }
 }
 
-/// ``LanguageModel`` step output.  This is consumed internally
+/// ``LanguageModel`` step output. This is consumed internally
 /// by the ``TokenIterator``.
 public struct LMOutput {
 

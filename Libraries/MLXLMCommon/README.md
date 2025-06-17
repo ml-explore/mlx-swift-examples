@@ -91,7 +91,7 @@ load models, if needed.
 ## Using a Model
 
 Once a model is loaded you can evaluate a prompt or series of
-messages.  Minimally you need to prepare the user input:
+messages. Minimally you need to prepare the user input:
 
 ```swift
 let prompt = "Describe the image in English"
@@ -100,7 +100,7 @@ input.processing.resize = .init(width: 256, height: 256)
 ```
 
 This example shows adding some images and processing instructions -- if
-model accepts text only then these parts can be omitted.  The inference
+model accepts text only then these parts can be omitted. The inference
 calls are the same.
 
 Assuming you are using a `ModelContainer` (an actor that holds
@@ -118,7 +118,7 @@ let result = try await modelContainer.perform { [input] context in
 ```
 
 Given that `input` we can call `generate()` to produce a stream
-of tokens.  In this example we use a `NaiveStreamingDetokenizer`
+of tokens. In this example we use a `NaiveStreamingDetokenizer`
 to assist in converting a stream of tokens into text and print it.
 The stream is stopped after we hit a maximum number of tokens:
 
