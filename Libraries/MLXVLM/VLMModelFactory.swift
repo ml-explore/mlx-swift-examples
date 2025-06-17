@@ -148,8 +148,20 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Describe the image in English"
     )
 
-    static public let gemma3_4B_it_4bit = ModelConfiguration(
-        id: "mlx-community/gemma-3-4b-it-4bit",
+    static public let gemma3_4B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-4b-it-qat-4bit",
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3_12B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-12b-it-qat-4bit",
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3_27B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-27b-it-qat-4bit",
         defaultPrompt: "Describe the image in English",
         extraEOSTokens: ["<end_of_turn>"]
     )
@@ -166,7 +178,9 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen2VL2BInstruct4Bit,
             qwen2_5VL3BInstruct4Bit,
             smolvlminstruct4bit,
-            gemma3_4B_it_4bit,
+            gemma3_4B_qat_4bit,
+            gemma3_12B_qat_4bit,
+            gemma3_27B_qat_4bit,
             smolvlm,
         ]
     }

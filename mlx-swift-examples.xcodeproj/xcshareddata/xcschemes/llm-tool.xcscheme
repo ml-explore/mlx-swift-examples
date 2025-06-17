@@ -56,6 +56,10 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--model mlx-community/gemma-3-27b-it-qat-4bit --prompt &apos;Describe the image in English.&apos; --image https://www.gstatic.com/webp/gallery/1.webp"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--model microsoft/Phi-4-mini-instruct --prompt &quot;Why is the sky blue?&quot; --extra-eos-token &quot;&lt;|end|&gt;&quot;"
             isEnabled = "NO">
          </CommandLineArgument>

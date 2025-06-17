@@ -197,8 +197,8 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "What is the difference between a fruit and a vegetable?"
     )
 
-    static public let gemma3_1B_4bit = ModelConfiguration(
-        id: "mlx-community/gemma-3-1b-it-4bit",
+    static public let gemma3_1B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-1b-it-qat-4bit",
         defaultPrompt: "What is the difference between a fruit and a vegetable?",
         extraEOSTokens: ["<end_of_turn>"]
     )
@@ -245,7 +245,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen3_8b_4bit,
             qwen3MoE_30b_a3b_4bit,
             smolLM_135M_4bit,
-            gemma3_1B_4bit,
+            gemma3_1B_qat_4bit,
             mimo_7b_sft_4bit,
             glm4_9b_4bit,
         ]
