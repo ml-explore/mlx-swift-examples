@@ -61,7 +61,7 @@ struct PromptArguments: ParsableArguments, Sendable {
     @Option(
         name: .shortAndLong,
         help:
-            "The message to be processed by the model.  Use @path,@path to load from files, e.g. @/tmp/prompt.txt"
+            "The message to be processed by the model. Use @path,@path to load from files, e.g. @/tmp/prompt.txt"
     )
     var prompt: String?
 

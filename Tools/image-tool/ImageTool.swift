@@ -151,7 +151,7 @@ struct TextToImageCommand: AsyncParsableCommand {
     mutating func generateLatents(configuration: StableDiffusionConfiguration) throws -> (
         EvaluateParameters, ImageDecoder, MLXArray
     ) {
-        // download and prepare the model
+        // Download and prepare the model
         guard
             let generator = try configuration.textToImageGenerator(
                 configuration: model.loadConfiguration)
@@ -162,12 +162,12 @@ struct TextToImageCommand: AsyncParsableCommand {
         generator.ensureLoaded()
         memory.start()
 
-        // generate the latents -- these are the iterations for generating
-        // the output image.  this is just generating the evaluation graph
+        // Generate the latents. These are the iterations for generating
+        // the output image. This is just generating the evaluation graph.
         let parameters = generate.evaluateParameters(configuration: configuration)
         let latents = generator.generateLatents(parameters: parameters)
 
-        // evaluate the latents (evalue the graph) and keep the last value generated
+        // Evaluate the latents (evalue the graph) and keep the last value generated
         var lastXt: MLXArray!
         for xt in Progress(latents) {
             eval(xt)
@@ -237,7 +237,7 @@ struct ImageToImageCommand: AsyncParsableCommand {
         generator.ensureLoaded()
         memory.start()
 
-        // adjust the steps based on the strength
+        // Adjust the steps based on the strength
         if Int(Float(generate.evaluateParameters(configuration: configuration).steps) * strength)
             < 1
         {

@@ -8,7 +8,7 @@ import Tokenizers
 
 /// Container for models that guarantees single threaded access.
 ///
-/// Wrap models used by e.g. the UI in a ModelContainer.  Callers can access
+/// Wrap models used by e.g. the UI in a ModelContainer. Callers can access
 /// the model and/or tokenizer:
 ///
 /// ```swift
@@ -55,7 +55,7 @@ public actor ModelContainer {
         self.pooler = loadPooling(modelDirectory: modelDirectory)  //?? Pooling(strategy: .none)
     }
 
-    /// Perform an action on the model and/or tokenizer.  Callers _must_ eval any `MLXArray` before returning as
+    /// Perform an action on the model and/or tokenizer. Callers _must_ eval any `MLXArray` before returning as
     /// `MLXArray` is not `Sendable`.
     public func perform<R>(_ action: @Sendable (EmbeddingModel, Tokenizer, Pooling) throws -> R)
         rethrows
