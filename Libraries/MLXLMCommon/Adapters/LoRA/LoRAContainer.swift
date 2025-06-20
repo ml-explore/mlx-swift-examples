@@ -165,7 +165,7 @@ public struct LoRAContainer: ModelAdapter {
     ///
     /// This method reverts each adapted layer to its original linear layer, if possible.
     public func unload(from model: LanguageModel) {
-        guard let lora = self as? LoRAModel else {
+        guard let lora = model as? LoRAModel else {
             return  // Don't throw an error because nothing was likely applied before
         }
 
