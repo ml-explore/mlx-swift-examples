@@ -47,7 +47,7 @@ private class RMSNormGated: Module {
 }
 
 private func computeMupVector(_ args: FalconH1Configuration) -> MLXArray {
-    let intermediateSize = args.mambaDSSM ?? Int(Float(args.mambaExpand) * Float(args.hiddenSize))
+    let intermediateSize = args.mambaDSSM ?? args.mambaExpand * args.hiddenSize
     let groupsTimeStateSize = args.mambaNGroups * args.mambaDState
     let numHeads = args.mambaNHeads
     let zxbcdtMultipliers = args.ssmMultipliers
@@ -55,17 +55,40 @@ private func computeMupVector(_ args: FalconH1Configuration) -> MLXArray {
     let vectorShape = 2 * intermediateSize + 2 * groupsTimeStateSize + numHeads
     let mupVector = MLXArray.ones([1, 1, vectorShape])
 
-    mupVector[0..., 0..., ..<intermediateSize] *= zxbcdtMultipliers[0]
-    mupVector[0..., 0..., intermediateSize ..< (2 * intermediateSize)] *= zxbcdtMultipliers[1]
     mupVector[
-        0..., 0..., (2 * intermediateSize) ..< (2 * intermediateSize + groupsTimeStateSize)] *=
-        zxbcdtMultipliers[2]
+        0...,
+        0...,
+        ..<intermediateSize
+    ] *= zxbcdtMultipliers[0]
+
+    let doubledIntermediateSize = 2 * intermediateSize
+
     mupVector[
-        0..., 0...,
-        (2 * intermediateSize + groupsTimeStateSize)
-            ..< (2 * intermediateSize + 2 * groupsTimeStateSize)] *= zxbcdtMultipliers[3]
-    mupVector[0..., 0..., (2 * intermediateSize + 2 * groupsTimeStateSize)...] *=
-        zxbcdtMultipliers[4]
+        0...,
+        0...,
+        intermediateSize ..< doubledIntermediateSize
+    ] *= zxbcdtMultipliers[1]
+
+    mupVector[
+        0...,
+        0...,
+        doubledIntermediateSize ..< (doubledIntermediateSize + groupsTimeStateSize)
+    ] *= zxbcdtMultipliers[2]
+
+    let doubledGroupsTimeStateSize = 2 * groupsTimeStateSize
+
+    mupVector[
+        0...,
+        0...,
+        (doubledIntermediateSize + groupsTimeStateSize)
+            ..< (doubledIntermediateSize + doubledGroupsTimeStateSize)
+    ] *= zxbcdtMultipliers[3]
+
+    mupVector[
+        0...,
+        0...,
+        (doubledIntermediateSize + doubledGroupsTimeStateSize)...
+    ] *= zxbcdtMultipliers[4]
 
     return mupVector
 }
@@ -141,7 +164,7 @@ private class Attention: Module {
         }
 
         if var mask {
-            let kvSeqLen = keys.dim(2)
+            let kvSeqLen = keys.dim(-2)
             if mask.ndim == 2 {
                 mask = mask[.newAxis, .newAxis, 0..., 0...]
             }
@@ -182,7 +205,7 @@ private class MLP: Module, UnaryLayer {
 
     init(_ args: FalconH1Configuration) {
         let hiddenSize = args.hiddenSize
-        let intermediateSize = args.intermediateSize
+        let intermediateSize = args.intermediateSize ?? 4 * hiddenSize
 
         _gateProj.wrappedValue = Linear(hiddenSize, intermediateSize, bias: args.mlpBias)
         _upProj.wrappedValue = Linear(hiddenSize, intermediateSize, bias: args.mlpBias)
@@ -224,15 +247,19 @@ private class DecoderLayer: Module {
 
         _feedForward.wrappedValue = MLP(args)
         _attention.wrappedValue = Attention(args, layerIdx: layerIdx)
-        _inputLayerNorm.wrappedValue = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
-        _preFfLayerNorm.wrappedValue = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+        _inputLayerNorm.wrappedValue = RMSNorm(
+            dimensions: args.hiddenSize, eps: args.rmsNormEps ?? 1e-5
+        )
+        _preFfLayerNorm.wrappedValue = RMSNorm(
+            dimensions: args.hiddenSize, eps: args.rmsNormEps ?? 1e-5
+        )
     }
 
     func callAsFunction(
         _ hiddenStates: MLXArray,
-        cache: Mamba2Cache,
+        cache: Mamba2Cache?,
         mask: MLXArray?,
-        mambaMask: MLXArray?,
+        mambaMask: MLXArray? = nil,
         cachePosition: MLXArray
     ) -> MLXArray {
         var residual = hiddenStates
@@ -253,9 +280,7 @@ private class DecoderLayer: Module {
                 cache: cache
             ) * attnOutMultiplier
 
-        hiddenStates = mambaHiddenStates + attentionHiddenStates
-
-        hiddenStates = residual + hiddenStates
+        hiddenStates = residual + mambaHiddenStates + attentionHiddenStates
 
         residual = hiddenStates
         hiddenStates = preFfLayerNorm(hiddenStates)
@@ -270,8 +295,7 @@ private func applyMaskToPaddingStates(_ inputStates: MLXArray, _ attentionMask: 
     -> MLXArray
 {
     if let attentionMask {
-        let mask = expandedDimensions(attentionMask, axes: [-1])
-        return inputStates * mask
+        return inputStates * expandedDimensions(attentionMask, axis: -1)
     }
     return inputStates
 }
@@ -280,7 +304,7 @@ private func padTensorBySize(_ tensor: MLXArray, _ padSize: Int) -> MLXArray {
     if padSize > 0 {
         var padShape = tensor.shape
         padShape[1] = padSize
-        let padding = MLXArray.zeros(padShape).asType(tensor.dtype)
+        let padding = MLXArray.zeros(padShape, dtype: tensor.dtype)
         return concatenated([tensor, padding], axis: 1)
     }
     return tensor
@@ -292,28 +316,30 @@ private func reshapeIntoChunks(_ tensor: MLXArray, _ padSize: Int, _ chunkSize: 
         tensor = padTensorBySize(tensor, padSize)
     }
 
-    let batchSize = tensor.shape[0]
-    let seqLen = tensor.dim(1)
+    let tensorShape = tensor.shape[..<2]
+    let batchSize = tensorShape[0]
+    let seqLen = tensorShape[1]
     let numChunks = seqLen / chunkSize
 
     var newShape = [batchSize, numChunks, chunkSize]
-    newShape.append(contentsOf: Array(tensor.shape[2...]))
+    newShape.append(contentsOf: tensor.shape[2...])
     return tensor.reshaped(newShape)
 }
 
 private func segmentSum(_ inputTensor: MLXArray) -> MLXArray {
     let chunkSize = inputTensor.dim(-1)
-    var inputTensor = expandedDimensions(inputTensor, axes: [-1])
+    var inputTensor = expandedDimensions(inputTensor, axis: -1)
     inputTensor = broadcast(
-        inputTensor, to: inputTensor.shape[0 ..< inputTensor.ndim - 1] + [chunkSize])
+        inputTensor, to: inputTensor.shape.dropLast() + [chunkSize]
+    )
 
-    var mask = tri(chunkSize, k: -1).asType(.bool)
-    inputTensor = MLX.where(mask, inputTensor, MLXArray.zeros(like: inputTensor))
+    var mask = tri(chunkSize, k: -1, dtype: .bool)
+    inputTensor = MLX.where(mask, inputTensor, 0)
 
     let tensorSegsum = cumsum(inputTensor, axis: -2)
 
-    mask = tri(chunkSize, k: 0).asType(.bool)
-    return MLX.where(mask, tensorSegsum, MLXArray(-Float.infinity))
+    mask = tri(chunkSize, k: 0, dtype: .bool)
+    return MLX.where(mask, tensorSegsum, -Float.infinity)
 }
 
 // MARK: - Mixer
@@ -337,7 +363,7 @@ private class Mixer: Module {
     let timeStepMax: Float
     let convDim: Int
     let mambaRMSNorm: Bool
-    let norm: RMSNormGated?
+    var norm: RMSNormGated? = nil
     let ssmInMultiplier: Float
     let conv1d: Conv1d
 
@@ -354,11 +380,11 @@ private class Mixer: Module {
         self.hiddenSize = args.hiddenSize
         self.ssmStateSize = args.mambaDState
         self.convKernelSize = args.mambaDConv
-        self.intermediateSize = args.mambaDSSM ?? Int(args.mambaExpand * args.hiddenSize)
+        self.intermediateSize = args.mambaDSSM ?? args.mambaExpand * args.hiddenSize
         self.layerIdx = layerIdx
         self.useConvBias = args.mambaConvBias
         self.useBias = args.mambaProjBias
-        self.layerNormEpsilon = args.rmsNormEps
+        self.layerNormEpsilon = args.rmsNormEps ?? 1e-5
         self.groupsTimeStateSize = args.mambaNGroups * args.mambaDState
         self.nGroups = args.mambaNGroups
         self.headDim = args.mambaDHead
@@ -387,7 +413,7 @@ private class Mixer: Module {
 
         _dtBias.wrappedValue = MLXArray.ones([numHeads])
 
-        let A = MLXArray(Array(1 ... numHeads)).asType(.float32)
+        let A = MLXArray(Array(1 ..< numHeads + 1)).asType(.float32)
 
         _aLog.wrappedValue = log(A)
 
@@ -399,8 +425,6 @@ private class Mixer: Module {
                 nGroups: nGroups,
                 normBeforeGate: args.mambaNormBeforeGate
             )
-        } else {
-            self.norm = nil
         }
 
         _d.wrappedValue = MLXArray.ones([numHeads]) + 1.0
@@ -432,17 +456,22 @@ private class Mixer: Module {
 
         let gate = projectedStates[.ellipsis, ..<intermediateSize]
         var hiddenStatesBC = projectedStates[
-            .ellipsis, intermediateSize ..< (intermediateSize + convDim)]
+            .ellipsis, intermediateSize ..< (intermediateSize + convDim)
+        ]
         let dt = projectedStates[.ellipsis, (intermediateSize + convDim)...]
 
-        let usePrecomputedStates: Bool =
-            cache != nil && cache!.hasPreviousState && seqLen == 1
-            && cache!.convStates[layerIdx]!.shape[0] == batchSize
-            && cache!.ssmStates[layerIdx]!.shape[0] == batchSize && cachePosition != nil
-            && cachePosition![0].all().item() > 0
+        let usePrecomputedStates: Bool = {
+            guard let cache, let cachePosition else { return false }
+
+            return cache.hasPreviousState
+                && seqLen == 1
+                && cache.convStates[layerIdx]?.shape[0] == batchSize
+                && cache.ssmStates[layerIdx]?.shape[0] == batchSize
+                && cachePosition[0].item() > 0
+        }()
 
         if usePrecomputedStates, let cache {
-            var convState = roll(cache.convStates[layerIdx]!, shift: -1, axis: -1)
+            let convState = roll(cache.convStates[layerIdx]!, shift: -1, axis: -1)
             convState[0..., 0..., -1] = hiddenStatesBC[0..., 0, 0...]
             cache.convStates[layerIdx] = convState
 
@@ -461,7 +490,8 @@ private class Mixer: Module {
                     if padSize > 0 {
                         padded(
                             hiddenStatesBCTransposed,
-                            widths: [.init((0, 0)), .init((0, 0)), .init((padSize, 0))])
+                            widths: [.init([0, 0]), .init([0, 0]), .init([padSize, 0])]
+                        )
                     } else {
                         hiddenStatesBCTransposed[0..., 0..., ..<padSize]
                     }
@@ -475,14 +505,17 @@ private class Mixer: Module {
         hiddenStatesBC = applyMaskToPaddingStates(hiddenStatesBC, mask)
 
         var hiddenStates = hiddenStatesBC[.ellipsis, ..<intermediateSize]
-        let B = hiddenStatesBC[
-            .ellipsis, intermediateSize ..< (intermediateSize + nGroups * ssmStateSize)]
-        let C = hiddenStatesBC[.ellipsis, (intermediateSize + nGroups * ssmStateSize)...]
+        var b = hiddenStatesBC[
+            .ellipsis, intermediateSize ..< (intermediateSize + nGroups * ssmStateSize)
+        ]
+        var c = hiddenStatesBC[.ellipsis, (intermediateSize + nGroups * ssmStateSize)...]
 
-        let A = -exp(aLog.asType(.float32))
+        var a = -exp(aLog.asType(.float32))
 
-        if usePrecomputedStates {
-            var dt = dt[0..., 0, 0...][0..., .newAxis, 0...]
+        var y: MLXArray
+
+        if usePrecomputedStates, let cache {
+            var dt = dt[0..., 0, 0...][0..., .newAxis, .ellipsis]
             dt = dt.transposed(0, 2, 1)
             dt = broadcast(dt, to: [batchSize, dt.dim(1), headDim])
 
@@ -492,137 +525,128 @@ private class Mixer: Module {
             dt = softplus(dt + dtBias.asType(dt.dtype))
             dt = clip(dt, min: timeStepLimit.0, max: timeStepLimit.1)
 
-            var A = expandedDimensions(expandedDimensions(A, axis: -1), axis: -1)
-            A = broadcast(A, to: [numHeads, headDim, ssmStateSize]).asType(.float32)
+            a = expandedDimensions(expandedDimensions(a, axis: -1), axis: -1)
+            a = broadcast(a, to: [numHeads, headDim, ssmStateSize]).asType(.float32)
 
-            let dA = exp(expandedDimensions(dt, axis: -1) * A)
+            let dA = exp(expandedDimensions(dt, axis: -1) * a)
 
-            var B = B.reshaped(batchSize, nGroups, -1)
-            B = expandedDimensions(B, axis: 2)
-            B = broadcast(B, to: [batchSize, nGroups, Int(numHeads / nGroups), B.dim(-1)])
-            B = B.reshaped(batchSize, -1, B.dim(-1))
+            b = b.reshaped(batchSize, nGroups, -1)
+            b = expandedDimensions(b, axis: 2)
+            b = broadcast(b, to: [batchSize, nGroups, numHeads / nGroups, b.dim(-1)])
+            b = b.reshaped(batchSize, -1, b.dim(-1))
 
-            let dB = expandedDimensions(dt, axis: -1) * expandedDimensions(B, axis: 2)
+            let dB = expandedDimensions(dt, axis: -1) * expandedDimensions(b, axis: 2)
 
             hiddenStates = hiddenStates.reshaped(batchSize, -1, headDim)
             let dBx = dB * expandedDimensions(hiddenStates, axis: -1)
 
-            let newSsmState = cache!.ssmStates[layerIdx]! * dA + dBx
-            cache!.ssmStates[layerIdx] = newSsmState
+            let newSsmState = cache.ssmStates[layerIdx]! * dA + dBx
+            cache.ssmStates[layerIdx] = newSsmState
 
-            var C = C.reshaped(batchSize, nGroups, -1)
-            C = expandedDimensions(C, axis: 2)
-            C = broadcast(C, to: [batchSize, nGroups, Int(numHeads / nGroups), C.dim(-1)])
-            C = C.reshaped(batchSize, -1, C.dim(-1))
+            c = c.reshaped(batchSize, nGroups, -1)
+            c = expandedDimensions(c, axis: 2)
+            c = broadcast(c, to: [batchSize, nGroups, numHeads / nGroups, c.dim(-1)])
+            c = c.reshaped(batchSize, -1, c.dim(-1))
 
-            let ssmStates = cache!.ssmStates[layerIdx]!.asType(C.dtype)
+            let ssmStates = cache.ssmStates[layerIdx]!.asType(c.dtype)
 
             let ssmStatesReshaped = ssmStates.reshaped(batchSize * numHeads, headDim, ssmStateSize)
-            let CReshaped = C.reshaped(batchSize * numHeads, ssmStateSize, 1)
+            let cReshaped = c.reshaped(batchSize * numHeads, ssmStateSize, 1)
 
-            var y = matmul(ssmStatesReshaped, CReshaped)
+            y = matmul(ssmStatesReshaped, cReshaped)
             y = y.reshaped(batchSize, numHeads, headDim)
 
-            var D = expandedDimensions(d, axis: -1)
-            D = broadcast(D, to: [d.dim(0), headDim])
-            y = y + hiddenStates * D
+            var d = expandedDimensions(d, axis: -1)
+            d = broadcast(d, to: [d.dim(0), headDim])
+            y = y + hiddenStates * d
 
             y = y.reshaped(batchSize, -1)
             y = expandedDimensions(y, axis: 1)
-
-            let scanOutput: MLXArray =
-                if let norm {
-                    norm(y, gate: gate)
-                } else {
-                    y * silu(gate)
-                }
-
-            return outProj(scanOutput.asType(dtype))
         } else {
             var dt = softplus(dt + dtBias)
             dt = clip(dt, min: timeStepLimit.0, max: timeStepLimit.1)
 
             hiddenStates = hiddenStates.reshaped(batchSize, seqLen, -1, headDim).asType(.float32)
-            var B = B.reshaped(batchSize, seqLen, -1, ssmStateSize).asType(.float32)
-            var C = C.reshaped(batchSize, seqLen, -1, ssmStateSize).asType(.float32)
+            b = b.reshaped(batchSize, seqLen, -1, ssmStateSize).asType(.float32)
+            c = c.reshaped(batchSize, seqLen, -1, ssmStateSize).asType(.float32)
 
-            B = repeated(B, count: numHeads / nGroups, axis: 2)
-            C = repeated(C, count: numHeads / nGroups, axis: 2)
+            b = repeated(b, count: numHeads / nGroups, axis: 2)
+            c = repeated(c, count: numHeads / nGroups, axis: 2)
 
             let padSize = (chunkSize - seqLen % chunkSize) % chunkSize
 
-            let DResidual = expandedDimensions(d, axis: -1) * padTensorBySize(hiddenStates, padSize)
+            let dResidual = expandedDimensions(d, axis: -1) * padTensorBySize(hiddenStates, padSize)
 
             hiddenStates = hiddenStates * expandedDimensions(dt, axis: -1)
-            var A = A.asType(hiddenStates.dtype) * dt
+            a = a.asType(hiddenStates.dtype) * dt
 
             hiddenStates = reshapeIntoChunks(hiddenStates, padSize, chunkSize)
-            A = reshapeIntoChunks(A, padSize, chunkSize)
-            B = reshapeIntoChunks(B, padSize, chunkSize)
-            C = reshapeIntoChunks(C, padSize, chunkSize)
+            a = reshapeIntoChunks(a, padSize, chunkSize)
+            b = reshapeIntoChunks(b, padSize, chunkSize)
+            c = reshapeIntoChunks(c, padSize, chunkSize)
 
-            A = A.transposed(0, 3, 1, 2)
-            let ACumsum = cumsum(A, axis: -1)
+            a = a.transposed(0, 3, 1, 2)
+            let aCumsum = cumsum(a, axis: -1)
 
-            let L = exp(segmentSum(A))
+            let L = exp(segmentSum(a))
 
-            var CExpanded = expandedDimensions(C, axis: 3)
-            let BExpanded = expandedDimensions(B, axis: 2)
-            let GIntermediate = CExpanded * BExpanded
-            let G = sum(GIntermediate, axis: -1)
+            var cExpanded = expandedDimensions(c, axis: 3)
+            let bExpanded = expandedDimensions(b, axis: 2)
+            let gIntermediate = cExpanded * bExpanded
+            let g = sum(gIntermediate, axis: -1)
 
             let LPermuted = L.transposed(0, 2, 3, 4, 1)
             let MIntermediate =
-                expandedDimensions(G, axis: -1) * expandedDimensions(LPermuted, axis: -1)
-            let M = sum(MIntermediate, axis: -1)
+                expandedDimensions(g, axis: -1) * expandedDimensions(LPermuted, axis: -1)
+            let m = sum(MIntermediate, axis: -1)
 
             var hiddenStatesExpanded = expandedDimensions(hiddenStates, axis: 2)
-            let MExpanded = expandedDimensions(M, axis: -1)
-            let YDiag = sum(MExpanded * hiddenStatesExpanded, axis: 3)
+            let mExpanded = expandedDimensions(m, axis: -1)
+            let yDiag = sum(mExpanded * hiddenStatesExpanded, axis: 3)
 
-            let decayStates = exp(ACumsum[0..., 0..., 0..., (-1)...] - ACumsum)
+            let decayStates = exp(aCumsum[0..., 0..., 0..., (-1)...] - aCumsum)
             let decayStatesPermuted = decayStates.transposed(0, 2, 3, 1)
-            let BDecay = B * expandedDimensions(decayStatesPermuted, axis: -1)
+            let bDecay = b * expandedDimensions(decayStatesPermuted, axis: -1)
 
-            let BDecayExpanded = expandedDimensions(BDecay, axis: -2)
+            let bDecayExpanded = expandedDimensions(bDecay, axis: -2)
             hiddenStatesExpanded = expandedDimensions(hiddenStates, axis: -1)
-            var states = sum(BDecayExpanded * hiddenStatesExpanded, axis: 2)
+            var states = sum(bDecayExpanded * hiddenStatesExpanded, axis: 2)
 
             let previousStates: MLXArray =
-                if usePrecomputedStates {
-                    expandedDimensions(cache!.ssmStates[layerIdx]!, axis: 1)
+                if usePrecomputedStates, let cache {
+                    expandedDimensions(cache.ssmStates[layerIdx]!, axis: 1)
                 } else {
                     MLXArray.zeros(like: states[0..., ..<1])
                 }
 
             states = concatenated([previousStates, states], axis: 1)
 
-            let ACumsumLast = ACumsum[0..., 0..., 0..., -1]
+            let ACumsumLast = aCumsum[0..., 0..., 0..., -1]
             let padded = padded(ACumsumLast, widths: [.init((0, 0)), .init((0, 0)), .init((1, 0))])
             var decayChunk = exp(segmentSum(padded))
             decayChunk = decayChunk.transposed(0, 3, 2, 1)
 
             let decayExpanded = expandedDimensions(
-                expandedDimensions(decayChunk, axis: -1), axis: -1)
+                expandedDimensions(decayChunk, axis: -1), axis: -1
+            )
             var statesExpanded = expandedDimensions(states, axis: 2)
             let newStates = sum(decayExpanded * statesExpanded, axis: 1)
 
             states = newStates[0..., ..<(-1)]
             let ssmState = newStates[0..., -1]
 
-            let stateDecayOut = exp(ACumsum)
-            CExpanded = expandedDimensions(C, axis: -2)
+            let stateDecayOut = exp(aCumsum)
+            cExpanded = expandedDimensions(c, axis: -2)
             statesExpanded = expandedDimensions(states, axis: 2)
-            let CTimesStates = CExpanded * statesExpanded
+            let cTimesStates = cExpanded * statesExpanded
 
             let stateDecayOutPermuted = stateDecayOut.transposed(0, 2, 3, 1)
-            let CTimesStatesSum = sum(CTimesStates, axis: -1)
-            let YOff = CTimesStatesSum * expandedDimensions(stateDecayOutPermuted, axis: -1)
+            let cTimesStatesSum = sum(cTimesStates, axis: -1)
+            let yOff = cTimesStatesSum * expandedDimensions(stateDecayOutPermuted, axis: -1)
 
-            var y = YDiag + YOff
-
+            y = yDiag + yOff
             y = y.reshaped(batchSize, -1, numHeads, headDim)
-            y = y + DResidual
+            y = y + dResidual
 
             if padSize > 0 {
                 y = y[0..., ..<seqLen, 0..., 0...]
@@ -633,16 +657,16 @@ private class Mixer: Module {
                 cache.ssmStates[layerIdx] = ssmState
                 cache.hasPreviousState = true
             }
-
-            let scanOutput: MLXArray =
-                if let norm {
-                    norm(y, gate: gate)
-                } else {
-                    y * silu(gate)
-                }
-
-            return outProj(scanOutput.asType(dtype))
         }
+
+        let scanOutput: MLXArray =
+            if let norm {
+                norm(y, gate: gate)
+            } else {
+                y * silu(gate)
+            }
+
+        return outProj(scanOutput.asType(dtype))
     }
 }
 
@@ -672,32 +696,28 @@ private class ModelInner: Module {
             DecoderLayer(args, layerIdx: layerIdx, mupVector: mupVector)
         }
 
-        _finalLayerNorm.wrappedValue = RMSNorm(dimensions: hiddenSize, eps: args.rmsNormEps)
+        _finalLayerNorm.wrappedValue = RMSNorm(dimensions: hiddenSize, eps: args.rmsNormEps ?? 1e-5)
     }
 
     func callAsFunction(_ inputs: MLXArray, mask: MLXArray? = nil, cache: [Mamba2Cache]? = nil)
         -> MLXArray
     {
-        var h = embedTokens(inputs)
+        var h = embedTokens(inputs) * args.embeddingMultiplier
+        let mask = mask ?? createAttentionMask(h: h, cache: cache)
+        let cache: [Mamba2Cache?] = cache ?? Array(repeating: nil, count: layers.count)
 
-        h = h * args.embeddingMultiplier
+        var cachePosition = MLXArray(0 ..< h.dim(1)).asType(.int32)
 
-        let mask = mask ?? createAttentionMask(h: h, cache: nil)
-        let mambaMask: MLXArray? = nil
-
-        let cachePosition = MLXArray(0 ..< h.dim(1)).asType(.int32)
-
-        if h.dim(1) == 1, let cache {
-            let prevSeqlen = cache[0].keyCache[0].dim(-2)
-            let cachePosition = cachePosition + prevSeqlen
+        if h.dim(1) == 1, let c = cache[0] {
+            let prevSeqlen = c.keyCache[0].dim(-2)
+            cachePosition = cachePosition + prevSeqlen
         }
 
-        for (layer, c) in zip(layers, cache!) {
+        for (layer, c) in zip(layers, cache) {
             h = layer(
                 h,
-                cache: c ?? Mamba2Cache(args),
-                mask: nil,
-                mambaMask: mambaMask,
+                cache: c,
+                mask: mask,
                 cachePosition: cachePosition
             )
         }
@@ -775,7 +795,7 @@ public struct FalconH1Configuration: Codable, Sendable {
     var hiddenAct: String
     var hiddenSize: Int
     var initializerRange: Float
-    var intermediateSize: Int
+    var intermediateSize: Int?
     var keyMultiplier: Float
     var lmHeadMultiplier: Float
     var mambaChunkSize: Int
@@ -802,7 +822,7 @@ public struct FalconH1Configuration: Codable, Sendable {
     var numLogitsToKeep: Int
     var padTokenId: Int
     var projectorsBias: Bool
-    var rmsNormEps: Float
+    var rmsNormEps: Float?
     var ropeTraditional: Bool
     var ropeScaling: Float?
     var ropeTheta: Float
@@ -884,7 +904,7 @@ public struct FalconH1Configuration: Codable, Sendable {
         self.initializerRange =
             try container.decodeIfPresent(Float.self, forKey: .initializerRange) ?? 0.02
         self.intermediateSize =
-            try container.decodeIfPresent(Int.self, forKey: .intermediateSize) ?? 14336
+            try container.decodeIfPresent(Int.self, forKey: .intermediateSize) ?? nil
         self.keyMultiplier =
             try container.decodeIfPresent(Float.self, forKey: .keyMultiplier) ?? 1.0
         self.lmHeadMultiplier =
@@ -926,7 +946,7 @@ public struct FalconH1Configuration: Codable, Sendable {
         self.padTokenId = try container.decodeIfPresent(Int.self, forKey: .padTokenId) ?? 0
         self.projectorsBias =
             try container.decodeIfPresent(Bool.self, forKey: .projectorsBias) ?? false
-        self.rmsNormEps = try container.decodeIfPresent(Float.self, forKey: .rmsNormEps) ?? 1e-05
+        self.rmsNormEps = try container.decodeIfPresent(Float.self, forKey: .rmsNormEps) ?? nil
         self.ropeTraditional =
             try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
         self.ropeScaling = try container.decodeIfPresent(Float?.self, forKey: .ropeScaling) ?? nil
@@ -977,23 +997,26 @@ private class Mamba2Cache: KVCache {
         self.convKernelSize = args.mambaDConv
 
         self.intermediateSize =
-            args.mambaDSSM ?? Int(Float(args.mambaExpand) * Float(args.hiddenSize))
+            args.mambaDSSM ?? args.mambaExpand * args.hiddenSize
 
         self.convStates = [:]
         self.ssmStates = [:]
 
+        let convStateShape = [
+            batchSize,
+            intermediateSize + 2 * args.mambaNGroups * args.mambaDState,
+            convKernelSize,
+        ]
+        let ssmStateShape = [
+            batchSize,
+            args.mambaNHeads,
+            args.mambaDHead,
+            args.mambaDState,
+        ]
+
         for i in 0 ..< args.numHiddenLayers {
-            convStates[i] = MLXArray.zeros([
-                batchSize,
-                intermediateSize + 2 * args.mambaNGroups * args.mambaDState,
-                convKernelSize,
-            ])
-            ssmStates[i] = MLXArray.zeros([
-                batchSize,
-                args.mambaNHeads,
-                args.mambaDHead,
-                args.mambaDState,
-            ])
+            convStates[i] = MLXArray.zeros(convStateShape)
+            ssmStates[i] = MLXArray.zeros(ssmStateShape)
         }
 
         self.seqlenOffset = 0
@@ -1015,8 +1038,8 @@ private class Mamba2Cache: KVCache {
 
         if keyCache.count <= layerIdx {
             for _ in keyCache.count ..< layerIdx {
-                keyCache.append(MLXArray([]))
-                valueCache.append(MLXArray([]))
+                keyCache.append([])
+                valueCache.append([])
             }
             keyCache.append(keyStates)
             valueCache.append(valueStates)
