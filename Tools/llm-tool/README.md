@@ -12,7 +12,7 @@ Build the `llm-tool` scheme in Xcode.
 
 ### Running: Xcode
 
-To run this in Xcode simply press cmd-opt-r to set the scheme arguments.  For example:
+To run this in Xcode simply press cmd-opt-r to set the scheme arguments. For example:
 
 ```
 --model mlx-community/Mistral-7B-Instruct-v0.3-4bit
@@ -41,9 +41,9 @@ Use the `mlx-run` script to run the command line tools:
 ```
 
 Note: `mlx-run` is a shell script that uses `xcode` command line tools to
-locate the built binaries.  It is equivalent to running from Xcode itself.
+locate the built binaries. It is equivalent to running from Xcode itself.
 
-By default this will find and run the tools built in _Release_ configuration.  Specify `--debug`
+By default this will find and run the tools built in _Release_ configuration. Specify `--debug`
 to find and run the tool built in _Debug_ configuration.
 
 See also:
@@ -53,7 +53,7 @@ See also:
 ### Troubleshooting
 
 If the program crashes with a very deep stack trace you may need to build
-in Release configuration.  This seems to depend on the size of the model.
+in Release configuration. This seems to depend on the size of the model.
 
 There are a couple options:
 
@@ -62,7 +62,7 @@ There are a couple options:
 - build `Cmlx` with optimizations by modifying `mlx/Package.swift` and adding `.unsafeFlags(["-O"]),` around line 87
 
 Building in Release / optimizations will remove a lot of tail calls in the C++ 
-layer.  These lead to the stack overflows.
+layer. These lead to the stack overflows.
 
 See discussion here: https://github.com/ml-explore/mlx-swift-examples/issues/3
 
@@ -95,14 +95,14 @@ SUBCOMMANDS:
 
 ### Training
 
-The first step will be training the LoRA adapter.  Example training data
-is available in $SRCROOT/Data/lora.  You can use your
+The first step will be training the LoRA adapter. Example training data
+is available in $SRCROOT/Data/lora. You can use your
 own data in either `jsonl` or `txt` format with one entry per line.
 
 We need to specify a number of parameters:
 
-- `--model` -- which model to use.  This can be quantized [^qlora] or not [^lora]
-- `--data` -- directory with the test, train and valid files.  These can be either `jsonl` or `txt` files
+- `--model` -- which model to use. This can be quantized [^qlora] or not [^lora]
+- `--data` -- directory with the test, train and valid files. These can be either `jsonl` or `txt` files
 - `--adapter` -- path to a safetensors file to write the fine tuned parameters into
 
 Additionally the performance of the fine tuning can be controlled with:
@@ -184,7 +184,7 @@ Test loss 1.327623, ppl 3.772065
 
 ### Evaluate
 
-Next you can evaluate your own prompts with the fine tuned LoRA adapters.  It is important to
+Next you can evaluate your own prompts with the fine tuned LoRA adapters. It is important to
 follow the prompt example from the training data to match the format:
 
 ```

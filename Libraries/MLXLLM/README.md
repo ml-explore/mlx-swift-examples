@@ -109,7 +109,7 @@ public struct YourModelConfiguration: Codable, Sendable {
 
 ## Create the Model Class
 
-Create the model class.  The top-level public class should have a
+Create the model class. The top-level public class should have a
 structure something like this:
 
 ```swift

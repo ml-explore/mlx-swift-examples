@@ -283,7 +283,7 @@ public struct TokenIterator: Sequence, IteratorProtocol {
     let kvGroupSize: Int
     let quantizedKVStart: Int
 
-    /// Initialize a `TokenIterator` with the given tokens.  Note: this has been
+    /// Initialize a `TokenIterator` with the given tokens. Note: this has been
     /// replaced with ``init(input:model:cache:parameters:)``.
     ///
     /// - Parameters:
@@ -636,9 +636,9 @@ public func generate(
     let now = Date.timeIntervalSinceReferenceDate
     let generateTime = now - start
 
-    // TokenIterator uses `asyncEval()` to keep the pipeline full.  If the caller
+    // TokenIterator uses `asyncEval()` to keep the pipeline full. If the caller
     // exits the program right away, those tasks will still be executing and will
-    // hit assertions as the mlx scheduler is torn down.  Synchronize with the stream
+    // hit assertions as the mlx scheduler is torn down. Synchronize with the stream
     // to make sure it is complete.
     Stream().synchronize()
 
