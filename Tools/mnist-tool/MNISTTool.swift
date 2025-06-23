@@ -6,7 +6,6 @@ import MLX
 import MLXMNIST
 import MLXNN
 import MLXOptimizers
-import MLXRandom
 
 @main
 struct MNISTTool: AsyncParsableCommand {

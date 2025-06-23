@@ -23,7 +23,7 @@ If you are interested in adjusting the generated images, look in
 Stable diffusion can run in less that 4G available memory (typically a
 device or computer with 6G of memory or more) in a constrained mode -- it will
 load and unload parts of the model as it runs and it can only perform one step
-of diffusion.  This is configured automatically, see `modelFactory.conserveMemory`
+of diffusion. This is configured automatically, see `modelFactory.conserveMemory`
 in [ContentView.swift](ContentView.swift).
 
 On a device or computer with more memory the model will be kept resident and

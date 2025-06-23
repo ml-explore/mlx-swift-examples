@@ -4,7 +4,6 @@ import AsyncAlgorithms
 import MLX
 import MLXLLM
 import MLXLMCommon
-import MLXRandom
 import MarkdownUI
 import Metal
 import SwiftUI
@@ -257,7 +256,7 @@ class LLMEvaluator {
 
             self.prompt = modelConfiguration.defaultPrompt
             self.modelInfo =
-                "Loaded \(modelConfiguration.id).  Weights: \(numParams / (1024*1024))M"
+                "Loaded \(modelConfiguration.id). Weights: \(numParams / (1024*1024))M"
             loadState = .loaded(modelContainer)
             return modelContainer
 

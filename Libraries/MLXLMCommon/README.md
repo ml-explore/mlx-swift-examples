@@ -7,6 +7,22 @@
 - [MLXLLM](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxllm) -- large language model example implementations
 - [MLXVLM](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxvlm) -- vision language model example implementations
 
+# Quick Start
+
+Using LLMs and VLMs from MLXLMCommon is as easy as:
+
+```swift
+let model = try await loadModel(id: "mlx-community/Qwen3-4B-4bit")
+let session = ChatSession(model)
+print(try await session.respond(to: "What are two things to see in San Francisco?")
+print(try await session.respond(to: "How about a great place to eat?")
+```
+
+For more information see 
+[Evaluation](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/evaluation)
+or [Using Models](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/using-model)
+for more advanced API.
+
 # Contents
 
 MLXLMCommon contains types and code that is generic across many types
@@ -75,7 +91,7 @@ load models, if needed.
 ## Using a Model
 
 Once a model is loaded you can evaluate a prompt or series of
-messages.  Minimally you need to prepare the user input:
+messages. Minimally you need to prepare the user input:
 
 ```swift
 let prompt = "Describe the image in English"
@@ -84,7 +100,7 @@ input.processing.resize = .init(width: 256, height: 256)
 ```
 
 This example shows adding some images and processing instructions -- if
-model accepts text only then these parts can be omitted.  The inference
+model accepts text only then these parts can be omitted. The inference
 calls are the same.
 
 Assuming you are using a `ModelContainer` (an actor that holds
@@ -102,7 +118,7 @@ let result = try await modelContainer.perform { [input] context in
 ```
 
 Given that `input` we can call `generate()` to produce a stream
-of tokens.  In this example we use a `NaiveStreamingDetokenizer`
+of tokens. In this example we use a `NaiveStreamingDetokenizer`
 to assist in converting a stream of tokens into text and print it.
 The stream is stopped after we hit a maximum number of tokens:
 

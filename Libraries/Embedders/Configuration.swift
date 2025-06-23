@@ -28,8 +28,8 @@ public enum StringOrNumber: Codable, Equatable, Sendable {
 
 private class ModelTypeRegistry: @unchecked Sendable {
 
-    // Note: using NSLock as we have very small (just dictionary get/set)
-    // critical sections and expect no contention.  this allows the methods
+    // Note: Using NSLock as we have very small (just dictionary get/set)
+    // critical sections and expect no contention. This allows the methods
     // to remain synchronous.
     private let lock = NSLock()
 

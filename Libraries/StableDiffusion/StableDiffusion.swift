@@ -4,7 +4,6 @@ import Foundation
 import Hub
 import MLX
 import MLXNN
-import MLXRandom
 
 // port of https://github.com/ml-explore/mlx-examples/blob/main/stable_diffusion/stable_diffusion/__init__.py
 
@@ -165,7 +164,7 @@ public actor ModelContainer<M> {
         self.conserveMemory = conserveMemory
     }
 
-    /// Perform an action on the model and/or tokenizer.  Callers _must_ eval any `MLXArray` before returning as
+    /// Perform an action on the model and/or tokenizer. Callers _must_ eval any `MLXArray` before returning as
     /// `MLXArray` is not `Sendable`.
     public func perform<R>(_ action: @Sendable (M) throws -> R) throws -> R {
         switch state {
@@ -179,7 +178,7 @@ public actor ModelContainer<M> {
     /// Perform a two stage action where the first stage returns values passed to the second stage.
     ///
     /// If ``setConservativeMemory(_:)`` is `true` this will discard the model in between
-    /// the `first` and `second` blocks.  The container will have to be recreated if a caller
+    /// the `first` and `second` blocks. The container will have to be recreated if a caller
     /// wants to use it again.
     ///
     /// If `false` this will just run them in sequence and the container can be reused.
