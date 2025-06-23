@@ -70,7 +70,7 @@ the command line:
 ```
 
 Note: `mlx-run` is a shell script that uses `xcode` command line tools to
-locate the built binaries.  It is equivalent to running from Xcode itself.
+locate the built binaries. It is equivalent to running from Xcode itself.
 
 See also:
 
