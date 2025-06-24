@@ -176,6 +176,8 @@ struct GenerateArguments: ParsableArguments, Sendable {
                 print(string, terminator: "")
             case .info(let info):
                 return (info, output)
+            case .toolCall:
+                break
             }
         }
         fatalError("exited loop without seeing .info")

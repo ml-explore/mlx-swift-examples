@@ -101,9 +101,8 @@ private class Generator {
                 for await item in try MLXLMCommon.generate(
                     input: input, cache: cache, parameters: generateParameters, context: context)
                 {
-                    switch item {
-                    case .chunk(let chunk): continuation.yield(chunk)
-                    case .info: break
+                    if let chunk = item.chunk {
+                        continuation.yield(chunk)
                     }
                 }
 
