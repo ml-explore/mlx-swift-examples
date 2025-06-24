@@ -206,8 +206,8 @@ public enum LoRATrain {
             let children = layer.children()
             for key in keys {
                 if let item = children[key], case .value(let child) = item {
-                    if let lora = child as? LoRAConvertToLinear {
-                        update[key] = .value(lora.toLinear(deQuantize: deQuantize))
+                    if let lora = child as? LoRALayer {
+                        update[key] = .value(lora.fused())
                     }
                 }
             }

@@ -4,49 +4,7 @@ import Foundation
 import MLX
 import MLXNN
 import MLXOptimizers
-import Tokenizers
-
-/// Layers to apply LoRA adapters to.
-///
-/// This is the value returned by ``LoRAModel/loraLinearLayers()``.
-public typealias LoRALinearLayers = [(Module, [String])]
-
-public protocol LoRAModel {
-    /// Return the layers and keys to apply LoRA adapters to.
-    ///
-    /// For example this might apply the adapters to the `q` an `v` projections in the
-    /// Attention layers:
-    ///
-    /// ```swift
-    /// model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
-    /// ```
-    ///
-    /// It is not required that a model implement this protocol to have LoRA adapters applied, but
-    /// the command line driver example uses this to produce the ``LoRALinearLayers``.
-    ///
-    /// ### See Also
-    /// - ``LoRATrain/convert(model:layers:)``
-    func loraLinearLayers() -> LoRALinearLayers
-
-    /// Return a suffix of the layers and keys to apply LoRA adapters to.
-    ///
-    /// See ``loraLinearLayers()``
-    func loraLinearLayers(_ count: Int) -> LoRALinearLayers
-}
-
-extension LoRAModel {
-    public func loraLinearLayers(_ count: Int) -> LoRALinearLayers {
-        loraLinearLayers().suffix(count)
-    }
-}
-
-/// Protocol for LoRA implementations that provides a method for converting back to a `Linear`
-/// (or subtype).
-///
-/// This is normally called via ``LoRATrain/fuse(model:layers:deQuantize:)``
-public protocol LoRAConvertToLinear {
-    func toLinear(deQuantize: Bool) -> Linear
-}
+import MLXRandom
 
 /// Implementation of LoRA `Linear` replacement layer.
 ///
@@ -67,7 +25,7 @@ public protocol LoRAConvertToLinear {
 /// - ``QLoRALinear``
 /// - ``LoRATrain/convert(model:layers:)``
 /// - ``LoRATrain/fuse(model:layers:deQuantize:)``
-public class LoRALinear: Linear, LoRAConvertToLinear {
+public class LoRALinear: Linear, LoRALayer {
 
     let scale: Float
 
@@ -113,12 +71,13 @@ public class LoRALinear: Linear, LoRAConvertToLinear {
     /// ### See Also
     /// - ``LoRATrain/convert(model:layers:)``
     /// - ``QLoRALinear/from(linear:rank:)``
-    public static func from(linear: Linear, rank: Int = 8) -> Linear {
+    public static func from(linear: Linear, rank: Int = 8, scale: Float = 20.0) -> LoRALayer {
         if let linear = linear as? QuantizedLinear {
-            return QLoRALinear.from(linear: linear, rank: rank)
+            return QLoRALinear.from(linear: linear, rank: rank, scale: scale)
         }
         let (outputDimensions, inputDimensions) = linear.shape
-        return LoRALinear(inputDimensions, outputDimensions, rank: rank, linear: linear)
+        return LoRALinear(
+            inputDimensions, outputDimensions, rank: rank, scale: scale, linear: linear)
     }
 
     /// Convert back into a fused `Linear` layer.
@@ -129,7 +88,7 @@ public class LoRALinear: Linear, LoRAConvertToLinear {
     /// - ``LoRATrain/fuse(model:layers:deQuantize:)``
     /// - ``LoRAConvertToLinear``
     /// - ``QLoRALinear/toLinear(deQuantize:)``
-    public func toLinear(deQuantize: Bool = false) -> Linear {
+    public func fused() -> Module {
         let dtype = weight.dtype
         let loraB = (scale * loraB.T).asType(dtype)
         let loraA = loraA.T.asType(dtype)
@@ -146,7 +105,7 @@ public class LoRALinear: Linear, LoRAConvertToLinear {
 /// Implementation of LoRA `QuantizedLinear` replacement layer.
 ///
 /// See ``LoRALinear`` (equivalent class for `Linear` layers) for more information.
-public class QLoRALinear: QuantizedLinear, LoRAConvertToLinear {
+public class QLoRALinear: QuantizedLinear, LoRALayer {
 
     let scale: Float
 
@@ -196,9 +155,12 @@ public class QLoRALinear: QuantizedLinear, LoRAConvertToLinear {
     /// ### See Also
     /// - ``LoRATrain/convert(model:layers:)``
     /// - ``LoRALinear/from(linear:rank:)``
-    public static func from(linear: QuantizedLinear, rank: Int = 8) -> Linear {
+    public static func from(linear: QuantizedLinear, rank: Int = 8, scale: Float = 20.0)
+        -> LoRALayer
+    {
         let (outputDimensions, inputDimensions) = linear.shape
-        return QLoRALinear(inputDimensions, outputDimensions, rank: rank, linear: linear)
+        return QLoRALinear(
+            inputDimensions, outputDimensions, rank: rank, scale: scale, linear: linear)
     }
 
     /// Convert back into a fused `QuantizedLinear` layer.
@@ -207,17 +169,16 @@ public class QLoRALinear: QuantizedLinear, LoRAConvertToLinear {
     ///
     /// ### See Also
     /// - ``LoRATrain/fuse(model:layers:deQuantize:)``
-    public func toLinear(deQuantize: Bool = false) -> Linear {
-        // convert back into full weights
-        let weight = dequantized(
-            weight, scales: scales, biases: biases, groupSize: groupSize, bits: bits)
-
+    public func fused() -> Module {
+        let weight = dequantizedWeight
         let loraB = (scale * loraB.T).asType(.float16)
         let loraA = loraA.T.asType(.float16)
-
-        // convert back into quantized
         return QuantizedLinear(
-            weight: weight + matmul(loraB, loraA), bias: bias, groupSize: groupSize, bits: bits)
+            weight: weight + matmul(loraB, loraA),
+            bias: bias,
+            groupSize: groupSize,
+            bits: bits
+        )
     }
 
     public override func callAsFunction(_ x: MLXArray) -> MLXArray {
