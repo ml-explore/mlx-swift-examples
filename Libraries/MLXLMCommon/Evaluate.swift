@@ -804,6 +804,7 @@ public func generate(
 
             var tokenCount = 0
             var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
+            let toolCallProcessor = ToolCallProcessor()
 
             for token in iterator {
 
@@ -826,7 +827,16 @@ public func generate(
                 detokenizer.append(token: token)
                 if let chunk = detokenizer.next() {
                     tokenCount += 1
-                    continuation.yield(.chunk(chunk))
+
+                    // Process chunk through the tool call processor
+                    if let textToYield = toolCallProcessor.processChunk(chunk) {
+                        continuation.yield(.chunk(textToYield))
+                    }
+
+                    // Check if we have a complete tool call
+                    if let toolCall = toolCallProcessor.toolCalls.popLast() {
+                        continuation.yield(.toolCall(toolCall))
+                    }
                 }
             }
 
@@ -909,14 +919,19 @@ public struct GenerateCompletionInfo: Sendable {
 public enum Generation: Sendable {
     /// A generated token represented as a String
     case chunk(String)
+
     /// Completion information summarizing token counts and performance metrics.
     case info(GenerateCompletionInfo)
+
+    /// A tool call from the language model.
+    case toolCall(ToolCall)
 
     /// Generated text or nil
     public var chunk: String? {
         switch self {
         case .chunk(let string): string
         case .info: nil
+        case .toolCall: nil
         }
     }
 
@@ -925,6 +940,16 @@ public enum Generation: Sendable {
         switch self {
         case .chunk: nil
         case .info(let info): info
+        case .toolCall: nil
+        }
+    }
+
+    /// Tool call or nil
+    public var toolCall: ToolCall? {
+        switch self {
+        case .chunk: nil
+        case .info: nil
+        case .toolCall(let toolCall): toolCall
         }
     }
 
