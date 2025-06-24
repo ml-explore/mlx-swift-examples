@@ -358,7 +358,7 @@ public class RotatingKVCache: BaseKVCache, CustomDebugStringConvertible {
         } else {
             toCat = [array]
         }
-        if let append = append {
+        if let append {
             toCat.append(append)
         }
         return concatenated(toCat, axis: 2)
@@ -444,7 +444,6 @@ public class RotatingKVCache: BaseKVCache, CustomDebugStringConvertible {
         // Assign
         self.keys![.ellipsis, idx ..< (idx + S), 0...] = keys
         self.values![.ellipsis, idx ..< (idx + S), 0...] = values
-
         offset += S
         idx += S
 

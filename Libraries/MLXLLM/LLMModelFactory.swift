@@ -46,6 +46,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "granite": create(GraniteConfiguration.self, GraniteModel.init),
             "mimo": create(MiMoConfiguration.self, MiMoModel.init),
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
+            "acereason": create(Qwen2Configuration.self, Qwen2Model.init),
         ]
     }
 
@@ -54,7 +55,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
 /// Registry of models and any overrides that go with them, e.g. prompt augmentation.
 /// If asked for an unknown configuration this will use the model/tokenizer as-is.
 ///
-/// The python tokenizers have a very rich set of implementations and configuration.  The
+/// The Python tokenizers have a very rich set of implementations and configuration. The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
 public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
@@ -218,6 +219,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
+    static public let acereason_7b_4bit = ModelConfiguration(
+        id: "mlx-community/AceReason-Nemotron-7B-4bit",
+        defaultPrompt: ""
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -248,6 +254,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             gemma3_1B_qat_4bit,
             mimo_7b_sft_4bit,
             glm4_9b_4bit,
+            acereason_7b_4bit,
         ]
     }
 
@@ -325,7 +332,7 @@ public class LLMModelFactory: ModelFactory {
     public func _load(
         hub: HubApi, configuration: ModelConfiguration,
         progressHandler: @Sendable @escaping (Progress) -> Void
-    ) async throws -> ModelContext {
+    ) async throws -> sending ModelContext {
         // download weights and config
         let modelDirectory = try await downloadModel(
             hub: hub, configuration: configuration, progressHandler: progressHandler)
@@ -373,4 +380,10 @@ public class LLMModelFactory: ModelFactory {
             configuration: configuration, model: model, processor: processor, tokenizer: tokenizer)
     }
 
+}
+
+public class TrampolineModelFactory: NSObject, ModelFactoryTrampoline {
+    public static func modelFactory() -> (any MLXLMCommon.ModelFactory)? {
+        LLMModelFactory.shared
+    }
 }

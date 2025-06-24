@@ -39,9 +39,9 @@ private let context = CIContext()
 /// This is the responsibility of the `UserInputProcessor`.
 public enum MediaProcessing {
 
-    /// VLM media processing is normally done withut regard to the colorspace.  Many,
-    /// though not all, images are stored in sRGB and this wiill be the implicit colorspace
-    /// used.  This converts to a colorspace with an sRGB tone curve, though not necessarily
+    /// VLM media processing is normally done without regard to the colorspace. Many,
+    /// though not all, images are stored in sRGB and this will be the implicit colorspace
+    /// used. This converts to a colorspace with an sRGB tone curve, though not necessarily
     /// sRGB primaries, etc.
     ///
     /// See ``inLinearToneCurveSpace(_:)``

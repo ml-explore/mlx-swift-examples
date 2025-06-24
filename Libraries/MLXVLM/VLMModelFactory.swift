@@ -120,7 +120,7 @@ public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendabl
 /// Registry of models and any overrides that go with them, e.g. prompt augmentation.
 /// If asked for an unknown configuration this will use the model/tokenizer as-is.
 ///
-/// The python tokenizers have a very rich set of implementations and configuration.  The
+/// The python tokenizers have a very rich set of implementations and configuration. The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
 public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
@@ -227,7 +227,7 @@ public class VLMModelFactory: ModelFactory {
     public func _load(
         hub: HubApi, configuration: ModelConfiguration,
         progressHandler: @Sendable @escaping (Progress) -> Void
-    ) async throws -> ModelContext {
+    ) async throws -> sending ModelContext {
         // download weights and config
         let modelDirectory = try await downloadModel(
             hub: hub, configuration: configuration, progressHandler: progressHandler)
@@ -288,4 +288,10 @@ public class VLMModelFactory: ModelFactory {
             configuration: configuration, model: model, processor: processor, tokenizer: tokenizer)
     }
 
+}
+
+public class TrampolineModelFactory: NSObject, ModelFactoryTrampoline {
+    public static func modelFactory() -> (any MLXLMCommon.ModelFactory)? {
+        VLMModelFactory.shared
+    }
 }
