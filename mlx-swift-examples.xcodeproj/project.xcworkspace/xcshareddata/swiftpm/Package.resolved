@@ -47,6 +47,15 @@
       }
     },
     {
+      "identity" : "reercodable",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/reers/ReerCodable.git",
+      "state" : {
+        "revision" : "a7b1eb0e93da899163f929e15608c325845e3430",
+        "version" : "1.2.3"
+      }
+    },
+    {
       "identity" : "swift-argument-parser",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser.git",
@@ -98,6 +107,15 @@
       "state" : {
         "revision" : "e0ec0f5f3af6f3e4d5e7a19d2af26b481acb6ba8",
         "version" : "1.0.3"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-syntax.git",
+      "state" : {
+        "revision" : "f99ae8aa18f0cf0d53481901f88a0991dc3bd4a2",
+        "version" : "601.0.1"
       }
     },
     {
