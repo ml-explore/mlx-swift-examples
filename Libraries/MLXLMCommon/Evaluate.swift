@@ -59,6 +59,19 @@ public struct GenerateParameters: Sendable {
     /// Maximum tokens to generate
     public var maxTokens: Int?
 
+    /// Maximum size of the key-value cache. Old entries (except the first 4 tokens) will be overwritten.
+    /// When set, uses ``RotatingKVCache`` instead of ``KVCacheSimple``
+    public var maxKVSize: Int?
+
+    /// Number of bits to use for KV cache quantization. nil implies no cache quantization.
+    public var kvBits: Int?
+
+    /// Group size for KV cache quantization (default: 64)
+    public var kvGroupSize: Int = 64
+
+    /// Step to begin using a quantized KV cache when kvBits is non-nil (default: 0)
+    public var quantizedKVStart: Int = 0
+
     /// sampling temperature
     public var temperature: Float = 0.6
 
@@ -73,10 +86,18 @@ public struct GenerateParameters: Sendable {
 
     public init(
         maxTokens: Int? = nil,
+        maxKVSize: Int? = nil,
+        kvBits: Int? = nil,
+        kvGroupSize: Int = 64,
+        quantizedKVStart: Int = 0,
         temperature: Float = 0.6, topP: Float = 1.0, repetitionPenalty: Float? = nil,
         repetitionContextSize: Int = 20
     ) {
         self.maxTokens = maxTokens
+        self.maxKVSize = maxKVSize
+        self.kvBits = kvBits
+        self.kvGroupSize = kvGroupSize
+        self.quantizedKVStart = quantizedKVStart
         self.temperature = temperature
         self.topP = topP
         self.repetitionPenalty = repetitionPenalty
@@ -257,6 +278,11 @@ public struct TokenIterator: Sequence, IteratorProtocol {
     var tokenCount = 0
     let maxTokens: Int?
 
+    // Cache quantization parameters
+    let kvBits: Int?
+    let kvGroupSize: Int
+    let quantizedKVStart: Int
+
     /// Initialize a `TokenIterator` with the given tokens. Note: this has been
     /// replaced with ``init(input:model:cache:parameters:)``.
     ///
@@ -277,6 +303,10 @@ public struct TokenIterator: Sequence, IteratorProtocol {
         self.processor = parameters.processor()
         self.sampler = parameters.sampler()
         self.maxTokens = parameters.maxTokens
+
+        self.kvBits = parameters.kvBits
+        self.kvGroupSize = parameters.kvGroupSize
+        self.quantizedKVStart = parameters.quantizedKVStart
 
         try prepare(input: .init(text: y), windowSize: parameters.prefillStepSize)
     }
@@ -305,6 +335,10 @@ public struct TokenIterator: Sequence, IteratorProtocol {
         self.sampler = parameters.sampler()
         self.maxTokens = parameters.maxTokens
 
+        self.kvBits = parameters.kvBits
+        self.kvGroupSize = parameters.kvGroupSize
+        self.quantizedKVStart = parameters.quantizedKVStart
+
         try prepare(input: input, windowSize: parameters.prefillStepSize)
     }
 
@@ -330,6 +364,11 @@ public struct TokenIterator: Sequence, IteratorProtocol {
         self.processor = processor
         self.sampler = sampler
         self.maxTokens = maxTokens
+
+        // No cache quantization for this direct initialization
+        self.kvBits = nil
+        self.kvGroupSize = 64
+        self.quantizedKVStart = 0
 
         try prepare(input: input, windowSize: prefillStepSize)
     }
@@ -372,6 +411,14 @@ public struct TokenIterator: Sequence, IteratorProtocol {
         let result = model(
             previous[text: .newAxis], cache: cache.isEmpty ? nil : cache, state: state)
         self.state = result.state
+
+        // Apply dynamic cache quantization after each step
+        maybeQuantizeKVCache(
+            cache: &cache,
+            kvBits: kvBits,
+            kvGroupSize: kvGroupSize,
+            quantizedKVStart: quantizedKVStart
+        )
 
         return convertToToken(logits: result.logits)
     }
