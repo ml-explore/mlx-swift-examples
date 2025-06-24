@@ -5,7 +5,6 @@ import AsyncAlgorithms
 import CoreImage
 import MLX
 import MLXLMCommon
-import MLXRandom
 import MLXVLM
 import PhotosUI
 import SwiftUI

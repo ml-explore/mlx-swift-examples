@@ -4,9 +4,9 @@ import Foundation
 import Hub
 
 /// Registry of models and any overrides that go with them, e.g. prompt augmentation.
-/// If asked for an unknown configuration this will use the model/tokenizer as-is.
+/// If asked for an unknown configuration this will use the model/tokenizer as is.
 ///
-/// The python tokenizers have a very rich set of implementations and configuration.  The
+/// The Python tokenizers have a very rich set of implementations and configuration. The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
 public struct ModelConfiguration: Sendable {

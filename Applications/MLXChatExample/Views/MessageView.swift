@@ -47,8 +47,9 @@ struct MessageView: View {
                             .clipShape(.rect(cornerRadius: 12))
                     }
 
-                    // Message content with tinted background
-                    Text(message.content)
+                    // Message content with tinted background.
+                    // LocalizedStringKey used to trigger default handling of markdown content.
+                    Text(LocalizedStringKey(message.content))
                         .padding(.vertical, 8)
                         .padding(.horizontal, 12)
                         .background(.tint, in: .rect(cornerRadius: 16))
@@ -58,8 +59,9 @@ struct MessageView: View {
 
         case .assistant:
             // Assistant messages are left-aligned without background
+            // LocalizedStringKey used to trigger default handling of markdown content.
             HStack {
-                Text(message.content)
+                Text(LocalizedStringKey(message.content))
                     .textSelection(.enabled)
 
                 Spacer()

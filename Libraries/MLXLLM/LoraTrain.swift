@@ -5,10 +5,9 @@ import MLX
 import MLXLMCommon
 import MLXNN
 import MLXOptimizers
-import MLXRandom
 import Tokenizers
 
-/// Equivalent to `lora.py/iterate_batches()`.  Used internally by ``LoRATrain``.
+/// Equivalent to `lora.py/iterate_batches()`. Used internally by ``LoRATrain``.
 struct LoRABatchIterator: Sequence, IteratorProtocol {
 
     let dataset: [String]
@@ -102,7 +101,7 @@ struct LoRABatchIterator: Sequence, IteratorProtocol {
 ///
 /// - ``saveLoRAWeights(model:url:)`` -- write the LoRA weights to a file
 /// - ``fuse(model:layers:deQuantize:)`` -- fuse the LoRA weights and convert back into the original model
-///     architecture.  These weights can be saved and reloaded with normal model handling code.
+///     architecture. These weights can be saved and reloaded with normal model handling code.
 /// - ``evaluate(model:dataset:loss:tokenizer:batchSize:batchCount:)``-- compute the test loss
 ///     againts a test dataset
 /// - use the in memory model as a normal `LLMModel` and evaluate a prompt
@@ -207,8 +206,8 @@ public enum LoRATrain {
             let children = layer.children()
             for key in keys {
                 if let item = children[key], case .value(let child) = item {
-                    if let lora = child as? LoRAConvertToLinear {
-                        update[key] = .value(lora.toLinear(deQuantize: deQuantize))
+                    if let lora = child as? LoRALayer {
+                        update[key] = .value(lora.fused())
                     }
                 }
             }

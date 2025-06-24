@@ -73,6 +73,28 @@ The codebase is thoroughly documented with:
 - Clear inline comments explaining complex logic
 - DocC documentation format
 
+### Markdown Support
+
+This sample app renders markdown content using SwiftUI's native `Text` view by passing the content as a `LocalizedStringKey`:
+
+```swift
+Text(LocalizedStringKey(message.content))
+```
+
+#### Limitations and Alternatives
+
+The default SwiftUI markdown rendering only supports standard markdown syntax. It does not support advanced features like tables and task lists that are available in GitHub Flavored Markdown (GFM).
+
+For more comprehensive markdown support:
+
+- **GitHub Flavored Markdown**: Consider using the [swift-markdown-ui](https://github.com/gonzalezreal/swift-markdown-ui) library. However, be aware that this library currently has an [unresolved issue with text selection](https://github.com/gonzalezreal/swift-markdown-ui/issues/264), which is why it wasn't used in this example.
+
+- **Enhanced Text Selection**: If you're satisfied with standard markdown but want better text selection capabilities on iOS (instead of only being able to select and copy entire content block), consider combining:
+  - [SelectableText](https://github.com/kevinhermawan/SelectableText) for improved selection functionality
+  - [MarkdownToAttributedString](https://github.com/madebywindmill/MarkdownToAttributedString) for markdown formatting
+
+> More discussion on this can be found on [issue #297](https://github.com/ml-explore/mlx-swift-examples/issues/297)
+
 ## Getting Started
 
 1. Clone the repository

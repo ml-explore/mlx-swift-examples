@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   apple: ml-explore/pr-approval@0.1.0
-  
+
 parameters:
   nightly_build:
     type: boolean
@@ -14,8 +14,11 @@ parameters:
 jobs:
 
   mac_build_and_test:
+    parameters:
+      xcode_version:
+        type: string
     macos:
-      xcode: 16.0.0
+      xcode: << parameters.xcode_version >>
     resource_class: macos.m1.medium.gen1
     steps:
       - checkout
@@ -57,7 +60,10 @@ workflows:
         - not: << pipeline.parameters.nightly_build >>
         - not: << pipeline.parameters.weekly_build >>
     jobs:
-      - mac_build_and_test
+      - mac_build_and_test:
+          matrix:
+            parameters:
+              xcode_version: ["16.0.0", "16.3.0"]
 
   prb:
     when:
@@ -71,3 +77,6 @@ workflows:
           context: pr-approval
       - mac_build_and_test:
           requires: [ hold ]
+          matrix:
+            parameters:
+              xcode_version: ["16.0.0", "16.3.0"]

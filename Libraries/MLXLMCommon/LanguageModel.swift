@@ -29,7 +29,7 @@ public struct THW: Sendable {
 /// Representation of ``LanguageModel`` input.
 ///
 /// This can contain text (tokens), prepared images (`MLXArray`), or other media as
-/// needed.  ``LMInput`` is produced by ``UserInputProcessor`` in response
+/// needed. ``LMInput`` is produced by ``UserInputProcessor`` in response
 /// to ``UserInput``.
 ///
 /// The ``ModelContext`` holds the ``UserInputProcessor`` associated with a
@@ -111,7 +111,7 @@ public struct LMInput {
     }
 }
 
-/// ``LanguageModel`` step output.  This is consumed internally
+/// ``LanguageModel`` step output. This is consumed internally
 /// by the ``TokenIterator``.
 public struct LMOutput {
 
@@ -203,8 +203,17 @@ public protocol KVCacheDimensionProvider {
 
 extension LanguageModel where Self: KVCacheDimensionProvider {
     public func newCache(parameters: GenerateParameters?) -> [KVCache] {
-        kvHeads.map { n in
-            KVCacheSimple()
+        // Create one cache per layer (kvHeads.count = number of layers)
+        // The number of heads per layer (kvHeads[i]) is not used for cache creation
+        let numLayers = kvHeads.count
+
+        // Follow Python logic: use RotatingKVCache if maxKVSize is provided
+        if let maxKVSize = parameters?.maxKVSize {
+            return (0 ..< numLayers).map { _ in
+                RotatingKVCache(maxSize: maxKVSize, keep: 4)
+            }
+        } else {
+            return (0 ..< numLayers).map { _ in KVCacheSimple() }
         }
     }
 }

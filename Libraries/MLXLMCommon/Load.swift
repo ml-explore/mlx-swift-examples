@@ -24,13 +24,16 @@ public func downloadModel(
 ) async throws -> URL {
     do {
         switch configuration.id {
-        case .id(let id):
+        case .id(let id, let revision):
             // download the model weights
             let repo = Hub.Repo(id: id)
             let modelFiles = ["*.safetensors", "*.json"]
             return try await hub.snapshot(
-                from: repo, matching: modelFiles, progressHandler: progressHandler)
-
+                from: repo,
+                revision: revision,
+                matching: modelFiles,
+                progressHandler: progressHandler
+            )
         case .directory(let directory):
             return directory
         }
@@ -99,27 +102,4 @@ public func loadWeights(
     try model.update(parameters: parameters, verify: [.all])
 
     eval(model)
-}
-
-// TODO remove once mlx-swift update is adopted
-func quantize(
-    model: Module,
-    filter: (String, Module) -> (groupSize: Int, bits: Int)?,
-    apply: (Module, Int, Int) -> Module? = quantizeSingle(layer:groupSize:bits:)
-) {
-    let updates =
-        model
-        .leafModules()
-        .flattened()
-        .compactMap { (path, m) -> (String, Module)? in
-            if let (groupSize, bits) = filter(path, m) {
-                if let quantized = apply(m, groupSize, bits) {
-                    return (path, quantized)
-                }
-            }
-
-            return nil
-        }
-
-    model.update(modules: ModuleChildren.unflattened(updates))
 }

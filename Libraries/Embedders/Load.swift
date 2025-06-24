@@ -4,7 +4,6 @@ import Foundation
 @preconcurrency import Hub
 import MLX
 import MLXNN
-import MLXRandom
 import Tokenizers
 
 struct EmbedderError: Error {
@@ -118,27 +117,4 @@ public func loadModelContainer(
         hub: hub, configuration: configuration, progressHandler: progressHandler)
     return try await ModelContainer(
         hub: hub, modelDirectory: modelDirectory, configuration: configuration)
-}
-
-// TODO remove once mlx-swift update is adopted
-func quantize(
-    model: Module,
-    filter: (String, Module) -> (groupSize: Int, bits: Int)?,
-    apply: (Module, Int, Int) -> Module? = quantizeSingle(layer:groupSize:bits:)
-) {
-    let updates =
-        model
-        .leafModules()
-        .flattened()
-        .compactMap { (path, m) -> (String, Module)? in
-            if let (groupSize, bits) = filter(path, m) {
-                if let quantized = apply(m, groupSize, bits) {
-                    return (path, quantized)
-                }
-            }
-
-            return nil
-        }
-
-    model.update(modules: ModuleChildren.unflattened(updates))
 }

@@ -64,7 +64,7 @@ public struct EvaluateParameters: Sendable {
     }
 }
 
-/// File types for ``StableDiffusionConfiguration/files``.  Used by the presets to provide
+/// File types for ``StableDiffusionConfiguration/files``. Used by the presets to provide
 /// relative file paths for different types of files.
 enum FileKey {
     case unetConfig

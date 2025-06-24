@@ -3,7 +3,6 @@
 import Foundation
 import MLX
 import MLXNN
-import MLXRandom
 
 // port of https://github.com/ml-explore/mlx-examples/blob/main/stable_diffusion/stable_diffusion/vae.py
 

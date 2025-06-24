@@ -14,7 +14,7 @@ Simply build the project in xcode.
 
 ### Running (Xcode)
 
-To run this in Xcode simply press cmd-opt-r to set the scheme arguments.  For example:
+To run this in Xcode simply press cmd-opt-r to set the scheme arguments. For example:
 
 ```
 --data /tmp
@@ -30,7 +30,7 @@ Use the `mlx-run` script to run the command line tools:
 ./mlx-run mnist-tool --data /tmp
 ```
 
-By default this will find and run the tools built in _Release_ configuration.  Specify `--debug`
+By default this will find and run the tools built in _Release_ configuration. Specify `--debug`
 to find and run the tool built in _Debug_ configuration.
 
 See also:

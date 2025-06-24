@@ -33,14 +33,14 @@ memory.
 
 ### Troubleshooting
 
-If the program crashes with a very deep stack trace you may need to build
-in Release configuration.  This seems to depend on the size of the model.
+If the program crashes with a very deep stack trace, you may need to build
+in Release configuration. This seems to depend on the size of the model.
 
 There are a couple options:
 
-- build Release
-- force the model evaluation to run on the main thread, e.g. using @MainActor
-- build `Cmlx` with optimizations by modifying `mlx/Package.swift` and adding `.unsafeOptions(["-O3"]),` around line 87
+- Build Release
+- Force the model evaluation to run on the main thread, e.g. using @MainActor
+- Build `Cmlx` with optimizations by modifying `mlx/Package.swift` and adding `.unsafeOptions(["-O3"]),` around line 87
 
 See discussion here: https://github.com/ml-explore/mlx-swift-examples/issues/3
 
@@ -48,4 +48,4 @@ See discussion here: https://github.com/ml-explore/mlx-swift-examples/issues/3
 
 Different models have difference performance characteristics. For example Gemma 2B may outperform Phi-2 in terms of tokens / second.
 
-You may also find that running outside the debugger boosts performance.  You can do this in Xcode by pressing cmd-opt-r and unchecking "Debug Executable".
+You may also find that running outside the debugger boosts performance. You can do this in Xcode by pressing cmd-opt-r and unchecking "Debug Executable".

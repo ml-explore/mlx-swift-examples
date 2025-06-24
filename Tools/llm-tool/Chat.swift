@@ -110,11 +110,13 @@ struct ChatCommand: AsyncParsableCommand {
                         print(string, terminator: "")
                     case .info(let info):
                         result = info
+                    case .toolCall:
+                        break
                     }
                 }
 
-                // add the assistant response to the chat messages
-                state.chat.append(.assistant(output))
+                // the kvcache now contains this context
+                state.chat.removeAll()
 
                 if state.printStats, let result {
                     print(

@@ -2,10 +2,10 @@
 
 import Foundation
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
 import ReerCodable
+import Tokenizers
 
 // Port of https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/gemma.py
 
@@ -57,7 +57,7 @@ private class Attention: Module {
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
     ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
 
@@ -109,20 +109,20 @@ private class TransformerBlock: Module {
     @ModuleInfo(key: "self_attn") var attention: Attention
     let mlp: MLP
 
-    @ModuleInfo(key: "input_layernorm") var inputLayerNorm: RMSNorm
-    @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: RMSNorm
+    @ModuleInfo(key: "input_layernorm") var inputLayerNorm: Gemma.RMSNorm
+    @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: Gemma.RMSNorm
 
     public init(_ args: GemmaConfiguration) {
         self._attention.wrappedValue = Attention(args)
         self.mlp = MLP(dimensions: args.hiddenSize, hiddenDimensions: args.intermediateSize)
-        self._inputLayerNorm.wrappedValue = RMSNorm(
+        self._inputLayerNorm.wrappedValue = Gemma.RMSNorm(
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
-        self._postAttentionLayerNorm.wrappedValue = RMSNorm(
+        self._postAttentionLayerNorm.wrappedValue = Gemma.RMSNorm(
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
     ) -> MLXArray {
         var r = attention(inputLayerNorm(x), mask: mask, cache: cache)
         let h = x + r
@@ -138,7 +138,7 @@ private class GemmaModelInner: Module {
 
     @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
     fileprivate let layers: [TransformerBlock]
-    fileprivate let norm: RMSNorm
+    fileprivate let norm: Gemma.RMSNorm
 
     public init(_ args: GemmaConfiguration) {
         precondition(args.vocabularySize > 0)
@@ -154,14 +154,14 @@ private class GemmaModelInner: Module {
             .map { _ in
                 TransformerBlock(args)
             }
-        self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+        self.norm = Gemma.RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
         var h = embedTokens(inputs)
         h = h * pow(Float(args.hiddenSize), 0.5)
 
-        let mask: MLXArray? = createAttentionMask(h: h, cache: cache)
+        let mask = createAttentionMask(h: h, cache: cache)
 
         for (i, layer) in layers.enumerated() {
             h = layer(h, mask: mask, cache: cache?[i])
@@ -186,6 +186,10 @@ public class GemmaModel: Module, LLMModel, KVCacheDimensionProvider {
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
         let out = model(inputs, cache: cache)
         return model.embedTokens.asLinear(out)
+    }
+
+    public func messageGenerator(tokenizer: any Tokenizer) -> any MessageGenerator {
+        NoSystemMessageGenerator()
     }
 }
 

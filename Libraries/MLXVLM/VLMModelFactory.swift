@@ -85,6 +85,7 @@ public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
             "qwen2_5_vl": create(Qwen25VLConfiguration.self, Qwen25VL.init),
             "idefics3": create(Idefics3Configuration.self, Idefics3.init),
+            "gemma3": create(Gemma3Configuration.self, Gemma3.init),
             "smolvlm": create(SmolVLM2Configuration.self, SmolVLM2.init),
         ]
     }
@@ -108,6 +109,8 @@ public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendabl
                 Qwen25VLProcessorConfiguration.self, Qwen25VLProcessor.init),
             "Idefics3Processor": create(
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
+            "Gemma3Processor": create(
+                Gemma3ProcessorConfiguration.self, Gemma3Processor.init),
             "SmolVLMProcessor": create(
                 SmolVLMProcessorConfiguration.self, SmolVLMProcessor.init),
         ]
@@ -117,7 +120,7 @@ public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendabl
 /// Registry of models and any overrides that go with them, e.g. prompt augmentation.
 /// If asked for an unknown configuration this will use the model/tokenizer as-is.
 ///
-/// The python tokenizers have a very rich set of implementations and configuration.  The
+/// The python tokenizers have a very rich set of implementations and configuration. The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
 public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
@@ -145,6 +148,24 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Describe the image in English"
     )
 
+    static public let gemma3_4B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-4b-it-qat-4bit",
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3_12B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-12b-it-qat-4bit",
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3_27B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-27b-it-qat-4bit",
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
     static public let smolvlm = ModelConfiguration(
         id: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct-mlx",
         defaultPrompt:
@@ -157,6 +178,9 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen2VL2BInstruct4Bit,
             qwen2_5VL3BInstruct4Bit,
             smolvlminstruct4bit,
+            gemma3_4B_qat_4bit,
+            gemma3_12B_qat_4bit,
+            gemma3_27B_qat_4bit,
             smolvlm,
         ]
     }
@@ -203,7 +227,7 @@ public class VLMModelFactory: ModelFactory {
     public func _load(
         hub: HubApi, configuration: ModelConfiguration,
         progressHandler: @Sendable @escaping (Progress) -> Void
-    ) async throws -> ModelContext {
+    ) async throws -> sending ModelContext {
         // download weights and config
         let modelDirectory = try await downloadModel(
             hub: hub, configuration: configuration, progressHandler: progressHandler)
@@ -212,11 +236,24 @@ public class VLMModelFactory: ModelFactory {
         let configurationURL = modelDirectory.appending(
             component: "config.json"
         )
-        let baseConfig = try JSONDecoder().decode(
-            BaseConfiguration.self, from: Data(contentsOf: configurationURL))
 
-        let model = try typeRegistry.createModel(
-            configuration: configurationURL, modelType: baseConfig.modelType)
+        let baseConfig: BaseConfiguration
+        do {
+            baseConfig = try JSONDecoder().decode(
+                BaseConfiguration.self, from: Data(contentsOf: configurationURL))
+        } catch let error as DecodingError {
+            throw ModelFactoryError.configurationDecodingError(
+                configurationURL.lastPathComponent, configuration.name, error)
+        }
+
+        let model: LanguageModel
+        do {
+            model = try typeRegistry.createModel(
+                configuration: configurationURL, modelType: baseConfig.modelType)
+        } catch let error as DecodingError {
+            throw ModelFactoryError.configurationDecodingError(
+                configurationURL.lastPathComponent, configuration.name, error)
+        }
 
         // apply the weights to the bare model
         try loadWeights(
@@ -228,21 +265,33 @@ public class VLMModelFactory: ModelFactory {
             hub: hub
         )
 
-        let processorConfiguration = modelDirectory.appending(
+        let processorConfigurationURL = modelDirectory.appending(
             component: "preprocessor_config.json"
         )
-        let baseProcessorConfig = try JSONDecoder().decode(
-            BaseProcessorConfiguration.self,
-            from: Data(
-                contentsOf: processorConfiguration
+
+        let baseProcessorConfig: BaseProcessorConfiguration
+        do {
+            baseProcessorConfig = try JSONDecoder().decode(
+                BaseProcessorConfiguration.self,
+                from: Data(contentsOf: processorConfigurationURL)
             )
-        )
+        } catch let error as DecodingError {
+            throw ModelFactoryError.configurationDecodingError(
+                processorConfigurationURL.lastPathComponent, configuration.name, error)
+        }
+
         let processor = try processorRegistry.createModel(
-            configuration: processorConfiguration,
+            configuration: processorConfigurationURL,
             processorType: baseProcessorConfig.processorClass, tokenizer: tokenizer)
 
         return .init(
             configuration: configuration, model: model, processor: processor, tokenizer: tokenizer)
     }
 
+}
+
+public class TrampolineModelFactory: NSObject, ModelFactoryTrampoline {
+    public static func modelFactory() -> (any MLXLMCommon.ModelFactory)? {
+        VLMModelFactory.shared
+    }
 }

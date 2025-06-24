@@ -1,9 +1,7 @@
 import Foundation
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
-import MLXRandom
 import ReerCodable
 
 // Port of https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/phimoe.py
@@ -62,7 +60,9 @@ private class Attention: Module {
         )
     }
 
-    func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?) -> MLXArray {
+    func callAsFunction(
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
+    ) -> MLXArray {
         let (B, L, _) = (x.dim(0), x.dim(1), x.dim(2))
 
         let queries = wq(x)
@@ -149,7 +149,9 @@ private class PhiMoEDecoderLayer: Module {
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
-    func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?) -> MLXArray {
+    func callAsFunction(
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
+    ) -> MLXArray {
         var residual = x
         var hiddenStates = inputLayerNorm(x)
         hiddenStates = selfAttn(hiddenStates, mask: mask, cache: cache)

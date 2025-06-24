@@ -7,7 +7,6 @@ import Hub
 import MLX
 import MLXLLM
 import MLXLMCommon
-import MLXRandom
 import MLXVLM
 import Tokenizers
 
@@ -15,7 +14,10 @@ import Tokenizers
 struct LLMTool: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Command line tool for generating text and manipulating LLMs",
-        subcommands: [EvaluateCommand.self, ChatCommand.self, LoRACommand.self],
+        subcommands: [
+            EvaluateCommand.self, ChatCommand.self, LoRACommand.self,
+            ListCommands.self,
+        ],
         defaultSubcommand: EvaluateCommand.self)
 }
 
@@ -24,6 +26,9 @@ struct ModelArguments: ParsableArguments, Sendable {
 
     @Option(name: .long, help: "Name of the Hugging Face model or absolute path to directory")
     var model: String?
+
+    @Option(help: "Hub download directory")
+    var download: URL?
 
     @Sendable
     func load(defaultModel: String, modelFactory: ModelFactory) async throws -> ModelContainer {
@@ -40,7 +45,15 @@ struct ModelArguments: ParsableArguments, Sendable {
             // identifier
             modelConfiguration = modelFactory.configuration(id: modelName)
         }
-        return try await modelFactory.loadContainer(configuration: modelConfiguration)
+
+        let hub =
+            if let download {
+                HubApi(downloadBase: download)
+            } else {
+                HubApi()
+            }
+
+        return try await modelFactory.loadContainer(hub: hub, configuration: modelConfiguration)
     }
 }
 
@@ -48,7 +61,7 @@ struct PromptArguments: ParsableArguments, Sendable {
     @Option(
         name: .shortAndLong,
         help:
-            "The message to be processed by the model.  Use @path,@path to load from files, e.g. @/tmp/prompt.txt"
+            "The message to be processed by the model. Use @path,@path to load from files, e.g. @/tmp/prompt.txt"
     )
     var prompt: String?
 
@@ -132,12 +145,24 @@ struct GenerateArguments: ParsableArguments, Sendable {
     @Option(name: .long, help: "The PRNG seed")
     var seed: UInt64 = 0
 
+    @Option(name: .long, help: "Number of bits for KV cache quantization (nil = no quantization)")
+    var kvBits: Int?
+
+    @Option(name: .long, help: "Group size for KV cache quantization")
+    var kvGroupSize: Int = 64
+
+    @Option(name: .long, help: "Step to begin using quantized KV cache when kv-bits is set")
+    var quantizedKvStart: Int = 0
+
     @Flag(name: .shortAndLong, help: "If true only print the generated output")
     var quiet = false
 
     var generateParameters: GenerateParameters {
         GenerateParameters(
             maxTokens: maxTokens,
+            kvBits: kvBits,
+            kvGroupSize: kvGroupSize,
+            quantizedKVStart: quantizedKvStart,
             temperature: temperature, topP: topP, repetitionPenalty: repetitionPenalty,
             repetitionContextSize: repetitionContextSize)
     }
@@ -163,6 +188,8 @@ struct GenerateArguments: ParsableArguments, Sendable {
                 print(string, terminator: "")
             case .info(let info):
                 return (info, output)
+            case .toolCall:
+                break
             }
         }
         fatalError("exited loop without seeing .info")
@@ -313,6 +340,10 @@ struct EvaluateCommand: AsyncParsableCommand {
             let input = try await context.processor.prepare(input: userInput)
             return try await generate.generate(input: input, context: context)
         }
+
+        // wait for any asynchronous cleanup, e.g. tearing down compiled functions
+        // before the task exits -- this would race with mlx::core shutdown
+        try await Task.sleep(for: .milliseconds(30))
 
         if !generate.quiet {
             print("------")
