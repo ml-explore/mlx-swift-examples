@@ -284,10 +284,6 @@ private struct LLMUserInputProcessor: UserInputProcessor {
             let promptTokens = try tokenizer.applyChatTemplate(
                 messages: messages, tools: input.tools, additionalContext: input.additionalContext)
 
-            let decoded = try tokenizer.decode(tokens: promptTokens)
-            print("decoded prompt:")
-            print(decoded)
-
             return LMInput(tokens: MLXArray(promptTokens))
         } catch TokenizerError.missingChatTemplate {
             print(

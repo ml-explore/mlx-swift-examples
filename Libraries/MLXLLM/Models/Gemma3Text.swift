@@ -268,7 +268,6 @@ private class Gemma3Model: Module {
         super.init()
     }
 
-    // TODO: The Python function has an extra parameter input_embeddings, but this is now allowed in Swift. Do we need this?
     func callAsFunction(
         _ inputs: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode? = nil,
         cache: [KVCache?]? = nil
@@ -276,13 +275,6 @@ private class Gemma3Model: Module {
         -> MLXArray
     {
         var h: MLXArray
-        // TODO: The Python implementation has this logic:
-        //        if let inputEmbeddings {
-        //            h = inputEmbeddings
-        //        } else {
-        //            h = embedTokens(inputs)
-        //        }
-        // TODO: Instead we have to do this:
         h = embedTokens(inputs)
         let scale = MLXArray(sqrt(Float(config.hiddenSize)), dtype: .bfloat16)
         h = h * scale.asType(h.dtype)
@@ -337,9 +329,7 @@ public class Gemma3TextModel: Module, LLMModel {
         super.init()
     }
 
-    // TODO: The Python implementation has an extra parameter input_embeddings, but this is now allowed in Swift. Do we need this?
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
-        // TODO: The Python implementation passes input_embeddings to model
         var out = model(inputs, mask: nil, cache: cache)
         out = lmHead(out)
         return out
