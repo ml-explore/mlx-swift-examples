@@ -85,6 +85,7 @@ public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
             "qwen2_5_vl": create(Qwen25VLConfiguration.self, Qwen25VL.init),
             "idefics3": create(Idefics3Configuration.self, Idefics3.init),
+            "gemma3": create(Gemma3Configuration.self, Gemma3.init),
             "smolvlm": create(SmolVLM2Configuration.self, SmolVLM2.init),
         ]
     }
@@ -108,6 +109,8 @@ public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendabl
                 Qwen25VLProcessorConfiguration.self, Qwen25VLProcessor.init),
             "Idefics3Processor": create(
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
+            "Gemma3Processor": create(
+                Gemma3ProcessorConfiguration.self, Gemma3Processor.init),
             "SmolVLMProcessor": create(
                 SmolVLMProcessorConfiguration.self, SmolVLMProcessor.init),
         ]
@@ -145,6 +148,24 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Describe the image in English"
     )
 
+    static public let gemma3_4B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-4b-it-qat-4bit",
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3_12B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-12b-it-qat-4bit",
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3_27B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-27b-it-qat-4bit",
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
     static public let smolvlm = ModelConfiguration(
         id: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct-mlx",
         defaultPrompt:
@@ -157,6 +178,9 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen2VL2BInstruct4Bit,
             qwen2_5VL3BInstruct4Bit,
             smolvlminstruct4bit,
+            gemma3_4B_qat_4bit,
+            gemma3_12B_qat_4bit,
+            gemma3_27B_qat_4bit,
             smolvlm,
         ]
     }
