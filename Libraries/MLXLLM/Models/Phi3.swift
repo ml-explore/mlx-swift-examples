@@ -96,14 +96,18 @@ private class Attention: Module {
         if let cache {
             queries = rope.applyEncoding(queries, offset: cache.offset)
             keys = rope.applyEncoding(keys, offset: cache.offset)
-            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope.applyEncoding(queries)
             keys = rope.applyEncoding(keys)
         }
 
-        let output = MLXFast.scaledDotProductAttention(
-            queries: queries, keys: keys, values: values, scale: scale, mask: mask
+        let output = attentionWithCacheUpdate(
+            queries: queries,
+            keys: keys,
+            values: values,
+            cache: cache,
+            scale: scale,
+            mask: mask
         )
         .transposed(0, 2, 1, 3)
         .reshaped(B, L, -1)

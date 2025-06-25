@@ -220,7 +220,6 @@ private class Attention: Module {
         if let cache {
             queries = rope(queries, offset: cache.offset)
             keys = rope(keys, offset: cache.offset)
-            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope(queries)
             keys = rope(keys)
@@ -235,10 +234,11 @@ private class Attention: Module {
         }
 
         // Scaled dot-product attention with native GQA support
-        let output = MLXFast.scaledDotProductAttention(
+        let output = attentionWithCacheUpdate(
             queries: queries,
             keys: keys,
             values: values,
+            cache: cache,
             scale: scale,
             mask: finalMask
         )
@@ -376,7 +376,7 @@ private class GemmaModel: Module {
             let isGlobal = (i % config.slidingWindowPattern == config.slidingWindowPattern - 1)
 
             let localMask: MLXFast.ScaledDotProductAttentionMaskMode
-            if let mask = mask {
+            if let mask {
                 localMask = mask
             } else if isGlobal {
                 localMask = fullMask
@@ -546,7 +546,9 @@ private class VisionAttention: Module {
         self._outputProj.wrappedValue = Linear(valueDims, valueOutputDims, bias: bias)
     }
 
-    func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil) -> MLXArray {
+    func callAsFunction(_ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode = .none)
+        -> MLXArray
+    {
         var queries = queryProj(x)
         var keys = keyProj(x)
         var values = valueProj(x)
@@ -612,7 +614,9 @@ private class EncoderLayer: Module {
         self._layerNorm2.wrappedValue = LayerNorm(dimensions: embedDim, eps: config.layerNormEps)
     }
 
-    func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil) -> MLXArray {
+    func callAsFunction(_ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode = .none)
+        -> MLXArray
+    {
         let r = selfAttention(layerNorm1(x), mask: mask)
         let h = x + r
         let r2 = mlp(layerNorm2(h))
@@ -632,13 +636,13 @@ private class Encoder: Module {
     func callAsFunction(
         _ x: MLXArray,
         outputHiddenStates: Bool = false,
-        mask: MLXArray? = nil
+        mask: MLXFast.ScaledDotProductAttentionMaskMode = .none
     ) -> (MLXArray, [MLXArray]?) {
         var encoderStates: [MLXArray]? = outputHiddenStates ? [x] : nil
         var h = x
 
         for layer in layers {
-            h = layer(h)
+            h = layer(h, mask: mask)
             if outputHiddenStates {
                 encoderStates?.append(h)
             }
@@ -730,7 +734,7 @@ private class SigLipVisionModel: Module {
         let (encoderOutput, encoderStates) = encoder(
             x,
             outputHiddenStates: outputHiddenStates,
-            mask: nil
+            mask: .none
         )
 
         let poolerOutput = postLayerNorm(encoderOutput)
