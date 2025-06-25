@@ -61,14 +61,18 @@ private enum Language {
             if let cache {
                 queries = rope(queries, offset: cache.offset)
                 keys = rope(keys, offset: cache.offset)
-                (keys, values) = cache.update(keys: keys, values: values)
             } else {
                 queries = rope(queries)
                 keys = rope(keys)
             }
 
-            let output = MLXFast.scaledDotProductAttention(
-                queries: queries, keys: keys, values: values, scale: scale, mask: mask
+            let output = attentionWithCacheUpdate(
+                queries: queries,
+                keys: keys,
+                values: values,
+                cache: cache,
+                scale: scale,
+                mask: mask
             )
             .transposed(0, 2, 1, 3)
             .reshaped(B, L, -1)
@@ -223,7 +227,7 @@ private enum Vision {
         }
 
         public func callAsFunction(
-            _ x: MLXArray, mask: MLXArray? = nil
+            _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode = .none
         ) -> MLXArray {
             var queries = wq(x)
             var keys = wk(x)
@@ -237,7 +241,11 @@ private enum Vision {
             values = values.reshaped(B, S, numHeads, -1).transposed(0, 2, 1, 3)
 
             let output = MLXFast.scaledDotProductAttention(
-                queries: queries, keys: keys, values: values, scale: scale, mask: mask
+                queries: queries,
+                keys: keys,
+                values: values,
+                scale: scale,
+                mask: mask
             )
             .transposed(0, 2, 1, 3)
             .reshaped(B, L, -1)
@@ -278,7 +286,9 @@ private enum Vision {
                 dimensions: config.hiddenSize, eps: config.layerNormEps)
         }
 
-        public func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil) -> MLXArray {
+        public func callAsFunction(
+            _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode = .none
+        ) -> MLXArray {
             var r = attention(layerNorm1(x), mask: mask)
             let h = x + r
             r = mlp(layerNorm2(h))
@@ -296,7 +306,8 @@ private enum Vision {
         }
 
         public func callAsFunction(
-            _ x: MLXArray, outputHiddenStates: Bool = false, mask: MLXArray? = nil
+            _ x: MLXArray, outputHiddenStates: Bool = false,
+            mask: MLXFast.ScaledDotProductAttentionMaskMode = .none
         ) -> (MLXArray, [MLXArray]?) {
             var encoderStates: [MLXArray]? = outputHiddenStates ? [] : nil
             var h = x

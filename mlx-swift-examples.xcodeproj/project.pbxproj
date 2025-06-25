@@ -283,9 +283,9 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				MLXLMTests/BaseConfigurationTests.swift,
-        MLXLMTests/ToolTests.swift,
 				MLXLMTests/EvalTests.swift,
 				MLXLMTests/StreamlinedTests.swift,
+				MLXLMTests/ToolTests.swift,
 				MLXLMTests/UserInputTests.swift,
 			);
 			target = C3208E6D2DB19451006AE6CA /* MLXLMTests */;
