@@ -18,12 +18,18 @@ public struct BaseConfiguration: Codable, Sendable {
 
         public let groupSize: Int
         public let bits: Int
+        public var quantMethod: String? = nil
+        public var linearClass: String? = nil
+        public var quantizationMode: String? = nil
 
         public var asTuple: (Int, Int) { (groupSize, bits) }
 
         enum CodingKeys: String, CodingKey {
             case groupSize = "group_size"
             case bits = "bits"
+            case quantMethod = "quant_method"
+            case linearClass = "linear_class"
+            case quantizationMode = "quantization_mode"
         }
     }
 
@@ -107,6 +113,9 @@ public struct BaseConfiguration: Codable, Sendable {
                 switch key.stringValue {
                 case Quantization.CodingKeys.groupSize.rawValue: continue
                 case Quantization.CodingKeys.bits.rawValue: continue
+                case Quantization.CodingKeys.quantMethod.rawValue: continue
+                case Quantization.CodingKeys.linearClass.rawValue: continue
+                case Quantization.CodingKeys.quantizationMode.rawValue: continue
 
                 default:
                     if let f = try? container.decode(Bool.self, forKey: key) {
