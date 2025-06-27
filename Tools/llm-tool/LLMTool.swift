@@ -302,15 +302,9 @@ struct EvaluateCommand: AsyncParsableCommand {
         let modelFactory: ModelFactory
         let defaultModel: ModelConfiguration
 
-        // Switch between LLM and VLM based on presence of media
-        let vlm = !media.image.isEmpty || !media.video.isEmpty
-        if vlm {
-            modelFactory = VLMModelFactory.shared
-            defaultModel = MLXVLM.VLMRegistry.qwen2VL2BInstruct4Bit
-        } else {
-            modelFactory = LLMModelFactory.shared
-            defaultModel = MLXLLM.LLMRegistry.mistral7B4bit
-        }
+        // Always use VLM factory and gemma3n_E2B_instruct for testing
+        modelFactory = VLMModelFactory.shared
+        defaultModel = MLXVLM.VLMRegistry.gemma3n_E2B_instruct
 
         // Load the model
         let modelContainer = try await memory.start { [args] in
