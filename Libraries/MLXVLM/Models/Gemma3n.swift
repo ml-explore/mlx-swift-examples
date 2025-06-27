@@ -495,8 +495,8 @@ private class Gemma3nRotaryEmbedding: Module {
     let originalMaxSeqLen: Int
     let config: TextConfig
     let attentionScaling: Float
-    let invFreq: MLXArray
-    let originalInvFreq: MLXArray
+    let _invFreq: MLXArray
+    let _originalInvFreq: MLXArray
 
     init(config: TextConfig) {
         if let ropeScaling = config.ropeScaling {
@@ -516,8 +516,8 @@ private class Gemma3nRotaryEmbedding: Module {
         self.attentionScaling = 1.0
 
         let (invFreq, _) = Self.computeDefaultRopeParameters(config: config)
-        self.invFreq = MLXArray(invFreq).asType(.float32)
-        self.originalInvFreq = MLXArray(invFreq).asType(.float32)
+        self._invFreq = MLXArray(invFreq).asType(.float32)
+        self._originalInvFreq = MLXArray(invFreq).asType(.float32)
 
         super.init()
     }
@@ -538,7 +538,7 @@ private class Gemma3nRotaryEmbedding: Module {
     }
 
     func callAsFunction(_ x: MLXArray, positionIds: MLXArray) -> (MLXArray, MLXArray) {
-        let invFreqExpanded = expandedDimensions(invFreq, axes: [0, 2])
+        let invFreqExpanded = expandedDimensions(_invFreq, axes: [0, 2])
         let positionIdsExpanded = expandedDimensions(positionIds.asType(.float32), axes: [1])
 
         let freqs = matmul(
@@ -750,7 +750,7 @@ private class Gemma3nAltUp: Module {
     @ModuleInfo(key: "prediction_coefs") var predictionCoefs: Linear
     @ModuleInfo(key: "modality_router") var modalityRouter: Linear
     @ModuleInfo(key: "router_norm") var routerNorm: Gemma3nRMSNormWithScale
-    @ModuleInfo(key: "router_input_scale") var routerInputScale: MLXArray
+    let _routerInputScale: MLXArray
 
     let config: TextConfig
 
@@ -778,14 +778,14 @@ private class Gemma3nAltUp: Module {
             eps: config.rmsNormEps,
             scaleShift: 0.0
         )
-        self._routerInputScale.wrappedValue = MLXArray(pow(Float(config.hiddenSize), -1.0))
+        self._routerInputScale = MLXArray(pow(Float(config.hiddenSize), -1.0))
 
         super.init()
     }
 
     func computeRouterModalities(_ x: MLXArray) -> MLXArray {
         let routerInputs =
-            routerNorm(x) * routerInputScale.asType(routerNorm.weight.dtype)
+            routerNorm(x) * _routerInputScale.asType(routerNorm.weight.dtype)
         let routed = modalityRouter(routerInputs).asType(.float32)
         return tanh(routed)
     }
@@ -1057,8 +1057,8 @@ private class Gemma3Model: Module {
     let vocabSize: Int
     let vocabSizePerLayerInput: Int
     let numHiddenLayers: Int
-    private let perLayerProjectionScale: MLXArray
-    private let perLayerInputScale: MLXArray
+    private let _perLayerProjectionScale: MLXArray
+    private let _perLayerInputScale: MLXArray
 
     @ModuleInfo(key: "embed_tokens") var embedTokens: Gemma3nTextScaledWordEmbedding
     @ModuleInfo(key: "layers") var layers: [Gemma3nDecoderLayer]  // This is correct!
@@ -1125,8 +1125,8 @@ private class Gemma3Model: Module {
             scaleShift: 0.0
         )
 
-        self.perLayerProjectionScale = MLXArray(pow(Float(hiddenSize), -0.5))
-        self.perLayerInputScale = rsqrt(MLXArray(2.0))
+        self._perLayerProjectionScale = MLXArray(pow(Float(hiddenSize), -0.5))
+        self._perLayerInputScale = rsqrt(MLXArray(2.0))
 
         self._ropeEmbedding.wrappedValue = Gemma3nRotaryEmbedding(config: config)
 
@@ -1261,7 +1261,8 @@ private class Gemma3Model: Module {
 
     func projectPerLayerInputs(_ inputsEmbeds: MLXArray, perLayerInputs: MLXArray?) -> MLXArray {
         var perLayerProjection = perLayerModelProjection(inputsEmbeds)
-        perLayerProjection = perLayerProjection * perLayerProjectionScale.asType(inputsEmbeds.dtype)
+        perLayerProjection =
+            perLayerProjection * _perLayerProjectionScale.asType(inputsEmbeds.dtype)
 
         perLayerProjection = perLayerProjection.reshaped(
             Array(inputsEmbeds.shape.dropLast()) + [
@@ -1282,7 +1283,7 @@ private class Gemma3Model: Module {
         }
 
         return (perLayerProjection + adjustedPerLayerInputs)
-            * perLayerInputScale.asType(inputsEmbeds.dtype)
+            * _perLayerInputScale.asType(inputsEmbeds.dtype)
     }
 }
 
@@ -2335,8 +2336,8 @@ private class Gemma3nAudioSubSampleConvProjection: Module {
     let config: AudioConfig
     let inputProjInFeatures: Int
 
-    @ModuleInfo var conv0: Gemma3nAudioSSCPConvBlock
-    @ModuleInfo var conv1: Gemma3nAudioSSCPConvBlock
+    @ModuleInfo(key: "conv_0") var conv0: Gemma3nAudioSSCPConvBlock
+    @ModuleInfo(key: "conv_1") var conv1: Gemma3nAudioSSCPConvBlock
     @ModuleInfo(key: "input_proj_linear") var inputProjLinear: Linear
 
     init(config: AudioConfig) {
@@ -2625,7 +2626,7 @@ private class Gemma3nAudioAttention: Module {
 private class Gemma3nAudioConformerAttention: Module {
     let config: AudioConfig
     let postInFeatures: Int
-    private let gradientClipping: MLXArray
+    private let _gradientClipping: MLXArray
 
     @ModuleInfo var preAttnNorm: Gemma3nRMSNormWithScale
     @ModuleInfo var attn: Gemma3nAudioAttention
@@ -2636,7 +2637,7 @@ private class Gemma3nAudioConformerAttention: Module {
         self.config = config
         let headDim = config.hiddenSize / config.confNumAttentionHeads
         self.postInFeatures = config.hiddenSize
-        self.gradientClipping = MLXArray(config.gradientClipping)
+        self._gradientClipping = MLXArray(config.gradientClipping)
 
         self._preAttnNorm.wrappedValue = Gemma3nRMSNormWithScale(dim: config.hiddenSize)
         self._attn.wrappedValue = Gemma3nAudioAttention(config: config)
@@ -2648,7 +2649,7 @@ private class Gemma3nAudioConformerAttention: Module {
 
     func callAsFunction(_ x: MLXArray, mask: MLXArray) -> MLXArray {
         let audioencodingsInputToAttn = x
-        let clippedX = clip(x, min: -gradientClipping, max: gradientClipping)
+        let clippedX = clip(x, min: -_gradientClipping, max: _gradientClipping)
         let audioencodingsNorm = preAttnNorm(clippedX)
         let audioencodingsAttnOut = attn(audioencodingsNorm, mask: mask)
 
@@ -2659,7 +2660,7 @@ private class Gemma3nAudioConformerAttention: Module {
         let audioencodingsReshaped = audioencodingsAttnOut.reshaped([b, t, numHeads * headDim])
 
         let postResult = post(audioencodingsReshaped)
-        let clippedPost = clip(postResult, min: -gradientClipping, max: gradientClipping)
+        let clippedPost = clip(postResult, min: -_gradientClipping, max: _gradientClipping)
         return audioencodingsInputToAttn + postNorm(clippedPost)
     }
 }
@@ -2667,18 +2668,18 @@ private class Gemma3nAudioConformerAttention: Module {
 // MARK: - Conformer Feed Forward
 private class Gemma3nAudioConformerFeedForward: Module {
     let config: AudioConfig
-    private let gradientClipping: MLXArray
-    private let postLayerScale: MLXArray
+    private let _gradientClipping: MLXArray
+    private let _postLayerScale: MLXArray
 
-    @ModuleInfo var preLayerNorm: Gemma3nRMSNormWithScale
-    @ModuleInfo var ffwLayer1: Linear
-    @ModuleInfo var ffwLayer2: Linear
-    @ModuleInfo var postLayerNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "pre_layer_norm") var preLayerNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "ffw_layer_1") var ffwLayer1: Linear
+    @ModuleInfo(key: "ffw_layer_2") var ffwLayer2: Linear
+    @ModuleInfo(key: "post_layer_norm") var postLayerNorm: Gemma3nRMSNormWithScale
 
     init(config: AudioConfig) {
         self.config = config
-        self.gradientClipping = MLXArray(config.gradientClipping)
-        self.postLayerScale = MLXArray(config.confResidualWeight)
+        self._gradientClipping = MLXArray(config.gradientClipping)
+        self._postLayerScale = MLXArray(config.confResidualWeight)
 
         self._preLayerNorm.wrappedValue = Gemma3nRMSNormWithScale(dim: config.hiddenSize)
         self._ffwLayer1.wrappedValue = Linear(config.hiddenSize, config.hiddenSize * 4, bias: false)
@@ -2690,32 +2691,32 @@ private class Gemma3nAudioConformerFeedForward: Module {
 
     func callAsFunction(_ x: MLXArray) -> MLXArray {
         let residual = x
-        let clippedX = clip(x, min: -gradientClipping, max: gradientClipping)
+        let clippedX = clip(x, min: -_gradientClipping, max: _gradientClipping)
         var result = preLayerNorm(clippedX)
         result = ffwLayer1(result)
         result = silu(result)
         result = ffwLayer2(result)
-        let clippedResult = clip(result, min: -gradientClipping, max: gradientClipping)
+        let clippedResult = clip(result, min: -_gradientClipping, max: _gradientClipping)
         let normedResult = postLayerNorm(clippedResult)
-        return residual + (normedResult * postLayerScale)
+        return residual + (normedResult * _postLayerScale)
     }
 }
 
 // MARK: - Conformer Light Conv1D
 private class Gemma3nAudioConformerLightConv1d: Module {
     let config: AudioConfig
-    private let gradientClipping: MLXArray
+    private let _gradientClipping: MLXArray
     let causalPadding: Int
 
-    @ModuleInfo var preLayerNorm: Gemma3nRMSNormWithScale
-    @ModuleInfo var linearStart: Linear
-    @ModuleInfo var depthwiseConv1d: Conv1d
-    @ModuleInfo var convNorm: Gemma3nRMSNormWithScale
-    @ModuleInfo var linearEnd: Linear
+    @ModuleInfo(key: "pre_layer_norm") var preLayerNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "linear_start") var linearStart: Linear
+    @ModuleInfo(key: "depthwise_conv1d") var depthwiseConv1d: Conv1d
+    @ModuleInfo(key: "conv_norm") var convNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "linear_end") var linearEnd: Linear
 
     init(config: AudioConfig) {
         self.config = config
-        self.gradientClipping = MLXArray(config.gradientClipping)
+        self._gradientClipping = MLXArray(config.gradientClipping)
         self.causalPadding = config.confConvKernelSize - 1
 
         self._preLayerNorm.wrappedValue = Gemma3nRMSNormWithScale(
@@ -2761,7 +2762,7 @@ private class Gemma3nAudioConformerLightConv1d: Module {
         )
 
         result = depthwiseConv1d(paddedAudio.transposed(0, 2, 1))
-        result = clip(result, min: -gradientClipping, max: gradientClipping)
+        result = clip(result, min: -_gradientClipping, max: _gradientClipping)
         result = convNorm(result)
         result = silu(result)
         result = linearEnd(result)
@@ -2967,11 +2968,11 @@ private class ConvNormAct: Module, UnaryLayer {
 // MARK: - Universal Inverted Residual
 private class UniversalInvertedResidual: Module, UnaryLayer {
     let hasSkip: Bool
-    @ModuleInfo var dwStart: UnaryLayer
-    @ModuleInfo var pwExp: ConvNormAct
-    @ModuleInfo var dwMid: UnaryLayer
-    @ModuleInfo var pwProj: ConvNormAct
-    @ModuleInfo var layerScale: UnaryLayer
+    @ModuleInfo(key: "dw_start") var dwStart: UnaryLayer
+    @ModuleInfo(key: "pw_exp") var pwExp: ConvNormAct
+    @ModuleInfo(key: "dw_mid") var dwMid: UnaryLayer
+    @ModuleInfo(key: "pw_proj") var pwProj: ConvNormAct
+    @ModuleInfo(key: "layer_scale") var layerScale: UnaryLayer
 
     init(
         inChannels: Int,
@@ -3088,9 +3089,9 @@ private class UniversalInvertedResidual: Module, UnaryLayer {
 // MARK: - Edge Residual
 private class EdgeResidual: Module, UnaryLayer {
     let hasSkip: Bool
-    @ModuleInfo var convExp: Conv2d
+    @ModuleInfo(key: "conv_exp") var convExp: Conv2d
     @ModuleInfo var bn1: RMSNormAct2d
-    @ModuleInfo var convPwl: Conv2d
+    @ModuleInfo(key: "conv_pwl") var convPwl: Conv2d
     @ModuleInfo var bn2: RMSNormAct2d
 
     init(
@@ -3184,9 +3185,9 @@ private class MultiQueryAttention2d: Module {
 
     @ModuleInfo var keyProj: Conv2d
     @ModuleInfo var valueProj: Conv2d
-    @ModuleInfo var attnDrop: UnaryLayer
+    @ModuleInfo(key: "attn_drop") var attnDrop: UnaryLayer
     @ModuleInfo var outputProj: Conv2d
-    @ModuleInfo var projDrop: UnaryLayer
+    @ModuleInfo(key: "proj_drop") var projDrop: UnaryLayer
 
     init(
         dim: Int,
@@ -3681,7 +3682,7 @@ private class MobileNetV5MultiScaleFusionAdapter: Module {
 
 // MARK: - Vision Tower
 private class VisionTower: Module {
-    @ModuleInfo var convStem: ConvNormAct
+    @ModuleInfo(key: "conv_stem") var convStem: ConvNormAct
     @ModuleInfo var blocks: [[UnaryLayer]]
     @ModuleInfo var msfa: MobileNetV5MultiScaleFusionAdapter
 
@@ -3800,7 +3801,7 @@ private class VisionTower: Module {
 // MARK: - Complete Vision Model
 private class Gemma3nVisionModel: Module {
     let modelType: String
-    @ModuleInfo var timmModel: VisionTower
+    @ModuleInfo(key: "timm_model") var timmModel: VisionTower
 
     init(config: VisionConfig) {
         self.modelType = config.modelType
@@ -3856,7 +3857,8 @@ private class Gemma3nVisionModel: Module {
 private class Gemma3nAudioModel: Module {
     let config: AudioConfig
 
-    @ModuleInfo var subsampleConvProjection: Gemma3nAudioSubSampleConvProjection
+    @ModuleInfo(key: "subsample_conv_projection") var subsampleConvProjection:
+        Gemma3nAudioSubSampleConvProjection
     @ModuleInfo var conformer: [Gemma3nAudioConformerBlock]
 
     init(config: AudioConfig) {
