@@ -136,109 +136,107 @@ public struct TextConfig: Codable, Sendable {
     private let _numKvSharedLayers: Int?
     private let _maxPositionEmbeddings: Int?
     private let _attnLogitSoftcapping: Float?
-    
+
     // Computed properties with defaults
     public var numAttentionHeads: Int {
         _numAttentionHeads ?? 2
     }
-    
+
     public var headDim: Int {
         _headDim ?? 256
     }
-    
+
     public var rmsNormEps: Float {
         _rmsNormEps ?? 1.0e-6
     }
-    
+
     public var vocabSize: Int {
         _vocabSize ?? 262400
     }
-    
+
     public var vocabSizePerLayerInput: Int {
         _vocabSizePerLayerInput ?? 262144
     }
-    
+
     public var numKeyValueHeads: Int {
         _numKeyValueHeads ?? 4
     }
-    
+
     public var laurelRank: Int {
         _laurelRank ?? 64
     }
-    
+
     public var fracSharedLayers: Float {
         _fracSharedLayers ?? 0.5
     }
-    
+
     public var altupActiveIdx: Int {
         _altupActiveIdx ?? 0
     }
-    
+
     public var padTokenId: Int {
         _padTokenId ?? 0
     }
-    
+
     public var altupNumInputs: Int {
         _altupNumInputs ?? 4
     }
-    
+
     public var altupCorrectScale: Bool {
         _altupCorrectScale ?? true
     }
-    
+
     public var hiddenSizePerLayerInput: Int {
         _hiddenSizePerLayerInput ?? 1024
     }
-    
+
     public var ropeLocalBaseFreq: Float {
         _ropeLocalBaseFreq ?? 10000.0
     }
-    
+
     public var ropeTraditional: Bool {
         _ropeTraditional ?? false
     }
-    
+
     public var ropeTheta: Float {
         _ropeTheta ?? 1000000.0
     }
-    
+
     public var queryPreAttnScalar: Float {
         _queryPreAttnScalar ?? 0.0625
     }
-    
+
     public var slidingWindow: Int {
         _slidingWindow ?? 1024
     }
-    
+
     public var mmTokensPerImage: Int {
         _mmTokensPerImage ?? 256
     }
-    
+
     public var slidingWindowPattern: Int {
         _slidingWindowPattern ?? 5
     }
-    
+
     public var finalLogitSoftcapping: Float {
         _finalLogitSoftcapping ?? 30.0
     }
-    
+
     public var queryRescaleScalar: Float {
         _queryRescaleScalar ?? 1.0
     }
-    
+
     public var numKvSharedLayers: Int {
         _numKvSharedLayers ?? 0
     }
-    
+
     public var maxPositionEmbeddings: Int {
         _maxPositionEmbeddings ?? 32768
     }
-    
+
     public var attnLogitSoftcapping: Float {
         _attnLogitSoftcapping ?? 0.0
     }
-
-
 
     enum CodingKeys: String, CodingKey {
         case modelType = "model_type"
@@ -283,7 +281,7 @@ public struct ModelConfig: Codable, Sendable {
     public let visionConfig: VisionConfig
     public let audioConfig: AudioConfig
     public let modelType: String
-    
+
     // Fields with default values (can be overridden from JSON)
     private let _vocabSize: Int?
     private let _ignoreIndex: Int?
@@ -294,47 +292,47 @@ public struct ModelConfig: Codable, Sendable {
     private let _padTokenId: Int?
     private let _visionSoftTokensPerImage: Int?
     private let _audioSoftTokensPerImage: Int?
-    
+
     // Optional field
     public let eosTokenId: [Int]?
-    
+
     // Computed properties with defaults
     public var vocabSize: Int {
         _vocabSize ?? 257152
     }
-    
+
     public var ignoreIndex: Int {
         _ignoreIndex ?? -100
     }
-    
+
     public var imageTokenIndex: Int {
         _imageTokenIndex ?? 262145
     }
-    
+
     public var audioTokenId: Int {
         _audioTokenId ?? 262273
     }
-    
+
     public var imageTokenId: Int {
         _imageTokenId ?? 262145
     }
-    
+
     public var hiddenSize: Int {
         _hiddenSize ?? 2048
     }
-    
+
     public var padTokenId: Int {
         _padTokenId ?? 0
     }
-    
+
     public var visionSoftTokensPerImage: Int {
         _visionSoftTokensPerImage ?? 256
     }
-    
+
     public var audioSoftTokensPerImage: Int {
         _audioSoftTokensPerImage ?? 188
     }
-    
+
     // Custom initializer to allow manual construction
     public init(
         textConfig: TextConfig,
@@ -388,32 +386,45 @@ public struct ModelConfig: Codable, Sendable {
 
 // MARK: - Language Model Components
 
-private class Gemma3nRMSNorm: Module, UnaryLayer {
+// Base protocol for RMSNorm variants
+private protocol Gemma3nRMSNormProtocol: UnaryLayer {
+    func callAsFunction(_ x: MLXArray) -> MLXArray
+}
+
+// RMSNorm with scale parameter
+private class Gemma3nRMSNormWithScale: Module, Gemma3nRMSNormProtocol {
     let eps: Float
     let scaleShift: Float
-    let withScale: Bool
-    @ModuleInfo var weight: MLXArray?
+    @ModuleInfo var weight: MLXArray
 
-    init(dim: Int, eps: Float = 1e-6, scaleShift: Float = 0.0, withScale: Bool = true) {
+    init(dim: Int, eps: Float = 1e-6, scaleShift: Float = 0.0) {
         self.eps = eps
         self.scaleShift = scaleShift
-        self.withScale = withScale
-
-        if withScale {
-            self._weight.wrappedValue = MLXArray.ones([dim])
-        } else {
-            self._weight.wrappedValue = nil
-        }
+        self._weight.wrappedValue = MLXArray.ones([dim])
         super.init()
     }
 
     func callAsFunction(_ x: MLXArray) -> MLXArray {
         let output = norm(x.asType(.float32))
+        return (output * (weight + scaleShift)).asType(x.dtype)
+    }
 
-        if withScale, let weight = weight {
-            return (output * (weight + scaleShift)).asType(x.dtype)
-        }
+    private func norm(_ x: MLXArray) -> MLXArray {
+        return x * rsqrt(x.square().mean(axis: -1, keepDims: true) + eps)
+    }
+}
 
+// RMSNorm without scale parameter (no weight to load from checkpoint)
+private class Gemma3nRMSNormNoScale: Module, Gemma3nRMSNormProtocol {
+    let eps: Float
+
+    init(dim: Int, eps: Float = 1e-6) {
+        self.eps = eps
+        super.init()
+    }
+
+    func callAsFunction(_ x: MLXArray) -> MLXArray {
+        let output = norm(x.asType(.float32))
         return output.asType(x.dtype)
     }
 
@@ -422,19 +433,32 @@ private class Gemma3nRMSNorm: Module, UnaryLayer {
     }
 }
 
+// Factory function to create the appropriate RMSNorm variant
+private func createGemma3nRMSNorm(
+    dim: Int,
+    eps: Float = 1e-6,
+    scaleShift: Float = 0.0,
+    withScale: Bool = true
+) -> any Gemma3nRMSNormProtocol {
+    if withScale {
+        return Gemma3nRMSNormWithScale(dim: dim, eps: eps, scaleShift: scaleShift)
+    } else {
+        return Gemma3nRMSNormNoScale(dim: dim, eps: eps)
+    }
+}
+
 private class Gemma3nLaurelBlock: Module {
     @ModuleInfo var linearLeft: Linear
     @ModuleInfo var linearRight: Linear
-    @ModuleInfo var postLaurelNorm: Gemma3nRMSNorm
+    @ModuleInfo var postLaurelNorm: Gemma3nRMSNormWithScale
 
     init(config: TextConfig) {
         self._linearLeft.wrappedValue = Linear(config.hiddenSize, config.laurelRank, bias: false)
         self._linearRight.wrappedValue = Linear(config.laurelRank, config.hiddenSize, bias: false)
-        self._postLaurelNorm.wrappedValue = Gemma3nRMSNorm(
+        self._postLaurelNorm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: config.hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0,
-            withScale: true
+            scaleShift: 0.0
         )
         super.init()
     }
@@ -471,8 +495,8 @@ private class Gemma3nRotaryEmbedding: Module {
     let originalMaxSeqLen: Int
     let config: TextConfig
     let attentionScaling: Float
-    @ModuleInfo var invFreq: MLXArray
-    @ModuleInfo var originalInvFreq: MLXArray
+    let invFreq: MLXArray
+    let originalInvFreq: MLXArray
 
     init(config: TextConfig) {
         if let ropeScaling = config.ropeScaling {
@@ -492,8 +516,8 @@ private class Gemma3nRotaryEmbedding: Module {
         self.attentionScaling = 1.0
 
         let (invFreq, _) = Self.computeDefaultRopeParameters(config: config)
-        self._invFreq.wrappedValue = MLXArray(invFreq).asType(.float32)
-        self._originalInvFreq.wrappedValue = MLXArray(invFreq).asType(.float32)
+        self.invFreq = MLXArray(invFreq).asType(.float32)
+        self.originalInvFreq = MLXArray(invFreq).asType(.float32)
 
         super.init()
     }
@@ -546,12 +570,15 @@ private class Gemma3nAttention: Module {
     @ModuleInfo var kProj: Linear
     @ModuleInfo var vProj: Linear
     @ModuleInfo var oProj: Linear
-    @ModuleInfo var qNorm: Gemma3nRMSNorm
-    @ModuleInfo var kNorm: Gemma3nRMSNorm
-    @ModuleInfo var vNorm: Gemma3nRMSNorm
+    @ModuleInfo var qNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo var kNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo var vNorm: Gemma3nRMSNormNoScale
 
     init(config: TextConfig, layerIdx: Int) {
-        self.isSliding = (config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers))[layerIdx] == "sliding_attention"
+        self.isSliding =
+            (config.layerTypes
+            ?? Array(repeating: "global_attention", count: config.numHiddenLayers))[layerIdx]
+            == "sliding_attention"
         self.attnLogitSoftcapping = config.attnLogitSoftcapping
 
         let dim = config.hiddenSize
@@ -567,12 +594,13 @@ private class Gemma3nAttention: Module {
         self._vProj.wrappedValue = Linear(dim, numKVHeads * headDim, bias: false)
         self._oProj.wrappedValue = Linear(numHeads * headDim, dim, bias: false)
 
-        self._qNorm.wrappedValue = Gemma3nRMSNorm(dim: config.headDim, eps: config.rmsNormEps)
-        self._kNorm.wrappedValue = Gemma3nRMSNorm(dim: config.headDim, eps: config.rmsNormEps)
-        self._vNorm.wrappedValue = Gemma3nRMSNorm(
+        self._qNorm.wrappedValue = Gemma3nRMSNormWithScale(
+            dim: config.headDim, eps: config.rmsNormEps)
+        self._kNorm.wrappedValue = Gemma3nRMSNormWithScale(
+            dim: config.headDim, eps: config.rmsNormEps)
+        self._vNorm.wrappedValue = Gemma3nRMSNormNoScale(
             dim: config.headDim,
-            eps: config.rmsNormEps,
-            withScale: false
+            eps: config.rmsNormEps
         )
 
         let firstKvSharedLayerIdx = config.numHiddenLayers - config.numKvSharedLayers
@@ -721,7 +749,7 @@ private class Gemma3nAltUp: Module {
     @ModuleInfo var correctionCoefs: Linear
     @ModuleInfo var predictionCoefs: Linear
     @ModuleInfo var modalityRouter: Linear
-    @ModuleInfo var routerNorm: Gemma3nRMSNorm
+    @ModuleInfo var routerNorm: Gemma3nRMSNormWithScale
     @ModuleInfo var routerInputScale: MLXArray
 
     let config: TextConfig
@@ -745,11 +773,10 @@ private class Gemma3nAltUp: Module {
             config.altupNumInputs,
             bias: false
         )
-        self._routerNorm.wrappedValue = Gemma3nRMSNorm(
+        self._routerNorm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: config.hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0,
-            withScale: true
+            scaleShift: 0.0
         )
         self._routerInputScale.wrappedValue = MLXArray(pow(Float(config.hiddenSize), -1.0))
 
@@ -758,7 +785,7 @@ private class Gemma3nAltUp: Module {
 
     func computeRouterModalities(_ x: MLXArray) -> MLXArray {
         let routerInputs =
-            routerNorm(x) * routerInputScale.asType(routerNorm.weight?.dtype ?? x.dtype)
+            routerNorm(x) * routerInputScale.asType(routerNorm.weight.dtype)
         let routed = modalityRouter(routerInputs).asType(.float32)
         return tanh(routed)
     }
@@ -848,15 +875,15 @@ private class Gemma3nDecoderLayer: Module {
 
     @ModuleInfo var selfAttn: Gemma3nAttention
     @ModuleInfo var mlp: MLP
-    @ModuleInfo var inputLayernorm: Gemma3nRMSNorm
-    @ModuleInfo var postAttentionLayernorm: Gemma3nRMSNorm
-    @ModuleInfo var preFeedforwardLayernorm: Gemma3nRMSNorm
-    @ModuleInfo var postFeedforwardLayernorm: Gemma3nRMSNorm
+    @ModuleInfo var inputLayernorm: Gemma3nRMSNormWithScale
+    @ModuleInfo var postAttentionLayernorm: Gemma3nRMSNormWithScale
+    @ModuleInfo var preFeedforwardLayernorm: Gemma3nRMSNormWithScale
+    @ModuleInfo var postFeedforwardLayernorm: Gemma3nRMSNormWithScale
     @ModuleInfo var altup: Gemma3nAltUp
     @ModuleInfo var laurel: Gemma3nLaurelBlock
     @ModuleInfo var perLayerInputGate: Linear
     @ModuleInfo var perLayerProjection: Linear
-    @ModuleInfo var postPerLayerInputNorm: Gemma3nRMSNorm
+    @ModuleInfo var postPerLayerInputNorm: Gemma3nRMSNormWithScale
 
     init(config: TextConfig, layerIdx: Int) {
         self.config = config
@@ -866,33 +893,32 @@ private class Gemma3nDecoderLayer: Module {
         self.hiddenSizePerLayerInput = config.hiddenSizePerLayerInput
 
         self._selfAttn.wrappedValue = Gemma3nAttention(config: config, layerIdx: layerIdx)
-        self.isSliding = (config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers))[layerIdx] == "sliding_attention"
+        self.isSliding =
+            (config.layerTypes
+            ?? Array(repeating: "global_attention", count: config.numHiddenLayers))[layerIdx]
+            == "sliding_attention"
 
         self._mlp.wrappedValue = MLP(config: config, layerIdx: layerIdx)
-        self._inputLayernorm.wrappedValue = Gemma3nRMSNorm(
+        self._inputLayernorm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0,
-            withScale: true
+            scaleShift: 0.0
         )
 
-        self._postAttentionLayernorm.wrappedValue = Gemma3nRMSNorm(
+        self._postAttentionLayernorm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0,
-            withScale: true
+            scaleShift: 0.0
         )
-        self._preFeedforwardLayernorm.wrappedValue = Gemma3nRMSNorm(
+        self._preFeedforwardLayernorm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0,
-            withScale: true
+            scaleShift: 0.0
         )
-        self._postFeedforwardLayernorm.wrappedValue = Gemma3nRMSNorm(
+        self._postFeedforwardLayernorm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0,
-            withScale: true
+            scaleShift: 0.0
         )
 
         self._altup.wrappedValue = Gemma3nAltUp(config: config)
@@ -908,11 +934,10 @@ private class Gemma3nDecoderLayer: Module {
             hiddenSize,
             bias: false
         )
-        self._postPerLayerInputNorm.wrappedValue = Gemma3nRMSNorm(
+        self._postPerLayerInputNorm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0,
-            withScale: true
+            scaleShift: 0.0
         )
 
         super.init()
@@ -1037,10 +1062,10 @@ private class Gemma3Model: Module {
     @ModuleInfo var layers: [Gemma3nDecoderLayer]
     @ModuleInfo var embedTokensPerLayer: Gemma3nTextScaledWordEmbedding
     @ModuleInfo var perLayerModelProjection: Linear
-    @ModuleInfo var perLayerProjectionNorm: Gemma3nRMSNorm
+    @ModuleInfo var perLayerProjectionNorm: Gemma3nRMSNormWithScale
     @ModuleInfo var altupProjections: [Linear]
     @ModuleInfo var altupUnembedProjections: [Linear]
-    @ModuleInfo var norm: Gemma3nRMSNorm
+    @ModuleInfo var norm: Gemma3nRMSNormWithScale
     @ModuleInfo var ropeEmbedding: Gemma3nRotaryEmbedding
     @ModuleInfo var ropeEmbeddingLocal: Gemma3nRotaryEmbedding
 
@@ -1075,11 +1100,10 @@ private class Gemma3Model: Module {
             bias: false
         )
 
-        self._perLayerProjectionNorm.wrappedValue = Gemma3nRMSNorm(
+        self._perLayerProjectionNorm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: config.hiddenSizePerLayerInput,
             eps: config.rmsNormEps,
-            scaleShift: 0.0,
-            withScale: true
+            scaleShift: 0.0
         )
 
         self._altupProjections.wrappedValue = (1 ..< config.altupNumInputs).map { _ in
@@ -1090,11 +1114,10 @@ private class Gemma3Model: Module {
             Linear(config.hiddenSize, config.hiddenSize, bias: false)
         }
 
-        self._norm.wrappedValue = Gemma3nRMSNorm(
+        self._norm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: config.hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0,
-            withScale: true
+            scaleShift: 0.0
         )
 
         self.perLayerProjectionScale = MLXArray(pow(Float(hiddenSize), -0.5))
@@ -1178,7 +1201,10 @@ private class Gemma3Model: Module {
         for (i, (layer, c)) in zip(layers[..<config.numHiddenLayers], cacheArray).enumerated() {
             let perLayerInput = finalPerLayerInputs[0..., 0..., i, 0...]
 
-            let isGlobal = (config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers))[i] == "global_attention"
+            let isGlobal =
+                (config.layerTypes
+                ?? Array(repeating: "global_attention", count: config.numHiddenLayers))[i]
+                == "global_attention"
 
             let localMask: MLXFast.ScaledDotProductAttentionMaskMode
             if let mask = mask {
@@ -1322,17 +1348,23 @@ private class LanguageModel: Module, KVCacheDimensionProvider {
         var sanitizedWeights = [String: MLXArray]()
 
         for (k, v) in weights {
+            // Skip rotary embedding inverse frequency weights (matches Python exactly)
             if k.contains("self_attn.rotary_emb.inv_freq") {
                 continue
-            } else if !k.contains("language_model.model") && !k.contains("language_model.lm_head") {
+            }
+            // Python logic: if "language_model.model" not in k and "language_model.lm_head" not in k:
+            else if !k.contains("language_model.model") && !k.contains("language_model.lm_head") {
                 let newKey = k.replacingOccurrences(
                     of: "language_model", with: "language_model.model")
                 sanitizedWeights[newKey] = v
-            } else {
+            }
+            // Otherwise, keep the key as is
+            else {
                 sanitizedWeights[k] = v
             }
         }
 
+        // If lm_head weight is missing, use embed_tokens weight as fallback (matches Python exactly)
         if sanitizedWeights["language_model.lm_head.weight"] == nil {
             let embedTokensKey = "language_model.model.embed_tokens.weight"
             if let embedWeight = sanitizedWeights[embedTokensKey] {
@@ -1354,10 +1386,10 @@ private class Gemma3nMultimodalEmbedder: Module, UnaryLayer {
     let textHiddenSize: Int
 
     @ModuleInfo var embedding: Embedding
-    @ModuleInfo var hardEmbeddingNorm: Gemma3nRMSNorm
-    @ModuleInfo var softEmbeddingNorm: Gemma3nRMSNorm
+    @ModuleInfo var hardEmbeddingNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo var softEmbeddingNorm: Gemma3nRMSNormWithScale
     @ModuleInfo var embeddingProjection: Linear
-    @ModuleInfo var embeddingPostProjectionNorm: Gemma3nRMSNorm
+    @ModuleInfo var embeddingPostProjectionNorm: Gemma3nRMSNormNoScale
 
     init(multimodalConfig: any MultimodalConfig, textConfig: TextConfig) {
         self.multimodalHiddenSize = multimodalConfig.hiddenSize
@@ -1370,11 +1402,11 @@ private class Gemma3nMultimodalEmbedder: Module, UnaryLayer {
             embeddingCount: vocabSize,
             dimensions: multimodalHiddenSize
         )
-        self._hardEmbeddingNorm.wrappedValue = Gemma3nRMSNorm(
+        self._hardEmbeddingNorm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: multimodalHiddenSize,
             eps: eps
         )
-        self._softEmbeddingNorm.wrappedValue = Gemma3nRMSNorm(
+        self._softEmbeddingNorm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: multimodalHiddenSize,
             eps: eps
         )
@@ -1383,10 +1415,9 @@ private class Gemma3nMultimodalEmbedder: Module, UnaryLayer {
             textHiddenSize,
             bias: false
         )
-        self._embeddingPostProjectionNorm.wrappedValue = Gemma3nRMSNorm(
+        self._embeddingPostProjectionNorm.wrappedValue = Gemma3nRMSNormNoScale(
             dim: textHiddenSize,
-            eps: eps,
-            withScale: false
+            eps: eps
         )
 
         super.init()
@@ -1627,10 +1658,17 @@ private func maskedScatter(
 
 private func checkArrayShape(_ arr: MLXArray) -> Bool {
     let shape = arr.shape
-    guard shape.count == 4 else { return false }
+    guard shape.count == 4 else {
+        print("🔍 checkArrayShape: Array has \(shape.count) dimensions, not 4")
+        return false
+    }
 
     let (outChannels, kH, kW, _) = (shape[0], shape[1], shape[2], shape[3])
-    return (outChannels >= kH) && (outChannels >= kW) && (kH == kW)
+    let result = (outChannels >= kH) && (outChannels >= kW) && (kH == kW)
+    print(
+        "🔍 checkArrayShape: shape=\(shape), outChannels=\(outChannels), kH=\(kH), kW=\(kW), result=\(result)"
+    )
+    return result
 }
 
 // MARK: - Main Model
@@ -1707,7 +1745,7 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
 
             if visionMask.any().item() {
                 let visionTokens = MLX.where(visionMask, inputIds, MLXArray.zeros(like: inputIds))
-                let visionEmbedsFlat = embedVision(visionTokens)
+                let visionEmbedsFlat = embedVision.callAsFunction(visionTokens, inputsEmbeds: nil)
                 inputsEmbeds = MLX.where(
                     expandedDimensions(visionMask, axis: -1),
                     visionEmbedsFlat,
@@ -1722,7 +1760,7 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
 
             if audioMask.any().item() {
                 let audioTokens = MLX.where(audioMask, inputIds, MLXArray.zeros(like: inputIds))
-                let audioEmbedsFlat = embedAudio(audioTokens)
+                let audioEmbedsFlat = embedAudio.callAsFunction(audioTokens, inputsEmbeds: nil)
                 inputsEmbeds = MLX.where(
                     expandedDimensions(audioMask, axis: -1),
                     audioEmbedsFlat,
@@ -1749,7 +1787,7 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
         if let inputFeatures = inputFeatures, let inputFeaturesMask = inputFeaturesMask {
             let (audioFeatures, audioMask) = getAudioFeatures(inputFeatures, .!inputFeaturesMask)
             let audioPaddingIds = MLXArray([config.vocabSize - 1]).expandedDimensions(axis: 0)
-            let audioPaddingEmbs = embedAudio(audioPaddingIds)
+            let audioPaddingEmbs = embedAudio.callAsFunction(audioPaddingIds, inputsEmbeds: nil)
 
             let maskedAudioFeatures = MLX.where(
                 expandedDimensions(audioMask, axis: -1),
@@ -1786,7 +1824,7 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
         MLXArray, MLXArray
     ) {
         let (audioOutputs, audioMask) = audioTower(inputFeatures, inputFeaturesMask)
-        return (embedAudio(nil, inputsEmbeds: audioOutputs), audioMask)
+        return (embedAudio.callAsFunction(nil, inputsEmbeds: audioOutputs), audioMask)
     }
 
     func getImageFeatures(_ pixelValues: MLXArray) -> MLXArray {
@@ -1804,7 +1842,7 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
 
         // Normalize and embed the soft tokens into language model space
         let scaledOutputs = reshaped * pow(Float(config.visionConfig.hiddenSize), 0.5)
-        return embedVision(nil, inputsEmbeds: scaledOutputs)
+        return embedVision.callAsFunction(nil, inputsEmbeds: scaledOutputs)
     }
 
     func mergeMultimodalAndText(
@@ -1822,7 +1860,7 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
             // When inputIds is nil, create mask by comparing embeddings
             let embedFn: (MLXArray) -> MLXArray =
                 modality == "audio"
-                ? { self.embedAudio($0, inputsEmbeds: nil) }
+                ? { self.embedAudio.callAsFunction($0, inputsEmbeds: nil) }
                 : { self.languageModel.model.embedTokens($0) }
             let tokenEmbedding = embedFn(MLXArray([tokenId]))
             specialModalityMask = inputsEmbeds .== tokenEmbedding
@@ -1877,17 +1915,53 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
     }
 
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
-        var processedWeights = languageModel.sanitize(weights: weights)
-        processedWeights = visionTower.sanitize(weights: processedWeights)
-        processedWeights = audioTower.sanitize(weights: processedWeights)
+        print("🔍 Gemma3n.sanitize: Starting with \(weights.count) weights")
 
         var sanitizedWeights = [String: MLXArray]()
-        for (k, v) in processedWeights {
+
+        // Main model sanitization - remove "model." prefix
+        for (k, v) in weights {
             if k.hasPrefix("model.") {
-                sanitizedWeights[String(k.dropFirst(6))] = v
+                // Python: ".".join(k.split(".")[1:]) -> remove first component, join rest
+                let components = k.split(separator: ".")
+                if components.count > 1 {
+                    let newKey = components.dropFirst().joined(separator: ".")
+                    sanitizedWeights[newKey] = v
+                } else {
+                    sanitizedWeights[k] = v
+                }
             } else {
                 sanitizedWeights[k] = v
             }
+        }
+
+        print("🔍 Gemma3n.sanitize: After main sanitization, have \(sanitizedWeights.count) weights")
+
+        // Apply vision model sanitization using static method (matches Python from_pretrained exactly)
+        sanitizedWeights = Gemma3nVisionModel.sanitizeWeights(sanitizedWeights)
+
+        print(
+            "🔍 Gemma3n.sanitize: After vision sanitization, have \(sanitizedWeights.count) weights")
+
+        // Apply audio model sanitization for Conv2d and Conv1d layers
+        sanitizedWeights = Gemma3nAudioModel.sanitizeWeights(sanitizedWeights)
+        print(
+            "🔍 Gemma3n.sanitize: After audio sanitization, have \(sanitizedWeights.count) weights")
+
+        // Debug: Print embedding-related weight keys
+        let embeddingKeys = sanitizedWeights.keys.filter { $0.contains("embed") }
+        print("🔍 Gemma3n.sanitize: Found \(embeddingKeys.count) embedding-related keys:")
+        for key in embeddingKeys.sorted() {
+            print("🔍   - \(key)")
+        }
+
+        // Debug: Print RMSNorm-related weight keys
+        let rmsnormKeys = sanitizedWeights.keys.filter {
+            $0.contains("norm") && $0.contains("weight")
+        }
+        print("🔍 Gemma3n.sanitize: Found \(rmsnormKeys.count) RMSNorm-related keys:")
+        for key in rmsnormKeys.sorted() {
+            print("🔍   - \(key)")
         }
 
         return sanitizedWeights
@@ -1895,6 +1969,8 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
 
     public static func fromPretrained(pathOrHfRepo: String) throws -> Gemma3n {
         let path = URL(fileURLWithPath: pathOrHfRepo)
+
+        print("🔍 Gemma3n.fromPretrained: Loading from \(pathOrHfRepo)")
 
         // Load config
         let configPath = path.appendingPathComponent("config.json")
@@ -1926,6 +2002,8 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
         let weightFiles = try FileManager.default.contentsOfDirectory(atPath: path.path)
             .filter { $0.hasSuffix(".safetensors") }
 
+        print("🔍 Gemma3n.fromPretrained: Found \(weightFiles.count) weight files: \(weightFiles)")
+
         guard !weightFiles.isEmpty else {
             throw NSError(
                 domain: "ModelLoading", code: 1,
@@ -1935,13 +2013,24 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
         var weights = [String: MLXArray]()
         for weightFile in weightFiles {
             let weightPath = path.appendingPathComponent(weightFile)
+            print("🔍 Gemma3n.fromPretrained: Loading weights from \(weightFile)")
             let fileWeights = try loadArrays(url: weightPath)
+            print(
+                "🔍 Gemma3n.fromPretrained: Loaded \(fileWeights.count) weights from \(weightFile)")
             weights.merge(fileWeights) { _, new in new }
         }
 
-        var sanitizedWeights = model.sanitize(weights: weights)
-        sanitizedWeights = model.visionTower.sanitize(weights: sanitizedWeights)
+        print("🔍 Gemma3n.fromPretrained: Total weights loaded: \(weights.count)")
+
+        // Print some sample weight keys to understand the structure
+        let sampleKeys = Array(weights.keys.prefix(10))
+        print("🔍 Gemma3n.fromPretrained: Sample weight keys: \(sampleKeys)")
+
+        let sanitizedWeights = model.sanitize(weights: weights)
+
+        print("🔍 Gemma3n.fromPretrained: Attempting to update model parameters...")
         try model.update(parameters: ModuleParameters.unflattened(sanitizedWeights), verify: [.all])
+        print("🔍 Gemma3n.fromPretrained: Model parameters updated successfully!")
 
         return model
     }
@@ -2578,10 +2667,10 @@ private class Gemma3nAudioConformerAttention: Module {
     let postInFeatures: Int
     let gradientClipping: MLXArray
 
-    @ModuleInfo var preAttnNorm: Gemma3nRMSNorm
+    @ModuleInfo var preAttnNorm: Gemma3nRMSNormWithScale
     @ModuleInfo var attn: Gemma3nAudioAttention
     @ModuleInfo var post: Linear
-    @ModuleInfo var postNorm: Gemma3nRMSNorm
+    @ModuleInfo var postNorm: Gemma3nRMSNormWithScale
 
     init(config: AudioConfig) {
         self.config = config
@@ -2589,10 +2678,10 @@ private class Gemma3nAudioConformerAttention: Module {
         self.postInFeatures = config.hiddenSize
         self.gradientClipping = MLXArray(config.gradientClipping)
 
-        self._preAttnNorm.wrappedValue = Gemma3nRMSNorm(dim: config.hiddenSize)
+        self._preAttnNorm.wrappedValue = Gemma3nRMSNormWithScale(dim: config.hiddenSize)
         self._attn.wrappedValue = Gemma3nAudioAttention(config: config)
         self._post.wrappedValue = Linear(postInFeatures, config.hiddenSize, bias: false)
-        self._postNorm.wrappedValue = Gemma3nRMSNorm(dim: config.hiddenSize)
+        self._postNorm.wrappedValue = Gemma3nRMSNormWithScale(dim: config.hiddenSize)
 
         super.init()
     }
@@ -2621,20 +2710,20 @@ private class Gemma3nAudioConformerFeedForward: Module {
     let gradientClipping: MLXArray
     let postLayerScale: MLXArray
 
-    @ModuleInfo var preLayerNorm: Gemma3nRMSNorm
+    @ModuleInfo var preLayerNorm: Gemma3nRMSNormWithScale
     @ModuleInfo var ffwLayer1: Linear
     @ModuleInfo var ffwLayer2: Linear
-    @ModuleInfo var postLayerNorm: Gemma3nRMSNorm
+    @ModuleInfo var postLayerNorm: Gemma3nRMSNormWithScale
 
     init(config: AudioConfig) {
         self.config = config
         self.gradientClipping = MLXArray(config.gradientClipping)
         self.postLayerScale = MLXArray(config.confResidualWeight)
 
-        self._preLayerNorm.wrappedValue = Gemma3nRMSNorm(dim: config.hiddenSize)
+        self._preLayerNorm.wrappedValue = Gemma3nRMSNormWithScale(dim: config.hiddenSize)
         self._ffwLayer1.wrappedValue = Linear(config.hiddenSize, config.hiddenSize * 4, bias: false)
         self._ffwLayer2.wrappedValue = Linear(config.hiddenSize * 4, config.hiddenSize, bias: false)
-        self._postLayerNorm.wrappedValue = Gemma3nRMSNorm(dim: config.hiddenSize)
+        self._postLayerNorm.wrappedValue = Gemma3nRMSNormWithScale(dim: config.hiddenSize)
 
         super.init()
     }
@@ -2658,10 +2747,10 @@ private class Gemma3nAudioConformerLightConv1d: Module {
     let gradientClipping: MLXArray
     let causalPadding: Int
 
-    @ModuleInfo var preLayerNorm: Gemma3nRMSNorm
+    @ModuleInfo var preLayerNorm: Gemma3nRMSNormWithScale
     @ModuleInfo var linearStart: Linear
     @ModuleInfo var depthwiseConv1d: Conv1d
-    @ModuleInfo var convNorm: Gemma3nRMSNorm
+    @ModuleInfo var convNorm: Gemma3nRMSNormWithScale
     @ModuleInfo var linearEnd: Linear
 
     init(config: AudioConfig) {
@@ -2669,7 +2758,7 @@ private class Gemma3nAudioConformerLightConv1d: Module {
         self.gradientClipping = MLXArray(config.gradientClipping)
         self.causalPadding = config.confConvKernelSize - 1
 
-        self._preLayerNorm.wrappedValue = Gemma3nRMSNorm(
+        self._preLayerNorm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: config.hiddenSize,
             eps: config.rmsNormEps
         )
@@ -2687,7 +2776,7 @@ private class Gemma3nAudioConformerLightConv1d: Module {
             groups: config.hiddenSize,
             bias: false
         )
-        self._convNorm.wrappedValue = Gemma3nRMSNorm(
+        self._convNorm.wrappedValue = Gemma3nRMSNormWithScale(
             dim: config.hiddenSize,
             eps: config.rmsNormEps
         )
@@ -2730,7 +2819,7 @@ private class Gemma3nAudioConformerBlock: Module {
     @ModuleInfo var attention: Gemma3nAudioConformerAttention
     @ModuleInfo var lconv1d: Gemma3nAudioConformerLightConv1d
     @ModuleInfo var ffwLayerEnd: Gemma3nAudioConformerFeedForward
-    @ModuleInfo var norm: Gemma3nRMSNorm
+    @ModuleInfo var norm: Gemma3nRMSNormWithScale
 
     init(config: AudioConfig) {
         self.config = config
@@ -2740,7 +2829,7 @@ private class Gemma3nAudioConformerBlock: Module {
         self._attention.wrappedValue = Gemma3nAudioConformerAttention(config: config)
         self._lconv1d.wrappedValue = Gemma3nAudioConformerLightConv1d(config: config)
         self._ffwLayerEnd.wrappedValue = Gemma3nAudioConformerFeedForward(config: config)
-        self._norm.wrappedValue = Gemma3nRMSNorm(dim: config.hiddenSize)
+        self._norm.wrappedValue = Gemma3nRMSNormWithScale(dim: config.hiddenSize)
 
         super.init()
     }
@@ -3775,18 +3864,36 @@ private class Gemma3nVisionModel: Module {
     }
 
     func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
+        return Self.sanitizeWeights(weights)
+    }
+
+    static func sanitizeWeights(_ weights: [String: MLXArray]) -> [String: MLXArray] {
         var sanitizedWeights = [String: MLXArray]()
         var skipTranspose = false
 
-        // Check if weights are already in MLX format
-        if let convWeight = weights["vision_tower.timm_model.blocks.0.0.conv_exp.weight"] {
+        print("🔍 VisionModel.sanitize: Starting with \(weights.count) weights")
+
+        // Match Python exactly: use the specific key it expects
+        let testKey = "vision_tower.timm_model.blocks.0.0.conv_exp.weight"
+        if let convWeight = weights[testKey] {
             let (_, H, _, C) = (
                 convWeight.shape[0], convWeight.shape[1], convWeight.shape[2], convWeight.shape[3]
             )
+            print(
+                "🔍 VisionModel.sanitize: Found test key '\(testKey)' with shape \(convWeight.shape), H=\(H), C=\(C)"
+            )
             if C > H {
                 skipTranspose = true
+                print(
+                    "🔍 VisionModel.sanitize: Setting skipTranspose=true because C(\(C)) > H(\(H))")
             }
+        } else {
+            print(
+                "🔍 VisionModel.sanitize: WARNING - Expected test key '\(testKey)' not found in weights!"
+            )
         }
+
+        print("🔍 VisionModel.sanitize: skipTranspose=\(skipTranspose)")
 
         for (k, v) in weights {
             // PyTorch conv2d weight: [out_channels, in_channels, kH, kW]
@@ -3795,8 +3902,14 @@ private class Gemma3nVisionModel: Module {
                 || (k.contains("attn") && k.contains("proj.weight"))
             {
                 if v.shape.count == 4 && !skipTranspose {
+                    print(
+                        "🔍 VisionModel.sanitize: Transposing '\(k)' from \(v.shape) to \(v.transposed(0, 2, 3, 1).shape)"
+                    )
                     sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
                 } else {
+                    print(
+                        "🔍 VisionModel.sanitize: Keeping '\(k)' as-is with shape \(v.shape) (skipTranspose=\(skipTranspose))"
+                    )
                     sanitizedWeights[k] = v
                 }
             } else {
@@ -3804,6 +3917,7 @@ private class Gemma3nVisionModel: Module {
             }
         }
 
+        print("🔍 VisionModel.sanitize: Completed with \(sanitizedWeights.count) weights")
         return sanitizedWeights
     }
 }
@@ -3906,17 +4020,31 @@ private class Gemma3nAudioModel: Module {
     func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
         var sanitizedWeights = [String: MLXArray]()
 
+        print("🔍 AudioModel.sanitize: Starting with \(weights.count) weights")
+
         for (k, v) in weights {
             if k.contains("conv.weight") {
                 if checkArrayShape(v) {
+                    print(
+                        "🔍 AudioModel.sanitize: Keeping conv weight '\(k)' as-is with shape \(v.shape)"
+                    )
                     sanitizedWeights[k] = v
                 } else {
+                    print(
+                        "🔍 AudioModel.sanitize: Transposing conv weight '\(k)' from \(v.shape) to \(v.transposed(0, 2, 3, 1).shape)"
+                    )
                     sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
                 }
             } else if k.contains("conv1d.weight") {
                 if checkArrayShape(v) {
+                    print(
+                        "🔍 AudioModel.sanitize: Keeping conv1d weight '\(k)' as-is with shape \(v.shape)"
+                    )
                     sanitizedWeights[k] = v
                 } else {
+                    print(
+                        "🔍 AudioModel.sanitize: Transposing conv1d weight '\(k)' from \(v.shape) to \(v.transposed(0, 2, 1).shape)"
+                    )
                     sanitizedWeights[k] = v.transposed(0, 2, 1)
                 }
             } else {
@@ -3924,6 +4052,46 @@ private class Gemma3nAudioModel: Module {
             }
         }
 
+        print("🔍 AudioModel.sanitize: Completed with \(sanitizedWeights.count) weights")
+        return sanitizedWeights
+    }
+
+    static func sanitizeWeights(_ weights: [String: MLXArray]) -> [String: MLXArray] {
+        var sanitizedWeights = [String: MLXArray]()
+
+        print("🔍 AudioModel.sanitizeWeights: Starting with \(weights.count) weights")
+
+        for (k, v) in weights {
+            if k.contains("conv.weight") {
+                if checkArrayShape(v) {
+                    print(
+                        "🔍 AudioModel.sanitizeWeights: Keeping conv weight '\(k)' as-is with shape \(v.shape)"
+                    )
+                    sanitizedWeights[k] = v
+                } else {
+                    print(
+                        "🔍 AudioModel.sanitizeWeights: Transposing conv weight '\(k)' from \(v.shape) to \(v.transposed(0, 2, 3, 1).shape)"
+                    )
+                    sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
+                }
+            } else if k.contains("conv1d.weight") {
+                if checkArrayShape(v) {
+                    print(
+                        "🔍 AudioModel.sanitizeWeights: Keeping conv1d weight '\(k)' as-is with shape \(v.shape)"
+                    )
+                    sanitizedWeights[k] = v
+                } else {
+                    print(
+                        "🔍 AudioModel.sanitizeWeights: Transposing conv1d weight '\(k)' from \(v.shape) to \(v.transposed(0, 2, 1).shape)"
+                    )
+                    sanitizedWeights[k] = v.transposed(0, 2, 1)
+                }
+            } else {
+                sanitizedWeights[k] = v
+            }
+        }
+
+        print("🔍 AudioModel.sanitizeWeights: Completed with \(sanitizedWeights.count) weights")
         return sanitizedWeights
     }
 }
@@ -3961,35 +4129,35 @@ public struct Gemma3nConfiguration: Codable, Sendable {
     public var vocabSize: Int {
         _vocabSize ?? 257152
     }
-    
+
     public var ignoreIndex: Int {
         _ignoreIndex ?? -100
     }
-    
+
     public var imageTokenIndex: Int {
         _imageTokenIndex ?? 262145
     }
-    
+
     public var audioTokenId: Int {
         _audioTokenId ?? 262273
     }
-    
+
     public var imageTokenId: Int {
         _imageTokenId ?? 262145
     }
-    
+
     public var hiddenSize: Int {
         _hiddenSize ?? 2048
     }
-    
+
     public var padTokenId: Int {
         _padTokenId ?? 0
     }
-    
+
     public var visionSoftTokensPerImage: Int {
         _visionSoftTokensPerImage ?? 256
     }
-    
+
     public var audioSoftTokensPerImage: Int {
         _audioSoftTokensPerImage ?? 188
     }
