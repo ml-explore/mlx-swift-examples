@@ -23,76 +23,29 @@ public protocol MultimodalConfig {
 }
 
 public struct AudioConfig: Codable, Sendable, MultimodalConfig {
-    public let inputFeatSize: Int
-    public let hiddenSize: Int
-    public let confAttentionChunkSize: Int
-    public let confAttentionContextLeft: Int
-    public let confAttentionContextRight: Int
-    public let confAttentionInvalidLogitsValue: Float
-    public let confAttentionLogitCap: Float
-    public let confNumAttentionHeads: Int
-    public let confNumHiddenLayers: Int
-    public let confConvKernelSize: Int
-    public let confPositionalBiasSize: Int
-    public let confReductionFactor: Int
-    public let confResidualWeight: Float
-    public let sscpConvChannelSize: [Int]
-    public let sscpConvGroupNormEps: Float
-    public let sscpConvKernelSize: [[Int]]
-    public let sscpConvStrideSize: [[Int]]
-    public let vocabSize: Int
-    public let sscpConvEps: Float
-    public let rmsNormEps: Float
-    public let gradientClipping: Float
-    public let vocabOffset: Int
-
-    public init(
-        inputFeatSize: Int = 80,
-        hiddenSize: Int = 1536,
-        confAttentionChunkSize: Int = 12,
-        confAttentionContextLeft: Int = 13,
-        confAttentionContextRight: Int = 0,
-        confAttentionInvalidLogitsValue: Float = -1e9,
-        confAttentionLogitCap: Float = 50.0,
-        confNumAttentionHeads: Int = 8,
-        confNumHiddenLayers: Int = 12,
-        confConvKernelSize: Int = 5,
-        confPositionalBiasSize: Int = 256,
-        confReductionFactor: Int = 4,
-        confResidualWeight: Float = 0.5,
-        sscpConvChannelSize: [Int] = [128, 32],
-        sscpConvGroupNormEps: Float = 1e-3,
-        sscpConvKernelSize: [[Int]] = [[3, 3], [3, 3]],
-        sscpConvStrideSize: [[Int]] = [[2, 2], [2, 2]],
-        vocabSize: Int = 128,
-        sscpConvEps: Float = 1e-3,
-        rmsNormEps: Float = 1e-6,
-        gradientClipping: Float = 10000000000.0,
-        vocabOffset: Int = 262272  // 262_144 + 128 (text vocab size + vision vocab size)
-    ) {
-        self.inputFeatSize = inputFeatSize
-        self.hiddenSize = hiddenSize
-        self.confAttentionChunkSize = confAttentionChunkSize
-        self.confAttentionContextLeft = confAttentionContextLeft
-        self.confAttentionContextRight = confAttentionContextRight
-        self.confAttentionInvalidLogitsValue = confAttentionInvalidLogitsValue
-        self.confAttentionLogitCap = confAttentionLogitCap
-        self.confNumAttentionHeads = confNumAttentionHeads
-        self.confNumHiddenLayers = confNumHiddenLayers
-        self.confConvKernelSize = confConvKernelSize
-        self.confPositionalBiasSize = confPositionalBiasSize
-        self.confReductionFactor = confReductionFactor
-        self.confResidualWeight = confResidualWeight
-        self.sscpConvChannelSize = sscpConvChannelSize
-        self.sscpConvGroupNormEps = sscpConvGroupNormEps
-        self.sscpConvKernelSize = sscpConvKernelSize
-        self.sscpConvStrideSize = sscpConvStrideSize
-        self.vocabSize = vocabSize
-        self.sscpConvEps = sscpConvEps
-        self.rmsNormEps = rmsNormEps
-        self.gradientClipping = gradientClipping
-        self.vocabOffset = vocabOffset
-    }
+    // Constants with default values (always present)
+    public let inputFeatSize: Int = 80
+    public let hiddenSize: Int = 1536
+    public let confAttentionChunkSize: Int = 12
+    public let confAttentionContextLeft: Int = 13
+    public let confAttentionContextRight: Int = 0
+    public let confAttentionInvalidLogitsValue: Float = -1e9
+    public let confAttentionLogitCap: Float = 50.0
+    public let confNumAttentionHeads: Int = 8
+    public let confNumHiddenLayers: Int = 12
+    public let confConvKernelSize: Int = 5
+    public let confPositionalBiasSize: Int = 256
+    public let confReductionFactor: Int = 4
+    public let confResidualWeight: Float = 0.5
+    public let sscpConvChannelSize: [Int] = [128, 32]
+    public let sscpConvGroupNormEps: Float = 1e-3
+    public let sscpConvKernelSize: [[Int]] = [[3, 3], [3, 3]]
+    public let sscpConvStrideSize: [[Int]] = [[2, 2], [2, 2]]
+    public let vocabSize: Int = 128
+    public let sscpConvEps: Float = 1e-3
+    public let rmsNormEps: Float = 1e-6
+    public let gradientClipping: Float = 10000000000.0
+    public let vocabOffset: Int = 262272  // 262_144 + 128 (text vocab size + vision vocab size)
 
     enum CodingKeys: String, CodingKey {
         case inputFeatSize = "input_feat_size"
@@ -121,43 +74,18 @@ public struct AudioConfig: Codable, Sendable, MultimodalConfig {
 }
 
 public struct VisionConfig: Codable, Sendable, MultimodalConfig {
-    public let modelType: String
-    public let numHiddenLayers: Int
-    public let hiddenSize: Int
-    public let intermediateSize: Int
-    public let numAttentionHeads: Int
-    public let patchSize: Int
-    public let imageSize: Int
-    public let numChannels: Int
-    public let rmsNormEps: Float
-    public let vocabSize: Int
-    public let vocabOffset: Int
-
-    public init(
-        modelType: String = "gemma3n_vision",
-        numHiddenLayers: Int = 12,
-        hiddenSize: Int = 2048,
-        intermediateSize: Int = 8192,
-        numAttentionHeads: Int = 16,
-        patchSize: Int = 16,
-        imageSize: Int = 224,
-        numChannels: Int = 3,
-        rmsNormEps: Float = 1e-6,
-        vocabSize: Int = 128,
-        vocabOffset: Int = 262144
-    ) {
-        self.modelType = modelType
-        self.numHiddenLayers = numHiddenLayers
-        self.hiddenSize = hiddenSize
-        self.intermediateSize = intermediateSize
-        self.numAttentionHeads = numAttentionHeads
-        self.patchSize = patchSize
-        self.imageSize = imageSize
-        self.numChannels = numChannels
-        self.rmsNormEps = rmsNormEps
-        self.vocabSize = vocabSize
-        self.vocabOffset = vocabOffset
-    }
+    // Constants with default values (always present)
+    public let modelType: String = "gemma3n_vision"
+    public let numHiddenLayers: Int = 12
+    public let hiddenSize: Int = 2048
+    public let intermediateSize: Int = 8192
+    public let numAttentionHeads: Int = 16
+    public let patchSize: Int = 16
+    public let imageSize: Int = 224
+    public let numChannels: Int = 3
+    public let rmsNormEps: Float = 1e-6
+    public let vocabSize: Int = 128
+    public let vocabOffset: Int = 262144
 
     enum CodingKeys: String, CodingKey {
         case modelType = "model_type"
@@ -179,103 +107,281 @@ public struct TextConfig: Codable, Sendable {
     public let hiddenSize: Int
     public let numHiddenLayers: Int
     public let intermediateSize: [Int]
-    public let numAttentionHeads: Int
-    public let headDim: Int
-    public let rmsNormEps: Float
-    public let vocabSize: Int
-    public let vocabSizePerLayerInput: Int
-    public let numKeyValueHeads: Int
-    public let laurelRank: Int
-    public let fracSharedLayers: Float
-    public let altupActiveIdx: Int
-    public let padTokenId: Int
-    public let altupNumInputs: Int
+    private let _numAttentionHeads: Int?
+    private let _headDim: Int?
+    private let _rmsNormEps: Float?
+    private let _vocabSize: Int?
+    private let _vocabSizePerLayerInput: Int?
+    private let _numKeyValueHeads: Int?
+    private let _laurelRank: Int?
+    private let _fracSharedLayers: Float?
+    private let _altupActiveIdx: Int?
+    private let _padTokenId: Int?
+    private let _altupNumInputs: Int?
     public let altupCoefClip: Float?
-    public let altupCorrectScale: Bool
-    public let hiddenSizePerLayerInput: Int
-    public let ropeLocalBaseFreq: Float
-    public let ropeTraditional: Bool
-    public let ropeTheta: Float
-    public let queryPreAttnScalar: Float
-    public let slidingWindow: Int
+    private let _altupCorrectScale: Bool?
+    private let _hiddenSizePerLayerInput: Int?
+    private let _ropeLocalBaseFreq: Float?
+    private let _ropeTraditional: Bool?
+    private let _ropeTheta: Float?
+    private let _queryPreAttnScalar: Float?
+    private let _slidingWindow: Int?
     public let ropeScaling: [String: StringOrNumber]?
-    public let mmTokensPerImage: Int
-    public let slidingWindowPattern: Int
     public let activationSparsityPattern: [Float]?
-    public let finalLogitSoftcapping: Float
-    public let queryRescaleScalar: Float
-    public let numKvSharedLayers: Int
-    public let maxPositionEmbeddings: Int
-    public let attnLogitSoftcapping: Float
-    public let layerTypes: [String]
+    public let layerTypes: [String]?
+    private let _mmTokensPerImage: Int?
+    private let _slidingWindowPattern: Int?
+    private let _finalLogitSoftcapping: Float?
+    private let _queryRescaleScalar: Float?
+    private let _numKvSharedLayers: Int?
+    private let _maxPositionEmbeddings: Int?
+    private let _attnLogitSoftcapping: Float?
+    
+    // Computed properties with defaults
+    public var numAttentionHeads: Int {
+        _numAttentionHeads ?? 2
+    }
+    
+    public var headDim: Int {
+        _headDim ?? 256
+    }
+    
+    public var rmsNormEps: Float {
+        _rmsNormEps ?? 1.0e-6
+    }
+    
+    public var vocabSize: Int {
+        _vocabSize ?? 262400
+    }
+    
+    public var vocabSizePerLayerInput: Int {
+        _vocabSizePerLayerInput ?? 262144
+    }
+    
+    public var numKeyValueHeads: Int {
+        _numKeyValueHeads ?? 4
+    }
+    
+    public var laurelRank: Int {
+        _laurelRank ?? 64
+    }
+    
+    public var fracSharedLayers: Float {
+        _fracSharedLayers ?? 0.5
+    }
+    
+    public var altupActiveIdx: Int {
+        _altupActiveIdx ?? 0
+    }
+    
+    public var padTokenId: Int {
+        _padTokenId ?? 0
+    }
+    
+    public var altupNumInputs: Int {
+        _altupNumInputs ?? 4
+    }
+    
+    public var altupCorrectScale: Bool {
+        _altupCorrectScale ?? true
+    }
+    
+    public var hiddenSizePerLayerInput: Int {
+        _hiddenSizePerLayerInput ?? 1024
+    }
+    
+    public var ropeLocalBaseFreq: Float {
+        _ropeLocalBaseFreq ?? 10000.0
+    }
+    
+    public var ropeTraditional: Bool {
+        _ropeTraditional ?? false
+    }
+    
+    public var ropeTheta: Float {
+        _ropeTheta ?? 1000000.0
+    }
+    
+    public var queryPreAttnScalar: Float {
+        _queryPreAttnScalar ?? 0.0625
+    }
+    
+    public var slidingWindow: Int {
+        _slidingWindow ?? 1024
+    }
+    
+    public var mmTokensPerImage: Int {
+        _mmTokensPerImage ?? 256
+    }
+    
+    public var slidingWindowPattern: Int {
+        _slidingWindowPattern ?? 5
+    }
+    
+    public var finalLogitSoftcapping: Float {
+        _finalLogitSoftcapping ?? 30.0
+    }
+    
+    public var queryRescaleScalar: Float {
+        _queryRescaleScalar ?? 1.0
+    }
+    
+    public var numKvSharedLayers: Int {
+        _numKvSharedLayers ?? 0
+    }
+    
+    public var maxPositionEmbeddings: Int {
+        _maxPositionEmbeddings ?? 32768
+    }
+    
+    public var attnLogitSoftcapping: Float {
+        _attnLogitSoftcapping ?? 0.0
+    }
+
+
 
     enum CodingKeys: String, CodingKey {
         case modelType = "model_type"
         case hiddenSize = "hidden_size"
         case numHiddenLayers = "num_hidden_layers"
         case intermediateSize = "intermediate_size"
-        case numAttentionHeads = "num_attention_heads"
-        case headDim = "head_dim"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabSize = "vocab_size"
-        case vocabSizePerLayerInput = "vocab_size_per_layer_input"
-        case numKeyValueHeads = "num_key_value_heads"
-        case laurelRank = "laurel_rank"
-        case fracSharedLayers = "frac_shared_layers"
-        case altupActiveIdx = "altup_active_idx"
-        case padTokenId = "pad_token_id"
-        case altupNumInputs = "altup_num_inputs"
+        case _numAttentionHeads = "num_attention_heads"
+        case _headDim = "head_dim"
+        case _rmsNormEps = "rms_norm_eps"
+        case _vocabSize = "vocab_size"
+        case _vocabSizePerLayerInput = "vocab_size_per_layer_input"
+        case _numKeyValueHeads = "num_key_value_heads"
+        case _laurelRank = "laurel_rank"
+        case _fracSharedLayers = "frac_shared_layers"
+        case _altupActiveIdx = "altup_active_idx"
+        case _padTokenId = "pad_token_id"
+        case _altupNumInputs = "altup_num_inputs"
         case altupCoefClip = "altup_coef_clip"
-        case altupCorrectScale = "altup_correct_scale"
-        case hiddenSizePerLayerInput = "hidden_size_per_layer_input"
-        case ropeLocalBaseFreq = "rope_local_base_freq"
-        case ropeTraditional = "rope_traditional"
-        case ropeTheta = "rope_theta"
-        case queryPreAttnScalar = "query_pre_attn_scalar"
-        case slidingWindow = "sliding_window"
+        case _altupCorrectScale = "altup_correct_scale"
+        case _hiddenSizePerLayerInput = "hidden_size_per_layer_input"
+        case _ropeLocalBaseFreq = "rope_local_base_freq"
+        case _ropeTraditional = "rope_traditional"
+        case _ropeTheta = "rope_theta"
+        case _queryPreAttnScalar = "query_pre_attn_scalar"
+        case _slidingWindow = "sliding_window"
         case ropeScaling = "rope_scaling"
-        case mmTokensPerImage = "mm_tokens_per_image"
-        case slidingWindowPattern = "sliding_window_pattern"
+        case _mmTokensPerImage = "mm_tokens_per_image"
+        case _slidingWindowPattern = "sliding_window_pattern"
         case activationSparsityPattern = "activation_sparsity_pattern"
-        case finalLogitSoftcapping = "final_logit_softcapping"
-        case queryRescaleScalar = "query_rescale_scalar"
-        case numKvSharedLayers = "num_kv_shared_layers"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case attnLogitSoftcapping = "attn_logit_softcapping"
+        case _finalLogitSoftcapping = "final_logit_softcapping"
+        case _queryRescaleScalar = "query_rescale_scalar"
+        case _numKvSharedLayers = "num_kv_shared_layers"
+        case _maxPositionEmbeddings = "max_position_embeddings"
+        case _attnLogitSoftcapping = "attn_logit_softcapping"
         case layerTypes = "layer_types"
     }
 }
 
 public struct ModelConfig: Codable, Sendable {
+    // Required configs (no defaults in Python)
     public let textConfig: TextConfig
     public let visionConfig: VisionConfig
     public let audioConfig: AudioConfig
     public let modelType: String
-    public let vocabSize: Int
-    public let ignoreIndex: Int
-    public let imageTokenIndex: Int
-    public let audioTokenId: Int
-    public let imageTokenId: Int
-    public let hiddenSize: Int
-    public let padTokenId: Int
-    public let visionSoftTokensPerImage: Int
-    public let audioSoftTokensPerImage: Int
+    
+    // Fields with default values (can be overridden from JSON)
+    private let _vocabSize: Int?
+    private let _ignoreIndex: Int?
+    private let _imageTokenIndex: Int?
+    private let _audioTokenId: Int?
+    private let _imageTokenId: Int?
+    private let _hiddenSize: Int?
+    private let _padTokenId: Int?
+    private let _visionSoftTokensPerImage: Int?
+    private let _audioSoftTokensPerImage: Int?
+    
+    // Optional field
     public let eosTokenId: [Int]?
+    
+    // Computed properties with defaults
+    public var vocabSize: Int {
+        _vocabSize ?? 257152
+    }
+    
+    public var ignoreIndex: Int {
+        _ignoreIndex ?? -100
+    }
+    
+    public var imageTokenIndex: Int {
+        _imageTokenIndex ?? 262145
+    }
+    
+    public var audioTokenId: Int {
+        _audioTokenId ?? 262273
+    }
+    
+    public var imageTokenId: Int {
+        _imageTokenId ?? 262145
+    }
+    
+    public var hiddenSize: Int {
+        _hiddenSize ?? 2048
+    }
+    
+    public var padTokenId: Int {
+        _padTokenId ?? 0
+    }
+    
+    public var visionSoftTokensPerImage: Int {
+        _visionSoftTokensPerImage ?? 256
+    }
+    
+    public var audioSoftTokensPerImage: Int {
+        _audioSoftTokensPerImage ?? 188
+    }
+    
+    // Custom initializer to allow manual construction
+    public init(
+        textConfig: TextConfig,
+        visionConfig: VisionConfig,
+        audioConfig: AudioConfig,
+        modelType: String,
+        vocabSize: Int? = nil,
+        ignoreIndex: Int? = nil,
+        imageTokenIndex: Int? = nil,
+        audioTokenId: Int? = nil,
+        imageTokenId: Int? = nil,
+        hiddenSize: Int? = nil,
+        padTokenId: Int? = nil,
+        visionSoftTokensPerImage: Int? = nil,
+        audioSoftTokensPerImage: Int? = nil,
+        eosTokenId: [Int]? = nil
+    ) {
+        self.textConfig = textConfig
+        self.visionConfig = visionConfig
+        self.audioConfig = audioConfig
+        self.modelType = modelType
+        self._vocabSize = vocabSize
+        self._ignoreIndex = ignoreIndex
+        self._imageTokenIndex = imageTokenIndex
+        self._audioTokenId = audioTokenId
+        self._imageTokenId = imageTokenId
+        self._hiddenSize = hiddenSize
+        self._padTokenId = padTokenId
+        self._visionSoftTokensPerImage = visionSoftTokensPerImage
+        self._audioSoftTokensPerImage = audioSoftTokensPerImage
+        self.eosTokenId = eosTokenId
+    }
 
     enum CodingKeys: String, CodingKey {
         case textConfig = "text_config"
         case visionConfig = "vision_config"
         case audioConfig = "audio_config"
         case modelType = "model_type"
-        case vocabSize = "vocab_size"
-        case ignoreIndex = "ignore_index"
-        case imageTokenIndex = "image_token_index"
-        case audioTokenId = "audio_token_id"
-        case imageTokenId = "image_token_id"
-        case hiddenSize = "hidden_size"
-        case padTokenId = "pad_token_id"
-        case visionSoftTokensPerImage = "vision_soft_tokens_per_image"
-        case audioSoftTokensPerImage = "audio_soft_tokens_per_image"
+        case _vocabSize = "vocab_size"
+        case _ignoreIndex = "ignore_index"
+        case _imageTokenIndex = "image_token_index"
+        case _audioTokenId = "audio_token_id"
+        case _imageTokenId = "image_token_id"
+        case _hiddenSize = "hidden_size"
+        case _padTokenId = "pad_token_id"
+        case _visionSoftTokensPerImage = "vision_soft_tokens_per_image"
+        case _audioSoftTokensPerImage = "audio_soft_tokens_per_image"
         case eosTokenId = "eos_token_id"
     }
 }
@@ -445,7 +551,7 @@ private class Gemma3nAttention: Module {
     @ModuleInfo var vNorm: Gemma3nRMSNorm
 
     init(config: TextConfig, layerIdx: Int) {
-        self.isSliding = config.layerTypes[layerIdx] == "sliding_attention"
+        self.isSliding = (config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers))[layerIdx] == "sliding_attention"
         self.attnLogitSoftcapping = config.attnLogitSoftcapping
 
         let dim = config.hiddenSize
@@ -760,7 +866,7 @@ private class Gemma3nDecoderLayer: Module {
         self.hiddenSizePerLayerInput = config.hiddenSizePerLayerInput
 
         self._selfAttn.wrappedValue = Gemma3nAttention(config: config, layerIdx: layerIdx)
-        self.isSliding = config.layerTypes[layerIdx] == "sliding_attention"
+        self.isSliding = (config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers))[layerIdx] == "sliding_attention"
 
         self._mlp.wrappedValue = MLP(config: config, layerIdx: layerIdx)
         self._inputLayernorm.wrappedValue = Gemma3nRMSNorm(
@@ -1072,7 +1178,7 @@ private class Gemma3Model: Module {
         for (i, (layer, c)) in zip(layers[..<config.numHiddenLayers], cacheArray).enumerated() {
             let perLayerInput = finalPerLayerInputs[0..., 0..., i, 0...]
 
-            let isGlobal = config.layerTypes[i] == "global_attention"
+            let isGlobal = (config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers))[i] == "global_attention"
 
             let localMask: MLXFast.ScaledDotProductAttentionMaskMode
             if let mask = mask {
@@ -1811,15 +1917,6 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
             visionConfig: visionConfig,
             audioConfig: audioConfig,
             modelType: configDict["model_type"] as? String ?? "gemma3n",
-            vocabSize: configDict["vocab_size"] as? Int ?? 257152,
-            ignoreIndex: configDict["ignore_index"] as? Int ?? -100,
-            imageTokenIndex: configDict["image_token_index"] as? Int ?? 262145,
-            audioTokenId: configDict["audio_token_id"] as? Int ?? 262273,
-            imageTokenId: configDict["image_token_id"] as? Int ?? 262145,
-            hiddenSize: configDict["hidden_size"] as? Int ?? 2048,
-            padTokenId: configDict["pad_token_id"] as? Int ?? 0,
-            visionSoftTokensPerImage: configDict["vision_soft_tokens_per_image"] as? Int ?? 256,
-            audioSoftTokensPerImage: configDict["audio_soft_tokens_per_image"] as? Int ?? 188,
             eosTokenId: configDict["eos_token_id"] as? [Int]
         )
 
@@ -3848,17 +3945,54 @@ public struct Gemma3nConfiguration: Codable, Sendable {
     public let visionConfig: VisionConfig
     public let audioConfig: AudioConfig
     public let modelType: String
-    public let vocabSize: Int
-    public let ignoreIndex: Int
-    public let imageTokenIndex: Int
-    public let audioTokenId: Int
-    public let imageTokenId: Int
-    public let hiddenSize: Int
-    public let padTokenId: Int
-    public let visionSoftTokensPerImage: Int
-    public let audioSoftTokensPerImage: Int
+    private let _vocabSize: Int?
+    private let _ignoreIndex: Int?
+    private let _imageTokenIndex: Int?
+    private let _audioTokenId: Int?
+    private let _imageTokenId: Int?
+    private let _hiddenSize: Int?
+    private let _padTokenId: Int?
+    private let _visionSoftTokensPerImage: Int?
+    private let _audioSoftTokensPerImage: Int?
     public let eosTokenId: [Int]?
     public let quantization: QuantizationConfig?
+
+    // Computed properties with defaults
+    public var vocabSize: Int {
+        _vocabSize ?? 257152
+    }
+    
+    public var ignoreIndex: Int {
+        _ignoreIndex ?? -100
+    }
+    
+    public var imageTokenIndex: Int {
+        _imageTokenIndex ?? 262145
+    }
+    
+    public var audioTokenId: Int {
+        _audioTokenId ?? 262273
+    }
+    
+    public var imageTokenId: Int {
+        _imageTokenId ?? 262145
+    }
+    
+    public var hiddenSize: Int {
+        _hiddenSize ?? 2048
+    }
+    
+    public var padTokenId: Int {
+        _padTokenId ?? 0
+    }
+    
+    public var visionSoftTokensPerImage: Int {
+        _visionSoftTokensPerImage ?? 256
+    }
+    
+    public var audioSoftTokensPerImage: Int {
+        _audioSoftTokensPerImage ?? 188
+    }
 
     public var vocabularySize: Int { vocabSize }
 
@@ -3867,15 +4001,15 @@ public struct Gemma3nConfiguration: Codable, Sendable {
         case visionConfig = "vision_config"
         case audioConfig = "audio_config"
         case modelType = "model_type"
-        case vocabSize = "vocab_size"
-        case ignoreIndex = "ignore_index"
-        case imageTokenIndex = "image_token_index"
-        case audioTokenId = "audio_token_id"
-        case imageTokenId = "image_token_id"
-        case hiddenSize = "hidden_size"
-        case padTokenId = "pad_token_id"
-        case visionSoftTokensPerImage = "vision_soft_tokens_per_image"
-        case audioSoftTokensPerImage = "audio_soft_tokens_per_image"
+        case _vocabSize = "vocab_size"
+        case _ignoreIndex = "ignore_index"
+        case _imageTokenIndex = "image_token_index"
+        case _audioTokenId = "audio_token_id"
+        case _imageTokenId = "image_token_id"
+        case _hiddenSize = "hidden_size"
+        case _padTokenId = "pad_token_id"
+        case _visionSoftTokensPerImage = "vision_soft_tokens_per_image"
+        case _audioSoftTokensPerImage = "audio_soft_tokens_per_image"
         case eosTokenId = "eos_token_id"
         case quantization
     }
@@ -3885,15 +4019,15 @@ public struct Gemma3nConfiguration: Codable, Sendable {
         self.visionConfig = modelConfig.visionConfig
         self.audioConfig = modelConfig.audioConfig
         self.modelType = modelConfig.modelType
-        self.vocabSize = modelConfig.vocabSize
-        self.ignoreIndex = modelConfig.ignoreIndex
-        self.imageTokenIndex = modelConfig.imageTokenIndex
-        self.audioTokenId = modelConfig.audioTokenId
-        self.imageTokenId = modelConfig.imageTokenId
-        self.hiddenSize = modelConfig.hiddenSize
-        self.padTokenId = modelConfig.padTokenId
-        self.visionSoftTokensPerImage = modelConfig.visionSoftTokensPerImage
-        self.audioSoftTokensPerImage = modelConfig.audioSoftTokensPerImage
+        self._vocabSize = modelConfig.vocabSize
+        self._ignoreIndex = modelConfig.ignoreIndex
+        self._imageTokenIndex = modelConfig.imageTokenIndex
+        self._audioTokenId = modelConfig.audioTokenId
+        self._imageTokenId = modelConfig.imageTokenId
+        self._hiddenSize = modelConfig.hiddenSize
+        self._padTokenId = modelConfig.padTokenId
+        self._visionSoftTokensPerImage = modelConfig.visionSoftTokensPerImage
+        self._audioSoftTokensPerImage = modelConfig.audioSoftTokensPerImage
         self.eosTokenId = modelConfig.eosTokenId
         self.quantization = quantization
     }
@@ -4033,15 +4167,6 @@ extension Gemma3n {
             visionConfig: config.visionConfig,
             audioConfig: config.audioConfig,
             modelType: config.modelType,
-            vocabSize: config.vocabSize,
-            ignoreIndex: config.ignoreIndex,
-            imageTokenIndex: config.imageTokenIndex,
-            audioTokenId: config.audioTokenId,
-            imageTokenId: config.imageTokenId,
-            hiddenSize: config.hiddenSize,
-            padTokenId: config.padTokenId,
-            visionSoftTokensPerImage: config.visionSoftTokensPerImage,
-            audioSoftTokensPerImage: config.audioSoftTokensPerImage,
             eosTokenId: config.eosTokenId
         )
         self.init(modelConfig)
