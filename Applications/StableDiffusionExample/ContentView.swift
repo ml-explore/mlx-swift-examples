@@ -253,18 +253,18 @@ class StableDiffusionEvaluator {
         progress = .init(title: "Preparing", current: 0, limit: 1)
         message = nil
 
-        // the parameters that control the generation of the image.  See
-        // EvaluateParameters for more information.  For example adjusting
+        // The parameters that control the generation of the image. See
+        // EvaluateParameters for more information. For example, adjusting
         // the latentSize parameter will change the size of the generated
-        // image.  imageCount could be used to generate a gallery of
+        // image. `imageCount` could be used to generate a gallery of
         // images at the same time.
         let parameters = {
             var p = modelFactory.configuration.defaultParameters()
             p.prompt = prompt
             p.negativePrompt = negativePrompt
 
-            // per measurement each step consumes memory that we want to conserve.  trade
-            // off steps (quality) for memory
+            // Per measurement each step consumes memory that we want to conserve. Trade
+            // off steps (quality) for memory.
             if modelFactory.conserveMemory {
                 p.steps = 1
             }
@@ -273,33 +273,33 @@ class StableDiffusionEvaluator {
         }()
 
         do {
-            // note: the optionals are used to discard parts of the model
-            // as it runs -- this is used to conserveMemory in devices
-            // with less memory
+            // Note: The optionals are used to discard parts of the model
+            // as it runs. This is used to conserve memory in devices
+            // with less memory.
             let container = try await modelFactory.load(reportProgress: updateProgress)
 
             try await container.performTwoStage { generator in
-                // the parameters that control the generation of the image.  See
-                // EvaluateParameters for more information.  For example adjusting
-                // the latentSize parameter will change the size of the generated
-                // image.  imageCount could be used to generate a gallery of
+                // The parameters that control the generation of the image. See
+                // EvaluateParameters for more information. For example adjusting
+                // the `latentSize` parameter will change the size of the generated
+                // image. `imageCount` could be used to generate a gallery of
                 // images at the same time.
                 var parameters = modelFactory.configuration.defaultParameters()
                 parameters.prompt = prompt
                 parameters.negativePrompt = negativePrompt
 
-                // per measurement each step consumes memory that we want to conserve.  trade
-                // off steps (quality) for memory
+                // Per measurement each step consumes memory that we want to conserve. Trade
+                // off steps (quality) for memory.
                 if modelFactory.conserveMemory {
                     parameters.steps = 1
                 }
 
-                // generate the latent images -- this is fast as it is just generating
-                // the graphs that will be evaluated below
+                // Generate the latent images. This is fast as it is just generating
+                // the graphs that will be evaluated below.
                 let latents: DenoiseIterator? = generator.generateLatents(parameters: parameters)
 
-                // when conserveMemory is true this will discard the first part of
-                // the model and just evaluate the decode portion
+                // When conserveMemory is true this will discard the first part of
+                // the model and just evaluate the decode portion.
                 return (generator.detachedDecoder(), latents)
 
             } second: { decoder, latents in

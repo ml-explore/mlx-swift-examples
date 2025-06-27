@@ -283,6 +283,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				MLXLMTests/BaseConfigurationTests.swift,
+        MLXLMTests/ToolTests.swift,
 				MLXLMTests/EvalTests.swift,
 				MLXLMTests/StreamlinedTests.swift,
 				MLXLMTests/UserInputTests.swift,

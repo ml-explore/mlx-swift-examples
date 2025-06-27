@@ -10,7 +10,7 @@ Example application that:
 This roughly equates to the command line example in [Tools/llm-tool](../../Tools/llm-tool) and
 you can read more about LoRA there.
 
-This evaluates the LoRA adapted model rather than a fused model.  This doesn't persist
+This evaluates the LoRA adapted model rather than a fused model. This doesn't persist
 the LoRA weights or the fused model -- it will retrain it each time the program is launched.
 
 ### Troubleshooting

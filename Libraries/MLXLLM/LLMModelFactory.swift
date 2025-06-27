@@ -42,6 +42,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "cohere": create(CohereConfiguration.self, CohereModel.init),
             "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
             "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
+            "gemma3_text": create(Gemma3TextConfiguration.self, Gemma3TextModel.init),
             "granite": create(GraniteConfiguration.self, GraniteModel.init),
             "mimo": create(MiMoConfiguration.self, MiMoModel.init),
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
@@ -55,7 +56,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
 /// Registry of models and any overrides that go with them, e.g. prompt augmentation.
 /// If asked for an unknown configuration this will use the model/tokenizer as-is.
 ///
-/// The python tokenizers have a very rich set of implementations and configuration.  The
+/// The Python tokenizers have a very rich set of implementations and configuration. The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
 public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
@@ -198,6 +199,12 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "What is the difference between a fruit and a vegetable?"
     )
 
+    static public let gemma3_1B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-1b-it-qat-4bit",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
     static public let granite3_3_2b_4bit = ModelConfiguration(
         id: "mlx-community/granite-3.3-2b-instruct-4bit",
         defaultPrompt: ""
@@ -250,6 +257,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen3_8b_4bit,
             qwen3MoE_30b_a3b_4bit,
             smolLM_135M_4bit,
+            gemma3_1B_qat_4bit,
             mimo_7b_sft_4bit,
             glm4_9b_4bit,
             acereason_7b_4bit,
@@ -282,6 +290,7 @@ private struct LLMUserInputProcessor: UserInputProcessor {
         do {
             let promptTokens = try tokenizer.applyChatTemplate(
                 messages: messages, tools: input.tools, additionalContext: input.additionalContext)
+
             return LMInput(tokens: MLXArray(promptTokens))
         } catch TokenizerError.missingChatTemplate {
             print(
