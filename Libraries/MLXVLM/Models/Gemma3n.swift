@@ -1474,12 +1474,10 @@ private func gemma3nAttentionWithCacheUpdate(
 private func bicubicInterpolate(
     _ x: MLXArray, to targetSize: (Int, Int), alignCorners: Bool = false
 ) -> MLXArray {
-    // TODO: This implementation uses nested loops and sequential MLX operations, which is much slower
+    // This implementation uses nested loops and sequential MLX operations, which is much slower
     // than the Python version that uses mx.fast.metal_kernel() for parallel GPU computation.
-    // MLX Swift currently doesn't have custom Metal kernel creation capabilities like Python's
-    // mx.fast.metal_kernel(). Consider optimizing with vectorized MLX operations or requesting
-    // custom kernel support from the MLX Swift team for better performance.
-
+    // TODO: Port the custom Metal kernel from Python to Swift using `MLXFast.metalKernel`.
+    //
     // Input: NHWC format [batch, height, width, channels]
     // Output: NHWC format [batch, target_height, target_width, channels]
 
