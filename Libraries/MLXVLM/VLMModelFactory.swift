@@ -169,14 +169,14 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         extraEOSTokens: ["<end_of_turn>"]
     )
 
-    static public let gemma3n_E2B_instruct = ModelConfiguration(
-        id: "mlx-community/gemma-3n-E2B-it-bf16",
+    static public let gemma3n_E2B = ModelConfiguration(
+        id: "mlx-community/gemma-3n-E2B-it-4bit",
         defaultPrompt: "Describe this image.",
         extraEOSTokens: ["<end_of_turn>"]
     )
 
-    static public let gemma3n_E4B_instruct = ModelConfiguration(
-        id: "mlx-community/gemma-3n-E4B-it-bf16",
+    static public let gemma3n_E4B = ModelConfiguration(
+        id: "mlx-community/gemma-3n-E4B-it-4bit",
         defaultPrompt: "Describe this image.",
         extraEOSTokens: ["<end_of_turn>"]
     )
@@ -196,8 +196,8 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             gemma3_4B_qat_4bit,
             gemma3_12B_qat_4bit,
             gemma3_27B_qat_4bit,
-            gemma3n_E2B_instruct,
-            gemma3n_E4B_instruct,
+            gemma3n_E2B,
+            gemma3n_E4B,
             smolvlm,
         ]
     }

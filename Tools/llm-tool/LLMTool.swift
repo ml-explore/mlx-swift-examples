@@ -302,9 +302,9 @@ struct EvaluateCommand: AsyncParsableCommand {
         let modelFactory: ModelFactory
         let defaultModel: ModelConfiguration
 
-        // Always use VLM factory and gemma3n_E2B_instruct for testing
+        // Always use VLM factory and gemma3n_E2B for testing
         modelFactory = VLMModelFactory.shared
-        defaultModel = MLXVLM.VLMRegistry.gemma3n_E2B_instruct
+        defaultModel = MLXVLM.VLMRegistry.gemma3n_E2B
 
         // Load the model
         let modelContainer = try await memory.start { [args] in
