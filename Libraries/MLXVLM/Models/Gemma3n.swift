@@ -1146,18 +1146,18 @@ private class Gemma3Model: Module {
         perLayerInputs: MLXArray? = nil
     ) -> MLXArray {
         var h: MLXArray
-        if let inputsEmbeds = inputsEmbeds {
+        if let inputsEmbeds {
             h = inputsEmbeds
-        } else if let inputs = inputs {
+        } else if let inputs {
             h = embedTokens(inputs)
         } else {
             fatalError("Either inputs or inputsEmbeds must be provided")
         }
 
         let perLayerInputsProcessed: MLXArray
-        if let perLayerInputs = perLayerInputs {
+        if let perLayerInputs {
             perLayerInputsProcessed = perLayerInputs
-        } else if let inputs = inputs {
+        } else if let inputs {
             perLayerInputsProcessed = getPerLayerInputs(inputs)
         } else {
             fatalError("Cannot generate per layer inputs without input ids")
@@ -1213,7 +1213,7 @@ private class Gemma3Model: Module {
                 == "global_attention"
 
             let localMask: MLXFast.ScaledDotProductAttentionMaskMode
-            if let mask = mask {
+            if let mask {
                 localMask = mask
             } else if isGlobal {
                 localMask = fullMask
@@ -1437,9 +1437,9 @@ private class Gemma3nMultimodalEmbedder: Module, UnaryLayer {
         }
 
         let embNorm: MLXArray
-        if let inputsEmbeds = inputsEmbeds {
+        if let inputsEmbeds {
             embNorm = softEmbeddingNorm(inputsEmbeds)
-        } else if let inputIds = inputIds {
+        } else if let inputIds {
             let hardEmb = embedding(inputIds - vocabOffset)
             embNorm = hardEmbeddingNorm(hardEmb)
         } else {
@@ -1490,7 +1490,7 @@ private func gemma3nAttentionWithCacheUpdate(
     // Update cache and get cached keys/values (matches Python's cache.update_and_fetch)
     let (cachedKeys, cachedValues): (MLXArray, MLXArray)
 
-    if let cache = cache {
+    if let cache {
         (cachedKeys, cachedValues) = cache.update(keys: keys, values: values)
     } else {
         (cachedKeys, cachedValues) = (keys, values)
@@ -1667,7 +1667,6 @@ private func maskedScatter(
 private func checkArrayShape(_ arr: MLXArray) -> Bool {
     let shape = arr.shape
     guard shape.count == 4 else {
-        print("🔍 checkArrayShape: Array has \(shape.count) dimensions, not 4")
         return false
     }
 
@@ -1792,7 +1791,7 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
         }
 
         // Process audio features
-        if let inputFeatures = inputFeatures, let inputFeaturesMask = inputFeaturesMask {
+        if let inputFeatures, let inputFeaturesMask = inputFeaturesMask {
             let (audioFeatures, audioMask) = getAudioFeatures(inputFeatures, .!inputFeaturesMask)
             let audioPaddingIds = MLXArray([config.vocabSize - 1]).expandedDimensions(axis: 0)
             let audioPaddingEmbs = embedAudio.callAsFunction(audioPaddingIds, inputsEmbeds: nil)
@@ -1862,7 +1861,7 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
     ) -> MLXArray {
         let specialModalityMask: MLXArray
 
-        if let inputIds = inputIds {
+        if let inputIds {
             specialModalityMask = expandedDimensions(inputIds .== tokenId, axis: -1)
         } else {
             // When inputIds is nil, create mask by comparing embeddings
@@ -1924,10 +1923,9 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
 
     // In class Gemma3n
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
-        print("🔍 Gemma3n.sanitize: Starting with \(weights.count) weights")
         var sanitizedWeights = [String: MLXArray]()
 
-        // This function's ONLY job is to remove the "model." prefix from keys.
+        // Remove the "model." prefix from keys.
         for (k, v) in weights {
             if k.hasPrefix("model.") {
                 let newKey = k.split(separator: ".").dropFirst().joined(separator: ".")
@@ -1937,13 +1935,11 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
             }
         }
 
-        print("🔍 Gemma3n.sanitize: After prefix removal, have \(sanitizedWeights.count) weights")
         return sanitizedWeights
     }
 
     public static func fromPretrained(pathOrHfRepo: String) throws -> Gemma3n {
         let path = URL(fileURLWithPath: pathOrHfRepo)
-        print("🔍 Gemma3n.fromPretrained: Loading from \(pathOrHfRepo)")
 
         let configPath = path.appendingPathComponent("config.json")
         let configData = try Data(contentsOf: configPath)
@@ -1968,30 +1964,25 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
             let fileWeights = try loadArrays(url: path.appendingPathComponent(weightFile))
             weights.merge(fileWeights) { _, new in new }
         }
-        print("🔍 Gemma3n.fromPretrained: Total weights loaded: \(weights.count)")
 
-        // Step 1: Main sanitization (remove "model." prefix)
+        // Main sanitization (remove "model." prefix)
         var sanitizedWeights = model.sanitize(weights: weights)
 
-        // Step 2: Vision model sanitization (transpose conv weights)
+        // Vision model sanitization (transpose conv weights)
         sanitizedWeights = Gemma3nVisionModel.sanitizeWeights(sanitizedWeights)
 
-        // Step 3: Audio model sanitization (transpose conv weights) - THIS WAS MISSING
+        // Audio model sanitization (transpose conv weights)
         sanitizedWeights = model.audioTower.sanitize(weights: sanitizedWeights)
 
-        // Step 4: Handle tied lm_head weights
+        // Handle tied lm_head weights
         if sanitizedWeights["language_model.lm_head.weight"] == nil {
             if let embedWeight = sanitizedWeights["language_model.model.embed_tokens.weight"] {
-                print("🔍 Tying lm_head weight.")
                 sanitizedWeights["language_model.lm_head.weight"] = embedWeight
             }
         }
 
-        // Step 5: Load the weights
-        print("🔍 Attempting to load \(sanitizedWeights.count) final weights...")
+        // Load the weights
         try model.update(parameters: ModuleParameters.unflattened(sanitizedWeights), verify: [.all])
-        print("✅ Model loaded successfully!")
-
         return model
     }
 }
@@ -2211,7 +2202,7 @@ private class Gemma3nCumulativeGroupNorm: Module {
         let expectedInputSuffix = featureDims + [numChannels]
         assert(Array(x.shape.suffix(expectedInputSuffix.count)) == expectedInputSuffix)
 
-        if let mask = mask {
+        if let mask {
             assert(mask.shape == Array(x.shape.prefix(2)))
             assert(mask.dtype == .bool)
         }
@@ -2221,7 +2212,7 @@ private class Gemma3nCumulativeGroupNorm: Module {
         let xCalc = x.asType(calcDtype)
 
         let maskCalc: MLXArray
-        if let mask = mask {
+        if let mask {
             let maskSuffixShape = Array(repeating: 1, count: expectedInputSuffix.count)
             maskCalc = mask.reshaped(Array(mask.shape) + maskSuffixShape).asType(calcDtype)
         } else {
@@ -2848,7 +2839,7 @@ private func rmsNorm2d(
     let vMean = mean(v, axis: 1, keepDims: true)
     var result = x * rsqrt(vMean + eps)
 
-    if let weight = weight {
+    if let weight {
         let weightReshaped = weight.reshaped([1, -1, 1, 1])
         result = result.asType(dtype) * weightReshaped
     }
@@ -3061,7 +3052,7 @@ private class UniversalInvertedResidual: Module, UnaryLayer {
         )
 
         // Layer Scale
-        if let layerScaleInitValue = layerScaleInitValue {
+        if let layerScaleInitValue {
             self._layerScale.wrappedValue = LayerScale2d(
                 dim: outChannels, initValues: layerScaleInitValue)
         } else {
@@ -3420,7 +3411,7 @@ private class MobileAttention: Module, UnaryLayer {
         }
 
         // Layer scaling
-        if let layerScaleInitValue = layerScaleInitValue {
+        if let layerScaleInitValue {
             self._layerScale.wrappedValue = LayerScale2d(
                 dim: outChannels, initValues: layerScaleInitValue)
         } else {
@@ -3843,7 +3834,6 @@ private class Gemma3nVisionModel: Module {
                     sanitizedWeights[k] = v
                 }
             } else {
-                // THIS IS THE MISSING BLOCK
                 // Copy all other weights (biases, norm layers, etc.)
                 sanitizedWeights[k] = v
             }
@@ -3955,7 +3945,7 @@ private class Gemma3nAudioModel: Module {
         for (k, v) in weights {
             if k.contains("conv.weight") {
                 // The checkArrayShape function is not robust.
-                // The Python reference doesn't use it. It's safer to just transpose.
+                // The Python implementation doesn't use it. It's safer to just transpose.
                 // Assuming NCHW -> NHWC for Conv2d
                 if v.ndim == 4 {
                     sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
@@ -3970,7 +3960,6 @@ private class Gemma3nAudioModel: Module {
                     sanitizedWeights[k] = v
                 }
             } else {
-                // THIS IS THE MISSING BLOCK
                 sanitizedWeights[k] = v
             }
         }
@@ -4175,8 +4164,8 @@ public struct Gemma3nProcessorConfiguration: Codable, Sendable {
     public let doPanAndScan: Bool?
 
     // Token identifiers - use default values that match Python implementation
-    public var imageTokenId: Int { 262145 }  // From Python: image_token_id = 262145
-    public var audioTokenId: Int { 262273 }  // From Python: audio_token_id = 262273
+    public var imageTokenId: Int { 262145 }
+    public var audioTokenId: Int { 262273 }
 
     public struct ImageSize: Codable, Sendable {
         public let height: Int
