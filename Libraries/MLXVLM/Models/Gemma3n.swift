@@ -1896,52 +1896,11 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
                 sanitizedWeights[k] = v
             }
         }
+        sanitizedWeights = visionTower.sanitize(weights: sanitizedWeights)
+        // TODO: The audio and language sanitization is not done in the Python implementation. Is this needed?
+        sanitizedWeights = audioTower.sanitize(weights: sanitizedWeights)
+        sanitizedWeights = languageModel.sanitize(weights: sanitizedWeights)
         return sanitizedWeights
-    }
-
-    public static func fromPretrained(pathOrHfRepo: String) throws -> Gemma3n {
-        let path = URL(fileURLWithPath: pathOrHfRepo)
-
-        let configPath = path.appendingPathComponent("config.json")
-        let configData = try Data(contentsOf: configPath)
-
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let modelConfig = try decoder.decode(ModelConfig.self, from: configData)
-
-        let model = Gemma3n(modelConfig)
-
-        // Load all weight files into a single dictionary
-        let weightFiles = try FileManager.default.contentsOfDirectory(atPath: path.path)
-            .filter { $0.hasSuffix(".safetensors") }
-        guard !weightFiles.isEmpty else {
-            throw NSError(
-                domain: "ModelLoading", code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "No safetensors found in \(path.path)"])
-        }
-
-        var weights = [String: MLXArray]()
-        for weightFile in weightFiles {
-            let fileWeights = try loadArrays(url: path.appendingPathComponent(weightFile))
-            weights.merge(fileWeights) { _, new in new }
-        }
-
-        var sanitizedWeights = model.sanitize(weights: weights)
-        sanitizedWeights = model.visionTower.sanitize(weights: sanitizedWeights)
-        // The audio and language sanitization is not done in the Python implementation
-        //        sanitizedWeights = model.audioTower.sanitize(weights: sanitizedWeights)
-        //        sanitizedWeights = model.languageModel.sanitize(weights: sanitizedWeights)
-
-        // Handle tied lm_head weights
-        if sanitizedWeights["language_model.lm_head.weight"] == nil {
-            if let embedWeight = sanitizedWeights["language_model.model.embed_tokens.weight"] {
-                sanitizedWeights["language_model.lm_head.weight"] = embedWeight
-            }
-        }
-
-        // Load the weights
-        try model.update(parameters: ModuleParameters.unflattened(sanitizedWeights), verify: [.all])
-        return model
     }
 }
 
