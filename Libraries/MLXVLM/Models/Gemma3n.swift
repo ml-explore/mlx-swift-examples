@@ -386,79 +386,50 @@ public struct ModelConfig: Codable, Sendable {
 
 // MARK: - Language Model Components
 
-// Base protocol for RMSNorm variants
-private protocol Gemma3nRMSNormProtocol: UnaryLayer {
-    func callAsFunction(_ x: MLXArray) -> MLXArray
-}
-
-// RMSNorm with scale parameter
-private class Gemma3nRMSNormWithScale: Module, Gemma3nRMSNormProtocol {
+private class Gemma3nRMSNorm: Module {
     let eps: Float
     let scaleShift: Float
-    @ModuleInfo var weight: MLXArray
+    @ModuleInfo var weight: MLXArray?
 
-    init(dim: Int, eps: Float = 1e-6, scaleShift: Float = 0.0) {
+    init(dim: Int, eps: Float = 1e-6, scaleShift: Float = 0, withScale: Bool = true) {
         self.eps = eps
         self.scaleShift = scaleShift
-        self._weight.wrappedValue = MLXArray.ones([dim])
+
+        if withScale {
+            self.weight = MLXArray.ones([dim])
+        } else {
+            self.weight = nil
+        }
+
         super.init()
     }
 
     func callAsFunction(_ x: MLXArray) -> MLXArray {
         let output = norm(x.asType(.float32))
-        return (output * (weight + scaleShift)).asType(x.dtype)
+
+        if let weight {
+            return (output * (weight + scaleShift)).asType(x.dtype)
+        } else {
+            return output.asType(x.dtype)
+        }
     }
 
     private func norm(_ x: MLXArray) -> MLXArray {
         return x * rsqrt(x.square().mean(axis: -1, keepDims: true) + eps)
-    }
-}
-
-// RMSNorm without scale parameter (no weight to load from checkpoint)
-private class Gemma3nRMSNormNoScale: Module, Gemma3nRMSNormProtocol {
-    let eps: Float
-
-    init(dim: Int, eps: Float = 1e-6) {
-        self.eps = eps
-        super.init()
-    }
-
-    func callAsFunction(_ x: MLXArray) -> MLXArray {
-        let output = norm(x.asType(.float32))
-        return output.asType(x.dtype)
-    }
-
-    private func norm(_ x: MLXArray) -> MLXArray {
-        return x * rsqrt(x.square().mean(axis: -1, keepDims: true) + eps)
-    }
-}
-
-// Factory function to create the appropriate RMSNorm variant
-private func createGemma3nRMSNorm(
-    dim: Int,
-    eps: Float = 1e-6,
-    scaleShift: Float = 0.0,
-    withScale: Bool = true
-) -> any Gemma3nRMSNormProtocol {
-    if withScale {
-        return Gemma3nRMSNormWithScale(dim: dim, eps: eps, scaleShift: scaleShift)
-    } else {
-        return Gemma3nRMSNormNoScale(dim: dim, eps: eps)
     }
 }
 
 private class Gemma3nLaurelBlock: Module {
     @ModuleInfo(key: "linear_left") var linearLeft: Linear
     @ModuleInfo(key: "linear_right") var linearRight: Linear
-    @ModuleInfo(key: "post_laurel_norm") var postLaurelNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "post_laurel_norm") var postLaurelNorm: Gemma3nRMSNorm
 
     init(config: TextConfig) {
         self._linearLeft.wrappedValue = Linear(config.hiddenSize, config.laurelRank, bias: false)
         self._linearRight.wrappedValue = Linear(config.laurelRank, config.hiddenSize, bias: false)
-        self._postLaurelNorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._postLaurelNorm.wrappedValue = Gemma3nRMSNorm(
             dim: config.hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0
         )
         super.init()
     }
@@ -495,8 +466,8 @@ private class Gemma3nRotaryEmbedding: Module {
     let originalMaxSeqLen: Int
     let config: TextConfig
     let attentionScaling: Float
-    let _invFreq: MLXArray
-    let _originalInvFreq: MLXArray
+    private let _invFreq: MLXArray
+    private let _originalInvFreq: MLXArray
 
     init(config: TextConfig) {
         if let ropeScaling = config.ropeScaling {
@@ -570,9 +541,9 @@ private class Gemma3nAttention: Module {
     @ModuleInfo(key: "k_proj") var kProj: Linear
     @ModuleInfo(key: "v_proj") var vProj: Linear
     @ModuleInfo(key: "o_proj") var oProj: Linear
-    @ModuleInfo(key: "q_norm") var qNorm: Gemma3nRMSNormWithScale
-    @ModuleInfo(key: "k_norm") var kNorm: Gemma3nRMSNormWithScale
-    @ModuleInfo(key: "v_norm") var vNorm: Gemma3nRMSNormNoScale
+    @ModuleInfo(key: "q_norm") var qNorm: Gemma3nRMSNorm
+    @ModuleInfo(key: "k_norm") var kNorm: Gemma3nRMSNorm
+    @ModuleInfo(key: "v_norm") var vNorm: Gemma3nRMSNorm
 
     init(config: TextConfig, layerIdx: Int) {
         self.isSliding =
@@ -594,13 +565,14 @@ private class Gemma3nAttention: Module {
         self._vProj.wrappedValue = Linear(dim, numKVHeads * headDim, bias: false)
         self._oProj.wrappedValue = Linear(numHeads * headDim, dim, bias: false)
 
-        self._qNorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._qNorm.wrappedValue = Gemma3nRMSNorm(
             dim: config.headDim, eps: config.rmsNormEps)
-        self._kNorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._kNorm.wrappedValue = Gemma3nRMSNorm(
             dim: config.headDim, eps: config.rmsNormEps)
-        self._vNorm.wrappedValue = Gemma3nRMSNormNoScale(
+        self._vNorm.wrappedValue = Gemma3nRMSNorm(
             dim: config.headDim,
-            eps: config.rmsNormEps
+            eps: config.rmsNormEps,
+            withScale: false
         )
 
         let firstKvSharedLayerIdx = config.numHiddenLayers - config.numKvSharedLayers
@@ -749,8 +721,8 @@ private class Gemma3nAltUp: Module {
     @ModuleInfo(key: "correction_coefs") var correctionCoefs: Linear
     @ModuleInfo(key: "prediction_coefs") var predictionCoefs: Linear
     @ModuleInfo(key: "modality_router") var modalityRouter: Linear
-    @ModuleInfo(key: "router_norm") var routerNorm: Gemma3nRMSNormWithScale
-    let _routerInputScale: MLXArray
+    @ModuleInfo(key: "router_norm") var routerNorm: Gemma3nRMSNorm
+    private let _routerInputScale: MLXArray
 
     let config: TextConfig
 
@@ -773,10 +745,9 @@ private class Gemma3nAltUp: Module {
             config.altupNumInputs,
             bias: false
         )
-        self._routerNorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._routerNorm.wrappedValue = Gemma3nRMSNorm(
             dim: config.hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0
         )
         self._routerInputScale = MLXArray(pow(Float(config.hiddenSize), -1.0))
 
@@ -784,8 +755,11 @@ private class Gemma3nAltUp: Module {
     }
 
     func computeRouterModalities(_ x: MLXArray) -> MLXArray {
-        let routerInputs =
-            routerNorm(x) * _routerInputScale.asType(routerNorm.weight.dtype)
+        guard let routerNormWeight = routerNorm.weight else {
+            fatalError("routerNorm.weight is nil in Gemma3nAltUp")
+        }
+        let routerInputs = routerNorm(x) * _routerInputScale.asType(routerNormWeight.dtype)
+
         let routed = modalityRouter(routerInputs).asType(.float32)
         return tanh(routed)
     }
@@ -875,17 +849,15 @@ private class Gemma3nDecoderLayer: Module {
 
     @ModuleInfo(key: "self_attn") var selfAttn: Gemma3nAttention
     @ModuleInfo var mlp: MLP
-    @ModuleInfo(key: "input_layernorm") var inputLayernorm: Gemma3nRMSNormWithScale
-    @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayernorm: Gemma3nRMSNormWithScale
-    @ModuleInfo(key: "pre_feedforward_layernorm") var preFeedforwardLayernorm:
-        Gemma3nRMSNormWithScale
-    @ModuleInfo(key: "post_feedforward_layernorm") var postFeedforwardLayernorm:
-        Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "input_layernorm") var inputLayernorm: Gemma3nRMSNorm
+    @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayernorm: Gemma3nRMSNorm
+    @ModuleInfo(key: "pre_feedforward_layernorm") var preFeedforwardLayernorm: Gemma3nRMSNorm
+    @ModuleInfo(key: "post_feedforward_layernorm") var postFeedforwardLayernorm: Gemma3nRMSNorm
     @ModuleInfo var altup: Gemma3nAltUp
     @ModuleInfo var laurel: Gemma3nLaurelBlock
     @ModuleInfo(key: "per_layer_input_gate") var perLayerInputGate: Linear
     @ModuleInfo(key: "per_layer_projection") var perLayerProjection: Linear
-    @ModuleInfo(key: "post_per_layer_input_norm") var postPerLayerInputNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "post_per_layer_input_norm") var postPerLayerInputNorm: Gemma3nRMSNorm
 
     init(config: TextConfig, layerIdx: Int) {
         self.config = config
@@ -901,26 +873,22 @@ private class Gemma3nDecoderLayer: Module {
             == "sliding_attention"
 
         self._mlp.wrappedValue = MLP(config: config, layerIdx: layerIdx)
-        self._inputLayernorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._inputLayernorm.wrappedValue = Gemma3nRMSNorm(
             dim: hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0
         )
 
-        self._postAttentionLayernorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._postAttentionLayernorm.wrappedValue = Gemma3nRMSNorm(
             dim: hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0
         )
-        self._preFeedforwardLayernorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._preFeedforwardLayernorm.wrappedValue = Gemma3nRMSNorm(
             dim: hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0
         )
-        self._postFeedforwardLayernorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._postFeedforwardLayernorm.wrappedValue = Gemma3nRMSNorm(
             dim: hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0
         )
 
         self._altup.wrappedValue = Gemma3nAltUp(config: config)
@@ -936,10 +904,9 @@ private class Gemma3nDecoderLayer: Module {
             hiddenSize,
             bias: false
         )
-        self._postPerLayerInputNorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._postPerLayerInputNorm.wrappedValue = Gemma3nRMSNorm(
             dim: hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0
         )
 
         super.init()
@@ -1049,13 +1016,12 @@ private class Gemma3Model: Module {
     @ModuleInfo(key: "layers") var layers: [Gemma3nDecoderLayer]
     @ModuleInfo(key: "embed_tokens_per_layer") var embedTokensPerLayer: Embedding
     @ModuleInfo(key: "per_layer_model_projection") var perLayerModelProjection: Linear
-    @ModuleInfo(key: "per_layer_projection_norm") var perLayerProjectionNorm:
-        Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "per_layer_projection_norm") var perLayerProjectionNorm: Gemma3nRMSNorm
 
     @ModuleInfo(key: "altup_projections") var altupProjections: [Linear]
     @ModuleInfo(key: "altup_unembed_projections") var altupUnembedProjections: [Linear]
 
-    @ModuleInfo var norm: Gemma3nRMSNormWithScale
+    @ModuleInfo var norm: Gemma3nRMSNorm
     @ModuleInfo(key: "rope_embedding") var ropeEmbedding: Gemma3nRotaryEmbedding
     @ModuleInfo(key: "rope_embedding_local") var ropeEmbeddingLocal: Gemma3nRotaryEmbedding
 
@@ -1090,10 +1056,9 @@ private class Gemma3Model: Module {
             bias: false
         )
 
-        self._perLayerProjectionNorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._perLayerProjectionNorm.wrappedValue = Gemma3nRMSNorm(
             dim: config.hiddenSizePerLayerInput,
             eps: config.rmsNormEps,
-            scaleShift: 0.0
         )
 
         self._altupProjections.wrappedValue = (0 ..< (config.altupNumInputs - 1)).map { _ in
@@ -1103,10 +1068,9 @@ private class Gemma3Model: Module {
             Linear(config.hiddenSize, config.hiddenSize, bias: false)
         }
 
-        self._norm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._norm.wrappedValue = Gemma3nRMSNorm(
             dim: config.hiddenSize,
             eps: config.rmsNormEps,
-            scaleShift: 0.0
         )
 
         self._perLayerProjectionScale = MLXArray(pow(Float(hiddenSize), -0.5))
@@ -1375,11 +1339,11 @@ private class Gemma3nMultimodalEmbedder: Module, UnaryLayer {
     let textHiddenSize: Int
 
     @ModuleInfo var embedding: Embedding
-    @ModuleInfo(key: "hard_embedding_norm") var hardEmbeddingNorm: Gemma3nRMSNormWithScale
-    @ModuleInfo(key: "soft_embedding_norm") var softEmbeddingNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "hard_embedding_norm") var hardEmbeddingNorm: Gemma3nRMSNorm
+    @ModuleInfo(key: "soft_embedding_norm") var softEmbeddingNorm: Gemma3nRMSNorm
     @ModuleInfo(key: "embedding_projection") var embeddingProjection: Linear
     @ModuleInfo(key: "embedding_post_projection_norm") var embeddingPostProjectionNorm:
-        Gemma3nRMSNormNoScale
+        Gemma3nRMSNorm
 
     init(multimodalConfig: any MultimodalConfig, textConfig: TextConfig) {
         self.multimodalHiddenSize = multimodalConfig.hiddenSize
@@ -1392,11 +1356,11 @@ private class Gemma3nMultimodalEmbedder: Module, UnaryLayer {
             embeddingCount: vocabSize,
             dimensions: multimodalHiddenSize
         )
-        self._hardEmbeddingNorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._hardEmbeddingNorm.wrappedValue = Gemma3nRMSNorm(
             dim: multimodalHiddenSize,
             eps: eps
         )
-        self._softEmbeddingNorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._softEmbeddingNorm.wrappedValue = Gemma3nRMSNorm(
             dim: multimodalHiddenSize,
             eps: eps
         )
@@ -1405,9 +1369,10 @@ private class Gemma3nMultimodalEmbedder: Module, UnaryLayer {
             textHiddenSize,
             bias: false
         )
-        self._embeddingPostProjectionNorm.wrappedValue = Gemma3nRMSNormNoScale(
+        self._embeddingPostProjectionNorm.wrappedValue = Gemma3nRMSNorm(
             dim: textHiddenSize,
-            eps: eps
+            eps: eps,
+            withScale: false
         )
 
         super.init()
@@ -2538,10 +2503,10 @@ private class Gemma3nAudioConformerAttention: Module {
     let postInFeatures: Int
     private let _gradientClipping: MLXArray
 
-    @ModuleInfo(key: "pre_attn_norm") var preAttnNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "pre_attn_norm") var preAttnNorm: Gemma3nRMSNorm
     @ModuleInfo var attn: Gemma3nAudioAttention
     @ModuleInfo var post: Linear
-    @ModuleInfo(key: "post_norm") var postNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "post_norm") var postNorm: Gemma3nRMSNorm
 
     init(config: AudioConfig) {
         self.config = config
@@ -2549,10 +2514,10 @@ private class Gemma3nAudioConformerAttention: Module {
         self.postInFeatures = config.hiddenSize
         self._gradientClipping = MLXArray(config.gradientClipping)
 
-        self._preAttnNorm.wrappedValue = Gemma3nRMSNormWithScale(dim: config.hiddenSize)
+        self._preAttnNorm.wrappedValue = Gemma3nRMSNorm(dim: config.hiddenSize)
         self._attn.wrappedValue = Gemma3nAudioAttention(config: config)
         self._post.wrappedValue = Linear(postInFeatures, config.hiddenSize, bias: false)
-        self._postNorm.wrappedValue = Gemma3nRMSNormWithScale(dim: config.hiddenSize)
+        self._postNorm.wrappedValue = Gemma3nRMSNorm(dim: config.hiddenSize)
 
         super.init()
     }
@@ -2581,20 +2546,20 @@ private class Gemma3nAudioConformerFeedForward: Module {
     private let _gradientClipping: MLXArray
     private let _postLayerScale: MLXArray
 
-    @ModuleInfo(key: "pre_layer_norm") var preLayerNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "pre_layer_norm") var preLayerNorm: Gemma3nRMSNorm
     @ModuleInfo(key: "ffw_layer_1") var ffwLayer1: Linear
     @ModuleInfo(key: "ffw_layer_2") var ffwLayer2: Linear
-    @ModuleInfo(key: "post_layer_norm") var postLayerNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "post_layer_norm") var postLayerNorm: Gemma3nRMSNorm
 
     init(config: AudioConfig) {
         self.config = config
         self._gradientClipping = MLXArray(config.gradientClipping)
         self._postLayerScale = MLXArray(config.confResidualWeight)
 
-        self._preLayerNorm.wrappedValue = Gemma3nRMSNormWithScale(dim: config.hiddenSize)
+        self._preLayerNorm.wrappedValue = Gemma3nRMSNorm(dim: config.hiddenSize)
         self._ffwLayer1.wrappedValue = Linear(config.hiddenSize, config.hiddenSize * 4, bias: false)
         self._ffwLayer2.wrappedValue = Linear(config.hiddenSize * 4, config.hiddenSize, bias: false)
-        self._postLayerNorm.wrappedValue = Gemma3nRMSNormWithScale(dim: config.hiddenSize)
+        self._postLayerNorm.wrappedValue = Gemma3nRMSNorm(dim: config.hiddenSize)
 
         super.init()
     }
@@ -2618,10 +2583,10 @@ private class Gemma3nAudioConformerLightConv1d: Module {
     private let _gradientClipping: MLXArray
     let causalPadding: Int
 
-    @ModuleInfo(key: "pre_layer_norm") var preLayerNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "pre_layer_norm") var preLayerNorm: Gemma3nRMSNorm
     @ModuleInfo(key: "linear_start") var linearStart: Linear
     @ModuleInfo(key: "depthwise_conv1d") var depthwiseConv1d: Conv1d
-    @ModuleInfo(key: "conv_norm") var convNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "conv_norm") var convNorm: Gemma3nRMSNorm
     @ModuleInfo(key: "linear_end") var linearEnd: Linear
 
     init(config: AudioConfig) {
@@ -2629,7 +2594,7 @@ private class Gemma3nAudioConformerLightConv1d: Module {
         self._gradientClipping = MLXArray(config.gradientClipping)
         self.causalPadding = config.confConvKernelSize - 1
 
-        self._preLayerNorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._preLayerNorm.wrappedValue = Gemma3nRMSNorm(
             dim: config.hiddenSize,
             eps: config.rmsNormEps
         )
@@ -2647,7 +2612,7 @@ private class Gemma3nAudioConformerLightConv1d: Module {
             groups: config.hiddenSize,
             bias: false
         )
-        self._convNorm.wrappedValue = Gemma3nRMSNormWithScale(
+        self._convNorm.wrappedValue = Gemma3nRMSNorm(
             dim: config.hiddenSize,
             eps: config.rmsNormEps
         )
@@ -2690,7 +2655,7 @@ private class Gemma3nAudioConformerBlock: Module {
     @ModuleInfo var attention: Gemma3nAudioConformerAttention
     @ModuleInfo var lconv1d: Gemma3nAudioConformerLightConv1d
     @ModuleInfo(key: "ffw_layer_end") var ffwLayerEnd: Gemma3nAudioConformerFeedForward
-    @ModuleInfo var norm: Gemma3nRMSNormWithScale
+    @ModuleInfo var norm: Gemma3nRMSNorm
 
     init(config: AudioConfig) {
         self.config = config
@@ -2700,7 +2665,7 @@ private class Gemma3nAudioConformerBlock: Module {
         self._attention.wrappedValue = Gemma3nAudioConformerAttention(config: config)
         self._lconv1d.wrappedValue = Gemma3nAudioConformerLightConv1d(config: config)
         self._ffwLayerEnd.wrappedValue = Gemma3nAudioConformerFeedForward(config: config)
-        self._norm.wrappedValue = Gemma3nRMSNormWithScale(dim: config.hiddenSize)
+        self._norm.wrappedValue = Gemma3nRMSNorm(dim: config.hiddenSize)
 
         super.init()
     }
