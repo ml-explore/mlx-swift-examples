@@ -1340,33 +1340,27 @@ private class LanguageModel: Module, KVCacheDimensionProvider {
     }
 
     func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
-        var sanitizedWeights = [String: MLXArray]()
-
+        var sanitizedWeights = weights
         for (k, v) in weights {
-            // Skip rotary embedding inverse frequency weights (matches Python exactly)
-            if k.contains("self_attn.rotary_emb.inv_freq") {
-                continue
-            }
-            // Python logic: if "language_model.model" not in k and "language_model.lm_head" not in k:
-            else if !k.contains("language_model.model") && !k.contains("language_model.lm_head") {
+            if !k.contains("language_model.model") && !k.contains("language_model.lm_head") {
+                // Transform keys that don't contain the specific patterns
                 let newKey = k.replacingOccurrences(
                     of: "language_model", with: "language_model.model")
                 sanitizedWeights[newKey] = v
-            }
-            // Otherwise, keep the key as is
-            else {
+            } else if k.contains("self_attn.rotary_emb.inv_freq") {
+                // Skip rotary embedding inverse frequency weights
+                continue
+            } else {
                 sanitizedWeights[k] = v
             }
         }
-
-        // If lm_head weight is missing, use embed_tokens weight as fallback (matches Python exactly)
+        // Handle tied lm_head weights
         if sanitizedWeights["language_model.lm_head.weight"] == nil {
             let embedTokensKey = "language_model.model.embed_tokens.weight"
             if let embedWeight = sanitizedWeights[embedTokensKey] {
                 sanitizedWeights["language_model.lm_head.weight"] = embedWeight
             }
         }
-
         return sanitizedWeights
     }
 }
@@ -1676,7 +1670,6 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
         self._languageModel.wrappedValue = LanguageModel(config: config.textConfig)
         self._visionTower.wrappedValue = Gemma3nVisionModel(config: config.visionConfig)
         self._audioTower.wrappedValue = Gemma3nAudioModel(config: config.audioConfig)
-
         self._embedVision.wrappedValue = Gemma3nMultimodalEmbedder(
             multimodalConfig: config.visionConfig,
             textConfig: config.textConfig
@@ -1893,20 +1886,16 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
         return languageModel(inputs: inputs, cache: convertedCache).logits
     }
 
-    // In class Gemma3n
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
         var sanitizedWeights = [String: MLXArray]()
-
-        // Remove the "model." prefix from keys.
         for (k, v) in weights {
-            if k.hasPrefix("model.") {
+            if k.starts(with: "model.") {
                 let newKey = k.split(separator: ".").dropFirst().joined(separator: ".")
                 sanitizedWeights[newKey] = v
             } else {
                 sanitizedWeights[k] = v
             }
         }
-
         return sanitizedWeights
     }
 
@@ -1937,14 +1926,11 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
             weights.merge(fileWeights) { _, new in new }
         }
 
-        // Main sanitization (remove "model." prefix)
         var sanitizedWeights = model.sanitize(weights: weights)
-
-        // Vision model sanitization (transpose conv weights)
-        sanitizedWeights = Gemma3nVisionModel.sanitizeWeights(sanitizedWeights)
-
-        // Audio model sanitization (transpose conv weights)
-        sanitizedWeights = model.audioTower.sanitize(weights: sanitizedWeights)
+        sanitizedWeights = model.visionTower.sanitize(weights: sanitizedWeights)
+        // The audio and language sanitization is not done in the Python implementation
+        //        sanitizedWeights = model.audioTower.sanitize(weights: sanitizedWeights)
+        //        sanitizedWeights = model.languageModel.sanitize(weights: sanitizedWeights)
 
         // Handle tied lm_head weights
         if sanitizedWeights["language_model.lm_head.weight"] == nil {
@@ -1992,7 +1978,7 @@ private class Gemma3nAudioRelativePositionEmbedding: Module {
     let maxForward: Int
 
     @ModuleInfo(key: "pos_proj") var posProj: Linear
-    @ModuleInfo(key: "inv_timescales") var invTimescales: MLXArray
+    private let _invTimescales: MLXArray
 
     init(config: AudioConfig) {
         self.config = config
@@ -2016,7 +2002,7 @@ private class Gemma3nAudioRelativePositionEmbedding: Module {
                 MLXArray(0 ..< numTimescales).asType(.float32) * (-logTimescaleIncrement)
             )
 
-        self._invTimescales.wrappedValue = expandedDimensions(
+        self._invTimescales = expandedDimensions(
             expandedDimensions(invTimescales, axis: 0),
             axis: 0
         )
@@ -2028,7 +2014,7 @@ private class Gemma3nAudioRelativePositionEmbedding: Module {
         assert(position.ndim == 2)
         let positionFloat = expandedDimensions(position.asType(.float32), axis: -1)
 
-        let scaledTime = positionFloat * invTimescales
+        let scaledTime = positionFloat * _invTimescales
         let timingSignal = concatenated([sin(scaledTime), cos(scaledTime)], axis: -1)
         return timingSignal.asType(dtype)
     }
@@ -2328,6 +2314,7 @@ private class Gemma3nAudioSubSampleConvProjection: Module {
 
             let fInPadded = currentFForBlockInput + padFLeft + padFRight
             let fOutAfterConv = (fInPadded - kernelW) / strideW + 1
+
             calculatedFOutDims.append(fOutAfterConv)
             currentFForBlockInput = fOutAfterConv
         }
@@ -2389,8 +2376,8 @@ private class Gemma3nAudioAttention: Module {
     let attentionLogitsSoftCap: Float
     let contextSize: Int
     let qScale: Float
-    let localCausalValidMask: MLXArray
-    let softcap: MLXArray
+    private let _localCausalValidMask: MLXArray
+    private let _softcap: MLXArray
 
     @ModuleInfo(key: "relative_position_embedding") var relativePositionEmbedding:
         Gemma3nAudioRelativePositionEmbedding
@@ -2434,9 +2421,10 @@ private class Gemma3nAudioAttention: Module {
         )
 
         let localCausalValidMaskTemp = MLXArray.ones([chunkSize, contextSize], dtype: .bool)
-        self.localCausalValidMask = localCausalValidMaskTemp .&& lowerCausalMask .&& upperCausalMask
+        self._localCausalValidMask = localCausalValidMaskTemp .&& lowerCausalMask
+            .&& upperCausalMask
 
-        self.softcap = MLXArray(attentionLogitsSoftCap, dtype: .float32)
+        self._softcap = MLXArray(attentionLogitsSoftCap, dtype: .float32)
 
         super.init()
     }
@@ -2536,7 +2524,7 @@ private class Gemma3nAudioAttention: Module {
 
         let conditionFromCausality = expandedDimensions(
             expandedDimensions(
-                expandedDimensions(localCausalValidMask, axis: 0),
+                expandedDimensions(_localCausalValidMask, axis: 0),
                 axis: 0
             ),
             axis: 0
@@ -2547,9 +2535,9 @@ private class Gemma3nAudioAttention: Module {
         var logits = relativePositionEmbedding(queryBlocks, keyBlocks)
 
         // Apply attention logit softcap
-        logits = logits / softcap
+        logits = logits / _softcap
         logits = tanh(logits)
-        logits = logits * softcap
+        logits = logits * _softcap
 
         // Apply the combined mask
         logits = MLX.where(
@@ -2591,10 +2579,10 @@ private class Gemma3nAudioConformerAttention: Module {
     let postInFeatures: Int
     private let _gradientClipping: MLXArray
 
-    @ModuleInfo var preAttnNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "pre_attn_norm") var preAttnNorm: Gemma3nRMSNormWithScale
     @ModuleInfo var attn: Gemma3nAudioAttention
     @ModuleInfo var post: Linear
-    @ModuleInfo var postNorm: Gemma3nRMSNormWithScale
+    @ModuleInfo(key: "post_norm") var postNorm: Gemma3nRMSNormWithScale
 
     init(config: AudioConfig) {
         self.config = config
@@ -2737,17 +2725,17 @@ private class Gemma3nAudioConformerLightConv1d: Module {
 // MARK: - Conformer Block
 private class Gemma3nAudioConformerBlock: Module {
     let config: AudioConfig
-    private let gradientClipping: MLXArray
+    private let _gradientClipping: MLXArray
 
-    @ModuleInfo var ffwLayerStart: Gemma3nAudioConformerFeedForward
+    @ModuleInfo(key: "ffw_layer_start") var ffwLayerStart: Gemma3nAudioConformerFeedForward
     @ModuleInfo var attention: Gemma3nAudioConformerAttention
     @ModuleInfo var lconv1d: Gemma3nAudioConformerLightConv1d
-    @ModuleInfo var ffwLayerEnd: Gemma3nAudioConformerFeedForward
+    @ModuleInfo(key: "ffw_layer_end") var ffwLayerEnd: Gemma3nAudioConformerFeedForward
     @ModuleInfo var norm: Gemma3nRMSNormWithScale
 
     init(config: AudioConfig) {
         self.config = config
-        self.gradientClipping = MLXArray(config.gradientClipping)
+        self._gradientClipping = MLXArray(config.gradientClipping)
 
         self._ffwLayerStart.wrappedValue = Gemma3nAudioConformerFeedForward(config: config)
         self._attention.wrappedValue = Gemma3nAudioConformerAttention(config: config)
@@ -2771,7 +2759,7 @@ private class Gemma3nAudioConformerBlock: Module {
 
         result = lconv1d(audioencodingsForLconvInput)
         result = ffwLayerEnd(result)
-        result = clip(result, min: -gradientClipping, max: gradientClipping)
+        result = clip(result, min: -_gradientClipping, max: _gradientClipping)
         return norm(result)
     }
 }
@@ -2856,7 +2844,8 @@ private func numGroups(groupSize: Int?, channels: Int) -> Int {
     }
     // NOTE: groupSize == 1 -> depthwise conv
     assert(channels % groupSize == 0)
-    return channels / groupSize
+    let groups = channels / groupSize
+    return groups
 }
 
 private func makeDivisible(
@@ -3082,6 +3071,7 @@ private class EdgeResidual: Module, UnaryLayer {
         self.hasSkip = (inChannels == outChannels && stride == 1) && !noskip
 
         let padding = (expKernelSize - 1) / 2
+
         self._convExp.wrappedValue = Conv2d(
             inputChannels: inChannels,
             outputChannels: midChannels,
@@ -3139,17 +3129,17 @@ private class MultiQueryAttention2d: Module {
     let valueDim: Int
     let scale: Float
 
-    @ModuleInfo var queryProj: Conv2d
+    @ModuleInfo(key: "query_proj") var queryProj: Conv2d
 
-    @ModuleInfo var keyDownConv: UnaryLayer
-    @ModuleInfo var keyNorm: UnaryLayer
-    @ModuleInfo var valueDownConv: UnaryLayer
-    @ModuleInfo var valueNorm: UnaryLayer
+    @ModuleInfo(key: "key_down_conv") var keyDownConv: UnaryLayer
+    @ModuleInfo(key: "key_norm") var keyNorm: UnaryLayer
+    @ModuleInfo(key: "value_down_conv") var valueDownConv: UnaryLayer
+    @ModuleInfo(key: "value_norm") var valueNorm: UnaryLayer
 
-    @ModuleInfo var keyProj: Conv2d
-    @ModuleInfo var valueProj: Conv2d
+    @ModuleInfo(key: "key_proj") var keyProj: Conv2d
+    @ModuleInfo(key: "value_proj") var valueProj: Conv2d
     @ModuleInfo(key: "attn_drop") var attnDrop: UnaryLayer
-    @ModuleInfo var outputProj: Conv2d
+    @ModuleInfo(key: "output_proj") var outputProj: Conv2d
     @ModuleInfo(key: "proj_drop") var projDrop: UnaryLayer
 
     init(
@@ -3195,6 +3185,7 @@ private class MultiQueryAttention2d: Module {
                 groups: dim,  // Depthwise
                 bias: false
             )
+
             self._keyNorm.wrappedValue = RMSNormAct2d(numChannels: dim, eps: 1e-6, applyAct: false)
         } else {
             self._keyDownConv.wrappedValue = Identity()
@@ -3323,8 +3314,8 @@ private class MobileAttention: Module, UnaryLayer {
 
     @ModuleInfo var norm: RMSNormAct2d
     @ModuleInfo var attn: MultiQueryAttention2d
-    @ModuleInfo var layerScale: UnaryLayer
-    @ModuleInfo var dropPath: Identity
+    @ModuleInfo(key: "layer_scale") var layerScale: UnaryLayer
+    @ModuleInfo(key: "drop_path") var dropPath: Identity
 
     init(
         inChannels: Int,
@@ -3544,7 +3535,7 @@ private class MobileNetV5MultiScaleFusionAdapter: Module {
 
     @ModuleInfo var ffn: UniversalInvertedResidual
     @ModuleInfo var norm: RMSNormAct2d
-    @ModuleInfo var avgPool: AvgPool2d
+    @ModuleInfo(key: "avg_pool") var avgPool: AvgPool2d
 
     init(
         inChannels: [Int],
@@ -3780,37 +3771,23 @@ private class Gemma3nVisionModel: Module {
     }
 
     func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
-        return Self.sanitizeWeights(weights)
-    }
-
-    static func sanitizeWeights(_ weights: [String: MLXArray]) -> [String: MLXArray] {
-        var sanitizedWeights = [String: MLXArray]()
+        var sanitizedWeights = weights
         var skipTranspose = false
-
-        // This logic is correct
         let testKey = "vision_tower.timm_model.blocks.0.0.conv_exp.weight"
-        if let convWeight = weights[testKey] {
-            let shape = convWeight.shape
-            if shape.count == 4, shape[3] > shape[1] {
-                skipTranspose = true
-            }
+        if let convWeight = weights[testKey], convWeight.ndim == 4,
+            convWeight.shape[3] > convWeight.shape[1]
+        {
+            skipTranspose = true
         }
-
         for (k, v) in weights {
             if (k.contains("conv") && k.contains("weight"))
                 || (k.contains("attn") && k.contains("proj.weight"))
             {
-                if v.shape.count == 4 && !skipTranspose {
+                if v.ndim == 4 && !skipTranspose {
                     sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
-                } else {
-                    sanitizedWeights[k] = v
                 }
-            } else {
-                // Copy all other weights (biases, norm layers, etc.)
-                sanitizedWeights[k] = v
             }
         }
-
         return sanitizedWeights
     }
 }
@@ -3828,8 +3805,9 @@ private class Gemma3nAudioModel: Module {
 
         self._subsampleConvProjection.wrappedValue = Gemma3nAudioSubSampleConvProjection(
             config: config)
-        self._conformer.wrappedValue = (0 ..< config.confNumHiddenLayers).map { _ in
-            Gemma3nAudioConformerBlock(config: config)
+
+        self._conformer.wrappedValue = (0 ..< config.confNumHiddenLayers).map { i in
+            return Gemma3nAudioConformerBlock(config: config)
         }
 
         super.init()
@@ -3914,32 +3892,25 @@ private class Gemma3nAudioModel: Module {
     /// Sanitizes weights by transposing convolution layers if they are not
     /// already in the expected MLX format.
     func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
-        var sanitizedWeights = [String: MLXArray]()
-
+        var sanitizedWeights = weights
+        // Iterate over the original keys to decide which ones to modify in the copy.
         for (k, v) in weights {
             if k.contains("conv.weight") {
-                // A Conv2D weight should be 4D.
-                // If it is, check if it needs transposing from NCHW to NHWC.
-                // If checkArrayShape is true, it's already in the correct format.
-                if v.ndim == 4 && !checkArrayShape(v) {
-                    sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
-                } else {
+                if checkArrayShape(v) {
                     sanitizedWeights[k] = v
+                } else {
+                    sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
                 }
             } else if k.contains("conv1d.weight") {
-                // A Conv1D weight should be 3D.
-                // If it is, check if it needs transposing from NCL to NLC.
-                if v.ndim == 3 && !checkArrayShape(v) {
-                    sanitizedWeights[k] = v.transposed(0, 2, 1)
-                } else {
+                if true {
                     sanitizedWeights[k] = v
+                } else {
+                    sanitizedWeights[k] = v.transposed(0, 2, 1)
                 }
             } else {
-                // For all other weights, keep them as they are.
                 sanitizedWeights[k] = v
             }
         }
-
         return sanitizedWeights
     }
 }
