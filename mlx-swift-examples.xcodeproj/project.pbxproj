@@ -283,9 +283,9 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				MLXLMTests/BaseConfigurationTests.swift,
-        MLXLMTests/ToolTests.swift,
 				MLXLMTests/EvalTests.swift,
 				MLXLMTests/StreamlinedTests.swift,
+				MLXLMTests/ToolTests.swift,
 				MLXLMTests/UserInputTests.swift,
 			);
 			target = C3208E6D2DB19451006AE6CA /* MLXLMTests */;
@@ -3249,8 +3249,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ml-explore/mlx-swift";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.25.4;
+				branch = "improved-parameter-errors";
+				kind = branch;
 			};
 		};
 		C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
