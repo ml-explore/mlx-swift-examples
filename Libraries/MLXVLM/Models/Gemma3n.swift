@@ -1652,20 +1652,6 @@ private func maskedScatter(
     return resultFlat.reshaped(inputShape)
 }
 
-private func checkArrayShape(_ arr: MLXArray) -> Bool {
-    let shape = arr.shape
-    guard shape.count == 4 else {
-        return false
-    }
-
-    let (outChannels, kH, kW, _) = (shape[0], shape[1], shape[2], shape[3])
-    let result = (outChannels >= kH) && (outChannels >= kW) && (kH == kW)
-    print(
-        "🔍 checkArrayShape: shape=\(shape), outChannels=\(outChannels), kH=\(kH), kW=\(kW), result=\(result)"
-    )
-    return result
-}
-
 // MARK: - Main Model
 
 public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
@@ -3925,27 +3911,31 @@ private class Gemma3nAudioModel: Module {
         return (audioencodings, currentMask)
     }
 
+    /// Sanitizes weights by transposing convolution layers if they are not
+    /// already in the expected MLX format.
     func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
         var sanitizedWeights = [String: MLXArray]()
 
         for (k, v) in weights {
             if k.contains("conv.weight") {
-                // The checkArrayShape function is not robust.
-                // The Python implementation doesn't use it. It's safer to just transpose.
-                // Assuming NCHW -> NHWC for Conv2d
-                if v.ndim == 4 {
+                // A Conv2D weight should be 4D.
+                // If it is, check if it needs transposing from NCHW to NHWC.
+                // If checkArrayShape is true, it's already in the correct format.
+                if v.ndim == 4 && !checkArrayShape(v) {
                     sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
                 } else {
                     sanitizedWeights[k] = v
                 }
             } else if k.contains("conv1d.weight") {
-                // Assuming NCL -> NLC for Conv1d
-                if v.ndim == 3 {
+                // A Conv1D weight should be 3D.
+                // If it is, check if it needs transposing from NCL to NLC.
+                if v.ndim == 3 && !checkArrayShape(v) {
                     sanitizedWeights[k] = v.transposed(0, 2, 1)
                 } else {
                     sanitizedWeights[k] = v
                 }
             } else {
+                // For all other weights, keep them as they are.
                 sanitizedWeights[k] = v
             }
         }
@@ -4149,7 +4139,6 @@ public struct Gemma3nProcessorConfiguration: Codable, Sendable {
     public let doConvertRgb: Bool?
     public let doPanAndScan: Bool?
 
-    // Token identifiers - use default values that match Python implementation
     public var imageTokenId: Int { 262145 }
     public var audioTokenId: Int { 262273 }
 

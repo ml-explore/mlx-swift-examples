@@ -386,12 +386,6 @@ private enum Language {
 // MARK: - Vision
 
 private enum Vision {
-    static func checkArrayShape(_ arr: MLXArray) -> Bool {
-        if arr.ndim != 4 { return false }
-        let (o, h, w, _) = (arr.dim(0), arr.dim(1), arr.dim(2), arr.dim(3))
-        return (o >= h && o >= w && h == w)
-    }
-
     fileprivate class Attention: Module {
         let numHeads: Int
         let scale: Float
@@ -602,7 +596,7 @@ private enum Vision {
                 if k.contains("position_ids") {
                     continue
                 } else if k.contains("patch_embedding.weight") {
-                    if Vision.checkArrayShape(v) {
+                    if checkArrayShape(v) {
                         sanitizedWeights[k] = v
                     } else {
                         sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
