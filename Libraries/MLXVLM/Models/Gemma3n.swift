@@ -1034,23 +1034,6 @@ private class Gemma3nDecoderLayer: Module {
     }
 }
 
-private class Gemma3nTextScaledWordEmbedding: Module, UnaryLayer {
-    @ModuleInfo var weight: MLXArray
-    let embedScale: Float
-
-    init(numEmbeddings: Int, embeddingDim: Int, embedScale: Float = 1.0) {
-        self.embedScale = embedScale
-        self._weight.wrappedValue = MLXRandom.normal([numEmbeddings, embeddingDim])
-        super.init()
-    }
-
-    func callAsFunction(_ x: MLXArray) -> MLXArray {
-        let indices = x.asType(.int32)
-        let embeddings = take(weight, indices, axis: 0)
-        return embeddings * MLXArray(embedScale, dtype: .float32).asType(weight.dtype)
-    }
-}
-
 private class Gemma3Model: Module {
     let config: TextConfig
     let hiddenSize: Int
@@ -1059,11 +1042,12 @@ private class Gemma3Model: Module {
     let numHiddenLayers: Int
     private let _perLayerProjectionScale: MLXArray
     private let _perLayerInputScale: MLXArray
+    private let _embedTokensScale: Float
+    private let _embedTokensPerLayerScale: Float
 
-    @ModuleInfo(key: "embed_tokens") var embedTokens: Gemma3nTextScaledWordEmbedding
-    @ModuleInfo(key: "layers") var layers: [Gemma3nDecoderLayer]  // This is correct!
-    @ModuleInfo(key: "embed_tokens_per_layer") var embedTokensPerLayer:
-        Gemma3nTextScaledWordEmbedding
+    @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
+    @ModuleInfo(key: "layers") var layers: [Gemma3nDecoderLayer]
+    @ModuleInfo(key: "embed_tokens_per_layer") var embedTokensPerLayer: Embedding
     @ModuleInfo(key: "per_layer_model_projection") var perLayerModelProjection: Linear
     @ModuleInfo(key: "per_layer_projection_norm") var perLayerProjectionNorm:
         Gemma3nRMSNormWithScale
@@ -1084,21 +1068,21 @@ private class Gemma3Model: Module {
 
         assert(vocabSize > 0)
 
-        self._embedTokens.wrappedValue = Gemma3nTextScaledWordEmbedding(
-            numEmbeddings: config.vocabSize,
-            embeddingDim: config.hiddenSize,
-            embedScale: pow(Float(config.hiddenSize), 0.5)
+        self._embedTokens.wrappedValue = Embedding(
+            embeddingCount: config.vocabSize,
+            dimensions: config.hiddenSize,
         )
+        self._embedTokensScale = pow(Float(config.hiddenSize), 0.5)
 
         self._layers.wrappedValue = (0 ..< config.numHiddenLayers).map { layerIdx in
             Gemma3nDecoderLayer(config: config, layerIdx: layerIdx)
         }
 
-        self._embedTokensPerLayer.wrappedValue = Gemma3nTextScaledWordEmbedding(
-            numEmbeddings: config.vocabSizePerLayerInput,
-            embeddingDim: config.numHiddenLayers * config.hiddenSizePerLayerInput,
-            embedScale: pow(Float(config.hiddenSizePerLayerInput), 0.5)
+        self._embedTokensPerLayer.wrappedValue = Embedding(
+            embeddingCount: config.vocabSizePerLayerInput,
+            dimensions: config.numHiddenLayers * config.hiddenSizePerLayerInput,
         )
+        self._embedTokensPerLayerScale = pow(Float(config.hiddenSizePerLayerInput), 0.5)
 
         self._perLayerModelProjection.wrappedValue = Linear(
             config.hiddenSize,
@@ -1150,6 +1134,7 @@ private class Gemma3Model: Module {
             h = inputsEmbeds
         } else if let inputs {
             h = embedTokens(inputs)
+            h = (h * MLXArray(_embedTokensScale, dtype: .float32)).asType(h.dtype)
         } else {
             fatalError("Either inputs or inputsEmbeds must be provided")
         }
@@ -1253,7 +1238,10 @@ private class Gemma3Model: Module {
             inputIds .< vocabSizePerLayerInput
         )
         let tokens = MLX.where(perLayerInputsMask, inputIds, MLXArray.zeros(like: inputIds))
-        let result = embedTokensPerLayer(tokens).reshaped(
+        var result = embedTokensPerLayer(tokens)
+        result = (result * MLXArray(_embedTokensPerLayerScale, dtype: .float32)).asType(
+            result.dtype)
+        result = result.reshaped(
             Array(inputIds.shape) + [config.numHiddenLayers, config.hiddenSizePerLayerInput]
         )
         return result
