@@ -1777,10 +1777,8 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
         }
 
         // Process vision features
-        if let pixelValues = pixelValues {
-            let pixelValuesTyped = pixelValues.asType(languageModel.model.embedTokens.weight.dtype)
-            let imageFeatures = getImageFeatures(pixelValuesTyped)
-
+        if let pixelValues {
+            let imageFeatures = getImageFeatures(pixelValues)
             return mergeMultimodalAndText(
                 inputIds: inputIds,
                 inputsEmbeds: inputsEmbeds,
