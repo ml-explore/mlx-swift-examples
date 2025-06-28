@@ -86,6 +86,7 @@ public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "qwen2_5_vl": create(Qwen25VLConfiguration.self, Qwen25VL.init),
             "idefics3": create(Idefics3Configuration.self, Idefics3.init),
             "gemma3": create(Gemma3Configuration.self, Gemma3.init),
+            "gemma3n": create(Gemma3nConfiguration.self, Gemma3n.init),
             "smolvlm": create(SmolVLM2Configuration.self, SmolVLM2.init),
         ]
     }
@@ -111,6 +112,8 @@ public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendabl
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
             "Gemma3Processor": create(
                 Gemma3ProcessorConfiguration.self, Gemma3Processor.init),
+            "Gemma3nProcessor": create(
+                Gemma3nProcessorConfiguration.self, Gemma3nProcessor.init),
             "SmolVLMProcessor": create(
                 SmolVLMProcessorConfiguration.self, SmolVLMProcessor.init),
         ]
@@ -166,6 +169,18 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         extraEOSTokens: ["<end_of_turn>"]
     )
 
+    static public let gemma3n_E2B = ModelConfiguration(
+        id: "mlx-community/gemma-3n-E2B-it-4bit",
+        defaultPrompt: "Describe this image.",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3n_E4B = ModelConfiguration(
+        id: "mlx-community/gemma-3n-E4B-it-4bit",
+        defaultPrompt: "Describe this image.",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
     static public let smolvlm = ModelConfiguration(
         id: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct-mlx",
         defaultPrompt:
@@ -181,6 +196,8 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             gemma3_4B_qat_4bit,
             gemma3_12B_qat_4bit,
             gemma3_27B_qat_4bit,
+            gemma3n_E2B,
+            gemma3n_E4B,
             smolvlm,
         ]
     }

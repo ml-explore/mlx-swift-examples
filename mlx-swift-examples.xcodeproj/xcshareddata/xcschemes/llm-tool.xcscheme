@@ -69,6 +69,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--model mlx-community/Qwen3-1.7B-4bit --prompt &quot;Explain quantum computing in simple terms&quot; --max-tokens 100 --kv-bits 4"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--prompt &quot;Why is the sky blue?&quot; --extra-eos-token &quot;&lt;end_of_turn&gt;&quot;"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
