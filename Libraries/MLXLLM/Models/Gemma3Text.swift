@@ -163,7 +163,6 @@ private class Attention: Module {
         if let cache {
             queries = rope(queries, offset: cache.offset)
             keys = rope(keys, offset: cache.offset)
-            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope(queries)
             keys = rope(keys)
@@ -179,14 +178,16 @@ private class Attention: Module {
             }
         }
 
-        var output = MLXFast.scaledDotProductAttention(
+        let output = attentionWithCacheUpdate(
             queries: queries,
             keys: keys,
             values: values,
+            cache: cache,
             scale: scale,
             mask: finalMask
         )
-        output = output.transposed(0, 2, 1, 3).reshaped(B, L, -1)
+        .transposed(0, 2, 1, 3)
+        .reshaped(B, L, -1)
         return outputProj(output)
     }
 }
