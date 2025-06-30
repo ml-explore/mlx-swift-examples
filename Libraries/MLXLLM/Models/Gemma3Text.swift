@@ -353,8 +353,8 @@ public class Gemma3TextModel: Module, LLMModel {
     {
         var processedWeights = weights
 
-        // in the case of DWQ models the shape of the parameters still looks like
-        // a VLM -- the weights are under a language_model key
+        // VLM models converted using mlx_vlm.convert will still have
+        // the weights are under a language_model key
         let unflattened = ModuleParameters.unflattened(weights)
         if let lm = unflattened["language_model"] {
             processedWeights = Dictionary(uniqueKeysWithValues: lm.flattened())
