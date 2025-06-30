@@ -1,26 +1,21 @@
 # Porting Models
 
-How to make new models using `mlx-swift`.
+There are a number of ways to implement new models in MLX in Swift:
 
-There are a number of ways to implement new models in `MLX` (Swift):
-
-- built from scratch
-- ported from other ML frameworks
+- Build from scratch
+- Port from other ML frameworks
     - [MLX Documentation](https://ml-explore.github.io/mlx/build/html/examples/llama-inference.html)
-- ported from Python, [e.g. `mlx-lm`](https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models)
+- Port from [existing MLX models in Python](https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models)
 
 This document talks primarily about the latter.
 
-## Porting Models from MLX (Python)
+## Porting Models from MLX in Python
 
-Let's consider a concrete example,
-[gemma.py](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/gemma.py). For
-reference, here is the current port
-[Gemma.swift](https://github.com/ml-explore/mlx-swift-examples/blob/main/Libraries/MLXLLM/Models/Gemma.swift).
+Let's consider a concrete example, [gemma.py](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/gemma.py). For reference, here is the current port [Gemma.swift](https://github.com/ml-explore/mlx-swift-examples/blob/main/Libraries/MLXLLM/Models/Gemma.swift).
 
 ### Imports
 
-When creating the new model you need to import the right modules -- typically these are sufficient:
+When creating the new model, you need to import the right modules. Typically these are sufficient:
 
 ```swift
 import Foundation
@@ -30,18 +25,18 @@ import MLXNN
 ```
 
 - Foundation
-    - used for standard Swift features like Codable -- this let's us easily read the JSON configuration
+    - Used for standard Swift features like `Codable`. This lets us easily read the JSON configuration.
 - MLX
-    - the base [MLXArray](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx) framework
+    - The base [`MLXArray`](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx) framework
 - MLXLMCommon
-    - language model support code (this library)
-    - provides weight loading, token generation, etc.
+    - Language model support code (this library)
+    - Provides weight loading, token generation, etc.
 - MLXNN
-    - the base [Module and NN](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlxnn) package for MLX
+    - The base [Module and NN](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlxnn) package for MLX
 
 ### Configuration
 
-Next port the configuration type from python -- you can see it at the top of the `gemma.py` file:
+Next, port the configuration type from Python. You can see it at the top of the `gemma.py` file:
 
 ```python
 @dataclass
@@ -59,13 +54,12 @@ class ModelArgs(BaseModelArgs):
     rope_traditional: bool = False
 ```
 
-This will be loaded from a JSON file and used to configure the model -- both layer parameters
-like `rms_norm_eps` and structure like `num_hidden_layers`.
+This will be loaded from a JSON file and used to configure the model, including layer parameters like `rms_norm_eps` and structure like `num_hidden_layers`.
 
-This translates naturally into a ``Codable`` struct in Swift with a few details:
+This translates naturally into a `Codable` struct in Swift with a few details:
 
-- the keys in the JSON file will be `snake_case` -- the simplest way to accomodate that is to specify `CodingKeys` to name them explicitly
-- some of the parameters have default values
+- The keys in the JSON file will be `snake_case`. The simplest way to accommodate that is to specify `CodingKeys` to name them explicitly.
+- Some of the parameters have default values.
 
 ```swift
 public struct GemmaConfiguration: Codable, Sendable {
@@ -99,19 +93,16 @@ public struct GemmaConfiguration: Codable, Sendable {
 }
 ```
 
-* Note: the type is called `ModelArgs` in Python and
-this is scoped to the file because of the way Python importing
-works. In Swift we need this type to be public so we give it
-a unique name, `GemmaConfiguration`.
+* Note: The type is called `ModelArgs` in Python, and this is scoped to the file because of the way Python importing works. In Swift we need this type to be public, so we give it a unique name, `GemmaConfiguration`.
 
-The default values are implemented with this pattern:
+Default values are implemented with this pattern:
 
 ```swift
 private let _ropeTheta: Float?
 public var ropeTheta: Float { _ropeTheta ?? 10_000 }
 ```
 
-and then the `CodingKeys` case is for `_ropeTheta`:
+And `CodingKeys` maps `rope_theta` to `_ropeTheta`:
 
 ```swift
 enum CodingKeys: String, CodingKey {
@@ -119,13 +110,11 @@ enum CodingKeys: String, CodingKey {
     case _ropeTheta = "rope_theta"
 ```
 
-This will read `rope_theta` from the JSON file but apply a default value of `10_000` if
-no value is given.
+This will read `rope_theta` from the JSON file if present and fall back to a default value of `10_000`.
 
-### Porting Layers -- No Children
+### Porting Layers without Children
 
-Now we can begin porting the layers (Modules). Here is an example layer with
-no child layers (e.g. `Linear`) but it does have parameters (e.g. `MLXArray`).
+Now we can begin porting the layers (Modules). Here is an example layer with no child layers (e.g. `Linear`) but with parameters (e.g. `MLXArray`):
 
 ```python
 class RMSNorm(nn.Module):
@@ -138,7 +127,7 @@ class RMSNorm(nn.Module):
         return mx.fast.rms_norm(x, 1.0 + self.weight, self.eps)
 ```
 
-and the equivalent Swift code:
+And the equivalent Swift code:
 
 ```swift
 private class RMSNorm: Module, UnaryLayer {
@@ -156,10 +145,9 @@ private class RMSNorm: Module, UnaryLayer {
 }
 ```
 
-* Note: the Modules that make up the layers in the model are typically declared as `private` -- many models will use similarly named layers and this prevents the names from leaking between models.
+* Note: The Modules that make up the layers in the model are typically declared as `private`. Many models use similarly named layers, and this keeps the names isolated to each model's namespace.
 
-Here is a detailed breakdown of the conversion. Consider the python initializer
-for the class:
+Here is a detailed breakdown of the conversion. Consider the Python initializer for the class:
 
 ```python
 def __init__(self, dims: int, eps: float = 1e-5):
@@ -168,9 +156,7 @@ def __init__(self, dims: int, eps: float = 1e-5):
     self.eps = eps
 ```
 
-In Python, storing a value into a property is how instance variables (properties) are
-created -- it is a dictionary behind the scenes. Swift requires that properties be
-declared and given types:
+In Python, storing a value in a property is how instance variables (properties) are created. This is implemented as a dictionary behind the scenes. Swift requires that properties be declared and given types:
 
 ```swift
 let weight: MLXArray
@@ -182,26 +168,18 @@ public init(dimensions: Int, eps: Float = 1e-5) {
 }
 ```
 
-Note that the weight is given an initial value and shape based on the
-parameters to the initializer. In typical inference use these values
-will be replaced when the weights are loaded 
-(``loadWeights(modelDirectory:model:quantization:)``).
+Note that the weight is given an initial value and shape based on the parameters to the initializer. In typical inference use, these values will be replaced when the weights are loaded (``loadWeights(modelDirectory:model:quantization:)``).
 
-* Note:
-If the property names in Python don't make good Swift names you can use the `@ParameterInfo` property wrapper to specify the key:\
-\
-`@ParameterInfo(key: "some_weight") var weight: MLXArray`
+* Note: If the property names in Python don't make good Swift names, you can use the `@ParameterInfo` property wrapper to specify the key: `@ParameterInfo(key: "some_weight") var weight: MLXArray`
 
-If using the `@ParameterInfo` to override the parameter
-key, be aware that the syntax for initializing the value
-changes:
+If using the `@ParameterInfo` to override the parameter key, be aware that the syntax for initializing the value changes:
 
 ```swift
-// was: self.weight = MLXArray.ones([dimensions])
+// Was: self.weight = MLXArray.ones([dimensions])
 self._weight.wrappedValue = MLXArray.ones([dimensions])
 ```
 
-Next, the `__call__` method in python is a direct conversion to Swift:
+Next, the `__call__` method in Python is a direct conversion to Swift:
 
 ```python
 def __call__(self, x):
@@ -216,10 +194,9 @@ public func callAsFunction(_ x: MLXArray) -> MLXArray {
 }
 ```
 
-* Note:
-[This reference](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx/converting-python) shows the mapping between Python method and function names and Swift.
+* Note: [This reference](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx/converting-python) shows the mapping between Python method and function names and Swift.
 
-### Porting Layers -- Children
+### Porting Layers with Children
 
 Consider this module from Python that uses the previously defined `RMSNorm` module:
 
@@ -278,8 +255,7 @@ private class TransformerBlock: Module {
 }
 ```
 
-As seen previously the `__init__` method converts to an
-initializer for the class:
+As seen previously, the `__init__` method converts to an initializer for the class:
 
 ```python
 def __init__(self, args: ModelArgs):
@@ -291,7 +267,7 @@ def __init__(self, args: ModelArgs):
     ...
 ```
 
-This initializer takes `ModelArgs` in Python -- this is the name of the configuration type, which we call `GemmaConfiguration`.
+This initializer takes `ModelArgs` in Python. This is the name of the configuration type, which we call `GemmaConfiguration`.
 
 ```swift
 @ModuleInfo(key: "self_attn") var attention: Attention
@@ -312,15 +288,9 @@ self.num_attention_heads = args.num_attention_heads
 self.hidden_size = args.hidden_size
 ```
 
-These properties are not used in the code and can be discarded.
-If there are many properties that _are_ needed, it may be more
-convenient in Swift to simply store the `GemmaConfiguration` --
-that provides access to the typed properties inside.
+These properties are not used in the code and can be discarded. If there are many properties that _are_ needed, it may be more convenient in Swift to simply store the `GemmaConfiguration`, which provides access to the typed properties inside.
 
-* Note:
-Much like parameters with non-Swift names, you can (and typically do) use `@ModuleInfo` to give the same naming hint:\
-\
-`@ModuleInfo(key: "self_attn") var attention: Attention`
+* Note: Much like parameters with non-Swift names, you can (and typically do) use `@ModuleInfo` to give the same naming hint: `@ModuleInfo(key: "self_attn") var attention: Attention`
 
 Finally we convert the `__call__` method from Python:
 
@@ -338,7 +308,7 @@ def __call__(
     return out
 ```
 
-Note that the `r` variable is assigned twice so we make this a `var` in Swift:
+Note that the `r` variable is assigned twice, so we make this a `var` in Swift:
 
 ```swift
 public func callAsFunction(
@@ -351,8 +321,7 @@ public func callAsFunction(
 }
 ```
 
-Sometimes the input parameter is assigned in this function -- to keep the
-code structure as close as possible to the Python:
+Sometimes the input parameter is assigned in this function, to keep the code structure as close as possible to the Python:
 
 ```python
 def __call__(self, x) -> mx.array:
@@ -372,9 +341,9 @@ public func callAsFunction(_ x: MLXArray) -> MLXArray {
 }
 ```
 
-### Porting Layers -- Configuration and Structure
+### Porting Layers: Configuration and Structure
 
-Sometimes the configuration drives the structure of the model:
+Sometimes the configuration determines the structure of the model:
 
 ```python
 class GemmaModel(nn.Module):
@@ -397,10 +366,7 @@ class GemmaModel(nn.Module):
         ...
 ```
 
-In this case the number of `TransformerBlock` layers depends on
-the configuration value `num_hidden_layers` -- it builds an
-array of children. In the `__call__` it iterates through these
-children, chaining the calls together sequentially.
+In this case, the number of `TransformerBlock` layers depends on the configuration value `num_hidden_layers` to create an array of children. In `__call__` it iterates through these children, chaining the calls together sequentially.
 
 In Swift you do the same thing:
 
@@ -426,19 +392,13 @@ private class GemmaModelInner: Module {
     }
 ```
 
-You have an array `layers` that matches the same property in Python.
-When calling the Module you simply iterate the `layers` property,
-chaining the calls together.
+You have an array `layers` that matches the same property in Python. When calling the Module, you simply iterate through the `layers` property, chaining the calls together.
 
 ### Model Class
 
-Finally we reach the top level of of the model. In Python there is
-typically a class named `Model` -- this is the public entrypoint into
-the model. There is typically very little code in this module,
-though it may prepare the inputs and outputs.
+Finally we reach the top level of of the model. In Python there is typically a class named `Model`. This is the public entry point into the model. There is typically very little code in this module, though it may prepare the inputs and outputs.
 
-There is also usually a class named e.g. `GemmaModel`
-which is the implementation of the model itself:
+There is also usually a class named e.g. `GemmaModel`, which is the implementation of the model itself:
 
 ```python
 class GemmaModel(nn.Module):
@@ -455,9 +415,7 @@ class Model(nn.Module):
     ...
 ```
 
-In Swift we need to expose the `Model` class as a public
-type and leave the `GemmaModel` as a private implementation
-detail. Typically these are named like this in Swift:
+In Swift we need to expose the `Model` class as a public type and leave the `GemmaModel` as a private implementation detail. Typically these are named like this in Swift:
 
 ```swift
 private class GemmaModelInner: Module {
@@ -492,11 +450,9 @@ public class GemmaModel: Module, LLMModel, KVCacheDimensionProvider {
 
 ### Registration
 
-The last step before we can use the model is to register the types
-so that everything can be found from the configuration file.
+The last step before we can use the model is to register the types so that everything can be found from the configuration file.
 
-Since this is an LLM (as opposed to a VLM) we register the type that will
-show in the configuration file in the `LLMTypeRegistry`:
+Since this is an LLM (as opposed to a VLM), we register the type that will show in the configuration file in the `LLMTypeRegistry`:
 
 ```swift
 public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
@@ -507,27 +463,25 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
         "gemma": create(GemmaConfiguration.self, GemmaModel.init),
 ```
 
-Now we can load the model using `llm-tool` or the `LLMEval` example application.
-
-If we wanted to do it in code:
+Now we can load the model using `llm-tool` or the `LLMEval` example application, or implement this ourselves in code:
 
 ```swift
 let modelConfiguration = ModelConfiguration(id: "mlx-community/quantized-gemma-2b-it")
 
-// this will download the weights from HuggingFace Hub and load the model
+// This will download the weights from Hugging Face Hub and load the model
 let container = try await MLXModelFactory.shared.loadContainer(configuration: modelConfiguration)
 
-// prepare the prompt and parameters used to generate the response
+// Prepare the prompt and parameters used to generate the response
 let generateParameters = GenerateParameters()
 let input = UserInput(prompt: "Are cherries sweet?")
 
-// run inference
+// Run inference
 let result = try await modelContainer.perform { [input] context in
-    // convert the UserInput into LMInput
+    // Convert the UserInput into LMInput
     let input = try context.processor.prepare(input: input)
 
     return generate(input: input, parameters: generateParameters, context: context) { tokens in
-        // this could potentially use NaiveStreamingDetokenizer and print
+        // This could potentially use NaiveStreamingDetokenizer and print
         // text as it was generated
         if tokens.count >= 20 {
             return .stop
@@ -546,15 +500,15 @@ print(result.output)
 
 If you are porting a model and it is similar to an existing (already ported) model, you can often take a shortcut and look at the diffs.
 
-For example `gemma.py` and `gemma2.py` are related -- if you look at the diff between them it is roughly a dozen changes. If you already have `Gemma.swift` you can copy that to `Gemma2.swift` (and make the appropriate naming changes) and then examine the diffs on the Python side and make the same changes.
+For example `gemma.py` and `gemma2.py` are related. If you look at the diff between them, it comprises roughly a dozen changes. If you already have `Gemma.swift`, you can copy that to `Gemma2.swift` (and make the appropriate naming changes) and then examine the diffs on the Python side and make the same changes.
 
-Many models are related to each other so this can be a very effective way to create new models.
+Many models are related to each other, so this can be a very effective way to create new models.
 
 ### Debugging a Ported Model
 
 What do you do when your ported model spews random text or crashes with a broadcast error?
 
-Let's start with the latter:  a broadcast error means that the shapes of the `MLXArray`s are incorrect. For example, if the broadcast error shows up in `Attention` (and it seems like it is usually in Attention) then you can make a helper function in Python:
+Let's start with the latter: A broadcast error means that the shapes of the `MLXArray`s are incorrect. For example, if the broadcast error shows up in `Attention` (which is often the case), then you can make a helper function in Python:
 
 ```python
 def trace(name, x):
@@ -591,12 +545,9 @@ let output = MLXFast.scaledDotProductAttention(
 )
 ```
 
-Often it will be a shape like `[1, 128, 256]` vs `[128, 256]` -- there is
-a missing `[.newAxis]` somewhere in the code. It may be something more
-complicated but either way you know which value is incorrect and you can
-track it down.
+Often it will be a shape like `[1, 128, 256]` vs. `[128, 256]` (in this case, there is a missing `[.newAxis]` somewhere in the code). It may be something more complicated, but either way you know which value is incorrect and you can track it down.
 
-Incorrect output can be investigated in a similar fashion but I usually start with making sure the inputs are correct -- compare the integer tokens from the Python side to what the Swift side generates. The implementations of `transformers` and `swift-transformers` are similar but not identical. If needed, the token array from the Python program can be used directly.
+Incorrect output can be investigated in a similar fashion, but you can start by making sure the inputs are correct: compare the integer tokens from the Python side to what the Swift side generates. The implementations of `transformers` and `swift-transformers` are similar but not identical. If needed, the token array from the Python program can be used directly.
 
 After making sure the inputs are identical, make sure the generation parameters (temperature, seed, etc.) are the same.
 
@@ -615,17 +566,16 @@ func trace(_ name: String, _ x: MLXArray) {
 }
 ```
 
-This uses `sum()` to give an aggregate value -- if these produce the same (or close to) values then the contents of the array are _probably_ the same. Certainly if they are wildly different then contents of the array are _certainly_ different. If the arrays contain larger numbers you might try different aggregation functions or look at slices of the array, e.g. the first row.
+This uses `sum()` to give an aggregate value. If these produce the same (or nearly the same) values, then the contents of the array are _probably_ the same. If they are wildly different, the contents of the array are _certainly_ different. If the arrays contain larger numbers, you might try different aggregation functions or look at slices of the array, e.g. the first row.
 
-You can use these calls on the values passed in to the `__call__`/`callAsFunction` methods and you can also use them on the parameters of the layers themselves.
+You can use these calls on the values passed into the `__call__`/`callAsFunction` methods, and you can also use them on the parameters of the layers themselves.
 
-The nice thing about this technique is that it doesn't require understanding how the model works -- you have a reference implementation on the Python side and you only need to identify when it is different. Once you determine the point where it is different you can track backward and figure out why (again, it is just calling functions and doing math).
+The nice thing about this technique is that it doesn't require understanding how the model works. You have a reference implementation on the Python side, and you only need to identify where it is different. Once you determine the point where it is different, you can track backward and figure out why (again, it is just calling functions and doing math).
 
 ### Optional Modules and Parameters
 
 Models sometimes have optional modules or parameters based on their configuration.
-For example [qwen2.py](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/qwen2.py#L161C1-L163C1)
-only creates the `lm_head` module if the `tie_word_embeddings` is `False`:
+For example, [qwen2.py](https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/qwen2.py#L161C1-L163C1) only creates the `lm_head` module if `tie_word_embeddings` is `False`:
 
 ```python
 if not args.tie_word_embeddings:
@@ -662,15 +612,9 @@ If the `lmHead` module is created but not used, the parameter load will fail val
 
 ### Pre-computed MLXArrays
 
-In some cases it is convenient to pre-compute some `MLXArray` but not treat
-it as a loadable parameter -- in particular we do not want loading of 
-parameters to fail because this MLXArray is "missing".
+In some cases it is convenient to pre-compute some `MLXArray` but not treat it as a loadable parameter. In particular, we do not want the loading of parameters to fail because this MLXArray is "missing".
 
-For example in PaliGemma there is a constant
-`positionIds` based on the imageSize and patchSize configuration.
-If we name the property with a leading underscore (`_`) it will
-not be considered as a valid parameter and will be ignored
-when loading parameters:
+For example, in PaliGemma there is a constant `positionIds` based on the `imageSize` and `patchSize` configuration. If we name the property with a leading underscore, it will not be considered a valid parameter and will be ignored when loading parameters:
 
 ```swift
 fileprivate class VisionEmbeddings: Module, UnaryLayer {
