@@ -49,8 +49,21 @@ public struct Gemma3TextConfiguration: Codable {
         case slidingWindowPattern = "sliding_window_pattern"
     }
 
+    enum VLMCodingKeys: String, CodingKey {
+        case textConfig = "text_config"
+    }
+
     public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let nestedContainer = try decoder.container(keyedBy: VLMCodingKeys.self)
+
+        // in the case of VLM models convertered using mlx_lm.convert
+        // the configuration will still match the VLMs and be under text_config
+        let container =
+            if nestedContainer.contains(.textConfig) {
+                try nestedContainer.nestedContainer(keyedBy: CodingKeys.self, forKey: .textConfig)
+            } else {
+                try decoder.container(keyedBy: CodingKeys.self)
+            }
 
         modelType = try container.decode(String.self, forKey: .modelType)
         hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
@@ -339,6 +352,14 @@ public class Gemma3TextModel: Module, LLMModel {
         -> [String: MLXArray]
     {
         var processedWeights = weights
+
+        // VLM models converted using mlx_vlm.convert will still have
+        // the weights are under a language_model key
+        let unflattened = ModuleParameters.unflattened(weights)
+        if let lm = unflattened["language_model"] {
+            processedWeights = Dictionary(uniqueKeysWithValues: lm.flattened())
+        }
+
         if processedWeights["lm_head.weight"] == nil {
             if let embedWeight = processedWeights["model.embed_tokens.weight"] {
                 processedWeights["lm_head.weight"] = embedWeight
