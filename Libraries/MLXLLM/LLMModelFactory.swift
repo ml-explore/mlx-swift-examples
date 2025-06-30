@@ -166,7 +166,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         id: "mlx-community/Llama-3.2-3B-Instruct-4bit",
         defaultPrompt: "What is the difference between a fruit and a vegetable?"
     )
-  
+
     static public let deepseek_r1_4bit = ModelConfiguration(
         id: "mlx-community/DeepSeek-R1-4bit",
         defaultPrompt: "Tell me about the history of Spain."
