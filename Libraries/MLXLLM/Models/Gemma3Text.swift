@@ -56,7 +56,7 @@ public struct Gemma3TextConfiguration: Codable {
     public init(from decoder: Decoder) throws {
         let nestedContainer = try decoder.container(keyedBy: VLMCodingKeys.self)
 
-        // in the case of VLM models convertered using mlx_lm.convert 
+        // in the case of VLM models convertered using mlx_lm.convert
         // the configuration will still match the VLMs and be under text_config
         let container =
             if nestedContainer.contains(.textConfig) {
