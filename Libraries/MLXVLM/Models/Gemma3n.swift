@@ -432,7 +432,7 @@ public struct ModelConfig: Codable, Sendable {
 private class Gemma3nRMSNorm: Module {
     let eps: Float
     let scaleShift: Float
-    @ModuleInfo var weight: MLXArray?
+    @ParameterInfo var weight: MLXArray?
 
     init(dim: Int, eps: Float = 1e-6, scaleShift: Float = 0, withScale: Bool = true) {
         self.eps = eps
@@ -472,7 +472,7 @@ private class Gemma3nLaurelBlock: Module {
         self._linearRight.wrappedValue = Linear(config.laurelRank, config.hiddenSize, bias: false)
         self._postLaurelNorm.wrappedValue = Gemma3nRMSNorm(
             dim: config.hiddenSize,
-            eps: config.rmsNormEps,
+            eps: config.rmsNormEps
         )
         super.init()
     }
@@ -693,6 +693,8 @@ private class Gemma3nAttention: Module {
         // Repeat keys and values for multi-head attention
         keys = repeated(keys, count: repeats, axis: 1)
         values = repeated(values, count: repeats, axis: 1)
+        
+        print("queries.shape = \(queries.shape), keys.shape = \(keys.shape)")
 
         // Use custom attention function that supports both quantized cache and logit softcapping
         let output = gemma3nAttentionWithCacheUpdate(
@@ -760,7 +762,7 @@ private class MLP: Module, UnaryLayer {
 }
 
 private class Gemma3nAltUp: Module {
-    @ModuleInfo(key: "correct_output_scale") var correctOutputScale: MLXArray
+    @ParameterInfo(key: "correct_output_scale") var correctOutputScale: MLXArray
     @ModuleInfo(key: "correction_coefs") var correctionCoefs: Linear
     @ModuleInfo(key: "prediction_coefs") var predictionCoefs: Linear
     @ModuleInfo(key: "modality_router") var modalityRouter: Linear
@@ -790,7 +792,7 @@ private class Gemma3nAltUp: Module {
         )
         self._routerNorm.wrappedValue = Gemma3nRMSNorm(
             dim: config.hiddenSize,
-            eps: config.rmsNormEps,
+            eps: config.rmsNormEps
         )
         self._routerInputScale = MLXArray(pow(Float(config.hiddenSize), -1.0))
 
@@ -918,7 +920,7 @@ private class Gemma3nDecoderLayer: Module {
         self._mlp.wrappedValue = MLP(config: config, layerIdx: layerIdx)
         self._inputLayernorm.wrappedValue = Gemma3nRMSNorm(
             dim: hiddenSize,
-            eps: config.rmsNormEps,
+            eps: config.rmsNormEps
         )
 
         self._postAttentionLayernorm.wrappedValue = Gemma3nRMSNorm(
@@ -1709,11 +1711,11 @@ public class Gemma3n: Module, VLMModel, KVCacheDimensionProvider {
         // Ensure no gaps between text, vision, and audio embeddings, in that order
         // This matches the Python assertion
         assert(
-            embedAudio.vocabOffset == config.vocabSize - config.audioConfig.vocabSize,
+            embedAudio.vocabOffset == config.textConfig.vocabSize - config.audioConfig.vocabSize,
             "Audio vocab offset mismatch"
         )
         assert(
-            embedVision.vocabOffset == config.vocabSize - config.audioConfig.vocabSize
+            embedVision.vocabOffset == config.textConfig.vocabSize - config.audioConfig.vocabSize
                 - config.visionConfig.vocabSize,
             "Vision vocab offset mismatch"
         )
@@ -2093,8 +2095,8 @@ private class Gemma3nCumulativeGroupNorm: Module {
     let useBias: Bool
     let reductionAxes: [Int]
 
-    @ModuleInfo var weight: MLXArray?
-    @ModuleInfo var bias: MLXArray?
+    @ParameterInfo var weight: MLXArray?
+    @ParameterInfo var bias: MLXArray?
 
     init(
         numChannels: Int,
@@ -2358,7 +2360,7 @@ private class Gemma3nAudioAttention: Module {
 
     @ModuleInfo(key: "relative_position_embedding") var relativePositionEmbedding:
         Gemma3nAudioRelativePositionEmbedding
-    @ModuleInfo(key: "per_dim_scale") var perDimScale: MLXArray
+    @ParameterInfo(key: "per_dim_scale") var perDimScale: MLXArray
     @ModuleInfo(key: "q_proj") var qProj: Linear
     @ModuleInfo(key: "k_proj") var kProj: Linear
     @ModuleInfo(key: "v_proj") var vProj: Linear
@@ -2746,7 +2748,7 @@ private class Gemma3nAudioConformerBlock: Module {
 // MARK: - Layer Scale 2D
 private class LayerScale2d: Module, UnaryLayer {
     let inplace: Bool
-    @ModuleInfo var gamma: MLXArray
+    @ParameterInfo var gamma: MLXArray
 
     init(dim: Int, initValues: Float = 1e-5, inplace: Bool = false) {
         self.inplace = inplace
@@ -2787,7 +2789,7 @@ private class RMSNormAct2d: Module, UnaryLayer {
     let normalizedShape: [Int]
     let eps: Float
     let applyAct: Bool
-    @ModuleInfo var weight: MLXArray
+    @ParameterInfo var weight: MLXArray
     @ModuleInfo var drop: Identity
     @ModuleInfo var act: UnaryLayer
 
@@ -3101,6 +3103,26 @@ private class EdgeResidual: Module, UnaryLayer {
     }
 }
 
+private class ProjectionBlock: Module, UnaryLayer {
+    @ModuleInfo(key: "down_conv") private var down: Conv2d?
+    @ModuleInfo private var norm: RMSNormAct2d?
+    @ModuleInfo private var proj: Conv2d
+    
+    init(down: Conv2d? = nil, norm: RMSNormAct2d? = nil, _ proj: Conv2d) {
+        self._down.wrappedValue = down
+        self._norm.wrappedValue = norm
+        self._proj.wrappedValue = proj
+    }
+    
+    func callAsFunction(_ x: MLXArray) -> MLXArray {
+        var result = x
+        result = down?(result) ?? result
+        result = norm?(result) ?? result
+        result = proj(result)
+        return result
+    }
+}
+
 // MARK: - Multi-Query Attention 2D
 private class MultiQueryAttention2d: Module {
     let numHeads: Int
@@ -3111,17 +3133,11 @@ private class MultiQueryAttention2d: Module {
     let valueDim: Int
     let scale: Float
 
-    @ModuleInfo(key: "query_proj") var queryProj: Conv2d
-
-    @ModuleInfo(key: "key_down_conv") var keyDownConv: UnaryLayer
-    @ModuleInfo(key: "key_norm") var keyNorm: UnaryLayer
-    @ModuleInfo(key: "value_down_conv") var valueDownConv: UnaryLayer
-    @ModuleInfo(key: "value_norm") var valueNorm: UnaryLayer
-
-    @ModuleInfo(key: "key_proj") var keyProj: Conv2d
-    @ModuleInfo(key: "value_proj") var valueProj: Conv2d
+    @ModuleInfo(key: "query") var query: ProjectionBlock
+    @ModuleInfo(key: "key") var key: ProjectionBlock
+    @ModuleInfo(key: "value") var value: ProjectionBlock
     @ModuleInfo(key: "attn_drop") var attnDrop: UnaryLayer
-    @ModuleInfo(key: "output_proj") var outputProj: Conv2d
+    @ModuleInfo(key: "output") var output: ProjectionBlock
     @ModuleInfo(key: "proj_drop") var projDrop: UnaryLayer
 
     init(
@@ -3149,15 +3165,18 @@ private class MultiQueryAttention2d: Module {
         self.scale = pow(Float(headDim), -0.5)
 
         // Query
-        self._queryProj.wrappedValue = Conv2d(
-            inputChannels: dim,
-            outputChannels: numHeads * keyDim,
-            kernelSize: IntOrPair(1)
-        )
+        self._query.wrappedValue = ProjectionBlock(
+            Conv2d(
+                inputChannels: dim,
+                outputChannels: numHeads * keyDim,
+                kernelSize: IntOrPair(1),
+                bias: false
+            ))
 
         // Key
-        if kvStride > 1 {
-            self._keyDownConv.wrappedValue = Conv2d(
+        self._key.wrappedValue = ProjectionBlock(
+            down: kvStride > 1 ?
+            Conv2d(
                 inputChannels: dim,
                 outputChannels: dim,
                 kernelSize: IntOrPair(dwKernelSize),
@@ -3166,23 +3185,20 @@ private class MultiQueryAttention2d: Module {
                 dilation: IntOrPair(dilation),
                 groups: dim,  // Depthwise
                 bias: false
-            )
-
-            self._keyNorm.wrappedValue = RMSNormAct2d(numChannels: dim, eps: 1e-6, applyAct: false)
-        } else {
-            self._keyDownConv.wrappedValue = Identity()
-            self._keyNorm.wrappedValue = Identity()
-        }
-        self._keyProj.wrappedValue = Conv2d(
-            inputChannels: dim,
-            outputChannels: keyDim,
-            kernelSize: IntOrPair(1),
-            bias: false
-        )
+            ) : nil,
+            norm: kvStride > 1 ?
+                RMSNormAct2d(numChannels: dim, eps: 1e-6, applyAct: false) : nil,
+            Conv2d(
+                inputChannels: dim,
+                outputChannels: keyDim,
+                kernelSize: IntOrPair(1),
+                bias: false
+            ))
 
         // Value
-        if kvStride > 1 {
-            self._valueDownConv.wrappedValue = Conv2d(
+        self._value.wrappedValue = ProjectionBlock(
+            down: kvStride > 1 ?
+            Conv2d(
                 inputChannels: dim,
                 outputChannels: dim,
                 kernelSize: IntOrPair(dwKernelSize),
@@ -3191,31 +3207,28 @@ private class MultiQueryAttention2d: Module {
                 dilation: IntOrPair(dilation),
                 groups: dim,  // Depthwise
                 bias: false
-            )
-            self._valueNorm.wrappedValue = RMSNormAct2d(
-                numChannels: dim, eps: 1e-6, applyAct: false)
-        } else {
-            self._valueDownConv.wrappedValue = Identity()
-            self._valueNorm.wrappedValue = Identity()
-        }
-        self._valueProj.wrappedValue = Conv2d(
-            inputChannels: dim,
-            outputChannels: valueDim,
-            kernelSize: IntOrPair(1),
-            bias: false
-        )
+            ) : nil,
+            norm: kvStride > 1 ?
+                RMSNormAct2d(numChannels: dim, eps: 1e-6, applyAct: false) : nil,
+            Conv2d(
+                inputChannels: dim,
+                outputChannels: valueDim,
+                kernelSize: IntOrPair(1),
+                bias: false
+            ))
 
         // Attention dropout
         self._attnDrop.wrappedValue = attnDrop > 0 ? Dropout(p: attnDrop) : Identity()
 
         // Output projection
-        self._outputProj.wrappedValue = Conv2d(
-            inputChannels: valueDim * numHeads,
-            outputChannels: dimOut,
-            kernelSize: IntOrPair(1),
-            stride: IntOrPair(1),
-            bias: false
-        )
+        self._output.wrappedValue = ProjectionBlock(
+            Conv2d(
+                inputChannels: valueDim * numHeads,
+                outputChannels: dimOut,
+                kernelSize: IntOrPair(1),
+                stride: IntOrPair(1),
+                bias: false
+            ))
 
         self._projDrop.wrappedValue = projDrop > 0 ? Dropout(p: projDrop) : Identity()
 
@@ -3250,17 +3263,13 @@ private class MultiQueryAttention2d: Module {
     func callAsFunction(_ x: MLXArray, attnMask: MLXArray? = nil) -> MLXArray {
         let (B, H, W, C) = (x.shape[0], x.shape[1], x.shape[2], x.shape[3])
 
-        let q = queryProj(x)
+        let q = query(x)
         let qReshaped = reshapeProjectedQuery(q, numHeads: numHeads, keyDim: keyDim)
 
-        var k = keyDownConv(x)
-        k = keyNorm(k)
-        k = keyProj(k)
+        var k = key(x)
         let kReshaped = reshapeInput(k)
 
-        var v = valueDownConv(x)
-        v = valueNorm(v)
-        v = valueProj(v)
+        var v = value(x)
         let vReshaped = reshapeInput(v)
 
         let o: MLXArray
@@ -3283,7 +3292,7 @@ private class MultiQueryAttention2d: Module {
             wPx: W / queryStrides.1
         )
 
-        return outputProj(oReshaped)
+        return output(oReshaped)
     }
 }
 
@@ -3562,20 +3571,22 @@ private class MobileNetV5MultiScaleFusionAdapter: Module {
         let inputsNCHW = inputs.map { $0.transposed(0, 3, 1, 2) }
 
         // Find the highest resolution (first input)
-        let highResolution = inputsNCHW[0].shape.suffix(2)
+        let highResolution = Array(inputsNCHW[0].shape.suffix(2))
         var resizedInputs: [MLXArray] = []
 
         for img in inputsNCHW {
-            let imgShape = img.shape.suffix(2)
+            let imgShape = Array(img.shape.suffix(2))
             var resizedImg = img
 
             // Resize if needed using nearest neighbor interpolation
             if imgShape[0] < highResolution[0] || imgShape[1] < highResolution[1] {
-                // Simple nearest neighbor interpolation
-                let scaleH = Float(highResolution[0]) / Float(imgShape[0])
-                let scaleW = Float(highResolution[1]) / Float(imgShape[1])
-                // For simplicity, just repeat the image - in practice you'd implement proper interpolation
-                resizedImg = img
+                func s(_ i: Int) -> Float {
+                    Float(highResolution[i]) / Float(imgShape[i])
+                }
+                let upsample = Upsample(scaleFactor: [s(0), s(1)], mode: .linear(alignCorners: false))
+                
+                // upsample wants NHWC
+                resizedImg = upsample(img.transposed(0, 2, 3, 1)).transposed(0, 3, 1, 2)
             }
 
             resizedInputs.append(resizedImg)
@@ -3619,14 +3630,13 @@ private class MobileNetV5MultiScaleFusionAdapter: Module {
 // MARK: - Vision Tower - Flatten blocks to 1D array for @ModuleInfo compatibility
 private class VisionTower: Module {
     @ModuleInfo(key: "conv_stem") var convStem: ConvNormAct
-    @ModuleInfo var blocks: [UnaryLayer]  // Flattened 1D array - ISSUE: expects blocks.X keys but weights are blocks.blocks.X
+    @ModuleInfo var blocks: [[UnaryLayer]]
     @ModuleInfo var msfa: MobileNetV5MultiScaleFusionAdapter
 
     let numFeatures: Int
     let headHiddenSize: Int
     let msfaIndices: (Int, Int)
     let msfaOutputResolution: (Int, Int)
-    let stageEndIndices: [Int]  // Track where each stage ends in the flattened array
 
     init(config: VisionConfig) {
         self._convStem.wrappedValue = ConvNormAct(
@@ -3641,13 +3651,11 @@ private class VisionTower: Module {
         self.msfaIndices = (3, 4)
         self.msfaOutputResolution = (16, 16)
 
-        let (numFeatures, flatBlocks, stageEndIndices) = Self.buildBlocks(convStemOutChannels: 64)
+        let (numFeatures, blocks) = Self.buildBlocks(convStemOutChannels: 64)
         self.numFeatures = numFeatures
         self.headHiddenSize = numFeatures
-        self.stageEndIndices = stageEndIndices
         
-        // VisionTower building works correctly - 84 blocks created
-        self._blocks.wrappedValue = flatBlocks  // Flattened 1D array
+        self._blocks.wrappedValue = blocks
 
         self._msfa.wrappedValue = MobileNetV5MultiScaleFusionAdapter(
             inChannels: [1920],
@@ -3658,13 +3666,13 @@ private class VisionTower: Module {
         super.init()
     }
 
-    static func buildBlocks(convStemOutChannels: Int) -> (Int, [UnaryLayer], [Int]) {
-        var flatBlocks: [UnaryLayer] = []
-        var stageEndIndices: [Int] = []
+    static func buildBlocks(convStemOutChannels: Int) -> (Int, [[UnaryLayer]]) {
+        var blocks: [[UnaryLayer]] = []
         var inChannels = convStemOutChannels
 
         // Build blocks: Stage sizes are [3, 5, 37, 39] = 84 total blocks
         for (stage, blockConfigs) in gemma3nMobilenetDef().enumerated() {
+            var blockGroup = [UnaryLayer]()
             for (blockIndex, config) in blockConfigs.enumerated() {
                 if let edgeConfig = config as? EdgeResidualConfig {
                     let block = EdgeResidual(
@@ -3675,7 +3683,7 @@ private class VisionTower: Module {
                         expandRatio: edgeConfig.expandRatio
                     )
                     inChannels = edgeConfig.filters
-                    flatBlocks.append(block)
+                    blockGroup.append(block)
                 } else if let uirConfig = config as? UniversalInvertedResidualConfig {
                     let block = UniversalInvertedResidual(
                         inChannels: inChannels,
@@ -3686,7 +3694,7 @@ private class VisionTower: Module {
                         expRatio: uirConfig.expandRatio
                     )
                     inChannels = uirConfig.filters
-                    flatBlocks.append(block)
+                    blockGroup.append(block)
                 } else if let attentionConfig = config as? MultiQueryAttentionBlockConfig {
                     let block = MobileAttention(
                         inChannels: inChannels,
@@ -3698,13 +3706,13 @@ private class VisionTower: Module {
                         kvStride: attentionConfig.kvStrides,
                         actLayer: nil
                     )
-                    flatBlocks.append(block)
+                    blockGroup.append(block)
                 }
             }
-            stageEndIndices.append(flatBlocks.count - 1)  // Record where this stage ends
+            blocks.append(blockGroup)
         }
         // Total blocks: 84, stage ends: [2, 7, 44, 83]
-        return (inChannels, flatBlocks, stageEndIndices)
+        return (inChannels, blocks)
     }
 
     func callAsFunction(
@@ -3722,22 +3730,19 @@ private class VisionTower: Module {
         }
 
         // Process blocks with stage tracking
-        var blockIdx = 0
-        for stageEndIdx in stageEndIndices {
+        for blockGroup in blocks {
             featIdx += 1
             
-            // Process all blocks in this stage
-            while blockIdx <= stageEndIdx {
-                result = blocks[blockIdx](result)
-                blockIdx += 1
+            for block in blockGroup {
+                result = block(result)
             }
-
+            
             if msfaIndices.0 == featIdx || msfaIndices.1 == featIdx {
                 intermediates.append(result)
             }
         }
-
         result = msfa(intermediates)
+        
         return result
     }
 
@@ -3760,132 +3765,133 @@ private class VisionTower: Module {
         var depthwiseCount = 0
         var remappedCount = 0
         
-        // First pass: remap keys from 2D blocks to 1D blocks
-        var keysToRemap: [(String, String)] = []
-        var debugBlockKeys: [String] = []
-        for (k, v) in weights {
-            // Debug: collect all block-related keys (both patterns)
-            if k.contains("vision_tower.timm_model.blocks.") {
-                // Pattern 1: blocks.blocks.flat.remainder
-                if k.contains("vision_tower.timm_model.blocks.blocks.") {
-                    let blocksComponents = k.components(separatedBy: "vision_tower.timm_model.blocks.blocks.")
-                    if blocksComponents.count >= 2 {
-                        let remainingPath = blocksComponents[1]
-                        let pathComponents = remainingPath.components(separatedBy: ".")
-                        if pathComponents.count >= 2,
-                           Int(pathComponents[0]) != nil {
-                            debugBlockKeys.append(k)
-                        }
-                    }
-                }
-                // Pattern 2: blocks.stage.block.remainder  
-                else {
-                    let components = k.components(separatedBy: "vision_tower.timm_model.blocks.")
-                    if components.count >= 2 {
-                        let remainingPath = components[1]
-                        let pathComponents = remainingPath.components(separatedBy: ".")
-                        if pathComponents.count >= 3,
-                           Int(pathComponents[0]) != nil,
-                           Int(pathComponents[1]) != nil {
-                            debugBlockKeys.append(k)
-                        }
-                    }
-                }
-            }
-            // Key remapping: Handle both patterns
-            // Pattern 1: blocks.stage.block.remainder -> blocks.flatIndex.remainder
-            // Pattern 2: blocks.blocks.flat.remainder -> blocks.flat.remainder
-            if k.contains("vision_tower.timm_model.blocks.") {
-                // Pattern 1: blocks.blocks.flat.remainder -> blocks.flat.remainder  
-                if k.contains("vision_tower.timm_model.blocks.blocks.") {
-                    let blocksComponents = k.components(separatedBy: "vision_tower.timm_model.blocks.blocks.")
-                    if blocksComponents.count >= 2 {
-                        let remainingPath = blocksComponents[1]
-                        let pathComponents = remainingPath.components(separatedBy: ".")
-                        if pathComponents.count >= 2,
-                           let flatIdx = Int(pathComponents[0]) {
-                            let remainder = pathComponents.dropFirst(1).joined(separator: ".")
-                            let newKey = "vision_tower.timm_model.blocks.\(flatIdx).\(remainder)"
-                            keysToRemap.append((k, newKey))
-                            remappedCount += 1
-                        }
-                    }
-                }
-                // Pattern 2: blocks.stage.block.remainder -> blocks.blocks.flat.remainder
-                else {
-                    let components = k.components(separatedBy: "vision_tower.timm_model.blocks.")
-                    if components.count >= 2 {
-                        let remainingPath = components[1]
-                        let pathComponents = remainingPath.components(separatedBy: ".")
-                        
-                        // Pattern: stage.block.remainder (e.g., "0.0.conv_exp.weight")
-                        if pathComponents.count >= 3 {
-                            if let stageIdx = Int(pathComponents[0]),
-                               let blockIdx = Int(pathComponents[1]) {
-                                // Calculate flat index: sum of blocks in previous stages + current block index
-                                let stageSizes = [3, 5, 37, 39]  // blocks per stage from debug output
-                                var flatIdx = blockIdx
-                                for i in 0..<stageIdx {
-                                    flatIdx += stageSizes[i]
-                                }
-                                
-                                let remainder = pathComponents.dropFirst(2).joined(separator: ".")
-                                let newKey = "vision_tower.timm_model.blocks.blocks.\(flatIdx).\(remainder)"
-                                keysToRemap.append((k, newKey))
-                                remappedCount += 1
-                                
-                                // Debug specific conv_exp keys
-                                if remainder.contains("conv_exp.weight") {
-                                    // Remapping stage.block to flat blocks.X format
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Key remapping converts blocks format
-        
-        // Apply key remapping
-        for (oldKey, newKey) in keysToRemap {
-            if let value = sanitizedWeights[oldKey] {
-                sanitizedWeights[newKey] = value
-                sanitizedWeights.removeValue(forKey: oldKey)
-            }
-        }
-        
-        // Debug: Check for problematic key formats
-        let stageBlockKeys = sanitizedWeights.keys.filter { k in
-            if k.contains("vision_tower.timm_model.blocks.") && !k.contains("vision_tower.timm_model.blocks.blocks.") {
-                let components = k.components(separatedBy: "vision_tower.timm_model.blocks.")
-                if components.count >= 2 {
-                    let remainingPath = components[1]
-                    let pathComponents = remainingPath.components(separatedBy: ".")
-                    if pathComponents.count >= 3,
-                       Int(pathComponents[0]) != nil,
-                       Int(pathComponents[1]) != nil {
-                        return true
-                    }
-                }
-            }
-            return false
-        }
-        
-        let finalBlocksBlocksKeys = sanitizedWeights.keys.filter { k in
-            k.contains("vision_tower.timm_model.blocks.blocks.")
-        }
-        
-                // CORE ISSUE: Model expects blocks.X keys but weights have blocks.blocks.X format
-        // Successfully remapped all keys but MLX still can't load blocks.blocks.X into @ModuleInfo var blocks: [UnaryLayer]
-        if !stageBlockKeys.isEmpty {
-            print("WARNING: \(stageBlockKeys.count) stage.block keys remain - these should have been converted")
-        }
-        
-        if !finalBlocksBlocksKeys.isEmpty {
-            print("INFO: Key remapping complete - \(finalBlocksBlocksKeys.count) blocks.blocks keys created")
-            print("ISSUE: MLX cannot load blocks.blocks.X keys into @ModuleInfo var blocks: [UnaryLayer]")
-        }
+        // TODO dkoski -- I think we can delete, but leaving for now in case needed
+//        // First pass: remap keys from 2D blocks to 1D blocks
+//        var keysToRemap: [(String, String)] = []
+//        var debugBlockKeys: [String] = []
+//        for (k, v) in weights {
+//            // Debug: collect all block-related keys (both patterns)
+//            if k.contains("vision_tower.timm_model.blocks.") {
+//                // Pattern 1: blocks.blocks.flat.remainder
+//                if k.contains("vision_tower.timm_model.blocks.blocks.") {
+//                    let blocksComponents = k.components(separatedBy: "vision_tower.timm_model.blocks.blocks.")
+//                    if blocksComponents.count >= 2 {
+//                        let remainingPath = blocksComponents[1]
+//                        let pathComponents = remainingPath.components(separatedBy: ".")
+//                        if pathComponents.count >= 2,
+//                           Int(pathComponents[0]) != nil {
+//                            debugBlockKeys.append(k)
+//                        }
+//                    }
+//                }
+//                // Pattern 2: blocks.stage.block.remainder  
+//                else {
+//                    let components = k.components(separatedBy: "vision_tower.timm_model.blocks.")
+//                    if components.count >= 2 {
+//                        let remainingPath = components[1]
+//                        let pathComponents = remainingPath.components(separatedBy: ".")
+//                        if pathComponents.count >= 3,
+//                           Int(pathComponents[0]) != nil,
+//                           Int(pathComponents[1]) != nil {
+//                            debugBlockKeys.append(k)
+//                        }
+//                    }
+//                }
+//            }
+//            // Key remapping: Handle both patterns
+//            // Pattern 1: blocks.stage.block.remainder -> blocks.flatIndex.remainder
+//            // Pattern 2: blocks.blocks.flat.remainder -> blocks.flat.remainder
+//            if k.contains("vision_tower.timm_model.blocks.") {
+//                // Pattern 1: blocks.blocks.flat.remainder -> blocks.flat.remainder  
+//                if k.contains("vision_tower.timm_model.blocks.blocks.") {
+//                    let blocksComponents = k.components(separatedBy: "vision_tower.timm_model.blocks.blocks.")
+//                    if blocksComponents.count >= 2 {
+//                        let remainingPath = blocksComponents[1]
+//                        let pathComponents = remainingPath.components(separatedBy: ".")
+//                        if pathComponents.count >= 2,
+//                           let flatIdx = Int(pathComponents[0]) {
+//                            let remainder = pathComponents.dropFirst(1).joined(separator: ".")
+//                            let newKey = "vision_tower.timm_model.blocks.\(flatIdx).\(remainder)"
+//                            keysToRemap.append((k, newKey))
+//                            remappedCount += 1
+//                        }
+//                    }
+//                }
+//                // Pattern 2: blocks.stage.block.remainder -> blocks.blocks.flat.remainder
+//                else {
+//                    let components = k.components(separatedBy: "vision_tower.timm_model.blocks.")
+//                    if components.count >= 2 {
+//                        let remainingPath = components[1]
+//                        let pathComponents = remainingPath.components(separatedBy: ".")
+//                        
+//                        // Pattern: stage.block.remainder (e.g., "0.0.conv_exp.weight")
+//                        if pathComponents.count >= 3 {
+//                            if let stageIdx = Int(pathComponents[0]),
+//                               let blockIdx = Int(pathComponents[1]) {
+//                                // Calculate flat index: sum of blocks in previous stages + current block index
+//                                let stageSizes = [3, 5, 37, 39]  // blocks per stage from debug output
+//                                var flatIdx = blockIdx
+//                                for i in 0..<stageIdx {
+//                                    flatIdx += stageSizes[i]
+//                                }
+//                                
+//                                let remainder = pathComponents.dropFirst(2).joined(separator: ".")
+//                                let newKey = "vision_tower.timm_model.blocks.blocks.\(flatIdx).\(remainder)"
+//                                keysToRemap.append((k, newKey))
+//                                remappedCount += 1
+//                                
+//                                // Debug specific conv_exp keys
+//                                if remainder.contains("conv_exp.weight") {
+//                                    // Remapping stage.block to flat blocks.X format
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        
+//        // Key remapping converts blocks format
+//        
+//        // Apply key remapping
+//        for (oldKey, newKey) in keysToRemap {
+//            if let value = sanitizedWeights[oldKey] {
+//                sanitizedWeights[newKey] = value
+//                sanitizedWeights.removeValue(forKey: oldKey)
+//            }
+//        }
+//        
+//        // Debug: Check for problematic key formats
+//        let stageBlockKeys = sanitizedWeights.keys.filter { k in
+//            if k.contains("vision_tower.timm_model.blocks.") && !k.contains("vision_tower.timm_model.blocks.blocks.") {
+//                let components = k.components(separatedBy: "vision_tower.timm_model.blocks.")
+//                if components.count >= 2 {
+//                    let remainingPath = components[1]
+//                    let pathComponents = remainingPath.components(separatedBy: ".")
+//                    if pathComponents.count >= 3,
+//                       Int(pathComponents[0]) != nil,
+//                       Int(pathComponents[1]) != nil {
+//                        return true
+//                    }
+//                }
+//            }
+//            return false
+//        }
+//        
+//        let finalBlocksBlocksKeys = sanitizedWeights.keys.filter { k in
+//            k.contains("vision_tower.timm_model.blocks.blocks.")
+//        }
+//        
+//                // CORE ISSUE: Model expects blocks.X keys but weights have blocks.blocks.X format
+//        // Successfully remapped all keys but MLX still can't load blocks.blocks.X into @ModuleInfo var blocks: [UnaryLayer]
+//        if !stageBlockKeys.isEmpty {
+//            print("WARNING: \(stageBlockKeys.count) stage.block keys remain - these should have been converted")
+//        }
+//        
+//        if !finalBlocksBlocksKeys.isEmpty {
+//            print("INFO: Key remapping complete - \(finalBlocksBlocksKeys.count) blocks.blocks keys created")
+//            print("ISSUE: MLX cannot load blocks.blocks.X keys into @ModuleInfo var blocks: [UnaryLayer]")
+//        }
         
         // Second pass: process conv weights (dimension swap and depthwise expansion working correctly)
         var dimensionSwapCount = 0
@@ -3894,35 +3900,39 @@ private class VisionTower: Module {
             if (k.contains("conv") && k.contains("weight"))
                 || (k.contains("attn") && k.contains("proj.weight"))
             {
-                if v.ndim == 4 {
-                    // Check for vision tower conv weights that need dimension swapping
-                    // Pattern: [out, H, in, W] → [out, H, W, in] (swap dims 2,3)
-                    let (out, dim1, dim2, dim3) = (v.shape[0], v.shape[1], v.shape[2], v.shape[3])
-                    let needsDimensionSwap = (dim1 == 3 || dim1 == 1) && dim2 > dim3 && dim3 <= 128
-                    
-                    if k.contains("conv_exp.weight") && needsDimensionSwap {
-                        let fixed = v.transposed(0, 1, 3, 2)  // Swap dims 2,3
-                        sanitizedWeights[k] = fixed
-                        dimensionSwapCount += 1
-                    }
-                    // Check for depthwise conv: shape [outChannels, H, W, 1] in MLX format
-                    else if v.shape[3] == 1 && k.contains("dw") {
-                        // Expand depthwise weights: [outChannels, H, W, 1] -> [outChannels, H, W, outChannels]
-                        let outChannels = v.shape[0]
-                        let h = v.shape[1]
-                        let w = v.shape[2]
-                        var expandedWeight = MLXArray.zeros([outChannels, h, w, outChannels], dtype: v.dtype)
-                        for i in 0..<outChannels {
-                            expandedWeight[i, 0..., 0..., i] = v[i, 0..., 0..., 0]
-                        }
-                        sanitizedWeights[k] = expandedWeight
-                        depthwiseCount += 1
-                    } else if !skipTranspose && !k.contains("msfa") {
-                        // Basic PyTorch -> MLX transposition: [out, in, H, W] -> [out, H, W, in]
-                        // Skip MSFA weights as they're already in correct format
-                        sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
-                    }
+                if v.ndim == 4 && !skipTranspose {
+                    sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
                 }
+                // TODO dkoski -- I think we can delete, but leaving for now in case needed
+//                if v.ndim == 4 {
+//                    // Check for vision tower conv weights that need dimension swapping
+//                    // Pattern: [out, H, in, W] → [out, H, W, in] (swap dims 2,3)
+//                    let (out, dim1, dim2, dim3) = (v.shape[0], v.shape[1], v.shape[2], v.shape[3])
+//                    let needsDimensionSwap = (dim1 == 3 || dim1 == 1) && dim2 > dim3 && dim3 <= 128
+//                    
+//                    if k.contains("conv_exp.weight") && needsDimensionSwap {
+//                        let fixed = v.transposed(0, 1, 3, 2)  // Swap dims 2,3
+//                        sanitizedWeights[k] = fixed
+//                        dimensionSwapCount += 1
+//                    }
+//                    // Check for depthwise conv: shape [outChannels, H, W, 1] in MLX format
+//                    else if v.shape[3] == 1 && k.contains("dw") {
+//                        // Expand depthwise weights: [outChannels, H, W, 1] -> [outChannels, H, W, outChannels]
+//                        let outChannels = v.shape[0]
+//                        let h = v.shape[1]
+//                        let w = v.shape[2]
+//                        var expandedWeight = MLXArray.zeros([outChannels, h, w, outChannels], dtype: v.dtype)
+//                        for i in 0..<outChannels {
+//                            expandedWeight[i, 0..., 0..., i] = v[i, 0..., 0..., 0]
+//                        }
+//                        sanitizedWeights[k] = expandedWeight
+//                        depthwiseCount += 1
+//                    } else if !skipTranspose && !k.contains("msfa") {
+//                        // Basic PyTorch -> MLX transposition: [out, in, H, W] -> [out, H, W, in]
+//                        // Skip MSFA weights as they're already in correct format
+//                        sanitizedWeights[k] = v.transposed(0, 2, 3, 1)
+//                    }
+//                }
             }
         }
         
@@ -4296,7 +4306,8 @@ public struct Gemma3nProcessorConfiguration: Codable, Sendable {
     public let doResize: Bool
     public let imageMean: [CGFloat]
     public let imageStd: [CGFloat]
-    public let visionSoftTokensPerImage: Int
+    public let _visionSoftTokensPerImage: Int?
+    public var visionSoftTokensPerImage: Int { _visionSoftTokensPerImage ?? 256 }
     public let resample: Int
     public let rescaleFactor: Float
     public let size: ImageSize
@@ -4334,7 +4345,7 @@ public struct Gemma3nProcessorConfiguration: Codable, Sendable {
         case doPanAndScan = "do_pan_and_scan"
         case imageMean = "image_mean"
         case imageStd = "image_std"
-        case visionSoftTokensPerImage = "vision_soft_tokens_per_image"
+        case _visionSoftTokensPerImage = "vision_soft_tokens_per_image"
         case resample
         case rescaleFactor = "rescale_factor"
         case size
