@@ -9,8 +9,9 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
-// port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/qwen2.py
+// port of https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/qwen2.py
 
 private class Attention: Module {
     let args: Qwen2Configuration
@@ -212,64 +213,19 @@ public class Qwen2Model: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct Qwen2Configuration: Codable, Sendable {
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var kvHeads: Int
-    var ropeTheta: Float = 1_000_000
-    var ropeTraditional: Bool = false
-    var ropeScaling: [String: StringOrNumber]? = nil
-    var tieWordEmbeddings = false
-
-    enum CodingKeys: String, CodingKey {
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case kvHeads = "num_key_value_heads"
-        case ropeTheta = "rope_theta"
-        case ropeTraditional = "rope_traditional"
-        case ropeScaling = "rope_scaling"
-        case tieWordEmbeddings = "tie_word_embeddings"
-    }
-
-    public init(from decoder: Decoder) throws {
-        // custom implementation to handle optional keys with required values
-        let container: KeyedDecodingContainer<Qwen2Configuration.CodingKeys> =
-            try decoder.container(
-                keyedBy: Qwen2Configuration.CodingKeys.self)
-
-        self.hiddenSize = try container.decode(
-            Int.self, forKey: Qwen2Configuration.CodingKeys.hiddenSize)
-        self.hiddenLayers = try container.decode(
-            Int.self, forKey: Qwen2Configuration.CodingKeys.hiddenLayers)
-        self.intermediateSize = try container.decode(
-            Int.self, forKey: Qwen2Configuration.CodingKeys.intermediateSize)
-        self.attentionHeads = try container.decode(
-            Int.self, forKey: Qwen2Configuration.CodingKeys.attentionHeads)
-        self.rmsNormEps = try container.decode(
-            Float.self, forKey: Qwen2Configuration.CodingKeys.rmsNormEps)
-        self.vocabularySize = try container.decode(
-            Int.self, forKey: Qwen2Configuration.CodingKeys.vocabularySize)
-        self.kvHeads = try container.decode(Int.self, forKey: Qwen2Configuration.CodingKeys.kvHeads)
-        self.ropeTheta =
-            try container.decodeIfPresent(
-                Float.self, forKey: Qwen2Configuration.CodingKeys.ropeTheta)
-            ?? 1_000_000
-        self.ropeTraditional =
-            try container.decodeIfPresent(
-                Bool.self, forKey: Qwen2Configuration.CodingKeys.ropeTraditional) ?? false
-        self.ropeScaling = try container.decodeIfPresent(
-            [String: StringOrNumber].self, forKey: Qwen2Configuration.CodingKeys.ropeScaling)
-        self.tieWordEmbeddings =
-            try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
-    }
+@Codable
+public struct Qwen2Configuration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("rope_theta") public var ropeTheta: Float = 1_000_000
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]? = nil
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings = false
 }
 
 // MARK: - LoRA

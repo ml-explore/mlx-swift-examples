@@ -5,7 +5,7 @@ import MLX
 import MLXLinalg
 import MLXNN
 
-public struct PoolingConfiguration: Codable {
+public struct PoolingConfiguration: Codable, Sendable {
     public let dimension: Int
     public let poolingModeClsToken: Bool
     public let poolingModeMeanTokens: Bool

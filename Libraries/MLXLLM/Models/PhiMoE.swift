@@ -2,41 +2,26 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
-// Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/phimoe.py
+// Port of https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/phimoe.py
 
-public struct PhiMoEConfiguration: Codable, Sendable {
-    var modelType: String = "phimoe"
-    var vocabularySize: Int = 32064
-    var hiddenSize: Int = 4096
-    var intermediateSize: Int = 6400
-    var hiddenLayers: Int = 32
-    var attentionHeads: Int = 32
-    var kvHeads: Int = 8
-    var maxPositionEmbeddings: Int = 131072
-    var originalMaxPositionEmbeddings: Int = 4096
-    var rmsNormEps: Float = 1e-6
-    var ropeScaling: RopeScalingWithFactorArrays?
-    var numLocalExperts: Int = 16
-    var numExpertsPerToken: Int = 2
-    var ropeTheta: Float = 10000.0
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case vocabularySize = "vocab_size"
-        case hiddenSize = "hidden_size"
-        case intermediateSize = "intermediate_size"
-        case hiddenLayers = "num_hidden_layers"
-        case attentionHeads = "num_attention_heads"
-        case kvHeads = "num_key_value_heads"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case originalMaxPositionEmbeddings = "original_max_position_embeddings"
-        case rmsNormEps = "rms_norm_eps"
-        case ropeScaling = "rope_scaling"
-        case numLocalExperts = "num_local_experts"
-        case numExpertsPerToken = "num_experts_per_tok"
-        case ropeTheta = "rope_theta"
-    }
+@Codable
+public struct PhiMoEConfiguration: Sendable {
+    @CodingKey("vocab_size") public var vocabularySize: Int = 32064
+    @CodingKey("hidden_size") public var hiddenSize: Int = 4096
+    @CodingKey("intermediate_size") public var intermediateSize: Int = 6400
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int = 32
+    @CodingKey("num_attention_heads") public var attentionHeads: Int = 32
+    @CodingKey("num_key_value_heads") public var kvHeads: Int = 8
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int = 131072
+    @CodingKey("original_max_position_embeddings") public var originalMaxPositionEmbeddings: Int =
+        4096
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float = 1e-6
+    @CodingKey("rope_scaling") public var ropeScaling: RopeScalingWithFactorArrays?
+    @CodingKey("num_local_experts") public var numLocalExperts: Int = 16
+    @CodingKey("num_experts_per_tok") public var numExpertsPerToken: Int = 2
+    @CodingKey("rope_theta") public var ropeTheta: Float = 10000.0
 }
 
 private class Attention: Module {

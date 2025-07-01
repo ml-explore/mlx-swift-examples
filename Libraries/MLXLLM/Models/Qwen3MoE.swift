@@ -9,6 +9,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
 // port of https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/qwen3_moe.py
 
@@ -282,76 +283,26 @@ public class Qwen3MoEModel: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct Qwen3MoEConfiguration: Codable, Sendable {
-    var modelType: String = "qwen3_moe"
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var numExperts: Int
-    var numExpertsPerToken: Int
-    var decoderSparseStep: Int
-    var mlpOnlyLayers: [Int]
-    var moeIntermediateSize: Int
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var kvHeads: Int
-    var headDim: Int
-    var ropeTheta: Float = 1_000_000
-    var tieWordEmbeddings: Bool = false
-    var maxPositionEmbeddings: Int = 32768
-    var normTopkProb: Bool = false
-    var ropeScaling: [String: StringOrNumber]? = nil
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case numExperts = "num_experts"
-        case numExpertsPerToken = "num_experts_per_tok"
-        case decoderSparseStep = "decoder_sparse_step"
-        case mlpOnlyLayers = "mlp_only_layers"
-        case moeIntermediateSize = "moe_intermediate_size"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case kvHeads = "num_key_value_heads"
-        case headDim = "head_dim"
-        case ropeTheta = "rope_theta"
-        case tieWordEmbeddings = "tie_word_embeddings"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case normTopkProb = "norm_topk_prob"
-        case ropeScaling = "rope_scaling"
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-
-        self.modelType =
-            try container.decodeIfPresent(String.self, forKey: .modelType) ?? "qwen3_moe"
-        self.hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        self.hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
-        self.intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
-        self.attentionHeads = try container.decode(Int.self, forKey: .attentionHeads)
-        self.numExperts = try container.decode(Int.self, forKey: .numExperts)
-        self.numExpertsPerToken = try container.decode(Int.self, forKey: .numExpertsPerToken)
-        self.decoderSparseStep = try container.decode(Int.self, forKey: .decoderSparseStep)
-        self.mlpOnlyLayers = try container.decode([Int].self, forKey: .mlpOnlyLayers)
-        self.moeIntermediateSize = try container.decode(Int.self, forKey: .moeIntermediateSize)
-        self.rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
-        self.vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
-        self.kvHeads = try container.decode(Int.self, forKey: .kvHeads)
-        self.headDim = try container.decode(Int.self, forKey: .headDim)
-        self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 1_000_000
-        self.tieWordEmbeddings =
-            try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
-        self.maxPositionEmbeddings =
-            try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 32768
-        self.normTopkProb = try container.decodeIfPresent(Bool.self, forKey: .normTopkProb) ?? false
-        self.ropeScaling = try container.decodeIfPresent(
-            [String: StringOrNumber].self, forKey: .ropeScaling)
-    }
+@Codable
+public struct Qwen3MoEConfiguration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("num_experts") public var numExperts: Int
+    @CodingKey("num_experts_per_tok") public var numExpertsPerToken: Int
+    @CodingKey("decoder_sparse_step") public var decoderSparseStep: Int
+    @CodingKey("mlp_only_layers") public var mlpOnlyLayers: [Int]
+    @CodingKey("moe_intermediate_size") public var moeIntermediateSize: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("head_dim") public var headDim: Int
+    @CodingKey("rope_theta") public var ropeTheta: Float = 1_000_000
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = false
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int = 32768
+    @CodingKey("norm_topk_prob") public var normTopkProb: Bool = false
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]? = nil
 }
 
 // MARK: - LoRA

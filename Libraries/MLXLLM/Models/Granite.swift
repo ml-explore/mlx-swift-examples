@@ -5,12 +5,13 @@
 //  Created by Sachin Desai on 4/25/25.
 //
 
-// Port of https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/granite.py
-
 import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
+
+// Port of https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/granite.py
 
 private class Attention: Module {
     let args: GraniteConfiguration
@@ -214,69 +215,25 @@ public class GraniteModel: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct GraniteConfiguration: Codable, Sendable {
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var logitsScaling: Float
-    var attentionMultiplier: Float
-    var embeddingMultiplier: Float
-    var residualMultiplier: Float
-    var maxPositionEmbeddings: Int
-    var kvHeads: Int
-    var attentionBias: Bool
-    var mlpBias: Bool
-    var ropeTheta: Float
-    var ropeTraditional: Bool = false
-    var ropeScaling: [String: StringOrNumber]? = nil
-    var tieWordEmbeddings: Bool = true
-
-    enum CodingKeys: String, CodingKey {
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case logitsScaling = "logits_scaling"
-        case attentionMultiplier = "attention_multiplier"
-        case embeddingMultiplier = "embedding_multiplier"
-        case residualMultiplier = "residual_multiplier"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case kvHeads = "num_key_value_heads"
-        case attentionBias = "attention_bias"
-        case mlpBias = "mlp_bias"
-        case ropeTheta = "rope_theta"
-        case ropeScaling = "rope_scaling"
-        case tieWordEmbeddings = "tie_word_embeddings"
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container: KeyedDecodingContainer<GraniteConfiguration.CodingKeys> =
-            try decoder.container(keyedBy: GraniteConfiguration.CodingKeys.self)
-
-        self.hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        self.hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
-        self.intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
-        self.attentionHeads = try container.decode(Int.self, forKey: .attentionHeads)
-        self.rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
-        self.vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
-        self.logitsScaling = try container.decode(Float.self, forKey: .logitsScaling)
-        self.attentionMultiplier = try container.decode(Float.self, forKey: .attentionMultiplier)
-        self.embeddingMultiplier = try container.decode(Float.self, forKey: .embeddingMultiplier)
-        self.residualMultiplier = try container.decode(Float.self, forKey: .residualMultiplier)
-        self.maxPositionEmbeddings = try container.decode(Int.self, forKey: .maxPositionEmbeddings)
-        self.kvHeads = try container.decode(Int.self, forKey: .kvHeads)
-        self.attentionBias = try container.decode(Bool.self, forKey: .attentionBias)
-        self.mlpBias = try container.decode(Bool.self, forKey: .mlpBias) ?? false
-        self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 10000000.0
-        self.ropeScaling = try container.decodeIfPresent(
-            [String: StringOrNumber].self, forKey: .ropeScaling)
-        self.tieWordEmbeddings = try container.decode(Bool.self, forKey: .tieWordEmbeddings)
-    }
+@Codable
+public struct GraniteConfiguration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("logits_scaling") public var logitsScaling: Float
+    @CodingKey("attention_multiplier") public var attentionMultiplier: Float
+    @CodingKey("embedding_multiplier") public var embeddingMultiplier: Float
+    @CodingKey("residual_multiplier") public var residualMultiplier: Float
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("attention_bias") public var attentionBias: Bool
+    @CodingKey("mlp_bias") public var mlpBias: Bool
+    @CodingKey("rope_theta") public var ropeTheta: Float
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]? = nil
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = true
 }
 
 // MARK: - LoRA

@@ -6,6 +6,7 @@ import Hub
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 import Tokenizers
 
 // MARK: - Language
@@ -915,125 +916,62 @@ public class Qwen25VL: Module, VLMModel, KVCacheDimensionProvider {
 /// Configuration for ``Qwen25VL``
 public struct Qwen25VLConfiguration: Codable, Sendable {
 
-    public struct TextConfiguration: Codable, Sendable {
-        public let modelType: String
-        public let hiddenSize: Int
-        public let hiddenLayers: Int
-        public let intermediateSize: Int
-        public let attentionHeads: Int
-        private let _rmsNormEps: Float?
-        public var rmsNormEps: Float { _rmsNormEps ?? 1e-6 }
-        public let vocabularySize: Int
-        public let kvHeads: Int
-        private let _maxPositionEmbeddings: Int?
-        public var maxPositionEmbeddings: Int { _maxPositionEmbeddings ?? 128000 }
-        private let _ropeTheta: Float?
-        public var ropeTheta: Float { _ropeTheta ?? 1_000_000 }
-        private let _ropeTraditional: Bool?
-        public var ropeTraditional: Bool { _ropeTraditional ?? false }
-        public let ropeScaling: [String: StringOrNumber]?
-        private let _tieWordEmbeddings: Bool?
-        public var tieWordEmbeddings: Bool { _tieWordEmbeddings ?? true }
-        private let _slidingWindow: Int?
-        public var slidingWindow: Int { _slidingWindow ?? 32768 }
-        private let _useSlidingWindow: Bool?
-        public var useSlidingWindow: Bool { _useSlidingWindow ?? false }
-
-        enum CodingKeys: String, CodingKey {
-            case modelType = "model_type"
-            case hiddenSize = "hidden_size"
-            case hiddenLayers = "num_hidden_layers"
-            case intermediateSize = "intermediate_size"
-            case attentionHeads = "num_attention_heads"
-            case _rmsNormEps = "rms_norm_eps"
-            case vocabularySize = "vocab_size"
-            case kvHeads = "num_key_value_heads"
-            case _maxPositionEmbeddings = "max_position_embeddings"
-            case _ropeTheta = "rope_theta"
-            case _ropeTraditional = "rope_traditional"
-            case ropeScaling = "rope_scaling"
-            case _tieWordEmbeddings = "tie_word_embeddings"
-            case _slidingWindow = "sliding_window"
-            case _useSlidingWindow = "use_sliding_window"
-        }
+    @Codable
+    public struct TextConfiguration: Sendable {
+        @CodingKey("model_type") public var modelType: String
+        @CodingKey("hidden_size") public var hiddenSize: Int
+        @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+        @CodingKey("intermediate_size") public var intermediateSize: Int
+        @CodingKey("num_attention_heads") public var attentionHeads: Int
+        @CodingKey("rms_norm_eps") public var rmsNormEps: Float = 1e-6
+        @CodingKey("vocab_size") public var vocabularySize: Int
+        @CodingKey("num_key_value_heads") public var kvHeads: Int
+        @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int = 128000
+        @CodingKey("rope_theta") public var ropeTheta: Float = 1_000_000
+        @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
+        @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]?
+        @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = true
+        @CodingKey("sliding_window") public var slidingWindow: Int = 32768
+        @CodingKey("use_sliding_window") public var useSlidingWindow: Bool = false
     }
 
-    public struct VisionConfiguration: Codable, Sendable {
-        public let depth: Int
-        public let hiddenSize: Int
-        public let intermediateSize: Int
-        public let outHiddenSize: Int
-        public let numHeads: Int
-        public let patchSize: Int
-        private let _inChans: Int?
-        public var inChannels: Int { _inChans ?? 3 }
-        private let _layerNormEps: Float?
-        public var layerNormEps: Float { _layerNormEps ?? 1e-6 }
-        public let spatialPatchSize: Int
-        public let spatialMergeSize: Int
-        public let temporalPatchSize: Int
-        public let windowSize: Int
-        public let fullattBlockIndexes: [Int]
-        public let tokensPerSecond: Int
-        private let _skipVision: Bool?
-        public var skipVision: Bool { _skipVision ?? false }
-        private let _hiddenAct: String?
-        public var hiddenAct: String { _hiddenAct ?? "silu" }
-
-        enum CodingKeys: String, CodingKey {
-            case depth
-            case hiddenSize = "hidden_size"
-            case intermediateSize = "intermediate_size"
-            case outHiddenSize = "out_hidden_size"
-            case numHeads = "num_heads"
-            case patchSize = "patch_size"
-            case _inChans = "in_chans"
-            case _layerNormEps = "layer_norm_eps"  // Added this line
-            case spatialPatchSize = "spatial_patch_size"
-            case spatialMergeSize = "spatial_merge_size"
-            case temporalPatchSize = "temporal_patch_size"
-            case windowSize = "window_size"
-            case fullattBlockIndexes = "fullatt_block_indexes"
-            case tokensPerSecond = "tokens_per_second"
-            case _skipVision = "skip_vision"
-            case _hiddenAct = "hidden_act"
-        }
+    @Codable
+    public struct VisionConfiguration: Sendable {
+        public var depth: Int
+        @CodingKey("hidden_size") public var hiddenSize: Int
+        @CodingKey("intermediate_size") public var intermediateSize: Int
+        @CodingKey("out_hidden_size") public var outHiddenSize: Int
+        @CodingKey("num_heads") public var numHeads: Int
+        @CodingKey("patch_size") public var patchSize: Int
+        @CodingKey("in_chans") public var inChannels: Int = 3
+        @CodingKey("layer_norm_eps") public var layerNormEps: Float = 1e-6
+        @CodingKey("spatial_patch_size") public var spatialPatchSize: Int
+        @CodingKey("spatial_merge_size") public var spatialMergeSize: Int
+        @CodingKey("temporal_patch_size") public var temporalPatchSize: Int
+        @CodingKey("window_size") public var windowSize: Int
+        @CodingKey("fullatt_block_indexes") public var fullattBlockIndexes: [Int]
+        @CodingKey("tokens_per_second") public var tokensPerSecond: Int
+        @CodingKey("skip_vision") public var skipVision: Bool = false
+        @CodingKey("hidden_act") public var hiddenAct: String = "silu"
     }
 
+    @Codable
     public struct BaseConfiguration: Codable, Sendable {
-        public let modelType: String
-        public let vocabularySize: Int
-        public let imageTokenId: Int
-        public let videoTokenId: Int
-        public let visionStartTokenId: Int
-        public let visionEndTokenId: Int
-        public let visionTokenId: Int
-        public let hiddenSize: Int
-        public let numAttentionHeads: Int
-        public let numHiddenLayers: Int
-        public let intermediateSize: Int
-        public let numKeyValueHeads: Int
-        public let slidingWindow: Int
-        public let useSlidingWindow: Bool
-        public let maxWindowLayers: Int
-
-        enum CodingKeys: String, CodingKey {
-            case modelType = "model_type"
-            case vocabularySize = "vocab_size"
-            case imageTokenId = "image_token_id"
-            case videoTokenId = "video_token_id"
-            case visionStartTokenId = "vision_start_token_id"
-            case visionEndTokenId = "vision_end_token_id"
-            case visionTokenId = "vision_token_id"
-            case hiddenSize = "hidden_size"
-            case numAttentionHeads = "num_attention_heads"
-            case numHiddenLayers = "num_hidden_layers"
-            case intermediateSize = "intermediate_size"
-            case numKeyValueHeads = "num_key_value_heads"
-            case slidingWindow = "sliding_window"
-            case useSlidingWindow = "use_sliding_window"
-            case maxWindowLayers = "max_window_layers"
-        }
+        @CodingKey("model_type") public var modelType: String
+        @CodingKey("vocab_size") public var vocabularySize: Int
+        @CodingKey("image_token_id") public var imageTokenId: Int
+        @CodingKey("video_token_id") public var videoTokenId: Int
+        @CodingKey("vision_start_token_id") public var visionStartTokenId: Int
+        @CodingKey("vision_end_token_id") public var visionEndTokenId: Int
+        @CodingKey("vision_token_id") public var visionTokenId: Int
+        @CodingKey("hidden_size") public var hiddenSize: Int
+        @CodingKey("num_attention_heads") public var numAttentionHeads: Int
+        @CodingKey("num_hidden_layers") public var numHiddenLayers: Int
+        @CodingKey("intermediate_size") public var intermediateSize: Int
+        @CodingKey("num_key_value_heads") public var numKeyValueHeads: Int
+        @CodingKey("sliding_window") public var slidingWindow: Int
+        @CodingKey("use_sliding_window") public var useSlidingWindow: Bool
+        @CodingKey("max_window_layers") public var maxWindowLayers: Int
     }
 
     public let textConfiguration: TextConfiguration
@@ -1054,6 +992,14 @@ public struct Qwen25VLConfiguration: Codable, Sendable {
         // these are overlaid in the top level
         self.textConfiguration = try TextConfiguration(from: decoder)
         self.baseConfiguration = try BaseConfiguration(from: decoder)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = try encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(visionConfiguration, forKey: .visionConfiguration)
+        try textConfiguration.encode(to: encoder)
+        try baseConfiguration.encode(to: encoder)
     }
 }
 

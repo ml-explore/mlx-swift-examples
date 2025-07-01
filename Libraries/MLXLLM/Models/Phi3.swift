@@ -4,6 +4,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
 private class Attention: Module {
 
@@ -229,13 +230,14 @@ public class Phi3Model: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-struct RopeScalingWithFactorArrays: Codable {
-    let longFactor: [Float]?
-    let shortFactor: [Float]?
-    let factor: Float?
-    let type: String?
-    let longMScale: Float?
-    let shortMScale: Float?
+@Codable
+public struct RopeScalingWithFactorArrays: Sendable {
+    @CodingKey("long_factor") public var longFactor: [Float]?
+    @CodingKey("short_factor") public var shortFactor: [Float]?
+    @CodingKey("long_mscale") public var longMScale: Float?
+    @CodingKey("short_mscale") public var shortMScale: Float?
+    public var factor: Float?
+    public var type: String?
 
     enum CodingKeys: String, CodingKey {
         case type
@@ -247,74 +249,22 @@ struct RopeScalingWithFactorArrays: Codable {
     }
 }
 
-public struct Phi3Configuration: Codable, Sendable {
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var kvHeads: Int
-    var ropeTheta: Float = 10_000
-    var ropeTraditional: Bool = false
-    var ropeScaling: RopeScalingWithFactorArrays?
-    var partialRotaryFactor: Float = 1.0
-    var maxPositionEmbeddings: Int
-    var originalMaxPositionEmbeddings: Int
-    var tieWordEmbeddings: Bool = false
-
-    enum CodingKeys: String, CodingKey {
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case kvHeads = "num_key_value_heads"
-        case ropeTheta = "rope_theta"
-        case ropeTraditional = "rope_traditional"
-        case ropeScaling = "rope_scaling"
-        case partialRotaryFactor = "partial_rotary_factor"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case originalMaxPositionEmbeddings = "original_max_position_embeddings"
-        case tieWordEmbeddings = "tie_word_embeddings"
-    }
-
-    public init(from decoder: Decoder) throws {
-        // custom implementation to handle optional keys with required values
-        let container: KeyedDecodingContainer<Phi3Configuration.CodingKeys> = try decoder.container(
-            keyedBy: Phi3Configuration.CodingKeys.self)
-
-        hiddenSize = try container.decode(Int.self, forKey: Phi3Configuration.CodingKeys.hiddenSize)
-        hiddenLayers = try container.decode(
-            Int.self, forKey: Phi3Configuration.CodingKeys.hiddenLayers)
-        intermediateSize = try container.decode(
-            Int.self, forKey: Phi3Configuration.CodingKeys.intermediateSize)
-        attentionHeads = try container.decode(
-            Int.self, forKey: Phi3Configuration.CodingKeys.attentionHeads)
-        rmsNormEps = try container.decode(
-            Float.self, forKey: Phi3Configuration.CodingKeys.rmsNormEps)
-        vocabularySize = try container.decode(
-            Int.self, forKey: Phi3Configuration.CodingKeys.vocabularySize)
-        kvHeads = try container.decode(Int.self, forKey: Phi3Configuration.CodingKeys.kvHeads)
-        ropeTheta =
-            try container.decodeIfPresent(
-                Float.self, forKey: Phi3Configuration.CodingKeys.ropeTheta) ?? 10_000
-        ropeTraditional =
-            try container.decodeIfPresent(
-                Bool.self, forKey: Phi3Configuration.CodingKeys.ropeTraditional) ?? false
-        ropeScaling = try container.decodeIfPresent(
-            RopeScalingWithFactorArrays.self, forKey: .ropeScaling)
-        partialRotaryFactor =
-            try container.decodeIfPresent(
-                Float.self, forKey: .partialRotaryFactor) ?? 1.0
-        maxPositionEmbeddings = try container.decode(Int.self, forKey: .maxPositionEmbeddings)
-        originalMaxPositionEmbeddings = try container.decode(
-            Int.self, forKey: .originalMaxPositionEmbeddings)
-        tieWordEmbeddings =
-            try container.decodeIfPresent(
-                Bool.self, forKey: .tieWordEmbeddings) ?? false
-    }
+@Codable
+public struct Phi3Configuration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("rope_theta") public var ropeTheta: Float = 10_000
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
+    @CodingKey("rope_scaling") public var ropeScaling: RopeScalingWithFactorArrays?
+    @CodingKey("partial_rotary_factor") public var partialRotaryFactor: Float = 1.0
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int
+    @CodingKey("original_max_position_embeddings") public var originalMaxPositionEmbeddings: Int
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = false
 }
 
 // MARK: - LoRA

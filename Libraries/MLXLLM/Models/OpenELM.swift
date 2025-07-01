@@ -9,6 +9,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
 func computeHeads(modelDim: Int, headDim: Int) -> Int {
     assert(modelDim % headDim == 0, "modelDim must be divisible by headDim")
@@ -211,58 +212,26 @@ public class OpenELMModel: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct OpenElmConfiguration: Codable, Sendable {
-    var modelType: String
-    var headDimensions: Int
-    var numTransformerLayers: Int
-    var modelDim: Int
-    var vocabularySize: Int
-    var ffnDimDivisor: Int
-    var numQueryHeads: [Int] = []
-    var kvHeads: [Int] = []
-    var ffnWithGlu: Bool = true
-    var normalizeQkProjections: Bool = true
-    var shareInputOutputLayers: Bool = true
-    var rmsNormEps: Float = 1e-6
-    var ropeTheta: Float = 10_000
-    var ropeTraditional: Bool = false
-    var numGqaGroups: Int = 4
-    var ffnMultipliers: [Float] = [0.5, 4.0]
-    var qkvMultiplier: [Float] = [0.5, 1.0]
+@Codable
+public struct OpenElmConfiguration: Sendable {
+    @CodingKey("head_dim") public var headDimensions: Int
+    @CodingKey("num_transformer_layers") public var numTransformerLayers: Int
+    @CodingKey("model_dim") public var modelDim: Int
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("ffn_dim_divisor") public var ffnDimDivisor: Int
+    @CodingKey("ffn_multipliers") public var ffnMultipliers: [Float] = [0.5, 4.0]
+    @CodingKey("ffn_with_glu") public var ffnWithGlu: Bool = true
+    @CodingKey("normalize_qk_projections") public var normalizeQkProjections: Bool = true
+    @CodingKey("share_input_output_layers") public var shareInputOutputLayers: Bool = true
+    @CodingIgnored public var numQueryHeads: [Int] = []
+    @CodingIgnored public var kvHeads: [Int] = []
+    @CodingIgnored public var rmsNormEps: Float = 1e-6
+    @CodingIgnored public var ropeTheta: Float = 10_000
+    @CodingIgnored public var ropeTraditional: Bool = false
+    @CodingIgnored public var numGqaGroups: Int = 4
+    @CodingIgnored public var qkvMultiplier: [Float] = [0.5, 1.0]
 
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case headDimensions = "head_dim"
-        case numTransformerLayers = "num_transformer_layers"
-        case modelDim = "model_dim"
-        case vocabularySize = "vocab_size"
-        case ffnDimDivisor = "ffn_dim_divisor"
-        case ffnMultipliers = "ffn_multipliers"
-        case ffnWithGlu = "ffn_with_glu"
-        case normalizeQkProjections = "normalize_qk_projections"
-        case shareInputOutputLayers = "share_input_output_layers"
-    }
-
-    public init(from decoder: Decoder) throws {
-        // custom implementation to handle optional keys with required values
-        let container: KeyedDecodingContainer<OpenElmConfiguration.CodingKeys> =
-            try decoder.container(
-                keyedBy: OpenElmConfiguration.CodingKeys.self)
-
-        self.modelType = try container.decode(
-            String.self, forKey: OpenElmConfiguration.CodingKeys.modelType)
-        self.headDimensions = try container.decode(
-            Int.self, forKey: OpenElmConfiguration.CodingKeys.headDimensions)
-        self.numTransformerLayers = try container.decode(
-            Int.self, forKey: OpenElmConfiguration.CodingKeys.numTransformerLayers)
-
-        self.modelDim = try container.decode(
-            Int.self, forKey: OpenElmConfiguration.CodingKeys.modelDim)
-        self.vocabularySize = try container.decode(
-            Int.self, forKey: OpenElmConfiguration.CodingKeys.vocabularySize)
-        self.ffnDimDivisor = try container.decode(
-            Int.self, forKey: OpenElmConfiguration.CodingKeys.ffnDimDivisor)
-
+    public mutating func didDecode(from decoder: any Decoder) throws {
         let qkvMultipliers = stride(
             from: qkvMultiplier[0], through: qkvMultiplier[1],
             by: (qkvMultiplier[1] - qkvMultiplier[0]) / Float(numTransformerLayers - 1)
@@ -287,16 +256,6 @@ public struct OpenElmConfiguration: Codable, Sendable {
             by: (ffnMultipliers[1] - ffnMultipliers[0]) / Float(numTransformerLayers - 1)
         )
         .map { round($0 * 100) / 100 }
-
-        self.ffnWithGlu =
-            try container.decodeIfPresent(
-                Bool.self, forKey: OpenElmConfiguration.CodingKeys.ffnWithGlu) ?? true
-        self.normalizeQkProjections =
-            try container.decodeIfPresent(
-                Bool.self, forKey: OpenElmConfiguration.CodingKeys.normalizeQkProjections) ?? true
-        self.shareInputOutputLayers =
-            try container.decodeIfPresent(
-                Bool.self, forKey: OpenElmConfiguration.CodingKeys.shareInputOutputLayers) ?? true
     }
 }
 

@@ -9,8 +9,9 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
-// port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/starcoder2.py
+// port of https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/starcoder2.py
 
 private class Attention: Module {
     let args: Starcoder2Configuration
@@ -182,70 +183,19 @@ public class Starcoder2Model: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct Starcoder2Configuration: Codable, Sendable {
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var kvHeads: Int
-    var maxPositionEmbeddings: Int = 16384
-    var normEpsilon: Float = 1e-5
-    var normType: String = "layer_norm"
-    var vocabularySize: Int = 49152
-    var ropeTheta: Float = 100000
-    var tieWordEmbeddings: Bool = true
-
-    enum CodingKeys: String, CodingKey {
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case kvHeads = "num_key_value_heads"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case normEpsilon = "norm_epsilon"
-        case normType = "norm_type"
-        case vocabularySize = "vocab_size"
-        case ropeTheta = "rope_theta"
-        case tieWordEmbeddings = "tie_word_embeddings"
-    }
-
-    public init(from decoder: Decoder) throws {
-        // custom implementation to handle optional keys with required values
-        let container: KeyedDecodingContainer<Starcoder2Configuration.CodingKeys> =
-            try decoder.container(
-                keyedBy: Starcoder2Configuration.CodingKeys.self)
-
-        self.hiddenSize = try container.decode(
-            Int.self, forKey: Starcoder2Configuration.CodingKeys.hiddenSize)
-        self.hiddenLayers = try container.decode(
-            Int.self, forKey: Starcoder2Configuration.CodingKeys.hiddenLayers)
-        self.intermediateSize = try container.decode(
-            Int.self, forKey: Starcoder2Configuration.CodingKeys.intermediateSize)
-        self.attentionHeads = try container.decode(
-            Int.self, forKey: Starcoder2Configuration.CodingKeys.attentionHeads)
-        self.kvHeads = try container.decode(
-            Int.self, forKey: Starcoder2Configuration.CodingKeys.kvHeads)
-        self.maxPositionEmbeddings =
-            try container.decodeIfPresent(
-                Int.self, forKey: Starcoder2Configuration.CodingKeys.maxPositionEmbeddings) ?? 16384
-        self.normEpsilon =
-            try container.decodeIfPresent(
-                Float.self, forKey: Starcoder2Configuration.CodingKeys.normEpsilon) ?? 1e-5
-        self.normType =
-            try container.decodeIfPresent(
-                String.self, forKey: Starcoder2Configuration.CodingKeys.normType) ?? "layer_norm"
-        self.vocabularySize =
-            try container.decodeIfPresent(
-                Int.self, forKey: Starcoder2Configuration.CodingKeys.vocabularySize) ?? 49152
-        self.ropeTheta =
-            try container.decodeIfPresent(
-                Float.self, forKey: Starcoder2Configuration.CodingKeys.ropeTheta)
-            ?? 100000
-        self.tieWordEmbeddings =
-            try container.decodeIfPresent(
-                Bool.self, forKey: Starcoder2Configuration.CodingKeys.tieWordEmbeddings)
-            ?? true
-    }
+@Codable
+public struct Starcoder2Configuration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int = 16384
+    @CodingKey("norm_epsilon") public var normEpsilon: Float = 1e-5
+    @CodingKey("norm_type") public var normType: String = "layer_norm"
+    @CodingKey("vocab_size") public var vocabularySize: Int = 49152
+    @CodingKey("rope_theta") public var ropeTheta: Float = 100000
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = true
 }
 
 // MARK: - LoRA
