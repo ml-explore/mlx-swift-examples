@@ -60,7 +60,6 @@ private class PhiAttention: Module {
         if let cache {
             queries = rope(queries, offset: cache.offset)
             keys = rope(keys, offset: cache.offset)
-            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope(queries)
             keys = rope(keys)
@@ -68,8 +67,13 @@ private class PhiAttention: Module {
 
         // Finally perform the attention computation
         let scale = sqrt(1 / Float(queries.dim(-1)))
-        let output = MLXFast.scaledDotProductAttention(
-            queries: queries.asType(.float32), keys: keys, values: values, scale: scale, mask: mask
+        let output = attentionWithCacheUpdate(
+            queries: queries.asType(.float32),
+            keys: keys,
+            values: values,
+            cache: cache,
+            scale: scale,
+            mask: mask
         )
         .asType(values.dtype)
         .transposed(0, 2, 1, 3)

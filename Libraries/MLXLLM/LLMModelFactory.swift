@@ -35,6 +35,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "phimoe": create(PhiMoEConfiguration.self, PhiMoEModel.init),
             "gemma": create(GemmaConfiguration.self, GemmaModel.init),
             "gemma2": create(Gemma2Configuration.self, Gemma2Model.init),
+            "gemma3": create(Gemma3TextConfiguration.self, Gemma3TextModel.init),
             "gemma3_text": create(Gemma3TextConfiguration.self, Gemma3TextModel.init),
             "gemma3n": create(Gemma3nTextConfiguration.self, Gemma3nTextModel.init),
             "qwen2": create(Qwen2Configuration.self, Qwen2Model.init),
