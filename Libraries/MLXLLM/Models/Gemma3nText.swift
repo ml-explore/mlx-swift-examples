@@ -119,59 +119,28 @@ public struct Gemma3nTextConfiguration: Codable {
     }
 }
 
-// TODO: uncomment and use once MLXFast.rmsNorm is fixed (accepts nil weight)
-//
-// private class RMSNoScale: Module {
-//     let eps: Float
-
-//     init(eps: Float = 1e-6) {
-//         self.eps = eps
-//         super.init()
-//     }
-
-//     func callAsFunction(_ x: MLXArray) -> MLXArray {
-//         MLXFast.rmsNorm(x, weight: nil, eps: eps)
-//     }
-// }
-
-private class Gemma3nRMSNorm: Module {
+private class RMSNoScale: Module {
     let eps: Float
-    @ModuleInfo var weight: MLXArray?
 
-    init(dimensions: Int, eps: Float = 1e-6, withScale: Bool = true) {
+    init(eps: Float = 1e-6) {
         self.eps = eps
-
-        if withScale {
-            self.weight = MLXArray.ones([dimensions])
-        } else {
-            self.weight = nil
-        }
-
         super.init()
     }
 
     func callAsFunction(_ x: MLXArray) -> MLXArray {
-        if let weight: MLXArray {
-            return MLXFast.rmsNorm(x, weight: weight, eps: eps)
-        } else {
-            return norm(x.asType(.float32)).asType(x.dtype)
-        }
-    }
-
-    private func norm(_ x: MLXArray) -> MLXArray {
-        return x * rsqrt(x.square().mean(axis: -1, keepDims: true) + eps)
+        MLXFast.rmsNorm(x, weight: MLXArray.mlxNone, eps: eps)
     }
 }
 
 private class Gemma3nTextLaurelBlock: Module {
     @ModuleInfo(key: "linear_left") var linearLeft: Linear
     @ModuleInfo(key: "linear_right") var linearRight: Linear
-    @ModuleInfo(key: "post_laurel_norm") var postLaurelNorm: Gemma3nRMSNorm
+    @ModuleInfo(key: "post_laurel_norm") var postLaurelNorm: RMSNorm
 
     init(_ config: Gemma3nTextConfiguration) {
         _linearLeft.wrappedValue = Linear(config.hiddenSize, config.laurelRank, bias: false)
         _linearRight.wrappedValue = Linear(config.laurelRank, config.hiddenSize, bias: false)
-        _postLaurelNorm.wrappedValue = Gemma3nRMSNorm(
+        _postLaurelNorm.wrappedValue = RMSNorm(
             dimensions: config.hiddenSize, eps: config.rmsNormEps)
         super.init()
     }
@@ -198,9 +167,9 @@ private class Gemma3nAttention: Module {
     @ModuleInfo(key: "k_proj") var kProj: Linear
     @ModuleInfo(key: "v_proj") var vProj: Linear
     @ModuleInfo(key: "o_proj") var oProj: Linear
-    @ModuleInfo(key: "q_norm") var qNorm: Gemma3nRMSNorm
-    @ModuleInfo(key: "k_norm") var kNorm: Gemma3nRMSNorm
-    @ModuleInfo(key: "v_norm") var vNorm: Gemma3nRMSNorm
+    @ModuleInfo(key: "q_norm") var qNorm: RMSNorm
+    @ModuleInfo(key: "k_norm") var kNorm: RMSNorm
+    @ModuleInfo(key: "v_norm") var vNorm: RMSNoScale
     @ModuleInfo var rope: RoPE
 
     init(_ config: Gemma3nTextConfiguration, layerIdx: Int) {
@@ -220,12 +189,11 @@ private class Gemma3nAttention: Module {
         self._vProj.wrappedValue = Linear(dim, numKVHeads * headDim, bias: false)
         self._oProj.wrappedValue = Linear(numHeads * headDim, dim, bias: false)
 
-        self._qNorm.wrappedValue = Gemma3nRMSNorm(
+        self._qNorm.wrappedValue = RMSNorm(
             dimensions: config.headDim, eps: config.rmsNormEps)
-        self._kNorm.wrappedValue = Gemma3nRMSNorm(
+        self._kNorm.wrappedValue = RMSNorm(
             dimensions: config.headDim, eps: config.rmsNormEps)
-        self._vNorm.wrappedValue = Gemma3nRMSNorm(
-            dimensions: config.headDim, eps: config.rmsNormEps, withScale: false)
+        self._vNorm.wrappedValue = RMSNoScale(eps: config.rmsNormEps)
 
         let firstKvSharedLayerIdx = config.numHiddenLayers - config.numKvSharedLayers
         self.isKvSharedLayer = layerIdx >= firstKvSharedLayerIdx
@@ -385,7 +353,7 @@ private class Gemma3nAltUp: Module {
     @ModuleInfo(key: "correction_coefs") var correctionCoefs: Linear
     @ModuleInfo(key: "prediction_coefs") var predictionCoefs: Linear
     @ModuleInfo(key: "modality_router") var modalityRouter: Linear
-    @ModuleInfo(key: "router_norm") var routerNorm: Gemma3nRMSNorm
+    @ModuleInfo(key: "router_norm") var routerNorm: RMSNorm
     private let _routerInputScale: MLXArray
 
     let config: Gemma3nTextConfiguration
@@ -409,7 +377,7 @@ private class Gemma3nAltUp: Module {
             config.altupNumInputs,
             bias: false
         )
-        self._routerNorm.wrappedValue = Gemma3nRMSNorm(
+        self._routerNorm.wrappedValue = RMSNorm(
             dimensions: config.hiddenSize,
             eps: config.rmsNormEps,
         )
@@ -419,11 +387,7 @@ private class Gemma3nAltUp: Module {
     }
 
     func computeRouterModalities(_ x: MLXArray) -> MLXArray {
-        guard let routerNormWeight = routerNorm.weight else {
-            fatalError("routerNorm.weight is nil in Gemma3nAltUp")
-        }
-        let routerInputs = routerNorm(x) * _routerInputScale.asType(routerNormWeight.dtype)
-
+        let routerInputs = routerNorm(x) * _routerInputScale.asType(routerNorm.weight.dtype)
         let routed = modalityRouter(routerInputs).asType(.float32)
         return tanh(routed)
     }
@@ -507,15 +471,15 @@ private class Gemma3nDecoderLayer: Module {
 
     @ModuleInfo(key: "self_attn") var selfAttn: Gemma3nAttention
     @ModuleInfo var mlp: MLP
-    @ModuleInfo(key: "input_layernorm") var inputLayernorm: Gemma3nRMSNorm
-    @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayernorm: Gemma3nRMSNorm
-    @ModuleInfo(key: "pre_feedforward_layernorm") var preFeedforwardLayernorm: Gemma3nRMSNorm
-    @ModuleInfo(key: "post_feedforward_layernorm") var postFeedforwardLayernorm: Gemma3nRMSNorm
+    @ModuleInfo(key: "input_layernorm") var inputLayernorm: RMSNorm
+    @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayernorm: RMSNorm
+    @ModuleInfo(key: "pre_feedforward_layernorm") var preFeedforwardLayernorm: RMSNorm
+    @ModuleInfo(key: "post_feedforward_layernorm") var postFeedforwardLayernorm: RMSNorm
     @ModuleInfo var altup: Gemma3nAltUp
     @ModuleInfo var laurel: Gemma3nTextLaurelBlock
     @ModuleInfo(key: "per_layer_input_gate") var perLayerInputGate: Linear
     @ModuleInfo(key: "per_layer_projection") var perLayerProjection: Linear
-    @ModuleInfo(key: "post_per_layer_input_norm") var postPerLayerInputNorm: Gemma3nRMSNorm
+    @ModuleInfo(key: "post_per_layer_input_norm") var postPerLayerInputNorm: RMSNorm
 
     init(_ config: Gemma3nTextConfiguration, layerIdx: Int) {
         self.config = config
@@ -531,20 +495,20 @@ private class Gemma3nDecoderLayer: Module {
             == "sliding_attention"
 
         self._mlp.wrappedValue = MLP(config, layerIdx: layerIdx)
-        self._inputLayernorm.wrappedValue = Gemma3nRMSNorm(
+        self._inputLayernorm.wrappedValue = RMSNorm(
             dimensions: hiddenSize,
             eps: config.rmsNormEps,
         )
 
-        self._postAttentionLayernorm.wrappedValue = Gemma3nRMSNorm(
+        self._postAttentionLayernorm.wrappedValue = RMSNorm(
             dimensions: hiddenSize,
             eps: config.rmsNormEps,
         )
-        self._preFeedforwardLayernorm.wrappedValue = Gemma3nRMSNorm(
+        self._preFeedforwardLayernorm.wrappedValue = RMSNorm(
             dimensions: hiddenSize,
             eps: config.rmsNormEps,
         )
-        self._postFeedforwardLayernorm.wrappedValue = Gemma3nRMSNorm(
+        self._postFeedforwardLayernorm.wrappedValue = RMSNorm(
             dimensions: hiddenSize,
             eps: config.rmsNormEps,
         )
@@ -562,7 +526,7 @@ private class Gemma3nDecoderLayer: Module {
             hiddenSize,
             bias: false
         )
-        self._postPerLayerInputNorm.wrappedValue = Gemma3nRMSNorm(
+        self._postPerLayerInputNorm.wrappedValue = RMSNorm(
             dimensions: hiddenSize,
             eps: config.rmsNormEps,
         )
@@ -669,12 +633,12 @@ private class LanguageModel: Module {
     @ModuleInfo(key: "layers") var layers: [Gemma3nDecoderLayer]
     @ModuleInfo(key: "embed_tokens_per_layer") var embedTokensPerLayer: Embedding
     @ModuleInfo(key: "per_layer_model_projection") var perLayerModelProjection: Linear
-    @ModuleInfo(key: "per_layer_projection_norm") var perLayerProjectionNorm: Gemma3nRMSNorm
+    @ModuleInfo(key: "per_layer_projection_norm") var perLayerProjectionNorm: RMSNorm
 
     @ModuleInfo(key: "altup_projections") var altupProjections: [Linear]
     @ModuleInfo(key: "altup_unembed_projections") var altupUnembedProjections: [Linear]
 
-    @ModuleInfo var norm: Gemma3nRMSNorm
+    @ModuleInfo var norm: RMSNorm
 
     public func newCache(parameters: GenerateParameters?) -> [any KVCache] {
         var caches: [any KVCache] = []
@@ -759,7 +723,7 @@ private class LanguageModel: Module {
             bias: false
         )
 
-        self._perLayerProjectionNorm.wrappedValue = Gemma3nRMSNorm(
+        self._perLayerProjectionNorm.wrappedValue = RMSNorm(
             dimensions: config.hiddenSizePerLayerInput,
             eps: config.rmsNormEps,
         )
@@ -771,7 +735,7 @@ private class LanguageModel: Module {
             Linear(config.hiddenSize, config.hiddenSize, bias: false)
         }
 
-        self._norm.wrappedValue = Gemma3nRMSNorm(
+        self._norm.wrappedValue = RMSNorm(
             dimensions: config.hiddenSize,
             eps: config.rmsNormEps,
         )
