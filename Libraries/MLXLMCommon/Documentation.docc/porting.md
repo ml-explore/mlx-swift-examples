@@ -216,6 +216,29 @@ For optional parameters that may not exist in all model variants.
 ```
 In rare cases (like quantized layers), `@ModuleInfo` is used with `MLXArray` instead of `@ParameterInfo`. This typically occurs with specialized quantization or expert layers where the arrays are treated as sub-modules for weight loading purposes.
 
+**Computed vs Loaded Parameters**
+```swift
+// Parameter loaded from weights - uses @ParameterInfo
+@ParameterInfo(key: "correct_output_scale") var correctOutputScale: MLXArray
+
+// Computed parameter - uses private underscore prefix (ignored during loading)
+private let _routerInputScale: MLXArray
+```
+
+This distinction is crucial:
+- `@ParameterInfo` properties are expected to exist in the weight files and will be loaded automatically
+- Private properties with underscore prefix (`_`) are ignored during weight loading and must be computed during initialization
+- Initialization syntax differs:
+  ```swift
+  // For @ParameterInfo (loaded from weights):
+  self._correctOutputScale.wrappedValue = MLXArray(...)
+  
+  // For private computed parameters:
+  self._routerInputScale = MLXArray(...)
+  ```
+
+Use private underscore properties when you need to compute values based on configuration or other parameters, but don't want the weight loading to fail because these "parameters" don't exist in the saved weights.
+
 ### Porting Layers without Children
 
 Now we can begin porting the layers (Modules). Here is an example layer with no child layers (e.g. `Linear`) but with parameters (e.g. `MLXArray`):
