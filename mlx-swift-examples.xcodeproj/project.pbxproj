@@ -3249,8 +3249,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ml-explore/mlx-swift";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.25.4;
+				branch = "improved-parameter-errors";
+				kind = branch;
 			};
 		};
 		C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {

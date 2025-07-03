@@ -760,19 +760,6 @@ private class VisionModel: Module {
         visionModel(x, outputHiddenStates: outputHiddenStates)
     }
 
-    /// Check if array is already in MLX format for conv2d weights
-    private func checkArrayShape(_ arr: MLXArray) -> Bool {
-        let shape = arr.shape
-
-        // Check if the shape has 4 dimensions
-        guard shape.count == 4 else { return false }
-
-        let (outChannels, kH, kW, _) = (shape[0], shape[1], shape[2], shape[3])
-
-        // Check if out_channels is the largest, and kH and kW are the same
-        return (outChannels >= kH) && (outChannels >= kW) && (kH == kW)
-    }
-
     func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
         var sanitizedWeights = [String: MLXArray]()
 
