@@ -48,6 +48,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "mimo": create(MiMoConfiguration.self, MiMoModel.init),
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
             "acereason": create(Qwen2Configuration.self, Qwen2Model.init),
+            "bitnet": create(BitnetConfiguration.self, BitnetModel.init),
         ]
     }
 
@@ -225,6 +226,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: ""
     )
 
+    static public let bitnet_b1_58_2b_4t_4bit = ModelConfiguration(
+        id: "mlx-community/bitnet-b1.58-2B-4T-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -256,6 +262,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             mimo_7b_sft_4bit,
             glm4_9b_4bit,
             acereason_7b_4bit,
+            bitnet_b1_58_2b_4t_4bit,
         ]
     }
 
