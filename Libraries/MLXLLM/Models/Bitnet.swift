@@ -14,9 +14,7 @@ import Tokenizers
 
 // port of https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/bitnet.py
 
-// MARK: - BitLinear Layer
-
-private func compileMatmulKernel() -> MLXFast.MLXFastKernel {
+private func makeBitLinearKernel() -> MLXFast.MLXFastKernel {
     let source = """
         constexpr int M = 4;
         constexpr int BLOCK = 32;
@@ -52,39 +50,44 @@ private func compileMatmulKernel() -> MLXFast.MLXFastKernel {
         if (in_offset == 0) {
             float scale = invert_weight_scales ? 1 / weight_scale[0] : weight_scale[0];
             for (int i=0; i<4; i++) {
-                out[batch_idx * out_features + row_idx + i * (out_features/4)] = sum[i] * scale;
+                out[batch_idx * out_features + row_idx + i * (out_features/4)] = static_cast<T>(sum[i] * scale);
             }
         }
         """
 
     return metalKernel(
         name: "bitlinear_matmul",
-        inputNames: ["x", "packed_weights", "weight_scale", "invert_weight_scales"],
+        inputNames: ["x", "packed_weights", "weight_scale"],
         outputNames: ["out"],
         source: source
     )
 }
 
+private final class BitLinearKernelManager: @unchecked Sendable {
+    static let shared = BitLinearKernelManager()
+
+    let bitlinearKernel: MLXFast.MLXFastKernel
+
+    private init() {
+        bitlinearKernel = makeBitLinearKernel()
+    }
+}
+
 private class BitLinear: Module {
     let inFeatures: Int
     let outFeatures: Int
-    let dtype: DType
     let invertWeightScales: Bool
 
     let weight: MLXArray
     let bias: MLXArray?
     @ModuleInfo(key: "weight_scale") var weightScale: MLXArray
 
-    private let compiledKernel: MLXFast.MLXFastKernel
-
     init(
         _ inFeatures: Int,
         _ outFeatures: Int,
         bias: Bool = true,
-        dtype: DType = .float16,
         invertWeightScales: Bool = false
     ) {
-        self.dtype = dtype
         self.inFeatures = inFeatures
         self.outFeatures = outFeatures
 
@@ -92,41 +95,38 @@ private class BitLinear: Module {
         self.weight = MLXArray.zeros([packedOutFeatures, inFeatures], dtype: .uint8)
 
         self.invertWeightScales = invertWeightScales
-        self._weightScale.wrappedValue = MLXArray([1]).asType(dtype)
+        self._weightScale.wrappedValue = MLXArray([1.0])
 
         if bias {
-            self.bias = MLXArray.zeros([outFeatures], dtype: dtype)
+            self.bias = MLXArray.zeros([outFeatures])
         } else {
             self.bias = nil
         }
-
-        self.compiledKernel = compileMatmulKernel()
 
         super.init()
     }
 
     private func executeMatmulKernel(_ x: MLXArray, _ packedWeights: MLXArray) -> MLXArray {
         let originalShape = x.shape
-        let xFlattened: MLXArray
-        let totalBatchElements: Int
-        let inFeatures: Int
+        var x = x
 
         if originalShape.count > 2 {
-            xFlattened = x.reshaped(-1, originalShape[originalShape.count - 1])
-            totalBatchElements = xFlattened.dim(0)
-            inFeatures = xFlattened.dim(1)
-        } else {
-            xFlattened = x
-            totalBatchElements = xFlattened.dim(0)
-            inFeatures = xFlattened.dim(1)
+            x = x.reshaped(-1, originalShape[originalShape.count - 1])
         }
 
-        let outFeatures = outFeatures
+        let totalBatchElements = x.dim(0)
+        let inFeatures = x.dim(1)
 
-        let outputs = compiledKernel(
-            [xFlattened.asType(dtype), packedWeights, weightScale, MLXArray(invertWeightScales)],
+        let outFeatures = self.outFeatures
+
+        let dtype = self.weightScale.dtype
+        assert(x.dtype == dtype, "Wrong type for input.")
+
+        var outputs = BitLinearKernelManager.shared.bitlinearKernel(
+            [x, packedWeights, weightScale],
             template: [
-                ("batch_size", totalBatchElements),
+                ("T", dtype),
+                ("invert_weight_scales", invertWeightScales),
                 ("in_features", inFeatures),
                 ("out_features", outFeatures),
             ],
@@ -134,25 +134,22 @@ private class BitLinear: Module {
             threadGroup: (32, 1, 1),
             outputShapes: [[totalBatchElements, outFeatures]],
             outputDTypes: [dtype]
-        )
+        )[0]
 
         if originalShape.count > 2 {
-            let outputShape = Array(originalShape.dropLast()) + [outFeatures]
-            return outputs[0].reshaped(outputShape)
-        } else {
-            return outputs[0]
+            outputs = outputs.reshaped(Array(originalShape.dropLast()) + [outFeatures])
         }
+
+        return outputs
     }
 
     func callAsFunction(_ x: MLXArray) -> MLXArray {
-        let originalDtype = x.dtype
-
         var y = executeMatmulKernel(x, weight)
 
         if let bias {
             y = y + bias
         }
-        return y.asType(originalDtype)
+        return y
     }
 }
 
