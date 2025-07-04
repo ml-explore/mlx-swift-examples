@@ -49,6 +49,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
             "acereason": create(Qwen2Configuration.self, Qwen2Model.init),
             "bitnet": create(BitnetConfiguration.self, BitnetModel.init),
+            "smollm3": create(SmolLM3Configuration.self, SmolLM3Model.init),
         ]
     }
 
