@@ -269,7 +269,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             glm4_9b_4bit,
             acereason_7b_4bit,
             bitnet_b1_58_2b_4t_4bit,
-            ernie4503BPTbf16
+            ernie4503BPTbf16,
         ]
     }
 

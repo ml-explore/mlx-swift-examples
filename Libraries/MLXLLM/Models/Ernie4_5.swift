@@ -12,7 +12,7 @@ import MLXNN
 
 // Port of https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/ernie4_5.py
 
-public struct Ernie45Configuration: Codable, Sendable {
+public struct Ernie45Configuration: Codable {
     var hiddenSize: Int
     var intermediateSize: Int
     var maxPositionEmbeddings: Int
@@ -55,7 +55,7 @@ public struct Ernie45Configuration: Codable, Sendable {
         self.rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
         self.vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
         self.ropeTheta = try container.decode(Float.self, forKey: .ropeTheta)
-        self.useBias = try container.decode(Bool.self, forKey: .useBias) ?? false
+        self.useBias = try container.decode(Bool.self, forKey: .useBias)
         self.tieWordEmbeddings = try container.decode(Bool.self, forKey: .tieWordEmbeddings)
     }
 }
@@ -155,8 +155,10 @@ private class DecoderLayer: Module {
         self._attention.wrappedValue = Attention(args)
         self.mlp = MLP(
             dim: args.hiddenSize, hiddenDim: args.intermediateSize, useBias: args.useBias)
-        self._inputLayernorm.wrappedValue = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
-        self._postAttentionLayernorm.wrappedValue = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+        self._inputLayernorm.wrappedValue = RMSNorm(
+            dimensions: args.hiddenSize, eps: args.rmsNormEps)
+        self._postAttentionLayernorm.wrappedValue = RMSNorm(
+            dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
     public func callAsFunction(
