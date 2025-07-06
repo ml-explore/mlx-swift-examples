@@ -7,7 +7,7 @@ import MLXLLM
 import MLXLMCommon
 import MLXNN
 
-struct DeepseekV3Configuration: Codable, Sendable {
+public struct DeepseekV3Configuration: Codable, Sendable {
     var vocabSize: Int
     var hiddenSize: Int
     var intermediateSize: Int
@@ -76,6 +76,7 @@ private class DeepseekV3YarnRotaryEmbedding: Module {
     let originalMaxPositionEmbeddings: Int
     let betaFast: Float
     let betaSlow: Float
+    let freqs: MLXArray
 
     init(
         dim: Int,
@@ -98,9 +99,6 @@ private class DeepseekV3YarnRotaryEmbedding: Module {
         self.originalMaxPositionEmbeddings = originalMaxPositionEmbeddings
         self.betaFast = betaFast
         self.betaSlow = betaSlow
-    }
-
-    func callAsFunction(_ x: MLXArray, offset: Int = 0) -> MLXArray {
         let freqExtra = base ** (MLXArray(stride(from: 0, to: dim, by: 2)) / dim)
         let freqInter = scalingFactor * base ** (MLXArray(stride(from: 0, to: dim, by: 2)) / dim)
         let (low, high) = yarnFindCorrectionRange(
@@ -109,8 +107,11 @@ private class DeepseekV3YarnRotaryEmbedding: Module {
 
         let freqMask = 1.0 - yarnLinearRampMask(minVal: low, maxVal: high, dim: dim / 2)
 
-        let freqs = (freqInter * freqExtra) / (freqInter * freqMask + freqExtra * (1 - freqMask))
-        return MLXFast.RoPE(
+        self.freqs = (freqInter * freqExtra) / (freqInter * freqMask + freqExtra * (1 - freqMask))
+    }
+
+    func callAsFunction(_ x: MLXArray, offset: Int = 0) -> MLXArray {
+        MLXFast.RoPE(
             self.mscale != 1.0 ? self.mscale * x : x,
             dimensions: x.shape.last ?? 0,
             traditional: true,
@@ -220,7 +221,9 @@ private class DeepseekV3Attention: Module {
             mscaleAllDim: mscaleAllDim)
     }
 
-    func callAsFunction(_ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?) -> MLXArray {
+    func callAsFunction(
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
+    ) -> MLXArray {
         let (B, L, _) = (x.dim(0), x.dim(1), x.dim(2))
 
         var q: MLXArray
@@ -260,16 +263,16 @@ private class DeepseekV3Attention: Module {
 
         let queries = concatenated([qNope, qPe], axis: -1)
 
-      let output = attentionWithCacheUpdate(
-          queries: queries,
-          keys: keys,
-          values: values,
-          cache: cache,
-          scale: scale,
-          mask: mask
-      )
-      .transposed(0, 2, 1, 3)
-      .reshaped(B, L, -1)
+        let output = attentionWithCacheUpdate(
+            queries: queries,
+            keys: keys,
+            values: values,
+            cache: cache,
+            scale: scale,
+            mask: mask
+        )
+        .transposed(0, 2, 1, 3)
+        .reshaped(B, L, -1)
 
         return self.oProj(output)
     }
@@ -411,7 +414,9 @@ private class DeepseekV3DecoderLayer: Module {
             dimensions: config.hiddenSize, eps: config.rmsNormEps)
     }
 
-    func callAsFunction(_ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?) -> MLXArray {
+    func callAsFunction(
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
+    ) -> MLXArray {
         let r = selfAttn(inputLayerNorm(x), mask: mask, cache: cache)
         let h = x + r
         let r2 = mlp(postAttentionLayerNorm(h))
@@ -460,8 +465,8 @@ private class DeepseekV3ModelInner: Module {
     }
 }
 
-class DeepseekV3Model: Module, LLMModel, KVCacheDimensionProvider, LoRAModel {
-    var kvHeads: [Int] = []
+public class DeepseekV3Model: Module, LLMModel, KVCacheDimensionProvider, LoRAModel {
+    public var kvHeads: [Int] = []
 
     var args: DeepseekV3Configuration
     fileprivate var model: DeepseekV3ModelInner
@@ -473,12 +478,12 @@ class DeepseekV3Model: Module, LLMModel, KVCacheDimensionProvider, LoRAModel {
         self._lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabSize, bias: false)
     }
 
-    func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
+    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
         let out = model(inputs, cache: cache)
         return lmHead(out)
     }
 
-    func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
+    public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
         var newWeights = weights
 
         func dequant(weight: MLXArray, scaleInv: MLXArray) -> MLXArray {
