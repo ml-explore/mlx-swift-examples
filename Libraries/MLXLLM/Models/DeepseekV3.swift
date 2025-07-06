@@ -34,67 +34,6 @@ struct DeepseekV3Configuration: Codable, Sendable {
     var ropeTheta: Float
     var ropeScaling: [String: StringOrNumber]?
     var attentionBias: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case vocabSize = "vocab_size"
-        case hiddenSize = "hidden_size"
-        case intermediateSize = "intermediate_size"
-        case moeIntermediateSize = "moe_intermediate_size"
-        case numHiddenLayers = "num_hidden_layers"
-        case numAttentionHeads = "num_attention_heads"
-        case numKeyValueHeads = "num_key_value_heads"
-        case nSharedExperts = "n_shared_experts"
-        case nRoutedExperts = "n_routed_experts"
-        case routedScalingFactor = "routed_scaling_factor"
-        case kvLoraRank = "kv_lora_rank"
-        case qLoraRank = "q_lora_rank"
-        case qkRopeHeadDim = "qk_rope_head_dim"
-        case vHeadDim = "v_head_dim"
-        case qkNopeHeadDim = "qk_nope_head_dim"
-        case normTopkProb = "norm_topk_prob"
-        case nGroup = "n_group"
-        case topkGroup = "topk_group"
-        case numExpertsPerTok = "num_experts_per_tok"
-        case moeLayerFreq = "moe_layer_freq"
-        case firstKDenseReplace = "first_k_dense_replace"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case rmsNormEps = "rms_norm_eps"
-        case ropeTheta = "rope_theta"
-        case ropeScaling = "rope_scaling"
-        case attentionBias = "attention_bias"
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        
-        self.vocabSize = try container.decode(Int.self, forKey: .vocabSize)
-        self.hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        self.intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
-        self.moeIntermediateSize = try container.decode(Int.self, forKey: .moeIntermediateSize)
-        self.numHiddenLayers = try container.decode(Int.self, forKey: .numHiddenLayers)
-        self.numAttentionHeads = try container.decode(Int.self, forKey: .numAttentionHeads)
-        self.numKeyValueHeads = try container.decode(Int.self, forKey: .numKeyValueHeads)
-        self.nSharedExperts = try container.decodeIfPresent(Int.self, forKey: .nSharedExperts)
-        self.nRoutedExperts = try container.decodeIfPresent(Int.self, forKey: .nRoutedExperts)
-        self.routedScalingFactor = try container.decode(Float.self, forKey: .routedScalingFactor)
-        self.kvLoraRank = try container.decode(Int.self, forKey: .kvLoraRank)
-        self.qLoraRank = try container.decode(Int.self, forKey: .qLoraRank)
-        self.qkRopeHeadDim = try container.decode(Int.self, forKey: .qkRopeHeadDim)
-        self.vHeadDim = try container.decode(Int.self, forKey: .vHeadDim)
-        self.qkNopeHeadDim = try container.decode(Int.self, forKey: .qkNopeHeadDim)
-        self.normTopkProb = try container.decode(Bool.self, forKey: .normTopkProb)
-        self.nGroup = try container.decodeIfPresent(Int.self, forKey: .nGroup)
-        self.topkGroup = try container.decodeIfPresent(Int.self, forKey: .topkGroup)
-        self.numExpertsPerTok = try container.decodeIfPresent(Int.self, forKey: .numExpertsPerTok)
-        self.moeLayerFreq = try container.decode(Int.self, forKey: .moeLayerFreq)
-        self.firstKDenseReplace = try container.decode(Int.self, forKey: .firstKDenseReplace)
-        self.maxPositionEmbeddings = try container.decode(Int.self, forKey: .maxPositionEmbeddings)
-        self.rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
-        self.ropeTheta = try container.decode(Float.self, forKey: .ropeTheta)
-        self.ropeScaling = try container.decodeIfPresent(
-            [String: StringOrNumber].self, forKey: .ropeScaling)
-        self.attentionBias = try container.decode(Bool.self, forKey: .attentionBias)
-    }
 }
 
 func yarnFindCorrectionDim(
