@@ -36,13 +36,13 @@ struct DeepseekV3Configuration: Codable, Sendable {
     var attentionBias: Bool
 }
 
-func yarnFindCorrectionDim(
+private func yarnFindCorrectionDim(
     numRotations: Float, dim: Float, base: Float = 10000, maxPositionEmbeddings: Float = 2048
 ) -> Float {
     return (dim * log(maxPositionEmbeddings / (numRotations * 2 * Float.pi))) / (2 * log(base))
 }
 
-func yarnFindCorrectionRange(
+private func yarnFindCorrectionRange(
     lowRot: Float, highRot: Float, dim: Float, base: Float = 10000,
     maxPositionEmbeddings: Float = 2048
 ) -> (Float, Float) {
@@ -57,17 +57,17 @@ func yarnFindCorrectionRange(
     return (max(low, 0), min(high, dim - 1))
 }
 
-func yarnGetMScale(scale: Float = 1, mscale: Float = 1) -> Float {
+private func yarnGetMScale(scale: Float = 1, mscale: Float = 1) -> Float {
     return scale <= 1 ? 1.0 : 0.1 * mscale * log(scale) + 1.0
 }
 
-func yarnLinearRampMask(minVal: Float, maxVal: Float, dim: Int) -> MLXArray {
+private func yarnLinearRampMask(minVal: Float, maxVal: Float, dim: Int) -> MLXArray {
     let updatedMaxVal = minVal == maxVal ? maxVal + 0.001 : maxVal
     let linearFunc = (MLXArray(0 ..< dim) - minVal) / (updatedMaxVal - minVal)
     return clip(linearFunc, min: 0, max: 1)
 }
 
-class DeepseekV3YarnRotaryEmbedding: Module {
+private class DeepseekV3YarnRotaryEmbedding: Module {
     var mscale: Float
     let dim: Int
     let maxPositionEmbeddings: Int
@@ -122,11 +122,11 @@ class DeepseekV3YarnRotaryEmbedding: Module {
     }
 }
 
-func clippedSilu(_ x: MLXArray) -> MLXArray {
+private func clippedSilu(_ x: MLXArray) -> MLXArray {
     clip(x * sigmoid(x), min: -100, max: 100)
 }
 
-class DeepseekV3Attention: Module {
+private class DeepseekV3Attention: Module {
     var config: DeepseekV3Configuration
     var hiddenSize: Int
     var numHeads: Int
@@ -275,7 +275,7 @@ class DeepseekV3Attention: Module {
     }
 }
 
-class DeepseekV3MLP: Module, UnaryLayer {
+private class DeepseekV3MLP: Module, UnaryLayer {
     var config: DeepseekV3Configuration
     var hiddenSize: Int
     var intermediateSize: Int
@@ -297,7 +297,7 @@ class DeepseekV3MLP: Module, UnaryLayer {
     }
 }
 
-class MoEGate: Module {
+private class MoEGate: Module {
     var config: DeepseekV3Configuration
     var topK: Int?
     var normTopkProb: Bool
@@ -348,7 +348,7 @@ class MoEGate: Module {
     }
 }
 
-class DeepseekV3MoE: Module, UnaryLayer {
+private class DeepseekV3MoE: Module, UnaryLayer {
     var config: DeepseekV3Configuration
     var numExpertsPerTok: Int
     @ModuleInfo(key: "switch_mlp") var switchMLP: SwitchGLU
@@ -387,7 +387,7 @@ class DeepseekV3MoE: Module, UnaryLayer {
     }
 }
 
-class DeepseekV3DecoderLayer: Module {
+private class DeepseekV3DecoderLayer: Module {
     @ModuleInfo(key: "self_attn") var selfAttn: DeepseekV3Attention
     var mlp: UnaryLayer
     @ModuleInfo(key: "input_layernorm") var inputLayerNorm: RMSNorm
@@ -419,7 +419,7 @@ class DeepseekV3DecoderLayer: Module {
     }
 }
 
-class DeepseekV3ModelInner: Module {
+private class DeepseekV3ModelInner: Module {
     var config: DeepseekV3Configuration
     var vocabSize: Int
     @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
@@ -464,7 +464,7 @@ class DeepseekV3Model: Module, LLMModel, KVCacheDimensionProvider, LoRAModel {
     var kvHeads: [Int] = []
 
     var args: DeepseekV3Configuration
-    var model: DeepseekV3ModelInner
+    fileprivate var model: DeepseekV3ModelInner
     @ModuleInfo(key: "lm_head") var lmHead: Linear
 
     init(_ args: DeepseekV3Configuration) {
