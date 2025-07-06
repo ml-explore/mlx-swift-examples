@@ -1,5 +1,14 @@
 # MLXLLM
 
+# Documentation
+
+- [Porting and implementing models](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/porting)
+- [MLXLLMCommon](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon) -- common API for LLM and VLM
+- [MLXLLM](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxllm) -- large language model example implementations
+- [MLXVLM](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxvlm) -- vision language model example implementations
+
+# Contents
+
 This is a port of several models from:
 
 - https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/
@@ -45,9 +54,29 @@ Currently supported model types are:
 - Phi3
 - PhiMoE
 - Qwen2
+- Qwen3
 - Starcoder2
+- MiMo
+- GLM4
+- AceReason
 
 See [llm-tool](../../Tools/llm-tool)
+
+# Quick Start
+
+Using LLMs and VLMs from MLXLMCommon is as easy as:
+
+```swift
+let model = try await loadModel(id: "mlx-community/Qwen3-4B-4bit")
+let session = ChatSession(model)
+print(try await session.respond(to: "What are two things to see in San Francisco?")
+print(try await session.respond(to: "How about a great place to eat?")
+```
+
+For more information see 
+[Evaluation](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/evaluation)
+or [Using Models](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/using-model)
+for more advanced API.
 
 # Adding a Model
 
@@ -80,7 +109,7 @@ public struct YourModelConfiguration: Codable, Sendable {
 
 ## Create the Model Class
 
-Create the model class.  The top-level public class should have a
+Create the model class. The top-level public class should have a
 structure something like this:
 
 ```swift
@@ -114,17 +143,17 @@ In [LLMModelFactory.swift](LLMModelFactory.swift) register the model type itself
 (this is independent of the model id):
 
 ```swift
-public class ModelTypeRegistry: @unchecked Sendable {
+public class LLMTypeRegistry: @unchecked Sendable {
 ...
     private var creators: [String: @Sendable (URL) throws -> any LanguageModel] = [
         "yourModel": create(YourModelConfiguration.self, YourModel.init),
 ```
 
-Add a constant for the model in the `ModelRegistry` (not strictly required but useful
+Add a constant for the model in the `LLMRegistry` (not strictly required but useful
 for callers to refer to it in code):
 
 ```swift
-public class ModelRegistry: @unchecked Sendable {
+public class LLMRegistry: @unchecked Sendable {
 ...
     static public let yourModel_4bit = ModelConfiguration(
         id: "mlx-community/YourModel-4bit",

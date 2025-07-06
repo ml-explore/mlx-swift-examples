@@ -8,7 +8,6 @@ import MLXLLM
 import MLXLMCommon
 import MLXNN
 import MLXOptimizers
-import MLXRandom
 import Tokenizers
 
 struct LoRACommand: AsyncParsableCommand {
@@ -22,7 +21,7 @@ struct LoRACommand: AsyncParsableCommand {
     )
 }
 
-private let defaultModel = MLXLLM.ModelRegistry.mistral7B4bit.name
+private let defaultModel = MLXLLM.LLMRegistry.mistral7B4bit.name
 
 /// Common arguments for loading a LoRA mdoel with adapter weights
 struct LoRAModelArguments: ParsableArguments, Sendable {
@@ -210,7 +209,7 @@ struct LoRAFuseCommand: AsyncParsableCommand {
         let inputURL = await modelContainer.configuration.modelDirectory()
         let enumerator = FileManager.default.enumerator(
             at: inputURL, includingPropertiesForKeys: nil)!
-        for case let url as URL in enumerator {
+        for url in enumerator.allObjects.compactMap({ $0 as? URL }) {
             // copy everything except the model weights -- we will write out the fused one below
             if url.pathExtension == "safetensors" {
                 continue
@@ -283,6 +282,7 @@ struct LoRAEvalCommand: AsyncParsableCommand {
     @OptionGroup var args: LoRAModelArguments
     @OptionGroup var memory: MemoryArguments
     @OptionGroup var generate: GenerateArguments
+    @OptionGroup var prompt: PromptArguments
 
     @MainActor
     mutating func run() async throws {
@@ -297,7 +297,7 @@ struct LoRAEvalCommand: AsyncParsableCommand {
         memory.start()
 
         let defaultPrompt = await modelContainer.configuration.defaultPrompt
-        let prompt = generate.prompt ?? defaultPrompt
+        let prompt = prompt.prompt ?? defaultPrompt
 
         if !generate.quiet {
             print("Starting generation ...")
@@ -305,9 +305,9 @@ struct LoRAEvalCommand: AsyncParsableCommand {
         }
 
         // generate and print the result
-        let result = try await modelContainer.perform { [generate] context in
+        let (result, _) = try await modelContainer.perform { [generate] context in
             let input = try await context.processor.prepare(input: .init(prompt: prompt))
-            return try generate.generate(input: input, context: context)
+            return try await generate.generate(input: input, context: context)
         }
 
         if !generate.quiet {

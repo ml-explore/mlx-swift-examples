@@ -12,10 +12,10 @@ Build the `llm-tool` scheme in Xcode.
 
 ### Running: Xcode
 
-To run this in Xcode simply press cmd-opt-r to set the scheme arguments.  For example:
+To run this in Xcode simply press cmd-opt-r to set the scheme arguments. For example:
 
 ```
---model mlx-community/Mistral-7B-v0.1-hf-4bit-mlx
+--model mlx-community/Mistral-7B-Instruct-v0.3-4bit
 --prompt "swift programming language"
 --max-tokens 50
 ```
@@ -27,7 +27,7 @@ the Hugging Face HubApi stores the downloaded files.
 
 The model should be a path in the Hugging Face repository, e.g.:
 
-- `mlx-community/Mistral-7B-v0.1-hf-4bit-mlx`
+- `mlx-community/Mistral-7B-Instruct-v0.3-4bit`
 - `mlx-community/phi-2-hf-4bit-mlx`
 
 See [LLM](../../Libraries/MLXLLM/README.md) for more info.
@@ -40,17 +40,20 @@ Use the `mlx-run` script to run the command line tools:
 ./mlx-run llm-tool --prompt "swift programming language"
 ```
 
-By default this will find and run the tools built in _Release_ configuration.  Specify `--debug`
+Note: `mlx-run` is a shell script that uses `xcode` command line tools to
+locate the built binaries. It is equivalent to running from Xcode itself.
+
+By default this will find and run the tools built in _Release_ configuration. Specify `--debug`
 to find and run the tool built in _Debug_ configuration.
 
 See also:
 
-- [MLX troubleshooting](https://ml-explore.github.io/mlx-swift/MLX/documentation/mlx/troubleshooting)
+- [MLX troubleshooting](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx/troubleshooting)
 
 ### Troubleshooting
 
 If the program crashes with a very deep stack trace you may need to build
-in Release configuration.  This seems to depend on the size of the model.
+in Release configuration. This seems to depend on the size of the model.
 
 There are a couple options:
 
@@ -59,7 +62,7 @@ There are a couple options:
 - build `Cmlx` with optimizations by modifying `mlx/Package.swift` and adding `.unsafeFlags(["-O"]),` around line 87
 
 Building in Release / optimizations will remove a lot of tail calls in the C++ 
-layer.  These lead to the stack overflows.
+layer. These lead to the stack overflows.
 
 See discussion here: https://github.com/ml-explore/mlx-swift-examples/issues/3
 
@@ -92,14 +95,14 @@ SUBCOMMANDS:
 
 ### Training
 
-The first step will be training the LoRA adapter.  Example training data
-is available in $SRCROOT/Data/lora.  You can use your
+The first step will be training the LoRA adapter. Example training data
+is available in $SRCROOT/Data/lora. You can use your
 own data in either `jsonl` or `txt` format with one entry per line.
 
 We need to specify a number of parameters:
 
-- `--model` -- which model to use.  This can be quantized [^qlora] or not [^lora]
-- `--data` -- directory with the test, train and valid files.  These can be either `jsonl` or `txt` files
+- `--model` -- which model to use. This can be quantized [^qlora] or not [^lora]
+- `--data` -- directory with the test, train and valid files. These can be either `jsonl` or `txt` files
 - `--adapter` -- path to a safetensors file to write the fine tuned parameters into
 
 Additionally the performance of the fine tuning can be controlled with:
@@ -126,7 +129,7 @@ Here is an example run using adapters on the last 4 layers of the model:
 giving output like this:
 
 ```
-Model: mlx-community/Mistral-7B-v0.1-hf-4bit-mlx
+Model: mlx-community/Mistral-7B-Instruct-v0.3-4bit
 Total parameters: 1,242M
 Trainable parameters: 0.426M
 Iteration 1: validation loss 2.443872, validation time 3.330629s
@@ -163,7 +166,7 @@ You can test the LoRA adapated model against the `test` dataset using this comma
 
 ```
 ./mlx-run llm-tool lora test \ 
-    --model mlx-community/Mistral-7B-v0.1-hf-4bit-mlx \
+    --model mlx-community/Mistral-7B-Instruct-v0.3-4bit \
     --data Data/lora \
     --adapter /tmp/lora-layers-4.safetensors \
     --batch-size 1 --lora-layers 4 \
@@ -173,7 +176,7 @@ You can test the LoRA adapated model against the `test` dataset using this comma
 This will run all the items (100 in the example data we are using) in the test set and compute the loss:
 
 ```
-Model: mlx-community/Mistral-7B-v0.1-hf-4bit-mlx
+Model: mlx-community/Mistral-7B-Instruct-v0.3-4bit
 Total parameters: 1,242M
 Trainable parameters: 0.426M
 Test loss 1.327623, ppl 3.772065
@@ -181,7 +184,7 @@ Test loss 1.327623, ppl 3.772065
 
 ### Evaluate
 
-Next you can evaluate your own prompts with the fine tuned LoRA adapters.  It is important to
+Next you can evaluate your own prompts with the fine tuned LoRA adapters. It is important to
 follow the prompt example from the training data to match the format:
 
 ```
@@ -192,7 +195,7 @@ Given that format you might issue a command like this:
 
 ```
 ./mlx-run llm-tool lora eval \
-    --model mlx-community/Mistral-7B-v0.1-hf-4bit-mlx \
+    --model mlx-community/Mistral-7B-Instruct-v0.3-4bit \
     --adapter /tmp/lora-layers-4.safetensors \
     --lora-layers 4 \
     --prompt "table: 1-10015132-16
@@ -206,7 +209,7 @@ A: "
 You might be treated to a response like this:
 
 ```
-Model: mlx-community/Mistral-7B-v0.1-hf-4bit-mlx
+Model: mlx-community/Mistral-7B-Instruct-v0.3-4bit
 Total parameters: 1,242M
 Trainable parameters: 0.426M
 Starting generation ...
@@ -223,7 +226,7 @@ have the adapter weights merged in:
 
 ```
 ./mlx-run llm-tool lora fuse \
-    --model mlx-community/Mistral-7B-v0.1-hf-4bit-mlx \
+    --model mlx-community/Mistral-7B-Instruct-v0.3-4bit \
     --adapter /tmp/lora-layers-4.safetensors \
     --output mlx-community/mistral-lora
 ```

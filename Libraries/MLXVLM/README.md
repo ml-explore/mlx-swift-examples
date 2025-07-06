@@ -1,5 +1,40 @@
 # MLXVLM
 
+# Documentation
+
+- [Porting and implementing models](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/porting)
+- [MLXLLMCommon](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon) -- common API for LLM and VLM
+- [MLXLLM](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxllm) -- large language model example implementations
+- [MLXVLM](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxvlm) -- vision language model example implementations
+
+# Quick Start
+
+Using LLMs and VLMs from MLXLMCommon is as easy as:
+
+```swift
+let model = try await loadModel(id: "mlx-community/Qwen2.5-VL-3B-Instruct-4bit")
+let session = ChatSession(model)
+
+let answer1 = try await session.respond(
+    to: "what kind of creature is in the picture?"
+    image: .url(URL(fileURLWithPath: "support/test.jpg"))
+)
+print(answer1)
+
+// we can ask a followup question referring back to the previous image
+let answer2 = try await session.respond(
+    to: "What is behind the dog?"
+)
+print(answer2)
+```
+
+For more information see 
+[Evaluation](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/evaluation)
+or [Using Models](https://swiftpackageindex.com/ml-explore/mlx-swift-examples/main/documentation/mlxlmcommon/using-model)
+for more advanced API.
+
+# Contents
+
 This is a port of several models from:
 
 - https://github.com/Blaizzy/mlx-vlm
@@ -39,7 +74,7 @@ and create a `.swift` file for your new model:
 ## Create a Model Configuration
 
 Create a configuration struct for both the Text and Vision models
-that matches the structure in `config.json`.  A struct like this
+that matches the structure in `config.json`. A struct like this
 is recommended:
 
 ```swift
@@ -75,7 +110,7 @@ public struct YourModelConfiguration: Codable, Sendable {
 
 ## Create a Processor Configuration
 
-VLMs also require a image/video preprocessor.  Create a configuration to match 
+VLMs also require a image/video preprocessor. Create a configuration to match 
 the `preprocessor_config.json` file:
 
 ```swift
@@ -190,7 +225,7 @@ The exact signatures on the `init()` and `callAsFunction()` can vary as needed -
 these models are not exposed to callers.
 
 The top level model is the only piece of the model with public API and it
-should implement `VLMModel` (aka `LanguageModel`).  Here is an outline of how
+should implement `VLMModel` (aka `LanguageModel`). Here is an outline of how
 the top level model might work:
 
 ```swift
@@ -243,7 +278,7 @@ public class YourModel: Module, VLMModel, KVCacheDimensionProvider {
 ## Create the UserInputProcessor
 
 VLMs require custom `UserInputProcessor` instances to manipulate the prompts and
-media as needed.  For example it might:
+media as needed. For example it might:
 
 - apply resampling and normalization to the images
 - convert the images into an `MLXArray` and build a `THW` struct describing the layout
@@ -251,7 +286,7 @@ media as needed.  For example it might:
 
 In the python implementations, much of this code typically lives in the `transformers`
 package from huggingface -- inspection will be required to determine which code
-is called and what it does.  You can examine the processors in the `Models` directory:
+is called and what it does. You can examine the processors in the `Models` directory:
 they reference the files and functions that they are based on.
 
 The `UserInputProcessor` is initialized with the `ProcessorConfiguration` (defined above)
@@ -322,7 +357,7 @@ public class YourModelProcessor: UserInputProcessor {
 ```
 
 Note that the python code may rely on the chat template to inject the image tokens
-(paligemma does not).  This may have to be expressed in swift code as the current
+(paligemma does not). This may have to be expressed in swift code as the current
 interface does not support the structured parameters used for this (see Qwen2VL 
 processor for an example).
 
@@ -332,7 +367,7 @@ In [VLMModelFactory.swift](VLMModelFactory.swift) register the model type itself
 (this is independent of the model id):
 
 ```swift
-public class ModelTypeRegistry: @unchecked Sendable {
+public class VLMTypeRegistry: @unchecked Sendable {
 ...
     private var creators: [String: @Sendable (URL) throws -> any LanguageModel] = [
         "yourModel": create(YourModelConfiguration.self, YourModel.init),
@@ -341,7 +376,7 @@ public class ModelTypeRegistry: @unchecked Sendable {
 Similarly, register the UserInputProcessor type (`preprocessor_config.json`):
 
 ```swift
-public class ProcessorTypeRegistry: @unchecked Sendable {
+public class VLMProcessorTypeRegistry: @unchecked Sendable {
 ...
     private var creators:
         [String: @Sendable (URL, any Tokenizer) throws -> any UserInputProcessor] = [
@@ -349,11 +384,11 @@ public class ProcessorTypeRegistry: @unchecked Sendable {
                 YourModelProcessorConfiguration.self, YourModelProcessor.init),
 ```
 
-Add a constant for the model in the ModelRegistry (not strictly required but useful
+Add a constant for the model in the VLMRegistry (not strictly required but useful
 for callers to refer to it in code):
 
 ```swift
-public class ModelRegistry: @unchecked Sendable {
+public class VLMRegistry: @unchecked Sendable {
 ...
     static public let yourModel_4bit = ModelConfiguration(
         id: "mlx-community/YourModel-4bit",

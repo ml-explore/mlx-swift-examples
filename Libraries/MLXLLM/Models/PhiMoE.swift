@@ -1,9 +1,7 @@
 import Foundation
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
-import MLXRandom
 
 // Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/phimoe.py
 
@@ -77,7 +75,9 @@ private class Attention: Module {
         )
     }
 
-    func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?) -> MLXArray {
+    func callAsFunction(
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
+    ) -> MLXArray {
         let (B, L, _) = (x.dim(0), x.dim(1), x.dim(2))
 
         let queries = wq(x)
@@ -92,14 +92,18 @@ private class Attention: Module {
         if let cache {
             q = rope(q, offset: cache.offset)
             k = rope(k, offset: cache.offset)
-            (k, v) = cache.update(keys: k, values: v)
         } else {
             q = rope(q)
             k = rope(k)
         }
 
-        let output = MLXFast.scaledDotProductAttention(
-            queries: q, keys: k, values: v, scale: scale, mask: mask
+        let output = attentionWithCacheUpdate(
+            queries: q,
+            keys: k,
+            values: v,
+            cache: cache,
+            scale: scale,
+            mask: mask
         )
         .transposed(0, 2, 1, 3)
         .reshaped(B, L, -1)
@@ -164,7 +168,9 @@ private class PhiMoEDecoderLayer: Module {
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
-    func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?) -> MLXArray {
+    func callAsFunction(
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
+    ) -> MLXArray {
         var residual = x
         var hiddenStates = inputLayerNorm(x)
         hiddenStates = selfAttn(hiddenStates, mask: mask, cache: cache)

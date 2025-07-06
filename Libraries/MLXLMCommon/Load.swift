@@ -24,13 +24,16 @@ public func downloadModel(
 ) async throws -> URL {
     do {
         switch configuration.id {
-        case .id(let id):
+        case .id(let id, let revision):
             // download the model weights
             let repo = Hub.Repo(id: id)
             let modelFiles = ["*.safetensors", "*.json"]
             return try await hub.snapshot(
-                from: repo, matching: modelFiles, progressHandler: progressHandler)
-
+                from: repo,
+                revision: revision,
+                matching: modelFiles,
+                progressHandler: progressHandler
+            )
         case .directory(let directory):
             return directory
         }
@@ -59,7 +62,9 @@ public func downloadModel(
 /// calls ``LanguageModel/sanitize(weights:)``, applies optional quantization, and
 /// updates the model with the weights.
 public func loadWeights(
-    modelDirectory: URL, model: LanguageModel, quantization: BaseConfiguration.Quantization? = nil
+    modelDirectory: URL, model: LanguageModel,
+    quantization: BaseConfiguration.Quantization? = nil,
+    perLayerQuantization: BaseConfiguration.PerLayerQuantization? = nil
 ) throws {
     // load the weights
     var weights = [String: MLXArray]()
@@ -78,10 +83,17 @@ public func loadWeights(
     weights = model.sanitize(weights: weights)
 
     // quantize if needed
-    if let quantization {
-        quantize(model: model, groupSize: quantization.groupSize, bits: quantization.bits) {
-            path, module in
-            weights["\(path).scales"] != nil
+    if quantization != nil || perLayerQuantization != nil {
+        quantize(model: model) { path, module in
+            if weights["\(path).scales"] != nil {
+                if let perLayerQuantization {
+                    return perLayerQuantization.quantization(layer: path)?.asTuple
+                } else {
+                    return quantization?.asTuple
+                }
+            } else {
+                return nil
+            }
         }
     }
 

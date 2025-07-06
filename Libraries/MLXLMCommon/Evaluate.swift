@@ -2,7 +2,6 @@
 
 import Foundation
 import MLX
-import MLXRandom
 import Tokenizers
 
 /// A `LogitSampler` is responsible for sampling `logits` produced by
@@ -57,6 +56,22 @@ public struct GenerateParameters: Sendable {
     /// Step size for processing the prompt
     public var prefillStepSize = 512
 
+    /// Maximum tokens to generate
+    public var maxTokens: Int?
+
+    /// Maximum size of the key-value cache. Old entries (except the first 4 tokens) will be overwritten.
+    /// When set, uses ``RotatingKVCache`` instead of ``KVCacheSimple``
+    public var maxKVSize: Int?
+
+    /// Number of bits to use for KV cache quantization. nil implies no cache quantization.
+    public var kvBits: Int?
+
+    /// Group size for KV cache quantization (default: 64)
+    public var kvGroupSize: Int = 64
+
+    /// Step to begin using a quantized KV cache when kvBits is non-nil (default: 0)
+    public var quantizedKVStart: Int = 0
+
     /// sampling temperature
     public var temperature: Float = 0.6
 
@@ -70,9 +85,19 @@ public struct GenerateParameters: Sendable {
     public var repetitionContextSize: Int = 20
 
     public init(
+        maxTokens: Int? = nil,
+        maxKVSize: Int? = nil,
+        kvBits: Int? = nil,
+        kvGroupSize: Int = 64,
+        quantizedKVStart: Int = 0,
         temperature: Float = 0.6, topP: Float = 1.0, repetitionPenalty: Float? = nil,
         repetitionContextSize: Int = 20
     ) {
+        self.maxTokens = maxTokens
+        self.maxKVSize = maxKVSize
+        self.kvBits = kvBits
+        self.kvGroupSize = kvGroupSize
+        self.quantizedKVStart = quantizedKVStart
         self.temperature = temperature
         self.topP = topP
         self.repetitionPenalty = repetitionPenalty
@@ -111,7 +136,7 @@ public struct TopPSampler: LogitSampler {
     let temp: MLXArray
     let topP: MLXArray
 
-    init(temperature: Float, topP: Float) {
+    public init(temperature: Float, topP: Float) {
         self.temp = MLXArray(temperature)
         self.topP = MLXArray(topP)
     }
@@ -149,7 +174,7 @@ public struct TopPSampler: LogitSampler {
 public struct CategoricalSampler: LogitSampler {
     let temp: MLXArray
 
-    init(temperature: Float) {
+    public init(temperature: Float) {
         self.temp = MLXArray(temperature)
     }
 
@@ -178,7 +203,7 @@ public struct RepetitionContext: LogitProcessor {
     /// number of tokens to consider for repetition penalty
     let repetitionContextSize: Int
 
-    init(repetitionPenalty: Float, repetitionContextSize: Int) {
+    public init(repetitionPenalty: Float, repetitionContextSize: Int) {
         precondition(repetitionContextSize > 0)
         self.repetitionPenalty = repetitionPenalty
         self.repetitionContextSize = repetitionContextSize
@@ -250,7 +275,15 @@ public struct TokenIterator: Sequence, IteratorProtocol {
     var processor: LogitProcessor?
     let sampler: LogitSampler
 
-    /// Initialize a `TokenIterator` with the given tokens.  Note: this has been
+    var tokenCount = 0
+    let maxTokens: Int?
+
+    // Cache quantization parameters
+    let kvBits: Int?
+    let kvGroupSize: Int
+    let quantizedKVStart: Int
+
+    /// Initialize a `TokenIterator` with the given tokens. Note: this has been
     /// replaced with ``init(input:model:cache:parameters:)``.
     ///
     /// - Parameters:
@@ -269,6 +302,11 @@ public struct TokenIterator: Sequence, IteratorProtocol {
 
         self.processor = parameters.processor()
         self.sampler = parameters.sampler()
+        self.maxTokens = parameters.maxTokens
+
+        self.kvBits = parameters.kvBits
+        self.kvGroupSize = parameters.kvGroupSize
+        self.quantizedKVStart = parameters.quantizedKVStart
 
         try prepare(input: .init(text: y), windowSize: parameters.prefillStepSize)
     }
@@ -295,6 +333,11 @@ public struct TokenIterator: Sequence, IteratorProtocol {
 
         self.processor = parameters.processor()
         self.sampler = parameters.sampler()
+        self.maxTokens = parameters.maxTokens
+
+        self.kvBits = parameters.kvBits
+        self.kvGroupSize = parameters.kvGroupSize
+        self.quantizedKVStart = parameters.quantizedKVStart
 
         try prepare(input: input, windowSize: parameters.prefillStepSize)
     }
@@ -308,9 +351,11 @@ public struct TokenIterator: Sequence, IteratorProtocol {
     ///   - processor: the logit processor
     ///   - sampler: the logit sampler
     ///   - prefillStepSize: optional prefill step size
+    ///   - maxTokens: maximum number of tokens to generate
     public init(
         input: LMInput, model: any LanguageModel, cache: [KVCache]? = nil,
-        processor: LogitProcessor?, sampler: LogitSampler, prefillStepSize: Int = 512
+        processor: LogitProcessor?, sampler: LogitSampler, prefillStepSize: Int = 512,
+        maxTokens: Int? = nil
     ) throws {
         self.model = model
         self.y = input.text
@@ -318,6 +363,12 @@ public struct TokenIterator: Sequence, IteratorProtocol {
 
         self.processor = processor
         self.sampler = sampler
+        self.maxTokens = maxTokens
+
+        // No cache quantization for this direct initialization
+        self.kvBits = nil
+        self.kvGroupSize = 64
+        self.quantizedKVStart = 0
 
         try prepare(input: input, windowSize: prefillStepSize)
     }
@@ -361,10 +412,22 @@ public struct TokenIterator: Sequence, IteratorProtocol {
             previous[text: .newAxis], cache: cache.isEmpty ? nil : cache, state: state)
         self.state = result.state
 
+        // Apply dynamic cache quantization after each step
+        maybeQuantizeKVCache(
+            cache: &cache,
+            kvBits: kvBits,
+            kvGroupSize: kvGroupSize,
+            quantizedKVStart: quantizedKVStart
+        )
+
         return convertToToken(logits: result.logits)
     }
 
     mutating public func next() -> Int? {
+        if let maxTokens, tokenCount >= maxTokens {
+            return nil
+        }
+
         // save current value -- this will be returned
         let previousY = y
 
@@ -372,6 +435,8 @@ public struct TokenIterator: Sequence, IteratorProtocol {
         let token = step(previous: previousY)
         y = .init(tokens: token)
         asyncEval(token)
+
+        tokenCount += 1
 
         return previousY.tokens.item(Int.self)
     }
@@ -413,24 +478,32 @@ public struct GenerateResult: Sendable {
     /// output text
     public let output: String
 
+    /// The number of tokens included in the input prompt.
+    public var promptTokenCount: Int { inputText.tokens.size }
+
+    /// The number of tokens generated by the language model.
+    public var generationTokenCount: Int { tokens.count }
+
     /// time to process the prompt / generate the first token
     public let promptTime: TimeInterval
 
     /// time to generate the remaining tokens
     public let generateTime: TimeInterval
 
+    /// The number of tokens processed per second during the prompt phase.
     public var promptTokensPerSecond: Double {
         Double(inputText.tokens.size) / promptTime
     }
 
+    /// The number of tokens generated per second during the generation phase.
     public var tokensPerSecond: Double {
         Double(tokens.count) / generateTime
     }
 
     public func summary() -> String {
         """
-        Prompt:     \(inputText.tokens.size) tokens, \(promptTokensPerSecond.formatted()) tokens/s
-        Generation: \(tokens.count) tokens, \(tokensPerSecond.formatted()) tokens/s, \(generateTime.formatted())s
+        Prompt:     \(promptTokenCount) tokens, \(promptTokensPerSecond.formatted()) tokens/s
+        Generation: \(generationTokenCount) tokens, \(tokensPerSecond.formatted()) tokens/s, \(generateTime.formatted())s
         """
     }
 }
@@ -563,9 +636,9 @@ public func generate(
     let now = Date.timeIntervalSinceReferenceDate
     let generateTime = now - start
 
-    // TokenIterator uses `asyncEval()` to keep the pipeline full.  If the caller
+    // TokenIterator uses `asyncEval()` to keep the pipeline full. If the caller
     // exits the program right away, those tasks will still be executing and will
-    // hit assertions as the mlx scheduler is torn down.  Synchronize with the stream
+    // hit assertions as the mlx scheduler is torn down. Synchronize with the stream
     // to make sure it is complete.
     Stream().synchronize()
 
@@ -573,4 +646,316 @@ public func generate(
         inputText: input.text, tokens: tokens,
         output: context.tokenizer.decode(tokens: tokens),
         promptTime: promptTime, generateTime: generateTime)
+}
+
+/// Generate tokens from an ``LMInput`` and a ``ModelContext``.
+///
+/// For example:
+///
+/// ```swift
+/// let generateParameters: GenerateParameters
+/// let input: UserInput
+/// let context: ModelContext
+///
+/// let lmInput = try context.processor.prepare(input: input)
+/// let result = generate(input: lmInput,
+///     parameters: generateParameters,
+///     context: context) { token in
+///     .more
+/// }
+/// ```
+///
+/// Internally this constructs a ``TokenIterator`` and calls
+/// ``generate(input:context:iterator:didGenerate:)``
+///
+/// - Parameters:
+///   - input: prepared language model input
+///   - parameters: parameters controlling the token generation
+///   - context: model context (model and tokenizer)
+///   - didGenerate: token visitor that can output tokens as they are generated and indicate early stop
+/// - Returns: Information about the generation
+public func generate(
+    input: LMInput, parameters: GenerateParameters, context: ModelContext,
+    didGenerate: (Int) -> GenerateDisposition
+) throws -> GenerateCompletionInfo {
+    let iterator = try TokenIterator(
+        input: input, model: context.model, parameters: parameters)
+    return generate(
+        input: input, context: context, iterator: iterator, didGenerate: didGenerate)
+}
+
+public func generate(
+    input: LMInput, context: ModelContext,
+    iterator: TokenIterator,
+    didGenerate: (Int) -> GenerateDisposition
+) -> GenerateCompletionInfo {
+    var start = Date.timeIntervalSinceReferenceDate
+    var promptTime: TimeInterval = 0
+
+    let additionalEOSTokenIds = Set(
+        (context.configuration.extraEOSTokens ?? [])
+            .compactMap {
+                context.tokenizer.convertTokenToId($0)
+            })
+
+    var tokenCount = 0
+
+    for token in iterator {
+        // Compute the timing for the prompt
+        if promptTime == 0 {
+            let now = Date.timeIntervalSinceReferenceDate
+            promptTime = now - start
+            start = now
+        }
+
+        // Check for end-of-sequence tokens
+        if token == context.tokenizer.unknownTokenId || token == context.tokenizer.eosTokenId
+            || additionalEOSTokenIds.contains(token)
+        {
+            break
+        }
+
+        tokenCount += 1
+
+        // Invoke the callback with the current token
+        if didGenerate(token) == .stop {
+            break
+        }
+    }
+
+    let now = Date.timeIntervalSinceReferenceDate
+    let generateTime = now - start
+
+    // Synchronize with the stream to ensure tasks are completed
+    Stream().synchronize()
+
+    return GenerateCompletionInfo(
+        promptTokenCount: input.text.tokens.size,
+        generationTokenCount: tokenCount,
+        promptTime: promptTime,
+        generationTime: generateTime
+    )
+}
+
+/// Generates tokens asynchronously using the provided language model input, parameters, and context.
+///
+/// This function initializes a `TokenIterator` with the given input, model, and generation parameters,
+/// and then streams the token generation process via an `AsyncStream`. The resulting stream yields
+/// instances of the `Generation` enum, which can represent either individual tokens or summary
+/// completion information.
+///
+/// - Parameters:
+///   - input: The input for the language model.
+///   - cache: optional ``KVCache``
+///   - parameters: The configuration options for token generation.
+///   - context: The model context, including the model itself and associated tokenizer.
+/// - Returns: An `AsyncStream` that emits `Generation` values, including generated tokens (`.token`)
+///   and completion information (`.info`).
+/// - Throws: An error if the `TokenIterator` initialization fails due to invalid input or model configuration.
+///
+/// ### Example Usage:
+/// ```swift
+/// // Define the input, parameters, and context for token generation.
+/// let generateParameters: GenerateParameters
+/// let input: UserInput
+/// let context: ModelContext
+///
+/// let lmInput = try context.processor.prepare(input: input)
+///
+/// // Call the generate function to get an AsyncStream.
+/// let stream = try generate(input: lmInput, parameters: parameters, context: context)
+///
+/// // Process the stream asynchronously to handle generated tokens and completion info.
+/// for await generation in stream {
+///     switch generation {
+///     case .token(let token):
+///         print("Generated token: \(context.tokenizer.decode(tokens: [token])")
+///     case .info(let info):
+///         print("Finished: \(info.tokensPerSecond) tokens/s.")
+///     }
+/// }
+/// ```
+public func generate(
+    input: LMInput, cache: [KVCache]? = nil, parameters: GenerateParameters, context: ModelContext
+) throws -> AsyncStream<Generation> {
+    let iterator = try TokenIterator(
+        input: input, model: context.model, cache: cache, parameters: parameters)
+    return generate(
+        input: input, context: context, iterator: iterator)
+}
+
+public func generate(
+    input: LMInput, context: ModelContext,
+    iterator: TokenIterator
+) -> AsyncStream<Generation> {
+
+    AsyncStream { continuation in
+
+        // Launch a Task to perform iteration asynchronously.
+        let task = Task {
+            var start = Date.timeIntervalSinceReferenceDate
+            var promptTime: TimeInterval = 0
+
+            let additionalEOSTokenIds = Set(
+                context.configuration.extraEOSTokens
+                    .compactMap {
+                        context.tokenizer.convertTokenToId($0)
+                    })
+
+            var tokenCount = 0
+            var detokenizer = NaiveStreamingDetokenizer(tokenizer: context.tokenizer)
+            let toolCallProcessor = ToolCallProcessor()
+
+            for token in iterator {
+
+                // Check for cancellation on every loop iteration.
+                if Task.isCancelled { break }
+
+                if promptTime == 0 {
+                    let now = Date.timeIntervalSinceReferenceDate
+                    promptTime = now - start
+                    start = now
+                }
+
+                if token == context.tokenizer.unknownTokenId
+                    || token == context.tokenizer.eosTokenId
+                    || additionalEOSTokenIds.contains(token)
+                {
+                    break
+                }
+
+                detokenizer.append(token: token)
+                if let chunk = detokenizer.next() {
+                    tokenCount += 1
+
+                    // Process chunk through the tool call processor
+                    if let textToYield = toolCallProcessor.processChunk(chunk) {
+                        continuation.yield(.chunk(textToYield))
+                    }
+
+                    // Check if we have a complete tool call
+                    if let toolCall = toolCallProcessor.toolCalls.popLast() {
+                        continuation.yield(.toolCall(toolCall))
+                    }
+                }
+            }
+
+            let now = Date.timeIntervalSinceReferenceDate
+            let generateTime = now - start
+
+            let info = GenerateCompletionInfo(
+                promptTokenCount: input.text.tokens.size,
+                generationTokenCount: tokenCount,
+                promptTime: promptTime,
+                generationTime: generateTime
+            )
+            continuation.yield(.info(info))
+
+            // Synchronize with the stream to ensure tasks are completed
+            Stream().synchronize()
+
+            // Finalize the stream
+            continuation.finish()
+        }
+        // When the consumer cancels (or ends) the stream,
+        // cancel our underlying task.
+        continuation.onTermination = { _ in
+            task.cancel()
+        }
+    }
+}
+
+/// Represents metadata and statistics related to token generation.
+///
+/// Provides information about the number of tokens processed during both the prompt and generation phases, as well as the time taken for each phase.
+public struct GenerateCompletionInfo: Sendable {
+    /// The number of tokens included in the input prompt.
+    public let promptTokenCount: Int
+
+    /// The number of tokens generated by the language model.
+    public let generationTokenCount: Int
+
+    /// The time interval (in seconds) taken to process the input prompt.
+    public let promptTime: TimeInterval
+
+    /// The time interval (in seconds) taken to generate the output tokens.
+    public let generateTime: TimeInterval
+
+    /// The number of tokens processed per second during the prompt phase.
+    public var promptTokensPerSecond: Double {
+        Double(promptTokenCount) / promptTime
+    }
+
+    /// The number of tokens generated per second during the generation phase.
+    public var tokensPerSecond: Double {
+        Double(generationTokenCount) / generateTime
+    }
+
+    public init(
+        promptTokenCount: Int,
+        generationTokenCount: Int,
+        promptTime: TimeInterval,
+        generationTime: TimeInterval
+    ) {
+        self.promptTokenCount = promptTokenCount
+        self.generationTokenCount = generationTokenCount
+        self.promptTime = promptTime
+        self.generateTime = generationTime
+    }
+
+    public func summary() -> String {
+        """
+        Prompt:     \(promptTokenCount) tokens, \(promptTokensPerSecond.formatted()) tokens/s
+        Generation: \(generationTokenCount) tokens, \(tokensPerSecond.formatted()) tokens/s, \(generateTime.formatted())s
+        """
+    }
+}
+
+/// Represents the different stages or outputs of the token generation process.
+///
+/// This enum distinguishes between the following:
+/// - `.chunk`: A decoded string from one or more tokens generated by the language model.
+/// - `.info`: Metadata and performance statistics about the generation process.
+public enum Generation: Sendable {
+    /// A generated token represented as a String
+    case chunk(String)
+
+    /// Completion information summarizing token counts and performance metrics.
+    case info(GenerateCompletionInfo)
+
+    /// A tool call from the language model.
+    case toolCall(ToolCall)
+
+    /// Generated text or nil
+    public var chunk: String? {
+        switch self {
+        case .chunk(let string): string
+        case .info: nil
+        case .toolCall: nil
+        }
+    }
+
+    /// Completion info or nil
+    public var info: GenerateCompletionInfo? {
+        switch self {
+        case .chunk: nil
+        case .info(let info): info
+        case .toolCall: nil
+        }
+    }
+
+    /// Tool call or nil
+    public var toolCall: ToolCall? {
+        switch self {
+        case .chunk: nil
+        case .info: nil
+        case .toolCall(let toolCall): toolCall
+        }
+    }
+
+    /// Reducer that can be used with `throttle()` to gather elements into a batch
+    @Sendable
+    public static func collect(_ batch: [Generation]?, _ element: Generation) -> [Generation] {
+        (batch ?? []) + [element]
+    }
 }

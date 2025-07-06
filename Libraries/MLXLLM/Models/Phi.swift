@@ -2,7 +2,6 @@
 
 import Foundation
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
 
@@ -44,7 +43,7 @@ private class PhiAttention: Module {
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
     ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
 
@@ -61,7 +60,6 @@ private class PhiAttention: Module {
         if let cache {
             queries = rope(queries, offset: cache.offset)
             keys = rope(keys, offset: cache.offset)
-            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope(queries)
             keys = rope(keys)
@@ -69,8 +67,13 @@ private class PhiAttention: Module {
 
         // Finally perform the attention computation
         let scale = sqrt(1 / Float(queries.dim(-1)))
-        let output = MLXFast.scaledDotProductAttention(
-            queries: queries.asType(.float32), keys: keys, values: values, scale: scale, mask: mask
+        let output = attentionWithCacheUpdate(
+            queries: queries.asType(.float32),
+            keys: keys,
+            values: values,
+            cache: cache,
+            scale: scale,
+            mask: mask
         )
         .asType(values.dtype)
         .transposed(0, 2, 1, 3)
@@ -111,7 +114,7 @@ private class PhiDecoderLayer: Module {
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
     ) -> MLXArray {
         let h = inputLayerNorm(x)
         let attentionH = selfAttention(h, mask: mask, cache: cache)
@@ -140,7 +143,7 @@ private class PhiModelInner: Module {
     }
 
     public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: [KVCache]? = nil
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: [KVCache]? = nil
     ) -> MLXArray {
         var x = embedTokens(x)
 
@@ -169,7 +172,7 @@ public class PhiModel: Module, LLMModel, KVCacheDimensionProvider {
     }
 
     public func callAsFunction(_ x: MLXArray, cache: [KVCache]?) -> MLXArray {
-        let mask: MLXArray? = createAttentionMask(h: x, cache: cache)
+        let mask = createAttentionMask(h: x, cache: cache)
 
         let y = model(x, mask: mask, cache: cache)
         return lmHead(y)

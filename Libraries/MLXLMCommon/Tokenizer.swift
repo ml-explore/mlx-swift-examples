@@ -24,11 +24,11 @@ public func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) 
     let config: LanguageModelConfigurationFromHub
 
     switch configuration.id {
-    case .id(let id):
+    case .id(let id, let revision):
         do {
             // the load can fail (async when we try to use it)
             let loaded = LanguageModelConfigurationFromHub(
-                modelName: configuration.tokenizerId ?? id, hubApi: hub)
+                modelName: configuration.tokenizerId ?? id, revision: revision, hubApi: hub)
             _ = try await loaded.tokenizerConfig
             config = loaded
         } catch {
@@ -59,22 +59,22 @@ public func loadTokenizerConfig(configuration: ModelConfiguration, hub: HubApi) 
 }
 
 private func updateTokenizerConfig(_ tokenizerConfig: Config) -> Config {
-    // workaround: replacement tokenizers for unhandled values in swift-transform
-    if let tokenizerClass = tokenizerConfig.tokenizerClass?.stringValue,
+    // Workaround: replacement tokenizers for unhandled values in swift-transformers
+    if let tokenizerClass = tokenizerConfig.tokenizerClass?.string(),
         let replacement = replacementTokenizers[tokenizerClass]
     {
-        var dictionary = tokenizerConfig.dictionary
-        dictionary["tokenizer_class"] = replacement
-        return Config(dictionary)
+        if var dictionary = tokenizerConfig.dictionary() {
+            dictionary["tokenizer_class"] = .init(replacement)
+            return Config(dictionary)
+        }
     }
-
     return tokenizerConfig
 }
 
 public class TokenizerReplacementRegistry: @unchecked Sendable {
 
     // Note: using NSLock as we have very small (just dictionary get/set)
-    // critical sections and expect no contention.  this allows the methods
+    // critical sections and expect no contention. this allows the methods
     // to remain synchronous.
     private let lock = NSLock()
 
@@ -82,6 +82,7 @@ public class TokenizerReplacementRegistry: @unchecked Sendable {
     private var replacementTokenizers = [
         "InternLM2Tokenizer": "PreTrainedTokenizer",
         "Qwen2Tokenizer": "PreTrainedTokenizer",
+        "Qwen3Tokenizer": "PreTrainedTokenizer",
         "CohereTokenizer": "PreTrainedTokenizer",
     ]
 
@@ -135,6 +136,12 @@ public struct NaiveStreamingDetokenizer: StreamingDetokenizer {
     public mutating func next() -> String? {
         let newSegment = tokenizer.decode(tokens: segmentTokens)
         let new = newSegment.suffix(newSegment.count - segment.count)
+
+        // if the new segment ends with REPLACEMENT CHARACTER this means
+        // that the token didn't produce a complete unicode character
+        if new.last == "\u{fffd}" {
+            return nil
+        }
 
         if new.hasSuffix("\n") {
             startNewSegment()

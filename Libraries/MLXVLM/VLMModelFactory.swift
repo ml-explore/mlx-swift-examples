@@ -10,6 +10,8 @@ public enum VLMError: LocalizedError {
     case imageRequired
     case maskRequired
     case singleImageAllowed
+    case singleVideoAllowed
+    case singleMediaTypeAllowed
     case imageProcessingFailure(String)
     case processing(String)
 
@@ -21,6 +23,12 @@ public enum VLMError: LocalizedError {
             return String(localized: "An image mask is required for this operation.")
         case .singleImageAllowed:
             return String(localized: "Only a single image is allowed for this operation.")
+        case .singleVideoAllowed:
+            return String(localized: "Only a single video is allowed for this operation.")
+        case .singleMediaTypeAllowed:
+            return String(
+                localized:
+                    "Only a single media type (image or video) is allowed for this operation.")
         case .imageProcessingFailure(let details):
             return String(localized: "Failed to process the image: \(details)")
         case .processing(let details):
@@ -75,10 +83,12 @@ public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
         [
             "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
             "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
+            "qwen2_5_vl": create(Qwen25VLConfiguration.self, Qwen25VL.init),
             "idefics3": create(Idefics3Configuration.self, Idefics3.init),
+            "gemma3": create(Gemma3Configuration.self, Gemma3.init),
+            "smolvlm": create(SmolVLM2Configuration.self, SmolVLM2.init),
         ]
     }
-
 }
 
 public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendable {
@@ -92,19 +102,25 @@ public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendabl
     {
         [
             "PaliGemmaProcessor": create(
-                PaliGemmaProcessorConfiguration.self, PaligGemmaProcessor.init),
-            "Qwen2VLProcessor": create(Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
+                PaliGemmaProcessorConfiguration.self, PaliGemmaProcessor.init),
+            "Qwen2VLProcessor": create(
+                Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
+            "Qwen2_5_VLProcessor": create(
+                Qwen25VLProcessorConfiguration.self, Qwen25VLProcessor.init),
             "Idefics3Processor": create(
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
+            "Gemma3Processor": create(
+                Gemma3ProcessorConfiguration.self, Gemma3Processor.init),
+            "SmolVLMProcessor": create(
+                SmolVLMProcessorConfiguration.self, SmolVLMProcessor.init),
         ]
     }
-
 }
 
 /// Registry of models and any overrides that go with them, e.g. prompt augmentation.
 /// If asked for an unknown configuration this will use the model/tokenizer as-is.
 ///
-/// The python tokenizers have a very rich set of implementations and configuration.  The
+/// The python tokenizers have a very rich set of implementations and configuration. The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
 public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
@@ -122,16 +138,50 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Describe the image in English"
     )
 
+    static public let qwen2_5VL3BInstruct4Bit = ModelConfiguration(
+        id: "mlx-community/Qwen2.5-VL-3B-Instruct-4bit",
+        defaultPrompt: "Describe the image in English"
+    )
+
     static public let smolvlminstruct4bit = ModelConfiguration(
         id: "mlx-community/SmolVLM-Instruct-4bit",
         defaultPrompt: "Describe the image in English"
     )
 
-    static private func all() -> [ModelConfiguration] {
+    static public let gemma3_4B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-4b-it-qat-4bit",
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3_12B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-12b-it-qat-4bit",
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3_27B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-27b-it-qat-4bit",
+        defaultPrompt: "Describe the image in English",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let smolvlm = ModelConfiguration(
+        id: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct-mlx",
+        defaultPrompt:
+            "What is the main action or notable event happening in this segment? Describe it in one brief sentence."
+    )
+
+    static public func all() -> [ModelConfiguration] {
         [
             paligemma3bMix448_8bit,
             qwen2VL2BInstruct4Bit,
+            qwen2_5VL3BInstruct4Bit,
             smolvlminstruct4bit,
+            gemma3_4B_qat_4bit,
+            gemma3_12B_qat_4bit,
+            gemma3_27B_qat_4bit,
+            smolvlm,
         ]
     }
 
@@ -147,7 +197,7 @@ public typealias ModelRegistry = VLMRegistry
 ///
 /// ```swift
 /// let modelContainer = try await VLMModelFactory.shared.loadContainer(
-///     configuration: ModelRegistry.paligemma3bMix4488bit)
+///     configuration: VLMRegistry.paligemma3bMix4488bit)
 /// ```
 public class VLMModelFactory: ModelFactory {
 
@@ -177,45 +227,71 @@ public class VLMModelFactory: ModelFactory {
     public func _load(
         hub: HubApi, configuration: ModelConfiguration,
         progressHandler: @Sendable @escaping (Progress) -> Void
-    ) async throws -> ModelContext {
+    ) async throws -> sending ModelContext {
         // download weights and config
         let modelDirectory = try await downloadModel(
             hub: hub, configuration: configuration, progressHandler: progressHandler)
 
-        // load the generic config to unerstand which model and how to load the weights
+        // load the generic config to understand which model and how to load the weights
         let configurationURL = modelDirectory.appending(
             component: "config.json"
         )
-        let baseConfig = try JSONDecoder().decode(
-            BaseConfiguration.self, from: Data(contentsOf: configurationURL))
 
-        let model = try typeRegistry.createModel(
-            configuration: configurationURL, modelType: baseConfig.modelType)
+        let baseConfig: BaseConfiguration
+        do {
+            baseConfig = try JSONDecoder().decode(
+                BaseConfiguration.self, from: Data(contentsOf: configurationURL))
+        } catch let error as DecodingError {
+            throw ModelFactoryError.configurationDecodingError(
+                configurationURL.lastPathComponent, configuration.name, error)
+        }
+
+        let model: LanguageModel
+        do {
+            model = try typeRegistry.createModel(
+                configuration: configurationURL, modelType: baseConfig.modelType)
+        } catch let error as DecodingError {
+            throw ModelFactoryError.configurationDecodingError(
+                configurationURL.lastPathComponent, configuration.name, error)
+        }
 
         // apply the weights to the bare model
         try loadWeights(
-            modelDirectory: modelDirectory, model: model, quantization: baseConfig.quantization)
+            modelDirectory: modelDirectory, model: model,
+            perLayerQuantization: baseConfig.perLayerQuantization)
 
         let tokenizer = try await loadTokenizer(
             configuration: configuration,
             hub: hub
         )
 
-        let processorConfiguration = modelDirectory.appending(
+        let processorConfigurationURL = modelDirectory.appending(
             component: "preprocessor_config.json"
         )
-        let baseProcessorConfig = try JSONDecoder().decode(
-            BaseProcessorConfiguration.self,
-            from: Data(
-                contentsOf: processorConfiguration
+
+        let baseProcessorConfig: BaseProcessorConfiguration
+        do {
+            baseProcessorConfig = try JSONDecoder().decode(
+                BaseProcessorConfiguration.self,
+                from: Data(contentsOf: processorConfigurationURL)
             )
-        )
+        } catch let error as DecodingError {
+            throw ModelFactoryError.configurationDecodingError(
+                processorConfigurationURL.lastPathComponent, configuration.name, error)
+        }
+
         let processor = try processorRegistry.createModel(
-            configuration: processorConfiguration,
+            configuration: processorConfigurationURL,
             processorType: baseProcessorConfig.processorClass, tokenizer: tokenizer)
 
         return .init(
             configuration: configuration, model: model, processor: processor, tokenizer: tokenizer)
     }
 
+}
+
+public class TrampolineModelFactory: NSObject, ModelFactoryTrampoline {
+    public static func modelFactory() -> (any MLXLMCommon.ModelFactory)? {
+        VLMModelFactory.shared
+    }
 }

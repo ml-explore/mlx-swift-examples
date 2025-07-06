@@ -8,38 +8,34 @@ import MLXLMCommon
 import MLXNN
 
 struct DeepseekV3Configuration: Codable, Sendable {
-    var modelType: String = "deepseek_v3"
-    var vocabSize: Int = 102400
-    var hiddenSize: Int = 4096
-    var intermediateSize: Int = 11008
-    var moeIntermediateSize: Int = 1407
-    var numHiddenLayers: Int = 30
-    var numAttentionHeads: Int = 32
-    var numKeyValueHeads: Int = 32
+    var vocabSize: Int
+    var hiddenSize: Int
+    var intermediateSize: Int
+    var moeIntermediateSize: Int
+    var numHiddenLayers: Int
+    var numAttentionHeads: Int
+    var numKeyValueHeads: Int
     var nSharedExperts: Int?
     var nRoutedExperts: Int?
-    var routedScalingFactor: Float = 1.0
-    var kvLoraRank: Int = 512
-    var qLoraRank: Int = 1536
-    var qkRopeHeadDim: Int = 64
-    var vHeadDim: Int = 128
-    var qkNopeHeadDim: Int = 128
-    var topkMethod: String = "noaux_tc"
-    var scoringFunc: String = "sigmoid"
-    var normTopkProb: Bool = true
+    var routedScalingFactor: Float
+    var kvLoraRank: Int
+    var qLoraRank: Int
+    var qkRopeHeadDim: Int
+    var vHeadDim: Int
+    var qkNopeHeadDim: Int
+    var normTopkProb: Bool
     var nGroup: Int?
     var topkGroup: Int?
     var numExpertsPerTok: Int?
-    var moeLayerFreq: Int = 1
-    var firstKDenseReplace: Int = 0
-    var maxPositionEmbeddings: Int = 2048
-    var rmsNormEps: Float = 1e-6
-    var ropeTheta: Float = 10000.0
-    var ropeScaling: [String: StringOrNumber]? = nil
-    var attentionBias: Bool = false
+    var moeLayerFreq: Int
+    var firstKDenseReplace: Int
+    var maxPositionEmbeddings: Int
+    var rmsNormEps: Float
+    var ropeTheta: Float
+    var ropeScaling: [String: StringOrNumber]?
+    var attentionBias: Bool
 
     enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
         case vocabSize = "vocab_size"
         case hiddenSize = "hidden_size"
         case intermediateSize = "intermediate_size"
@@ -55,8 +51,6 @@ struct DeepseekV3Configuration: Codable, Sendable {
         case qkRopeHeadDim = "qk_rope_head_dim"
         case vHeadDim = "v_head_dim"
         case qkNopeHeadDim = "qk_nope_head_dim"
-        case topkMethod = "topk_method"
-        case scoringFunc = "scoring_func"
         case normTopkProb = "norm_topk_prob"
         case nGroup = "n_group"
         case topkGroup = "topk_group"
@@ -72,7 +66,7 @@ struct DeepseekV3Configuration: Codable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.modelType = try container.decode(String.self, forKey: .modelType)
+        
         self.vocabSize = try container.decode(Int.self, forKey: .vocabSize)
         self.hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
         self.intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
@@ -88,8 +82,6 @@ struct DeepseekV3Configuration: Codable, Sendable {
         self.qkRopeHeadDim = try container.decode(Int.self, forKey: .qkRopeHeadDim)
         self.vHeadDim = try container.decode(Int.self, forKey: .vHeadDim)
         self.qkNopeHeadDim = try container.decode(Int.self, forKey: .qkNopeHeadDim)
-        self.topkMethod = try container.decode(String.self, forKey: .topkMethod)
-        self.scoringFunc = try container.decode(String.self, forKey: .scoringFunc)
         self.normTopkProb = try container.decode(Bool.self, forKey: .normTopkProb)
         self.nGroup = try container.decodeIfPresent(Int.self, forKey: .nGroup)
         self.topkGroup = try container.decodeIfPresent(Int.self, forKey: .topkGroup)
@@ -289,7 +281,7 @@ class DeepseekV3Attention: Module {
             mscaleAllDim: mscaleAllDim)
     }
 
-    func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache? = nil) -> MLXArray {
+    func callAsFunction(_ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?) -> MLXArray {
         let (B, L, _) = (x.dim(0), x.dim(1), x.dim(2))
 
         var q: MLXArray
@@ -329,11 +321,16 @@ class DeepseekV3Attention: Module {
 
         let queries = concatenated([qNope, qPe], axis: -1)
 
-        let output = scaledDotProductAttention(
-            queries: queries, keys: keys, values: values, scale: scale, mask: mask
-        )
-        .transposed(0, 2, 1, 3)
-        .reshaped(B, L, -1)
+      let output = attentionWithCacheUpdate(
+          queries: queries,
+          keys: keys,
+          values: values,
+          cache: cache,
+          scale: scale,
+          mask: mask
+      )
+      .transposed(0, 2, 1, 3)
+      .reshaped(B, L, -1)
 
         return self.oProj(output)
     }
@@ -381,11 +378,6 @@ class MoEGate: Module {
         self.routedScalingFactor = config.routedScalingFactor
         self.nGroup = config.nGroup ?? 1
         self.topkGroup = config.topkGroup
-
-        guard config.topkMethod == "noaux_tc" else {
-            fatalError("Unsupported topk method.")
-        }
-
         self.weight = zeros([self.nRoutedExperts ?? 1, config.hiddenSize])
         self.e_score_correction_bias = zeros([self.nRoutedExperts ?? 1])
     }
@@ -480,7 +472,7 @@ class DeepseekV3DecoderLayer: Module {
             dimensions: config.hiddenSize, eps: config.rmsNormEps)
     }
 
-    func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache? = nil) -> MLXArray {
+    func callAsFunction(_ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?) -> MLXArray {
         let r = selfAttn(inputLayerNorm(x), mask: mask, cache: cache)
         let h = x + r
         let r2 = mlp(postAttentionLayerNorm(h))
@@ -533,13 +525,11 @@ class DeepseekV3Model: Module, LLMModel, KVCacheDimensionProvider, LoRAModel {
     var kvHeads: [Int] = []
 
     var args: DeepseekV3Configuration
-    var modelType: String
     var model: DeepseekV3ModelInner
     @ModuleInfo(key: "lm_head") var lmHead: Linear
 
     init(_ args: DeepseekV3Configuration) {
         self.args = args
-        self.modelType = args.modelType
         self.model = DeepseekV3ModelInner(config: args)
         self._lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabSize, bias: false)
     }

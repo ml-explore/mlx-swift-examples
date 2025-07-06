@@ -6,7 +6,6 @@ import CoreImage
 import Foundation
 import Hub
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
 import Tokenizers
@@ -14,23 +13,6 @@ import Tokenizers
 // MARK: - Language
 
 private enum Language {
-
-    // specialized norm for gemma
-    fileprivate class RMSNorm: Module, UnaryLayer {
-        let weight: MLXArray
-        let eps: Float
-
-        public init(dimensions: Int, eps: Float = 1e-5) {
-            self.weight = MLXArray.ones([dimensions]).asType(.float16)
-            self.eps = eps
-            super.init()
-        }
-
-        public func callAsFunction(_ x: MLXArray) -> MLXArray {
-            return MLXFast.rmsNorm(x, weight: 1.0 + self.weight, eps: self.eps)
-        }
-    }
-
     fileprivate class Attention: Module {
 
         let args: PaliGemmaConfiguration.TextConfiguration
@@ -63,7 +45,7 @@ private enum Language {
         }
 
         public func callAsFunction(
-            _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+            _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
         ) -> MLXArray {
             let (B, L) = (x.dim(0), x.dim(1))
 
@@ -79,14 +61,18 @@ private enum Language {
             if let cache {
                 queries = rope(queries, offset: cache.offset)
                 keys = rope(keys, offset: cache.offset)
-                (keys, values) = cache.update(keys: keys, values: values)
             } else {
                 queries = rope(queries)
                 keys = rope(keys)
             }
 
-            let output = MLXFast.scaledDotProductAttention(
-                queries: queries, keys: keys, values: values, scale: scale, mask: mask
+            let output = attentionWithCacheUpdate(
+                queries: queries,
+                keys: keys,
+                values: values,
+                cache: cache,
+                scale: scale,
+                mask: mask
             )
             .transposed(0, 2, 1, 3)
             .reshaped(B, L, -1)
@@ -117,20 +103,20 @@ private enum Language {
         @ModuleInfo(key: "self_attn") var attention: Attention
         let mlp: MLP
 
-        @ModuleInfo(key: "input_layernorm") var inputLayerNorm: RMSNorm
-        @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: RMSNorm
+        @ModuleInfo(key: "input_layernorm") var inputLayerNorm: Gemma.RMSNorm
+        @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: Gemma.RMSNorm
 
         public init(_ args: PaliGemmaConfiguration.TextConfiguration) {
             self._attention.wrappedValue = Attention(args)
             self.mlp = MLP(dimensions: args.hiddenSize, hiddenDimensions: args.intermediateSize)
-            self._inputLayerNorm.wrappedValue = RMSNorm(
+            self._inputLayerNorm.wrappedValue = Gemma.RMSNorm(
                 dimensions: args.hiddenSize, eps: args.rmsNormEps)
-            self._postAttentionLayerNorm.wrappedValue = RMSNorm(
+            self._postAttentionLayerNorm.wrappedValue = Gemma.RMSNorm(
                 dimensions: args.hiddenSize, eps: args.rmsNormEps)
         }
 
         public func callAsFunction(
-            _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+            _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
         ) -> MLXArray {
             var r = attention(inputLayerNorm(x), mask: mask, cache: cache)
             let h = x + r
@@ -145,7 +131,7 @@ private enum Language {
         @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
 
         fileprivate let layers: [TransformerBlock]
-        fileprivate let norm: RMSNorm
+        fileprivate let norm: Gemma.RMSNorm
 
         let hiddenScale: Float
 
@@ -161,7 +147,7 @@ private enum Language {
                 .map { _ in
                     TransformerBlock(args)
                 }
-            self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+            self.norm = Gemma.RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
         }
 
         public func callAsFunction(
@@ -171,11 +157,11 @@ private enum Language {
             var h = inputEmbedding ?? embedTokens(inputs)
             h = h * hiddenScale
 
-            let mask: MLXArray? =
+            let mask =
                 if mask == nil || (cache?[0].offset ?? 0) > 0 {
                     createAttentionMask(h: h, cache: cache)
                 } else {
-                    nil
+                    MLXFast.ScaledDotProductAttentionMaskMode.none
                 }
 
             for (i, layer) in layers.enumerated() {
@@ -241,7 +227,7 @@ private enum Vision {
         }
 
         public func callAsFunction(
-            _ x: MLXArray, mask: MLXArray? = nil
+            _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode = .none
         ) -> MLXArray {
             var queries = wq(x)
             var keys = wk(x)
@@ -255,7 +241,11 @@ private enum Vision {
             values = values.reshaped(B, S, numHeads, -1).transposed(0, 2, 1, 3)
 
             let output = MLXFast.scaledDotProductAttention(
-                queries: queries, keys: keys, values: values, scale: scale, mask: mask
+                queries: queries,
+                keys: keys,
+                values: values,
+                scale: scale,
+                mask: mask
             )
             .transposed(0, 2, 1, 3)
             .reshaped(B, L, -1)
@@ -296,7 +286,9 @@ private enum Vision {
                 dimensions: config.hiddenSize, eps: config.layerNormEps)
         }
 
-        public func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil) -> MLXArray {
+        public func callAsFunction(
+            _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode = .none
+        ) -> MLXArray {
             var r = attention(layerNorm1(x), mask: mask)
             let h = x + r
             r = mlp(layerNorm2(h))
@@ -314,7 +306,8 @@ private enum Vision {
         }
 
         public func callAsFunction(
-            _ x: MLXArray, outputHiddenStates: Bool = false, mask: MLXArray? = nil
+            _ x: MLXArray, outputHiddenStates: Bool = false,
+            mask: MLXFast.ScaledDotProductAttentionMaskMode = .none
         ) -> (MLXArray, [MLXArray]?) {
             var encoderStates: [MLXArray]? = outputHiddenStates ? [] : nil
             var h = x
@@ -336,7 +329,7 @@ private enum Vision {
         @ModuleInfo(key: "position_embedding") var positionEmbedding: Embedding
 
         let positions: Int
-        let positionIds: MLXArray
+        let _positionIds: MLXArray
 
         public init(_ config: PaliGemmaConfiguration.VisionConfiguration) {
             self._patchEmbedding.wrappedValue = Conv2d(
@@ -348,13 +341,13 @@ private enum Vision {
             self._positionEmbedding.wrappedValue = Embedding(
                 embeddingCount: positions, dimensions: config.hiddenSize
             )
-            self.positionIds = MLXArray(0 ..< positions)[.newAxis, 0...]
+            self._positionIds = MLXArray(0 ..< positions)[.newAxis, 0...]
         }
 
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
             var patchEmbeddings = self.patchEmbedding(x)
             patchEmbeddings = patchEmbeddings.flattened(start: 1, end: 2)
-            let embeddings = patchEmbeddings + self.positionEmbedding(self.positionIds)
+            let embeddings = patchEmbeddings + self.positionEmbedding(self._positionIds)
             return embeddings
         }
     }
@@ -441,7 +434,7 @@ private enum Vision {
 /// PaliGemma VLM `UserInputProcessor`.
 ///
 /// This is meant to be used with ``PaliGemma`` and is typically created by ``VLMModelFactory``.
-public class PaligGemmaProcessor: UserInputProcessor {
+public class PaliGemmaProcessor: UserInputProcessor {
 
     private let config: PaliGemmaProcessorConfiguration
     private let tokenizer: any Tokenizer
@@ -451,7 +444,7 @@ public class PaligGemmaProcessor: UserInputProcessor {
         self.tokenizer = tokenizer
     }
 
-    private func prepare(image: CIImage, processing: UserInput.Processing?) -> MLXArray {
+    private func prepare(image: CIImage, processing: UserInput.Processing?) throws -> MLXArray {
         // based on image_processing_siglip from transformers
         var image = image
 
@@ -463,7 +456,7 @@ public class PaligGemmaProcessor: UserInputProcessor {
         // apply user instructions
         image = MediaProcessing.apply(image, processing: processing)
 
-        image = MediaProcessing.resampleBicubic(image, to: config.size.cgSize)
+        image = try MediaProcessing.resampleBicubic(image, to: config.size.cgSize)
         image = MediaProcessing.normalize(
             image, mean: config.imageMeanTuple, std: config.imageStdTuple)
 
@@ -478,7 +471,7 @@ public class PaligGemmaProcessor: UserInputProcessor {
         }
 
         // this doesn't have a chat template so just use the last message.
-        var prompt = input.prompt.asMessages().last?["content"] as? String ?? ""
+        var prompt = prompt(from: input)
 
         // based on transformers/processing_paligemma
         let count = input.images.count * config.imageSequenceLength
@@ -493,6 +486,17 @@ public class PaligGemmaProcessor: UserInputProcessor {
         let pixels = try prepare(image: input.images[0].asCIImage(), processing: input.processing)
 
         return LMInput(text: .init(tokens: promptArray, mask: mask), image: .init(pixels: pixels))
+    }
+
+    private func prompt(from userInput: UserInput) -> String {
+        switch userInput.prompt {
+        case .text(let text):
+            text
+        case .messages(let messages):
+            messages.last?["content"] as? String ?? ""
+        case .chat(let messages):
+            messages.last?.content ?? ""
+        }
     }
 
 }
@@ -705,7 +709,7 @@ public struct PaliGemmaConfiguration: Codable, Sendable {
     }
 }
 
-/// Configuration for ``PaligGemmaProcessor``
+/// Configuration for ``PaliGemmaProcessor``
 public struct PaliGemmaProcessorConfiguration: Codable, Sendable {
 
     public struct Size: Codable, Sendable {

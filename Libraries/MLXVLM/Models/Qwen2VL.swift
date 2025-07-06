@@ -6,20 +6,9 @@ import CoreImage
 import Foundation
 import Hub
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
 import Tokenizers
-
-// MARK: - Common
-
-/// Rotates half the hidden dims of the input
-private func rotateHalf(_ x: MLXArray) -> MLXArray {
-    let index = x.dim(-1) / 2
-    let x1 = x[.ellipsis, 0 ..< index]
-    let x2 = x[.ellipsis, index...]
-    return concatenated([-x2, x1], axis: -1)
-}
 
 // MARK: - Language
 
@@ -47,8 +36,8 @@ private enum Language {
             )[0..., .newAxis, 0..., 0...]
 
         // Apply rotary embedding
-        let qEmbed = (q * cos) + (rotateHalf(q) * sin)
-        let kEmbed = (k * cos) + (rotateHalf(k) * sin)
+        let qEmbed = (q * cos) + (QwenVL.rotateHalf(q) * sin)
+        let kEmbed = (k * cos) + (QwenVL.rotateHalf(k) * sin)
         return (qEmbed, kEmbed)
     }
 
@@ -113,17 +102,23 @@ private enum Language {
             values = values.reshaped(B, L, kvHeads, headDim).transposed(0, 2, 1, 3)
 
             let offset = cache?.offset ?? 0
-            let mask = mask?[0..., 0 ..< keys.dim(-2)]
-
             queries = rotaryEmbedding(queries, offset: offset)
             keys = rotaryEmbedding(keys, offset: offset)
 
-            if let cache {
-                (keys, values) = cache.update(keys: keys, values: values)
-            }
+            let maskConverted: MLXFast.ScaledDotProductAttentionMaskMode =
+                if let mask {
+                    .array(mask[.ellipsis, 0 ..< keys.dim(-2)])
+                } else {
+                    .none
+                }
 
-            let output = MLXFast.scaledDotProductAttention(
-                queries: queries, keys: keys, values: values, scale: scale, mask: mask
+            let output = attentionWithCacheUpdate(
+                queries: queries,
+                keys: keys,
+                values: values,
+                cache: cache,
+                scale: scale,
+                mask: maskConverted
             )
             .transposed(0, 2, 1, 3)
             .reshaped(B, L, -1)
@@ -209,7 +204,7 @@ private enum Language {
                 fatalError("one of inputs or inputEmbedding must be non-nil")
             }
 
-            let mask = createAttentionMask(h: h, cache: cache)
+            let mask: MLXArray? = createAttentionMask(h: h, cache: cache)
 
             for (i, layer) in layers.enumerated() {
                 h = layer(h, mask: mask, cache: cache?[i])
@@ -267,62 +262,8 @@ private enum Vision {
         sin = tiled(sin, repetitions: [1, 1, 2])
         sin = expandedDimensions(sin, axis: 0)
 
-        let output = (tensor * cos) + (rotateHalf(tensor) * sin)
+        let output = (tensor * cos) + (QwenVL.rotateHalf(tensor) * sin)
         return output.asType(tensor.dtype)
-    }
-
-    fileprivate class VisionRotaryEmbedding {
-        let dimensions: Int
-        let theta: Float
-        let inverseFreq: MLXArray
-
-        init(dimensions: Int, theta: Float) {
-            self.dimensions = dimensions
-            self.theta = theta
-            let p = MLXArray(stride(from: 0, to: dimensions, by: 2)).asType(.float32) / dimensions
-            self.inverseFreq = 1.0 / pow(theta, p)
-        }
-
-        func callAsFunction(sequenceLength: Int) -> MLXArray {
-            let seq = MLXArray(0 ..< sequenceLength).asType(inverseFreq.dtype)
-            let freqs = outer(seq, inverseFreq)
-            return freqs
-        }
-    }
-
-    fileprivate class PatchEmbed: Module, UnaryLayer {
-        @ModuleInfo var proj: Conv3d
-
-        let patchSize: Int
-        let temporalPatchSize: Int
-        let inChannels: Int
-        let embedDimensions: Int
-
-        init(patchSize: Int, temporalPatchSize: Int, inChannels: Int, embedDimensions: Int) {
-            self.patchSize = patchSize
-            self.temporalPatchSize = temporalPatchSize
-            self.inChannels = inChannels
-            self.embedDimensions = embedDimensions
-
-            let kernelSize = IntOrTriple([temporalPatchSize, patchSize, patchSize])
-            self._proj.wrappedValue = Conv3d(
-                inputChannels: inChannels,
-                outputChannels: embedDimensions,
-                kernelSize: kernelSize,
-                stride: kernelSize,
-                bias: false
-            )
-        }
-
-        func callAsFunction(_ hiddenStates: MLXArray) -> MLXArray {
-            var hiddenStates = hiddenStates.reshaped(
-                -1, inChannels, temporalPatchSize, patchSize, patchSize
-            ).movedAxis(source: 1, destination: 4)
-
-            hiddenStates = proj(hiddenStates)
-            hiddenStates = hiddenStates.reshaped(-1, embedDimensions)
-            return hiddenStates
-        }
     }
 
     fileprivate class PatchMerger: Module, UnaryLayer {
@@ -389,7 +330,11 @@ private enum Vision {
             v = v.reshaped(B, L, numHeads, -1).transposed(0, 2, 1, 3)
 
             let output = MLXFast.scaledDotProductAttention(
-                queries: q, keys: k, values: v, scale: scale, mask: nil
+                queries: q,
+                keys: k,
+                values: v,
+                scale: scale,
+                mask: .none
             )
             .transposed(0, 2, 1, 3)
             .reshaped(sequenceLength, -1)
@@ -451,8 +396,8 @@ private enum Vision {
 
     fileprivate class VisionModel: Module {
 
-        @ModuleInfo(key: "patch_embed") var patchEmbed: PatchEmbed
-        @ModuleInfo(key: "rotary_pos_emb") var rotaryPositionEmbedding: VisionRotaryEmbedding
+        @ModuleInfo(key: "patch_embed") var patchEmbed: QwenVL.PatchEmbed
+        @ModuleInfo(key: "rotary_pos_emb") var rotaryPositionEmbedding: QwenVL.VisionRotaryEmbedding
         @ModuleInfo(key: "blocks") var blocks: [Qwen2VLVisionBlock]
         @ModuleInfo(key: "merger") var patchMerger: PatchMerger
 
@@ -461,14 +406,14 @@ private enum Vision {
         public init(_ config: Qwen2VLConfiguration.VisionConfiguration) {
             self.spatialMergeSize = config.spatialMergeSize
 
-            self._patchEmbed.wrappedValue = PatchEmbed(
+            self._patchEmbed.wrappedValue = QwenVL.PatchEmbed(
                 patchSize: config.patchSize,
                 temporalPatchSize: config.temporalPatchSize,
                 inChannels: config.inChannels,
                 embedDimensions: config.embedDimensions)
 
             let headDimensions = config.embedDimensions / config.numHeads
-            self._rotaryPositionEmbedding.wrappedValue = VisionRotaryEmbedding(
+            self._rotaryPositionEmbedding.wrappedValue = QwenVL.VisionRotaryEmbedding(
                 dimensions: headDimensions / 2, theta: 10_000)
 
             self._blocks.wrappedValue = (0 ..< config.depth).map { _ in
@@ -592,36 +537,11 @@ public class Qwen2VLProcessor: UserInputProcessor {
         self.tokenizer = tokenizer
     }
 
-    // image_processing_qwen2_vl.smart_resize
-    private func targetSize(height: Int, width: Int, factor: Int, minPixels: Int, maxPixels: Int)
-        throws -> (Int, Int)
-    {
-        if height < factor {
-            throw VLMError.imageProcessingFailure(
-                "height: \(height) must be larger than factor: \(factor)")
-        }
-        if width < factor {
-            throw VLMError.imageProcessingFailure(
-                "width: \(width) must be larger than factor: \(factor)")
-        }
-        if max(height, width) / min(height, width) > 200 {
-            throw VLMError.imageProcessingFailure(
-                "absolute aspect ratio must be smaller than 200: \(width)x\(height)")
-        }
-
-        var hBar = max(factor, Int(round(Float(height) / Float(factor))) * factor)
-        var wBar = max(factor, Int(round(Float(width) / Float(factor))) * factor)
-
-        if hBar * wBar > maxPixels {
-            let beta = sqrt(Float(height * width) / Float(maxPixels))
-            hBar = Int(floor(Float(height) / beta / Float(factor))) * factor
-            wBar = Int(floor(Float(width) / beta / Float(factor))) * factor
-        } else if hBar * wBar < minPixels {
-            let beta = sqrt(Float(minPixels) / Float(height * width))
-            hBar = Int(ceil(Float(height) * beta / Float(factor))) * factor
-            wBar = Int(ceil(Float(width) * beta / Float(factor))) * factor
-        }
-        return (hBar, wBar)
+    func preprocess(image: CIImage, resizedSize: CGSize) -> CIImage {
+        image
+            .toSRGB()
+            .resampled(to: resizedSize, method: .bicubic)
+            .normalized(mean: config.imageMeanTuple, std: config.imageStdTuple)
     }
 
     public func preprocess(images: [CIImage], processing: UserInput.Processing?) throws -> (
@@ -633,64 +553,24 @@ public class Qwen2VLProcessor: UserInputProcessor {
         // image_processing_qwen2_vl._preprocess
 
         let size = images[0].extent.size
-        let (resizedHeight, resizedWidth) = try targetSize(
+        let (resizedHeight, resizedWidth) = try QwenVL.targetSize(
             height: Int(size.height), width: Int(size.width),
             factor: config.patchSize * config.mergeSize,
-            minPixels: config.size.minPixels, maxPixels: config.size.maxPixels)
+            minPixels: config.minPixels, maxPixels: config.maxPixels)
         let resizedSize = CGSize(width: resizedWidth, height: resizedHeight)
 
-        let processedImages =
-            try images
-            .map {
-                MediaProcessing.inSRGBToneCurveSpace($0)
-            }
-            .map {
-                return MediaProcessing.resampleBicubic($0, to: resizedSize)
-            }
-            .map {
-                MediaProcessing.normalize(
-                    $0, mean: config.imageMeanTuple, std: config.imageStdTuple)
-            }
-            .map {
-                MediaProcessing.asMLXArray($0)
-            }
-
-        var patches = concatenated(processedImages)
-        let mod = patches.dim(0) % config.temporalPatchSize
-        if mod != 0 {
-            let lastPatch = patches[-1, .ellipsis]
-            let lastPatchRepeated = tiled(
-                lastPatch, repetitions: [config.temporalPatchSize - mod, 1, 1, 1])
-            patches = concatenated([patches, lastPatchRepeated])
+        let processedImages = try images.map { image in
+            preprocess(image: image, resizedSize: resizedSize).asMLXArray()
         }
-        let channel = patches.dim(1)
-        let gridT = patches.dim(0) / self.config.temporalPatchSize
-        let gridH = resizedHeight / self.config.patchSize
-        let gridW = resizedWidth / self.config.patchSize
 
-        patches = patches.reshaped(
-            gridT,
-            config.temporalPatchSize,
-            channel,
-            gridH / config.mergeSize,
-            config.mergeSize,
-            config.patchSize,
-            gridW / config.mergeSize,
-            config.mergeSize,
-            config.patchSize
-        )
-        patches = patches.transposed(0, 3, 6, 4, 7, 2, 1, 5, 8)
-
-        let flattenedPatches = patches.reshaped(
-            gridT * gridH * gridW,
-            channel * config.temporalPatchSize * config.patchSize * config.patchSize
-        )
-
-        return (flattenedPatches, .init(gridT, gridH, gridW))
+        return try QwenVL.patchify(
+            images: processedImages, mergeSize: config.mergeSize, patchSize: config.patchSize,
+            temporalPatchSize: config.temporalPatchSize)
     }
 
     public func prepare(input: UserInput) async throws -> LMInput {
-        let messages = input.prompt.asMessages()
+        let messages = Qwen2VLMessageGenerator().generate(from: input)
+
         var promptTokens = try tokenizer.applyChatTemplate(messages: messages)
 
         // Text-only input
@@ -708,31 +588,49 @@ public class Qwen2VLProcessor: UserInputProcessor {
             processedImage = LMInput.ProcessedImage(
                 pixels: imagePixelsConcatenated, frames: imagePixelsAndFrames.map { $0.1 })
             if let imageFrames = processedImage?.frames {
-                promptTokens = try replacePaddingTokens(
-                    in: promptTokens, frames: imageFrames, paddingToken: "<|image_pad|>")
+                promptTokens = try QwenVL.replacePaddingTokens(
+                    in: promptTokens, frames: imageFrames, paddingToken: "<|image_pad|>",
+                    mergeSize: config.mergeSize, tokenizer: tokenizer)
             }
         }
 
         // Process videos if any
         var processedVideo: LMInput.ProcessedVideo?
         if !input.videos.isEmpty {
-            var videosAsImageSequences = [[CIImage]]()
+            var videosAsImageSequences = [[MLXArray]]()
+            var resizedSize: CGSize = .zero
             for video in input.videos {
-                if let imageSequence = try? await MediaProcessing.asCIImageSequence(
-                    video.asAVAsset(), samplesPerSecond: 2)
-                {
-                    videosAsImageSequences.append(imageSequence)
+                let imageSequence = try await MediaProcessing.asProcessedSequence(
+                    video.asAVAsset(), samplesPerSecond: 2
+                ) { frame in
+                    // first apply the user requested resizing, etc. if any
+                    let resizedImage = MediaProcessing.apply(
+                        frame.frame, processing: input.processing)
+                    if resizedSize == .zero {
+                        let size = resizedImage.extent.size
+                        let (resizedHeight, resizedWidth) = try QwenVL.targetSize(
+                            height: Int(size.height), width: Int(size.width),
+                            factor: config.patchSize * config.mergeSize,
+                            minPixels: config.minPixels, maxPixels: config.maxPixels)
+                        resizedSize = CGSize(width: resizedWidth, height: resizedHeight)
+                    }
+                    let processedImage = preprocess(image: resizedImage, resizedSize: resizedSize)
+                    return VideoFrame(frame: processedImage, timeStamp: frame.timeStamp)
                 }
+                videosAsImageSequences.append(imageSequence.frames)
             }
             let videoPixelsAndFrames = try videosAsImageSequences.map {
-                try preprocess(images: $0, processing: input.processing)
+                try QwenVL.patchify(
+                    images: $0, mergeSize: config.mergeSize, patchSize: config.patchSize,
+                    temporalPatchSize: config.temporalPatchSize)
             }
             let videoPixelsConcatenated = concatenated(videoPixelsAndFrames.map { $0.0 })
             processedVideo = LMInput.ProcessedVideo(
                 pixels: videoPixelsConcatenated, frames: videoPixelsAndFrames.map { $0.1 })
             if let videoFrames = processedVideo?.frames {
-                promptTokens = try replacePaddingTokens(
-                    in: promptTokens, frames: videoFrames, paddingToken: "<|video_pad|>")
+                promptTokens = try QwenVL.replacePaddingTokens(
+                    in: promptTokens, frames: videoFrames, paddingToken: "<|video_pad|>",
+                    mergeSize: config.mergeSize, tokenizer: tokenizer)
             }
         }
 
@@ -742,42 +640,6 @@ public class Qwen2VLProcessor: UserInputProcessor {
             text: .init(tokens: promptArray, mask: mask),
             image: processedImage,
             video: processedVideo)
-    }
-
-    func replacePaddingTokens(in promptTokens: [Int], frames: [THW], paddingToken: String)
-        throws -> [Int]
-    {
-        // Replace single padding token with correct number for each image or video frame
-        let placeholderTokens = try tokenizer.encode(
-            text: "<|vision_start|>\(paddingToken)<|vision_end|>")
-        let placeholderRanges = promptTokens.ranges(of: placeholderTokens)
-        guard placeholderRanges.count == frames.count else {
-            throw VLMError.processing(
-                "Number of placeholder tokens does not match number of frames")
-        }
-        let mergeLength = config.mergeSize * config.mergeSize
-        let replacementSequences = try frames.map { frame in
-            let paddingCount = frame.product / mergeLength
-            return try tokenizer.encode(
-                text:
-                    "<|vision_start|>\(Array(repeating: paddingToken, count: paddingCount).joined())<|vision_end|>"
-            )
-        }
-        // Build the final array
-        var result: [Int] = []
-        var currentIndex = promptTokens.startIndex
-        for (range, replacement) in zip(placeholderRanges, replacementSequences) {
-            // Add tokens before the placeholder
-            result.append(contentsOf: promptTokens[currentIndex ..< range.lowerBound])
-            // Add replacement sequence
-            result.append(contentsOf: replacement)
-            currentIndex = range.upperBound
-        }
-        // Add any remaining tokens after the last replacement
-        if currentIndex < promptTokens.endIndex {
-            result.append(contentsOf: promptTokens[currentIndex...])
-        }
-        return result
     }
 }
 
@@ -824,37 +686,10 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
         }
 
         // Insert special image tokens in the input_ids
-        return mergeInputIdsWithImageFeatures(
-            inputIds: inputIds, inputEmbeds: inputEmbeds, imageFeatures: hiddenStates)
-    }
-
-    private func mergeInputIdsWithImageFeatures(
-        inputIds: MLXArray, inputEmbeds: MLXArray, imageFeatures: MLXArray
-    ) -> MLXArray {
-        let imageTokenIndex = config.baseConfiguration.imageTokenId
-        let videoTokenIndex = config.baseConfiguration.videoTokenId
-
-        var imageIndices = [Int]()
-        for (i, v) in inputIds.asArray(Int.self).enumerated() {
-            if v == imageTokenIndex || v == videoTokenIndex {
-                imageIndices.append(i)
-            }
-        }
-
-        // Make sure shapes match before assignment
-        var result = inputEmbeds
-        if result.ndim == 2 {
-            result = result[.newAxis, 0..., 0...]
-        }
-
-        if imageFeatures.ndim == 2 {
-            let reshapedFeatures = imageFeatures[.newAxis, 0..., 0...]
-            result[0..., MLXArray(imageIndices), 0...] = reshapedFeatures
-        } else {
-            result[0..., MLXArray(imageIndices), 0...] = imageFeatures
-        }
-
-        return result
+        return QwenVL.mergeInputIdsWithImageFeatures(
+            inputIds: inputIds, inputEmbeds: inputEmbeds, imageFeatures: hiddenStates,
+            imageTokenId: config.baseConfiguration.imageTokenId,
+            videoTokenId: config.baseConfiguration.videoTokenId)
     }
 
     public func prepare(_ input: LMInput, cache: [any KVCache], windowSize: Int?) throws
@@ -1040,10 +875,20 @@ public struct Qwen2VLProcessorConfiguration: Codable, Sendable {
 
     public let imageMean: [CGFloat]
     public let imageStd: [CGFloat]
-    public let size: Size
     public let mergeSize: Int
     public let patchSize: Int
     public let temporalPatchSize: Int
+
+    private let _size: Size?
+    private let _maxPixels: Int?
+    private let _minPixels: Int?
+
+    public var minPixels: Int {
+        _minPixels ?? _size?.minPixels ?? 3136
+    }
+    public var maxPixels: Int {
+        _maxPixels ?? _size?.maxPixels ?? 12_845_056
+    }
 
     public var imageMeanTuple: (CGFloat, CGFloat, CGFloat) {
         (imageMean[0], imageMean[1], imageMean[2])
@@ -1055,9 +900,32 @@ public struct Qwen2VLProcessorConfiguration: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case imageMean = "image_mean"
         case imageStd = "image_std"
-        case size
         case mergeSize = "merge_size"
         case patchSize = "patch_size"
         case temporalPatchSize = "temporal_patch_size"
+        case _maxPixels = "max_pixels"
+        case _minPixels = "min_pixels"
+        case _size = "size"
+    }
+}
+
+/// Message Generator for Qwen2VL
+public struct Qwen2VLMessageGenerator: MessageGenerator {
+    public init() {}
+
+    public func generate(message: Chat.Message) -> Message {
+        [
+            "role": message.role.rawValue,
+            "content": [
+                ["type": "text", "text": message.content]
+            ]
+                // Messages format for Qwen 2 VL, Qwen 2.5 VL. May need to be adapted for other models.
+                + message.images.map { _ in
+                    ["type": "image"]
+                }
+                + message.videos.map { _ in
+                    ["type": "video"]
+                },
+        ]
     }
 }

@@ -2,7 +2,6 @@
 
 import Foundation
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
 
@@ -78,7 +77,9 @@ private class Attention: Module {
         }
     }
 
-    public func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?) -> MLXArray {
+    public func callAsFunction(
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
+    ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
 
         let queryPos = heads * headDim
@@ -95,14 +96,18 @@ private class Attention: Module {
         if let cache {
             queries = rope.applyEncoding(queries, offset: cache.offset)
             keys = rope.applyEncoding(keys, offset: cache.offset)
-            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope.applyEncoding(queries)
             keys = rope.applyEncoding(keys)
         }
 
-        let output = MLXFast.scaledDotProductAttention(
-            queries: queries, keys: keys, values: values, scale: scale, mask: mask
+        let output = attentionWithCacheUpdate(
+            queries: queries,
+            keys: keys,
+            values: values,
+            cache: cache,
+            scale: scale,
+            mask: mask
         )
         .transposed(0, 2, 1, 3)
         .reshaped(B, L, -1)
@@ -144,7 +149,9 @@ private class TransformerBlock: Module {
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
-    public func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?) -> MLXArray {
+    public func callAsFunction(
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
+    ) -> MLXArray {
         var r = attention(inputLayerNorm(x), mask: mask, cache: cache)
         let h = x + r
         r = mlp(postAttentionLayerNorm(h))
@@ -178,7 +185,7 @@ private class Phi3ModelInner: Module {
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
         var h = embedTokens(inputs)
 
-        let mask: MLXArray? = createAttentionMask(h: h, cache: cache)
+        let mask = createAttentionMask(h: h, cache: cache)
 
         for (i, layer) in layers.enumerated() {
             h = layer(h, mask: mask, cache: cache?[i])

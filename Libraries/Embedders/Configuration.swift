@@ -28,8 +28,8 @@ public enum StringOrNumber: Codable, Equatable, Sendable {
 
 private class ModelTypeRegistry: @unchecked Sendable {
 
-    // Note: using NSLock as we have very small (just dictionary get/set)
-    // critical sections and expect no contention.  this allows the methods
+    // Note: Using NSLock as we have very small (just dictionary get/set)
+    // critical sections and expect no contention. This allows the methods
     // to remain synchronous.
     private let lock = NSLock()
 
@@ -108,31 +108,5 @@ public struct ModelType: RawRepresentable, Codable, Sendable {
 
     public func createModel(configuration: URL) throws -> EmbeddingModel {
         try modelTypeRegistry.createModel(configuration: configuration, rawValue: rawValue)
-    }
-}
-
-public struct BaseConfiguration: Codable, Sendable {
-    public let modelType: ModelType
-
-    public struct Quantization: Codable, Sendable {
-        public init(groupSize: Int, bits: Int) {
-            self.groupSize = groupSize
-            self.bits = bits
-        }
-
-        let groupSize: Int
-        let bits: Int
-
-        enum CodingKeys: String, CodingKey {
-            case groupSize = "group_size"
-            case bits = "bits"
-        }
-    }
-
-    public var quantization: Quantization?
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case quantization
     }
 }

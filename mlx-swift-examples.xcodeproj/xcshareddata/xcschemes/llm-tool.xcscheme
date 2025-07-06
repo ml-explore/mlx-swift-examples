@@ -56,12 +56,24 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--model mlx-community/gemma-3-27b-it-qat-4bit --prompt &apos;Describe the image in English.&apos; --image https://www.gstatic.com/webp/gallery/1.webp"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--model microsoft/Phi-4-mini-instruct --prompt &quot;Why is the sky blue?&quot; --extra-eos-token &quot;&lt;|end|&gt;&quot;"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--model mlx-community/Qwen2-VL-2B-Instruct-4bit --prompt &apos;Describe the image in English.&apos; --image https://www.gstatic.com/webp/gallery/1.webp"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--model mlx-community/Qwen3-1.7B-4bit --prompt &quot;Explain quantum computing in simple terms&quot; --max-tokens 100 --kv-bits 4"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--model mlx-community/Qwen3-1.7B-4bit --prompt &quot;Explain quantum computing in simple terms&quot; --max-tokens 100"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--repetition-penalty 1.2"

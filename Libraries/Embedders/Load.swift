@@ -4,7 +4,6 @@ import Foundation
 @preconcurrency import Hub
 import MLX
 import MLXNN
-import MLXRandom
 import Tokenizers
 
 struct EmbedderError: Error {
@@ -62,7 +61,8 @@ func loadSynchronous(modelDirectory: URL) throws -> EmbeddingModel {
     let baseConfig = try JSONDecoder().decode(
         BaseConfiguration.self, from: Data(contentsOf: configurationURL))
 
-    let model = try baseConfig.modelType.createModel(configuration: configurationURL)
+    let modelType = ModelType(rawValue: baseConfig.modelType)
+    let model = try modelType.createModel(configuration: configurationURL)
 
     // load the weights
     var weights = [String: MLXArray]()
@@ -81,6 +81,16 @@ func loadSynchronous(modelDirectory: URL) throws -> EmbeddingModel {
     weights = model.sanitize(weights: weights)
 
     // quantize if needed
+    if let perLayerQuantization = baseConfig.perLayerQuantization {
+        quantize(model: model) { path, module in
+            if weights["\(path).scales"] != nil {
+                return perLayerQuantization.quantization(layer: path)?.asTuple
+            } else {
+                return nil
+            }
+        }
+    }
+
     if let quantization = baseConfig.quantization {
         quantize(model: model, groupSize: quantization.groupSize, bits: quantization.bits) {
             path, module in

@@ -2,9 +2,9 @@
 
 import Foundation
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
+import Tokenizers
 
 // port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/llama.py
 
@@ -176,7 +176,7 @@ private class Attention: Module {
     }
 
     func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
     ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
 
@@ -192,14 +192,18 @@ private class Attention: Module {
         if let cache {
             queries = rope(queries, offset: cache.offset)
             keys = rope(keys, offset: cache.offset)
-            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope(queries)
             keys = rope(keys)
         }
 
-        let output = MLXFast.scaledDotProductAttention(
-            queries: queries, keys: keys, values: values, scale: scale, mask: mask
+        let output = attentionWithCacheUpdate(
+            queries: queries,
+            keys: keys,
+            values: values,
+            cache: cache,
+            scale: scale,
+            mask: mask
         )
         .transposed(0, 2, 1, 3)
         .reshaped(B, L, -1)
@@ -243,7 +247,7 @@ private class TransformerBlock: Module {
     }
 
     func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
     ) -> MLXArray {
         var r = attention(inputLayerNorm(x), mask: mask, cache: cache)
         let h = x + r
@@ -273,7 +277,7 @@ private class LlamaModelInner: Module {
     func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
         var h = embedTokens(inputs)
 
-        let mask: MLXArray? = createAttentionMask(h: h, cache: cache)
+        let mask = createAttentionMask(h: h, cache: cache)
 
         for (i, layer) in layers.enumerated() {
             h = layer(h, mask: mask, cache: cache?[i])
@@ -317,6 +321,23 @@ public class LlamaModel: Module, LLMModel, KVCacheDimensionProvider {
             !$0.key.contains("self_attn.rotary_emb.inv_freq")
         }
     }
+
+    public func messageGenerator(tokenizer: any Tokenizer) -> any MessageGenerator {
+        // some models allow the system role and some do not -- this is enforced
+        // by the chat template (code).
+        do {
+            let probe = [
+                [
+                    "role": "system",
+                    "content": "test",
+                ]
+            ]
+            _ = try tokenizer.applyChatTemplate(messages: probe)
+            return DefaultMessageGenerator()
+        } catch {
+            return NoSystemMessageGenerator()
+        }
+    }
 }
 
 public struct LlamaConfiguration: Codable, Sendable {
@@ -336,6 +357,30 @@ public struct LlamaConfiguration: Codable, Sendable {
     var tieWordEmbeddings: Bool = true
     var attentionBias: Bool = false
     var mlpBias: Bool = false
+
+    public init(
+        hiddenSize: Int, hiddenLayers: Int, intermediateSize: Int, attentionHeads: Int,
+        headDimensions: Int? = nil, rmsNormEps: Float, vocabularySize: Int, kvHeads: Int,
+        maxPositionEmbeddings: Int? = nil, ropeTheta: Float = 10_000, ropeTraditional: Bool = false,
+        ropeScaling: [String: StringOrNumber]? = nil, tieWordEmbeddings: Bool = true,
+        attentionBias: Bool = false, mlpBias: Bool = false
+    ) {
+        self.hiddenSize = hiddenSize
+        self.hiddenLayers = hiddenLayers
+        self.intermediateSize = intermediateSize
+        self.attentionHeads = attentionHeads
+        self.headDimensions = headDimensions
+        self.rmsNormEps = rmsNormEps
+        self.vocabularySize = vocabularySize
+        self.kvHeads = kvHeads
+        self.maxPositionEmbeddings = maxPositionEmbeddings
+        self.ropeTheta = ropeTheta
+        self.ropeTraditional = ropeTraditional
+        self.ropeScaling = ropeScaling
+        self.tieWordEmbeddings = tieWordEmbeddings
+        self.attentionBias = attentionBias
+        self.mlpBias = mlpBias
+    }
 
     var resolvedHeadDimensions: Int {
         headDimensions ?? (hiddenSize / attentionHeads)
@@ -359,7 +404,7 @@ public struct LlamaConfiguration: Codable, Sendable {
         case mlpBias = "mlp_bias"
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: Swift.Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
