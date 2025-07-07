@@ -279,6 +279,9 @@ public struct RepetitionContext: LogitProcessor {
 ///
 /// Note: this uses `asyncEval()` and there may be an async evaluation running after a call to `next()`.
 public struct TokenIterator: Sequence, IteratorProtocol {
+    // Global lock to protect MLX evaluation operations
+    private static let mlxEvalLock = NSLock()
+    
     let model: any LanguageModel
     var state: LMOutput.State?
 
@@ -393,13 +396,17 @@ public struct TokenIterator: Sequence, IteratorProtocol {
             y = tokens
 
             // evaluate the remainder of the prompt -- this primes the pump
+            TokenIterator.mlxEvalLock.lock()
             let token = step(previous: y)
             y = .init(tokens: token)
             asyncEval(y.tokens)
+            TokenIterator.mlxEvalLock.unlock()
 
         case .logits(let result):
+            TokenIterator.mlxEvalLock.lock()
             y = .init(tokens: convertToToken(logits: result.logits))
             asyncEval(y.tokens)
+            TokenIterator.mlxEvalLock.unlock()
 
             break
         }
@@ -444,9 +451,11 @@ public struct TokenIterator: Sequence, IteratorProtocol {
         let previousY = y
 
         // compute the next state and async eval the next token
+        TokenIterator.mlxEvalLock.lock()
         let token = step(previous: previousY)
         y = .init(tokens: token)
         asyncEval(token)
+        TokenIterator.mlxEvalLock.unlock()
 
         tokenCount += 1
 
