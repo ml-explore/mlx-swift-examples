@@ -133,6 +133,8 @@ public struct ArgMaxSampler: LogitSampler {
 
 /// Sampler that uses `topP` and `temperature` to sample the logits.
 public struct TopPSampler: LogitSampler {
+    private static let randomStateLock = NSLock()
+    
     let temp: MLXArray
     let topP: MLXArray
 
@@ -165,7 +167,11 @@ public struct TopPSampler: LogitSampler {
         if logits.dtype == .bfloat16 {
             logits = logits.asType(.float32)
         }
-
+        
+        // Thread-safe sampling to prevent concurrent access to global random state
+        TopPSampler.randomStateLock.lock()
+        defer { TopPSampler.randomStateLock.unlock() }
+        
         return compiledTopPSampling(logits, topP, temp)
     }
 }
@@ -173,6 +179,9 @@ public struct TopPSampler: LogitSampler {
 /// Processor that uses `temperature` to sample the logits
 public struct CategoricalSampler: LogitSampler {
     let temp: MLXArray
+    
+    // Thread-safe sampling using a lock to protect global state access
+    private static let randomStateLock = NSLock()
 
     public init(temperature: Float) {
         self.temp = MLXArray(temperature)
@@ -185,7 +194,10 @@ public struct CategoricalSampler: LogitSampler {
     }()
 
     public func sample(logits: MLXArray) -> MLXArray {
-        compiledCategorical(logits, temp)
+        // Synchronize access to global random state to prevent concurrency issues
+        CategoricalSampler.randomStateLock.lock()
+        defer { CategoricalSampler.randomStateLock.unlock() }
+        return compiledCategorical(logits, temp)
     }
 }
 
