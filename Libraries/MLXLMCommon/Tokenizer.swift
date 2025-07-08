@@ -13,7 +13,7 @@ public func loadTokenizer(configuration: ModelConfiguration, hub: HubApi) async 
     let (tokenizerConfig, tokenizerData) = try await loadTokenizerConfig(
         configuration: configuration, hub: hub)
 
-    return try PreTrainedTokenizer(
+    return try AutoTokenizer.from(
         tokenizerConfig: tokenizerConfig, tokenizerData: tokenizerData)
 }
 
@@ -84,6 +84,7 @@ public class TokenizerReplacementRegistry: @unchecked Sendable {
         "Qwen2Tokenizer": "PreTrainedTokenizer",
         "Qwen3Tokenizer": "PreTrainedTokenizer",
         "CohereTokenizer": "PreTrainedTokenizer",
+        "Ernie4_5_Tokenizer": "T5Tokenizer",
     ]
 
     public subscript(key: String) -> String? {
