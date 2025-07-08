@@ -396,15 +396,19 @@ public struct TokenIterator: Sequence, IteratorProtocol {
             y = tokens
 
             // evaluate the remainder of the prompt -- this primes the pump
-            TokenIterator.mlxEvalLock.lock()
             let token = step(previous: y)
             y = .init(tokens: token)
+
+            // Protect asyncEval with the global lock
+            TokenIterator.mlxEvalLock.lock()
             asyncEval(y.tokens)
             TokenIterator.mlxEvalLock.unlock()
 
         case .logits(let result):
-            TokenIterator.mlxEvalLock.lock()
             y = .init(tokens: convertToToken(logits: result.logits))
+
+            // Protect asyncEval with the global lock
+            TokenIterator.mlxEvalLock.lock()
             asyncEval(y.tokens)
             TokenIterator.mlxEvalLock.unlock()
 
@@ -451,9 +455,11 @@ public struct TokenIterator: Sequence, IteratorProtocol {
         let previousY = y
 
         // compute the next state and async eval the next token
-        TokenIterator.mlxEvalLock.lock()
         let token = step(previous: previousY)
         y = .init(tokens: token)
+
+        // Protect asyncEval with the global lock to prevent concurrent access
+        TokenIterator.mlxEvalLock.lock()
         asyncEval(token)
         TokenIterator.mlxEvalLock.unlock()
 
