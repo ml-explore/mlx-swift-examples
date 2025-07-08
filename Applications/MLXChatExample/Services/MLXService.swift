@@ -30,6 +30,8 @@ class MLXService {
         LMModel(name: "qwen2VL:2b", configuration: VLMRegistry.qwen2VL2BInstruct4Bit, type: .vlm),
         LMModel(name: "smolVLM", configuration: VLMRegistry.smolvlminstruct4bit, type: .vlm),
         LMModel(name: "acereason:7B", configuration: LLMRegistry.acereason_7b_4bit, type: .llm),
+        LMModel(name: "gemma3n:E2B", configuration: LLMRegistry.gemma3n_E2B_it_lm_4bit, type: .llm),
+        LMModel(name: "gemma3n:E4B", configuration: LLMRegistry.gemma3n_E4B_it_lm_4bit, type: .llm),
     ]
 
     /// Cache to store loaded model containers to avoid reloading.
