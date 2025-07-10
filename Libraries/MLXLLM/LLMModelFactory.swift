@@ -231,6 +231,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         id: "mlx-community/bitnet-b1.58-2B-4T-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
+    
+    static public let smollm3_3b_4bit = ModelConfiguration(
+        id: "mlx-community/SmolLM3-3B-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
 
     private static func all() -> [ModelConfiguration] {
         [
@@ -264,6 +269,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             glm4_9b_4bit,
             acereason_7b_4bit,
             bitnet_b1_58_2b_4t_4bit,
+            smollm3_3b_4bit,
         ]
     }
 
