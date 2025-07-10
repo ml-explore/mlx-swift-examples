@@ -133,8 +133,6 @@ public struct ArgMaxSampler: LogitSampler {
 
 /// Sampler that uses `topP` and `temperature` to sample the logits.
 public struct TopPSampler: LogitSampler {
-    private static let randomStateLock = NSLock()
-
     let temp: MLXArray
     let topP: MLXArray
 
@@ -143,9 +141,13 @@ public struct TopPSampler: LogitSampler {
         self.topP = MLXArray(topP)
     }
 
-    private let compiledTopPSampling: (MLXArray, MLXArray, MLXArray) -> MLXArray = {
-        compile(inputs: [MLXRandom.globalState], outputs: [MLXRandom.globalState]) {
-            logits, topP, temp in
+    public func sample(logits: MLXArray) -> MLXArray {
+        var logits = logits
+        if logits.dtype == .bfloat16 {
+            logits = logits.asType(.float32)
+        }
+
+        return withRandomState(MLXRandom.RandomState()) {
             let probs = softmax(logits / temp, axis: -1)
             let sortedIndices = argSort(probs, axis: -1)
 
@@ -160,19 +162,6 @@ public struct TopPSampler: LogitSampler {
             let sortedToken = categorical(log(topProbs))
             return sortedIndices.squeezed(axis: 0)[sortedToken]
         }
-    }()
-
-    public func sample(logits: MLXArray) -> MLXArray {
-        var logits = logits
-        if logits.dtype == .bfloat16 {
-            logits = logits.asType(.float32)
-        }
-
-        // Thread-safe sampling to prevent concurrent access to global random state
-        TopPSampler.randomStateLock.lock()
-        defer { TopPSampler.randomStateLock.unlock() }
-
-        return compiledTopPSampling(logits, topP, temp)
     }
 }
 
@@ -180,24 +169,14 @@ public struct TopPSampler: LogitSampler {
 public struct CategoricalSampler: LogitSampler {
     let temp: MLXArray
 
-    // Thread-safe sampling using a lock to protect global state access
-    private static let randomStateLock = NSLock()
-
     public init(temperature: Float) {
         self.temp = MLXArray(temperature)
     }
 
-    private let compiledCategorical: (MLXArray, MLXArray) -> MLXArray = {
-        compile(inputs: [MLXRandom.globalState], outputs: [MLXRandom.globalState]) { logits, temp in
+    public func sample(logits: MLXArray) -> MLXArray {
+        return withRandomState(MLXRandom.RandomState()) {
             categorical(logits * (1 / temp))
         }
-    }()
-
-    public func sample(logits: MLXArray) -> MLXArray {
-        // Synchronize access to global random state to prevent concurrency issues
-        CategoricalSampler.randomStateLock.lock()
-        defer { CategoricalSampler.randomStateLock.unlock() }
-        return compiledCategorical(logits, temp)
     }
 }
 
@@ -279,9 +258,6 @@ public struct RepetitionContext: LogitProcessor {
 ///
 /// Note: this uses `asyncEval()` and there may be an async evaluation running after a call to `next()`.
 public struct TokenIterator: Sequence, IteratorProtocol {
-    // Global lock to protect MLX evaluation operations
-    private static let mlxEvalLock = NSLock()
-
     let model: any LanguageModel
     var state: LMOutput.State?
 
@@ -398,19 +374,11 @@ public struct TokenIterator: Sequence, IteratorProtocol {
             // evaluate the remainder of the prompt -- this primes the pump
             let token = step(previous: y)
             y = .init(tokens: token)
-
-            // Protect asyncEval with the global lock
-            TokenIterator.mlxEvalLock.lock()
             asyncEval(y.tokens)
-            TokenIterator.mlxEvalLock.unlock()
 
         case .logits(let result):
             y = .init(tokens: convertToToken(logits: result.logits))
-
-            // Protect asyncEval with the global lock
-            TokenIterator.mlxEvalLock.lock()
             asyncEval(y.tokens)
-            TokenIterator.mlxEvalLock.unlock()
 
             break
         }
@@ -457,11 +425,7 @@ public struct TokenIterator: Sequence, IteratorProtocol {
         // compute the next state and async eval the next token
         let token = step(previous: previousY)
         y = .init(tokens: token)
-
-        // Protect asyncEval with the global lock to prevent concurrent access
-        TokenIterator.mlxEvalLock.lock()
         asyncEval(token)
-        TokenIterator.mlxEvalLock.unlock()
 
         tokenCount += 1
 
