@@ -135,10 +135,12 @@ public struct ArgMaxSampler: LogitSampler {
 public struct TopPSampler: LogitSampler {
     let temp: MLXArray
     let topP: MLXArray
+    let randomState: MLXRandom.RandomState
 
     public init(temperature: Float, topP: Float) {
         self.temp = MLXArray(temperature)
         self.topP = MLXArray(topP)
+        self.randomState = MLXRandom.RandomState()
     }
 
     public func sample(logits: MLXArray) -> MLXArray {
@@ -147,7 +149,7 @@ public struct TopPSampler: LogitSampler {
             logits = logits.asType(.float32)
         }
 
-        return withRandomState(MLXRandom.RandomState()) {
+        return withRandomState(randomState) {
             let probs = softmax(logits / temp, axis: -1)
             let sortedIndices = argSort(probs, axis: -1)
 
@@ -168,13 +170,15 @@ public struct TopPSampler: LogitSampler {
 /// Processor that uses `temperature` to sample the logits
 public struct CategoricalSampler: LogitSampler {
     let temp: MLXArray
+    let randomState: MLXRandom.RandomState
 
     public init(temperature: Float) {
         self.temp = MLXArray(temperature)
+        self.randomState = MLXRandom.RandomState()
     }
 
     public func sample(logits: MLXArray) -> MLXArray {
-        return withRandomState(MLXRandom.RandomState()) {
+        return withRandomState(randomState) {
             categorical(logits * (1 / temp))
         }
     }
