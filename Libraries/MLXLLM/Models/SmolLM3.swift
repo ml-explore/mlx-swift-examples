@@ -181,25 +181,25 @@ private class SmolLM3ModelInner: Module {
 public class SmolLM3Model: Module, LLMModel, KVCacheDimensionProvider {
     public let vocabularySize: Int
     public let kvHeads: [Int]
-    
+
     private let model: SmolLM3ModelInner
     let configuration: SmolLM3Configuration
-    
+
     @ModuleInfo(key: "lm_head") var lmHead: Linear?
-    
+
     public init(_ args: SmolLM3Configuration) {
         self.configuration = args
         self.vocabularySize = args.vocabularySize
         self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
-        
+
         self.model = SmolLM3ModelInner(args)
-        
+
         if !args.tieWordEmbeddings {
             _lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
         }
-        
+
         super.init()
-        
+
         let identityRope = NoPE()
         for (idx, useRope) in args.noRopeLayers.enumerated() {
             if useRope == 0 && idx < model.layers.count {
@@ -207,7 +207,7 @@ public class SmolLM3Model: Module, LLMModel, KVCacheDimensionProvider {
             }
         }
     }
-    
+
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
         var out = model(inputs, cache: cache)
         if let lmHead {
@@ -217,18 +217,18 @@ public class SmolLM3Model: Module, LLMModel, KVCacheDimensionProvider {
         }
         return out
     }
-    
+
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
         var weights = weights
-        
+
         weights = weights.filter { key, _ in
             !key.contains("self_attn.rotary_emb.inv_freq")
         }
-        
+
         if configuration.tieWordEmbeddings {
             weights["lm_head.weight"] = nil
         }
-        
+
         return weights
     }
 }
@@ -252,14 +252,14 @@ public struct SmolLM3Configuration: Codable, Sendable {
     var tieWordEmbeddings: Bool = true
     var attentionBias: Bool = false
     var mlpBias: Bool = false
-    
+
     var noRopeLayerInterval: Int = 4
     var noRopeLayers: [Int] = []
-    
+
     var resolvedHeadDimensions: Int {
         headDimensions ?? (hiddenSize / attentionHeads)
     }
-    
+
     public init(
         modelType: String = "smollm3",
         hiddenSize: Int,
@@ -297,16 +297,16 @@ public struct SmolLM3Configuration: Codable, Sendable {
         self.attentionBias = attentionBias
         self.mlpBias = mlpBias
         self.noRopeLayerInterval = noRopeLayerInterval
-        
+
         if let noRopeLayers = noRopeLayers {
             self.noRopeLayers = noRopeLayers
         } else {
-            self.noRopeLayers = (0..<hiddenLayers).map { i in
+            self.noRopeLayers = (0 ..< hiddenLayers).map { i in
                 (i + 1) % noRopeLayerInterval != 0 ? 1 : 0
             }
         }
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case modelType = "model_type"
         case hiddenSize = "hidden_size"
@@ -327,10 +327,10 @@ public struct SmolLM3Configuration: Codable, Sendable {
         case noRopeLayerInterval = "no_rope_layer_interval"
         case noRopeLayers = "no_rope_layers"
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         self.modelType = try container.decodeIfPresent(String.self, forKey: .modelType) ?? "smollm3"
         self.hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
         self.hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
@@ -340,20 +340,26 @@ public struct SmolLM3Configuration: Codable, Sendable {
         self.rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
         self.vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
         self.kvHeads = try container.decodeIfPresent(Int.self, forKey: .kvHeads) ?? attentionHeads
-        self.maxPositionEmbeddings = try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings)
+        self.maxPositionEmbeddings = try container.decodeIfPresent(
+            Int.self, forKey: .maxPositionEmbeddings)
         self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 10_000
-        self.ropeTraditional = try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
-        self.ropeScaling = try container.decodeIfPresent([String: StringOrNumber].self, forKey: .ropeScaling)
-        self.tieWordEmbeddings = try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? true
-        self.attentionBias = try container.decodeIfPresent(Bool.self, forKey: .attentionBias) ?? false
+        self.ropeTraditional =
+            try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
+        self.ropeScaling = try container.decodeIfPresent(
+            [String: StringOrNumber].self, forKey: .ropeScaling)
+        self.tieWordEmbeddings =
+            try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? true
+        self.attentionBias =
+            try container.decodeIfPresent(Bool.self, forKey: .attentionBias) ?? false
         self.mlpBias = try container.decodeIfPresent(Bool.self, forKey: .mlpBias) ?? false
-        
-        self.noRopeLayerInterval = try container.decodeIfPresent(Int.self, forKey: .noRopeLayerInterval) ?? 4
-        
+
+        self.noRopeLayerInterval =
+            try container.decodeIfPresent(Int.self, forKey: .noRopeLayerInterval) ?? 4
+
         if let noRopeLayers = try container.decodeIfPresent([Int].self, forKey: .noRopeLayers) {
             self.noRopeLayers = noRopeLayers
         } else {
-            self.noRopeLayers = (0..<hiddenLayers).map { i in
+            self.noRopeLayers = (0 ..< hiddenLayers).map { i in
                 (i + 1) % noRopeLayerInterval != 0 ? 1 : 0
             }
         }
@@ -367,4 +373,3 @@ extension SmolLM3Model: LoRAModel {
         model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
     }
 }
-
