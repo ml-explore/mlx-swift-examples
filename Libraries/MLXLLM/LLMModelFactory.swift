@@ -49,6 +49,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
             "acereason": create(Qwen2Configuration.self, Qwen2Model.init),
             "bitnet": create(BitnetConfiguration.self, BitnetModel.init),
+            "baichuan_m1": create(BaichuanM1Configuration.self, BaichuanM1Model.init),
         ]
     }
 
@@ -230,6 +231,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         id: "mlx-community/bitnet-b1.58-2B-4T-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
+    
+    static public let baichuan_m1_14b_instruct_4bit = ModelConfiguration(
+        id: "mlx-community/Baichuan-M1-14B-Instruct-4bit-ft",
+        defaultPrompt: "Why is the sky blue?"
+    )
 
     private static func all() -> [ModelConfiguration] {
         [
@@ -263,6 +269,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             glm4_9b_4bit,
             acereason_7b_4bit,
             bitnet_b1_58_2b_4t_4bit,
+            baichuan_m1_14b_instruct_4bit,
         ]
     }
 
