@@ -49,6 +49,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
             "acereason": create(Qwen2Configuration.self, Qwen2Model.init),
             "bitnet": create(BitnetConfiguration.self, BitnetModel.init),
+            "exaone4": create(Exaone4Configuration.self, Exaone4Model.init),
         ]
     }
 
@@ -231,6 +232,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
+    static public let exaone_4_0_1_2b_4bit = ModelConfiguration(
+        id: "mlx-community/exaone-4.0-1.2b-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -263,6 +269,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             glm4_9b_4bit,
             acereason_7b_4bit,
             bitnet_b1_58_2b_4t_4bit,
+            exaone_4_0_1_2b_4bit,
         ]
     }
 
