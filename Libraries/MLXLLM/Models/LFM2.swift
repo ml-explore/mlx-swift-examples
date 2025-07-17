@@ -50,8 +50,8 @@ public struct LFM2Configuration: Codable, Sendable {
             return layerTypes
         }
 
-        let fullAttnIdxs = fullAttnIdxs ?? Array(0..<hiddenLayers)
-        return (0..<hiddenLayers).map { i in
+        let fullAttnIdxs = fullAttnIdxs ?? Array(0 ..< hiddenLayers)
+        return (0 ..< hiddenLayers).map { i in
             fullAttnIdxs.contains(i) ? "full_attention" : "conv"
         }
     }
@@ -90,27 +90,35 @@ public struct LFM2Configuration: Codable, Sendable {
         self.modelType = try container.decodeIfPresent(String.self, forKey: .modelType) ?? "lfm2"
         self.headDim = try container.decodeIfPresent(Int.self, forKey: .headDim)
         self.blockFFDim = try container.decodeIfPresent(Int.self, forKey: .blockFFDim)
-        self.vocabularySize = try container.decodeIfPresent(Int.self, forKey: .vocabularySize) ?? 65536
+        self.vocabularySize =
+            try container.decodeIfPresent(Int.self, forKey: .vocabularySize) ?? 65536
         self.hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
         self.intermediateSize = try container.decodeIfPresent(Int.self, forKey: .intermediateSize)
         self.hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
         self.attentionHeads = try container.decode(Int.self, forKey: .attentionHeads)
         self.kvHeads = try container.decode(Int.self, forKey: .kvHeads)
-        self.maxPositionEmbeddings = try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings)
+        self.maxPositionEmbeddings = try container.decodeIfPresent(
+            Int.self, forKey: .maxPositionEmbeddings)
         self.normEps = try container.decode(Float.self, forKey: .normEps)
         self.padTokenId = try container.decodeIfPresent(Int.self, forKey: .padTokenId)
         self.bosTokenId = try container.decodeIfPresent(Int.self, forKey: .bosTokenId) ?? 1
         self.eosTokenId = try container.decodeIfPresent(Int.self, forKey: .eosTokenId) ?? 2
-        self.tieWordEmbeddings = try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? true
+        self.tieWordEmbeddings =
+            try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? true
         self.convBias = try container.decodeIfPresent(Bool.self, forKey: .convBias) ?? false
         self.convLCache = try container.decodeIfPresent(Int.self, forKey: .convLCache) ?? 3
-        self.blockMultipleOf = try container.decodeIfPresent(Int.self, forKey: .blockMultipleOf) ?? 256
-        self.blockFFNDimMultiplier = try container.decodeIfPresent(Float.self, forKey: .blockFFNDimMultiplier) ?? 1.0
-        self.blockAutoAdjustFFDim = try container.decodeIfPresent(Bool.self, forKey: .blockAutoAdjustFFDim) ?? true
+        self.blockMultipleOf =
+            try container.decodeIfPresent(Int.self, forKey: .blockMultipleOf) ?? 256
+        self.blockFFNDimMultiplier =
+            try container.decodeIfPresent(Float.self, forKey: .blockFFNDimMultiplier) ?? 1.0
+        self.blockAutoAdjustFFDim =
+            try container.decodeIfPresent(Bool.self, forKey: .blockAutoAdjustFFDim) ?? true
         self.fullAttnIdxs = try container.decodeIfPresent([Int].self, forKey: .fullAttnIdxs)
         self.layerTypes = try container.decodeIfPresent([String].self, forKey: .layerTypes)
-        self.ropeTraditional = try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
-        self.ropeScaling = try container.decodeIfPresent([String: StringOrNumber].self, forKey: .ropeScaling)
+        self.ropeTraditional =
+            try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
+        self.ropeScaling = try container.decodeIfPresent(
+            [String: StringOrNumber].self, forKey: .ropeScaling)
         self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 1000000.0
     }
 }
@@ -150,7 +158,7 @@ private class Attention: Module {
 
         let ropeScale: Float
         if let ropeScaling = args.ropeScaling, ropeScaling["type"] == .string("linear"),
-           let factor = ropeScaling["factor"]
+            let factor = ropeScaling["factor"]
         {
             if let v = factor.asFloat() {
                 ropeScale = 1 / v
@@ -252,7 +260,8 @@ private class LFM2ShortConv: Module {
             convState[0..., -1, 0...] = bx[0..., 0, 0...]
             cache[0] = convState
 
-            convOut = (convState.transposed(0, 2, 1) * conv.weight[0..., 0..., 0]).sum(axis: -1, keepDims: true)
+            convOut = (convState.transposed(0, 2, 1) * conv.weight[0..., 0..., 0]).sum(
+                axis: -1, keepDims: true)
             if bias {
                 convOut = convOut + conv.bias!.expandedDimensions(axes: [-1])
             }
@@ -280,7 +289,9 @@ private class MLP: Module, UnaryLayer {
         if args.blockAutoAdjustFFDim {
             intermediateSize = Int(Float(2 * intermediateSize) / 3.0)
             intermediateSize = Int(args.blockFFNDimMultiplier * Float(intermediateSize))
-            intermediateSize = args.blockMultipleOf * ((intermediateSize + args.blockMultipleOf - 1) / args.blockMultipleOf)
+            intermediateSize =
+                args.blockMultipleOf
+                * ((intermediateSize + args.blockMultipleOf - 1) / args.blockMultipleOf)
         }
 
         _w1.wrappedValue = Linear(args.hiddenSize, intermediateSize, bias: false)
@@ -352,9 +363,10 @@ private class LFM2ModelInner: Module {
 
         precondition(vocabularySize > 0)
 
-        _embedTokens.wrappedValue = Embedding(embeddingCount: vocabularySize, dimensions: args.hiddenSize)
+        _embedTokens.wrappedValue = Embedding(
+            embeddingCount: vocabularySize, dimensions: args.hiddenSize)
 
-        self.layers = (0..<numHiddenLayers).map { i in
+        self.layers = (0 ..< numHiddenLayers).map { i in
             DecoderLayer(args, layerIdx: i)
         }
 
@@ -362,15 +374,18 @@ private class LFM2ModelInner: Module {
     }
 
     public func callAsFunction(
-        _ inputs: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode? = nil, cache: [KVCache]? = nil, inputEmbeddings: MLXArray? = nil
+        _ inputs: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode? = nil,
+        cache: [KVCache]? = nil, inputEmbeddings: MLXArray? = nil
     ) -> MLXArray {
         var h = inputEmbeddings ?? embedTokens(inputs)
 
-        let mask = mask ?? {
-            let firstAttnIdx = args.resolvedLayerTypes.firstIndex(of: "full_attention") ?? 0
-            let c = cache != nil ? [cache![firstAttnIdx]] : nil
-            return createAttentionMask(h: h, cache: c)
-        }()
+        let mask =
+            mask
+            ?? {
+                let firstAttnIdx = args.resolvedLayerTypes.firstIndex(of: "full_attention") ?? 0
+                let c = cache != nil ? [cache![firstAttnIdx]] : nil
+                return createAttentionMask(h: h, cache: c)
+            }()
 
         let resolvedCache: [KVCache?] = cache ?? Array(repeating: nil, count: layers.count)
 
