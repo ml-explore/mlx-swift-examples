@@ -237,7 +237,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         id: "mlx-community/SmolLM3-3B-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
-  
+
     static public let ernie_45_0_3BPT_bf16_ft = ModelConfiguration(
         id: "mlx-community/ERNIE-4.5-0.3B-PT-bf16-ft",
         defaultPrompt: "Why is the sky blue?"
