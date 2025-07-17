@@ -256,7 +256,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
-      static public let exaone_4_0_1_2b_4bit = ModelConfiguration(
+    static public let exaone_4_0_1_2b_4bit = ModelConfiguration(
         id: "mlx-community/exaone-4.0-1.2b-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
