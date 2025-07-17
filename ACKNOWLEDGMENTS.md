@@ -6,7 +6,7 @@
 
 MLX Swift was developed with contributions from the following individuals:
 
-- [John Mai](https://github.com/johnmai-dev): Added support for multiple models (Qwen2, Starcoder2, InternLM2, Qwen3, Qwen3 MoE, GLM-4, MiMo, BitNet, SmolLM3).
+- [John Mai](https://github.com/johnmai-dev): Added support for multiple models (Qwen2, Starcoder2, InternLM2, Qwen3, Qwen3 MoE, GLM-4, MiMo, BitNet, SmolLM3, LFM2).
 
 
 <a href="https://github.com/ml-explore/mlx-swift-examples/graphs/contributors">

@@ -51,6 +51,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "bitnet": create(BitnetConfiguration.self, BitnetModel.init),
             "smollm3": create(SmolLM3Configuration.self, SmolLM3Model.init),
             "ernie4_5": create(Ernie45Configuration.self, Ernie45Model.init),
+            "lfm2": create(LFM2Configuration.self, LFM2Model.init),
         ]
     }
 
@@ -243,6 +244,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
+    static public let lfm2_1_2b_4bit = ModelConfiguration(
+        id: "mlx-community/LFM2-1.2B-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -277,6 +283,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             bitnet_b1_58_2b_4t_4bit,
             smollm3_3b_4bit,
             ernie_45_0_3BPT_bf16_ft,
+            lfm2_1_2b_4bit,
         ]
     }
 
