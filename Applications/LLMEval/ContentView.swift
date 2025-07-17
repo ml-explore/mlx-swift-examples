@@ -232,7 +232,7 @@ class LLMEvaluator {
     let timeTool = Tool<EmptyInput, TimeOutput>(
         name: "get_time",
         description: "Get the current time",
-        parameters: [],
+        parameters: []
     ) { _ in
         TimeOutput(time: Date.now.formatted())
     }

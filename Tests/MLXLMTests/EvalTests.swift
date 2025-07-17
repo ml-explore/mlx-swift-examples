@@ -57,6 +57,131 @@ public class EvalTests: XCTestCase {
         XCTAssertEqual(output.shape, [1, 5, 100])
     }
 
+    func testConcurrentEvaluation() async throws {
+        let config = LlamaConfiguration(
+            hiddenSize: 64, hiddenLayers: 4, intermediateSize: 128, attentionHeads: 8,
+            rmsNormEps: 0.00001, vocabularySize: 100, kvHeads: 4)
+        let model = LlamaModel(config)
+        quantize(model: model, groupSize: 64, bits: 4)
+
+        // Force evaluation of all model weights before concurrent usage
+        // This ensures all weight promises are realized and avoids race conditions
+        eval(model)
+
+        let numTasks = 3
+        let results = await withTaskGroup(of: MLXArray.self) { group in
+            var allResults: [MLXArray] = []
+
+            for taskId in 0 ..< numTasks {
+                group.addTask {
+                    let input = MLXArray([
+                        1 + taskId, 2 + taskId, 3 + taskId, 4 + taskId, 5 + taskId,
+                    ])[.newAxis, .ellipsis]
+                    let output = model.callAsFunction(input, cache: nil)
+                    return output
+                }
+            }
+
+            for await result in group {
+                allResults.append(result)
+            }
+
+            return allResults
+        }
+
+        XCTAssertEqual(results.count, numTasks)
+
+        for (index, result) in results.enumerated() {
+            XCTAssertEqual(result.shape, [1, 5, 100])
+        }
+    }
+
+    func testConcurrentSampling() async throws {
+        let vocabSize = 100
+        let logits = MLXRandom.normal([1, vocabSize])
+
+        let numSamplers = 4
+        let results = try await withThrowingTaskGroup(of: Int.self) { group in
+            var samplerResults: [Int] = []
+
+            for samplerId in 0 ..< numSamplers {
+                group.addTask {
+                    return try withRandomState(MLXRandom.RandomState(seed: UInt64(samplerId))) {
+                        if samplerId % 2 == 0 {
+                            return categorical(logits).item(Int.self)
+                        } else {
+                            return logits.argMax(axis: -1).item(Int.self)
+                        }
+                    }
+                }
+            }
+
+            for try await result in group {
+                samplerResults.append(result)
+            }
+
+            return samplerResults
+        }
+
+        XCTAssertEqual(results.count, numSamplers)
+
+        for result in results {
+            XCTAssertGreaterThanOrEqual(result, 0)
+            XCTAssertLessThan(result, vocabSize)
+        }
+    }
+
+    func testRandomStateIsolation() async throws {
+        let config = LlamaConfiguration(
+            hiddenSize: 32, hiddenLayers: 2, intermediateSize: 64, attentionHeads: 4,
+            rmsNormEps: 0.00001, vocabularySize: 50, kvHeads: 2)
+
+        // Force evaluation of all model weights before concurrent usage
+        // This ensures all weight promises are realized and avoids race conditions
+        let model = LlamaModel(config)
+        eval(model)
+
+        let sharedLogits = MLXArray.ones([1, 50])
+        let numSamplers = 5
+        let samplesPerTask = 10
+
+        let allResults = try await withThrowingTaskGroup(of: [Int].self) { group in
+            var results: [[Int]] = []
+
+            for samplerId in 0 ..< numSamplers {
+                group.addTask {
+                    var taskResults: [Int] = []
+                    let sampler = CategoricalSampler(temperature: 1.0)
+
+                    for sampleId in 0 ..< samplesPerTask {
+                        let token = try withRandomState(
+                            MLXRandom.RandomState(seed: UInt64(samplerId * 1000 + sampleId))
+                        ) {
+                            return sampler.sample(logits: sharedLogits)
+                        }
+                        taskResults.append(token.item(Int.self))
+                    }
+
+                    return taskResults
+                }
+            }
+
+            for try await result in group {
+                results.append(result)
+            }
+
+            return results
+        }
+
+        XCTAssertEqual(allResults.count, numSamplers)
+
+        for samplerResults in allResults {
+            XCTAssertEqual(samplerResults.count, samplesPerTask)
+        }
+
+        let uniqueSequences = Set(allResults.map { $0.description })
+        XCTAssertGreaterThan(uniqueSequences.count, 0)
+    }
 }
 
 struct TestTokenizer: Tokenizer {

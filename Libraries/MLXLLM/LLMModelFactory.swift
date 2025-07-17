@@ -49,6 +49,9 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
             "acereason": create(Qwen2Configuration.self, Qwen2Model.init),
             "bitnet": create(BitnetConfiguration.self, BitnetModel.init),
+            "smollm3": create(SmolLM3Configuration.self, SmolLM3Model.init),
+            "ernie4_5": create(Ernie45Configuration.self, Ernie45Model.init),
+            "lfm2": create(LFM2Configuration.self, LFM2Model.init),
             "baichuan_m1": create(BaichuanM1Configuration.self, BaichuanM1Model.init),
         ]
     }
@@ -237,6 +240,21 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
+    static public let smollm3_3b_4bit = ModelConfiguration(
+        id: "mlx-community/SmolLM3-3B-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let ernie_45_0_3BPT_bf16_ft = ModelConfiguration(
+        id: "mlx-community/ERNIE-4.5-0.3B-PT-bf16-ft",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let lfm2_1_2b_4bit = ModelConfiguration(
+        id: "mlx-community/LFM2-1.2B-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -269,6 +287,9 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             glm4_9b_4bit,
             acereason_7b_4bit,
             bitnet_b1_58_2b_4t_4bit,
+            smollm3_3b_4bit,
+            ernie_45_0_3BPT_bf16_ft,
+            lfm2_1_2b_4bit,
             baichuan_m1_14b_instruct_4bit,
         ]
     }
