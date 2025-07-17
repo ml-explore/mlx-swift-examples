@@ -135,15 +135,21 @@ public struct ArgMaxSampler: LogitSampler {
 public struct TopPSampler: LogitSampler {
     let temp: MLXArray
     let topP: MLXArray
+    let randomState: MLXRandom.RandomState
 
     public init(temperature: Float, topP: Float) {
         self.temp = MLXArray(temperature)
         self.topP = MLXArray(topP)
+        self.randomState = MLXRandom.RandomState()
     }
 
-    private let compiledTopPSampling: (MLXArray, MLXArray, MLXArray) -> MLXArray = {
-        compile(inputs: [MLXRandom.globalState], outputs: [MLXRandom.globalState]) {
-            logits, topP, temp in
+    public func sample(logits: MLXArray) -> MLXArray {
+        var logits = logits
+        if logits.dtype == .bfloat16 {
+            logits = logits.asType(.float32)
+        }
+
+        return withRandomState(randomState) {
             let probs = softmax(logits / temp, axis: -1)
             let sortedIndices = argSort(probs, axis: -1)
 
@@ -158,34 +164,23 @@ public struct TopPSampler: LogitSampler {
             let sortedToken = categorical(log(topProbs))
             return sortedIndices.squeezed(axis: 0)[sortedToken]
         }
-    }()
-
-    public func sample(logits: MLXArray) -> MLXArray {
-        var logits = logits
-        if logits.dtype == .bfloat16 {
-            logits = logits.asType(.float32)
-        }
-
-        return compiledTopPSampling(logits, topP, temp)
     }
 }
 
 /// Processor that uses `temperature` to sample the logits
 public struct CategoricalSampler: LogitSampler {
     let temp: MLXArray
+    let randomState: MLXRandom.RandomState
 
     public init(temperature: Float) {
         self.temp = MLXArray(temperature)
+        self.randomState = MLXRandom.RandomState()
     }
 
-    private let compiledCategorical: (MLXArray, MLXArray) -> MLXArray = {
-        compile(inputs: [MLXRandom.globalState], outputs: [MLXRandom.globalState]) { logits, temp in
+    public func sample(logits: MLXArray) -> MLXArray {
+        return withRandomState(randomState) {
             categorical(logits * (1 / temp))
         }
-    }()
-
-    public func sample(logits: MLXArray) -> MLXArray {
-        compiledCategorical(logits, temp)
     }
 }
 
