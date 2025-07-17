@@ -52,6 +52,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "smollm3": create(SmolLM3Configuration.self, SmolLM3Model.init),
             "ernie4_5": create(Ernie45Configuration.self, Ernie45Model.init),
             "lfm2": create(LFM2Configuration.self, LFM2Model.init),
+            "baichuan_m1": create(BaichuanM1Configuration.self, BaichuanM1Model.init),
         ]
     }
 
@@ -234,6 +235,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
+    static public let baichuan_m1_14b_instruct_4bit = ModelConfiguration(
+        id: "mlx-community/Baichuan-M1-14B-Instruct-4bit-ft",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
     static public let smollm3_3b_4bit = ModelConfiguration(
         id: "mlx-community/SmolLM3-3B-4bit",
         defaultPrompt: "Why is the sky blue?"
@@ -284,6 +290,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             smollm3_3b_4bit,
             ernie_45_0_3BPT_bf16_ft,
             lfm2_1_2b_4bit,
+            baichuan_m1_14b_instruct_4bit,
         ]
     }
 
