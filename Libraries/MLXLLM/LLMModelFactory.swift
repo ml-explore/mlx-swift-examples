@@ -234,7 +234,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         id: "mlx-community/bitnet-b1.58-2B-4T-4bit",
         defaultPrompt: "Why is the sky blue?"
     )
-    
+
     static public let baichuan_m1_14b_instruct_4bit = ModelConfiguration(
         id: "mlx-community/Baichuan-M1-14B-Instruct-4bit-ft",
         defaultPrompt: "Why is the sky blue?"
