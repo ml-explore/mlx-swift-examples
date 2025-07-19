@@ -1,4 +1,10 @@
-// Copyright © 2025 Apple Inc.
+//
+//  DeepseekV3.swift
+//  mlx-swift-examples
+//
+//  Created by Daniel Nata Nugraha on 2025/3/25.
+//  Rebased by Secret AI L.L.C. on 2025/7/18
+//
 
 import Foundation
 import MLX
