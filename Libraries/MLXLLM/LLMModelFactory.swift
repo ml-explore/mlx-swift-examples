@@ -54,6 +54,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "lfm2": create(LFM2Configuration.self, LFM2Model.init),
             "baichuan_m1": create(BaichuanM1Configuration.self, BaichuanM1Model.init),
             "exaone4": create(Exaone4Configuration.self, Exaone4Model.init),
+            "deepseek_v3": create(DeepseekV3Configuration.self, DeepseekV3Model.init),
         ]
     }
 
@@ -205,6 +206,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "What is the difference between a fruit and a vegetable?"
     )
 
+    static public let deepseek_r1_4bit = ModelConfiguration(
+        id: "mlx-community/DeepSeek-R1-4bit",
+        defaultPrompt: "Tell me about the history of Spain."
+    )
+
     static public let gemma3_1B_qat_4bit = ModelConfiguration(
         id: "mlx-community/gemma-3-1b-it-qat-4bit",
         defaultPrompt: "What is the difference between a fruit and a vegetable?",
@@ -298,6 +304,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             lfm2_1_2b_4bit,
             baichuan_m1_14b_instruct_4bit,
             exaone_4_0_1_2b_4bit,
+            deepseek_r1_4bit,
         ]
     }
 
