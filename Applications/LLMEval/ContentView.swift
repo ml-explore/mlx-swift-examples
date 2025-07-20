@@ -133,8 +133,12 @@ struct ContentView: View {
 
         }
         .task {
-            // pre-load the weights on launch to speed up the first generation
-            _ = try? await llm.load()
+            do {
+                // pre-load the weights on launch to speed up the first generation
+                _ = try await llm.load()
+            } catch {
+                llm.output = "Failed: \(error)"
+            }
         }
     }
 
@@ -228,7 +232,7 @@ class LLMEvaluator {
     let timeTool = Tool<EmptyInput, TimeOutput>(
         name: "get_time",
         description: "Get the current time",
-        parameters: [],
+        parameters: []
     ) { _ in
         TimeOutput(time: Date.now.formatted())
     }
