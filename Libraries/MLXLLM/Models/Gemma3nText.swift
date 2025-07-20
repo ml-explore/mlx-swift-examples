@@ -83,11 +83,11 @@ public struct Gemma3nTextConfiguration: Codable {
 
         // in the case of Gemma 3n model, the configuration matches VLMs and text config is under a text_config key
         let container =
-        if nestedContainer.contains(.textConfig) {
-            try nestedContainer.nestedContainer(keyedBy: CodingKeys.self, forKey: .textConfig)
-        } else {
-            try decoder.container(keyedBy: CodingKeys.self)
-        }
+            if nestedContainer.contains(.textConfig) {
+                try nestedContainer.nestedContainer(keyedBy: CodingKeys.self, forKey: .textConfig)
+            } else {
+                try decoder.container(keyedBy: CodingKeys.self)
+            }
 
         modelType = try container.decode(String.self, forKey: .modelType)
         hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
@@ -107,7 +107,8 @@ public struct Gemma3nTextConfiguration: Codable {
         ropeTheta = try container.decode(Float.self, forKey: .ropeTheta)
         finalLogitSoftcapping = try container.decode(Float.self, forKey: .finalLogitSoftcapping)
         layerTypes = try container.decode([String]?.self, forKey: .layerTypes)
-        activationSparsityPattern = try container.decodeIfPresent([Float].self, forKey: .activationSparsityPattern)
+        activationSparsityPattern = try container.decodeIfPresent(
+            [Float].self, forKey: .activationSparsityPattern)
         hiddenSizePerLayerInput = try container.decode(Int.self, forKey: .hiddenSizePerLayerInput)
         altupNumInputs = try container.decode(Int.self, forKey: .altupNumInputs)
         altupCoefClip = try container.decodeIfPresent(Float.self, forKey: .altupCoefClip)
@@ -115,7 +116,8 @@ public struct Gemma3nTextConfiguration: Codable {
         altupActiveIdx = try container.decode(Int.self, forKey: .altupActiveIdx)
         laurelRank = try container.decode(Int.self, forKey: .laurelRank)
         ropeScaling = try container.decodeIfPresent([String: String].self, forKey: .ropeScaling)
-        slidingWindowPattern = try container.decodeIfPresent(Int.self, forKey: .slidingWindowPattern)
+        slidingWindowPattern = try container.decodeIfPresent(
+            Int.self, forKey: .slidingWindowPattern)
     }
 }
 
@@ -173,7 +175,8 @@ private class Gemma3nAttention: Module {
     @ModuleInfo var rope: RoPE
 
     init(_ config: Gemma3nTextConfiguration, layerIdx: Int) {
-        let layerTypes = config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers)
+        let layerTypes =
+            config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers)
         self.isSliding = layerTypes[layerIdx] == "sliding_attention"
 
         let dim = config.hiddenSize
@@ -220,11 +223,12 @@ private class Gemma3nAttention: Module {
         queries = queries.reshaped(B, L, -1, headDim)
         queries = qNorm(queries)
 
-        let offset = if isKvSharedLayer && cache != nil {
-            cache!.offset
-        } else {
-            cache?.offset ?? 0
-        }
+        let offset =
+            if isKvSharedLayer && cache != nil {
+                cache!.offset
+            } else {
+                cache?.offset ?? 0
+            }
 
         var keys: MLXArray
         var values: MLXArray
@@ -270,7 +274,7 @@ private class Gemma3nAttention: Module {
         if case .array(let maskArray) = mask {
             let keysSeqLen = keys.shape[keys.shape.count - 2]
             if maskArray.shape.last! != keysSeqLen {
-                let slicedMask = maskArray[.ellipsis, 0..<keysSeqLen].asType(queries.dtype)
+                let slicedMask = maskArray[.ellipsis, 0 ..< keysSeqLen].asType(queries.dtype)
                 adjustedMask = .array(slicedMask)
             } else {
                 adjustedMask = .array(maskArray.asType(queries.dtype))
@@ -295,7 +299,7 @@ private class MLP: Module {
     @ModuleInfo(key: "gate_proj") var gateProj: Linear
     @ModuleInfo(key: "up_proj") var upProj: Linear
     @ModuleInfo(key: "down_proj") var downProj: Linear
-    
+
     let config: Gemma3nTextConfiguration
     let hiddenSize: Int
     let intermediateSize: Int
@@ -306,7 +310,7 @@ private class MLP: Module {
         self.config = config
         self.hiddenSize = config.hiddenSize
         self.intermediateSize = config.intermediateSize
-        
+
         if let activationSparsityPattern = config.activationSparsityPattern {
             self.activationSparsity = activationSparsityPattern[layerIdx]
         } else {
@@ -314,14 +318,15 @@ private class MLP: Module {
         }
 
         if self.activationSparsity > 0 {
-            self._stdMultiplier = sqrt(MLXArray(2.0)) * erfInverse(2 * MLXArray(self.activationSparsity) - 1)
+            self._stdMultiplier =
+                sqrt(MLXArray(2.0)) * erfInverse(2 * MLXArray(self.activationSparsity) - 1)
         } else {
             self._stdMultiplier = nil
         }
-        
+
         self._gateProj.wrappedValue = Linear(hiddenSize, intermediateSize, bias: false)
         self._upProj.wrappedValue = Linear(hiddenSize, intermediateSize, bias: false)
-        self._downProj.wrappedValue = Linear(intermediateSize, hiddenSize, bias: false) 
+        self._downProj.wrappedValue = Linear(intermediateSize, hiddenSize, bias: false)
 
         super.init()
     }
@@ -338,7 +343,7 @@ private class MLP: Module {
         let downProj = self.downProj(activations * upProj)
         return downProj
     }
-    
+
     private func geluTopK(_ inputs: MLXArray, stdMultiplier: MLXArray) -> MLXArray {
         let inputsMean = mean(inputs, axis: -1, keepDims: true)
         let inputsStd = std(inputs, axis: -1, keepDims: true)
@@ -346,7 +351,6 @@ private class MLP: Module {
         return geluApproximate(maximum(MLXArray(0), inputs - cutoffX))
     }
 }
-
 
 private class Gemma3nAltUp: Module {
     @ModuleInfo(key: "correct_output_scale") var correctOutputScale: MLXArray
@@ -406,7 +410,8 @@ private class Gemma3nAltUp: Module {
         }
 
         let rawOutput = matmul(modalities, predictionWeight.transposed())
-        let allCoefs = rawOutput
+        let allCoefs =
+            rawOutput
             .reshaped(
                 Array(modalities.shape.dropLast()) + [config.altupNumInputs, config.altupNumInputs]
             )
@@ -439,7 +444,9 @@ private class Gemma3nAltUp: Module {
         let innovation = activated - activeX
 
         let allCoefsTransposed = allCoefs.transposed(2, 1, 0)
-        let corrected = expandedDimensions(innovation, axis: 0) * expandedDimensions(allCoefsTransposed, axis: 1)
+        let corrected =
+            expandedDimensions(innovation, axis: 0)
+            * expandedDimensions(allCoefsTransposed, axis: 1)
         let finalCorrected = corrected + predictions
 
         return finalCorrected.asType(activated.dtype)
@@ -578,7 +585,8 @@ private class Gemma3nDecoderLayer: Module {
 
         let attnNormed = postAttentionLayernorm(attn)
         let attnGated = activePrediction + attnNormed
-        let attnLaurel = (attnGated + laurelOutput) * rsqrt(MLXArray(2.0, dtype: activePrediction.dtype))
+        let attnLaurel =
+            (attnGated + laurelOutput) * rsqrt(MLXArray(2.0, dtype: activePrediction.dtype))
 
         let attnNormFf = preFeedforwardLayernorm(attnLaurel)
         let attnFfw = mlp(attnNormFf)
@@ -614,7 +622,7 @@ private class Gemma3nDecoderLayer: Module {
 }
 
 private class LanguageModel: Module {
-   let config: Gemma3nTextConfiguration
+    let config: Gemma3nTextConfiguration
     let hiddenSize: Int
     let vocabSize: Int
     let vocabSizePerLayerInput: Int
@@ -644,8 +652,9 @@ private class LanguageModel: Module {
         var caches: [any KVCache] = []
         let slidingWindow = config.slidingWindow > 0 ? config.slidingWindow : 4096
         let firstKvSharedLayerIdx = config.numHiddenLayers - config.numKvSharedLayers
-        let layerTypes = config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers)
-        
+        let layerTypes =
+            config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers)
+
         for i in 0 ..< firstKvSharedLayerIdx {
             let layerType = layerTypes[i]
             if layerType == "full_attention" {
@@ -667,9 +676,10 @@ private class LanguageModel: Module {
         self.numHiddenLayers = config.numHiddenLayers
         self.finalLogitSoftcapping = config.finalLogitSoftcapping
         self.firstKvSharedLayerIdx = config.numHiddenLayers - config.numKvSharedLayers
-        
-        let layerTypes = config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers)
-        
+
+        let layerTypes =
+            config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers)
+
         guard let firstSlidingIdx = layerTypes.firstIndex(of: "sliding_attention") else {
             fatalError("Layer type 'sliding_attention' not found in layer_types")
         }
@@ -683,7 +693,7 @@ private class LanguageModel: Module {
         let concreteLayerTypes = Array(layerTypes[..<firstKvSharedLayerIdx])
         let sharedFullIdx = concreteLayerTypes.lastIndex(of: "full_attention") ?? 0
         let sharedSlidingIdx = concreteLayerTypes.lastIndex(of: "sliding_attention") ?? 0
-        
+
         for (i, layerType) in layerTypes.enumerated() {
             if i < firstKvSharedLayerIdx {
                 layerIdxToCacheIdx.append(i)
@@ -787,9 +797,10 @@ private class LanguageModel: Module {
         if mask == nil {
             let fullCacheSlice = Array(cacheArray[firstFullIdx...]).compactMap { $0 }
             fullMask = createAttentionMask(h: h, cache: fullCacheSlice, returnArray: true)
-            
+
             let slidingCacheSlice = Array(cacheArray[firstSlidingIdx...]).compactMap { $0 }
-            slidingWindowMask = createAttentionMask(h: h, cache: slidingCacheSlice, returnArray: true)
+            slidingWindowMask = createAttentionMask(
+                h: h, cache: slidingCacheSlice, returnArray: true)
         }
 
         let h0 = h
@@ -814,7 +825,9 @@ private class LanguageModel: Module {
         for (i, layer) in layers.enumerated() {
             let perLayerInput = finalPerLayerInputs[0..., 0..., i, 0...]
 
-            let layerTypes = config.layerTypes ?? Array(repeating: "global_attention", count: config.numHiddenLayers)
+            let layerTypes =
+                config.layerTypes
+                ?? Array(repeating: "global_attention", count: config.numHiddenLayers)
             let isGlobal = layerTypes[i] == "full_attention"
 
             let localMask: MLXFast.ScaledDotProductAttentionMaskMode
@@ -859,7 +872,7 @@ private class LanguageModel: Module {
         if let softcap = finalLogitSoftcapping {
             out = tanh(out / softcap) * softcap
         }
-        
+
         return out
     }
 
@@ -934,27 +947,29 @@ public class Gemma3nTextModel: Module, LLMModel {
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
         return callAsFunction(inputs, inputsEmbeds: nil, mask: nil, cache: cache)
     }
-    
+
     public func callAsFunction(
         _ inputs: MLXArray? = nil,
-        inputsEmbeds: MLXArray? = nil, 
+        inputsEmbeds: MLXArray? = nil,
         mask: MLXFast.ScaledDotProductAttentionMaskMode? = nil,
         cache: [KVCache]? = nil
     ) -> MLXArray {
         let cacheArray: [KVCache?]? = cache?.map { $0 as KVCache? }
-        return languageModel(inputs: inputs, inputsEmbeds: inputsEmbeds, mask: mask, cache: cacheArray)
+        return languageModel(
+            inputs: inputs, inputsEmbeds: inputsEmbeds, mask: mask, cache: cacheArray)
     }
 
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
         var processedWeights: [String: MLXArray] = [:]
-        
+
         for (key, value) in weights {
             if key.hasPrefix("model.language_model.") {
-                let newKey = key.replacingOccurrences(of: "model.language_model.", with: "language_model.")
+                let newKey = key.replacingOccurrences(
+                    of: "model.language_model.", with: "language_model.")
                 processedWeights[newKey] = value
             }
         }
-        
+
         return processedWeights
     }
 
@@ -982,4 +997,3 @@ extension Gemma3nTextModel: LoRAModel {
         }
     }
 }
-
