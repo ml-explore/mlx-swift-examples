@@ -383,7 +383,7 @@ private class Gemma3nAltUp: Module {
         )
         self._routerNorm.wrappedValue = RMSNorm(
             dimensions: config.hiddenSize,
-            eps: config.rmsNormEps,
+            eps: config.rmsNormEps
         )
         self._routerInputScale = MLXArray(pow(Float(config.hiddenSize), -1.0))
 
@@ -504,20 +504,20 @@ private class Gemma3nDecoderLayer: Module {
         self._mlp.wrappedValue = MLP(config, layerIdx: layerIdx)
         self._inputLayernorm.wrappedValue = RMSNorm(
             dimensions: hiddenSize,
-            eps: config.rmsNormEps,
+            eps: config.rmsNormEps
         )
 
         self._postAttentionLayernorm.wrappedValue = RMSNorm(
             dimensions: hiddenSize,
-            eps: config.rmsNormEps,
+            eps: config.rmsNormEps
         )
         self._preFeedforwardLayernorm.wrappedValue = RMSNorm(
             dimensions: hiddenSize,
-            eps: config.rmsNormEps,
+            eps: config.rmsNormEps
         )
         self._postFeedforwardLayernorm.wrappedValue = RMSNorm(
             dimensions: hiddenSize,
-            eps: config.rmsNormEps,
+            eps: config.rmsNormEps
         )
 
         self._altup.wrappedValue = Gemma3nAltUp(config: config)
@@ -535,7 +535,7 @@ private class Gemma3nDecoderLayer: Module {
         )
         self._postPerLayerInputNorm.wrappedValue = RMSNorm(
             dimensions: hiddenSize,
-            eps: config.rmsNormEps,
+            eps: config.rmsNormEps
         )
 
         super.init()
@@ -713,7 +713,7 @@ private class LanguageModel: Module {
 
         self._embedTokens.wrappedValue = Embedding(
             embeddingCount: config.vocabSize,
-            dimensions: config.hiddenSize,
+            dimensions: config.hiddenSize
         )
         self._embedTokensScale = pow(Float(config.hiddenSize), 0.5)
 
@@ -723,7 +723,7 @@ private class LanguageModel: Module {
 
         self._embedTokensPerLayer.wrappedValue = Embedding(
             embeddingCount: config.vocabSizePerLayerInput,
-            dimensions: config.numHiddenLayers * config.hiddenSizePerLayerInput,
+            dimensions: config.numHiddenLayers * config.hiddenSizePerLayerInput
         )
         self._embedTokensPerLayerScale = pow(Float(config.hiddenSizePerLayerInput), 0.5)
 
@@ -735,7 +735,7 @@ private class LanguageModel: Module {
 
         self._perLayerProjectionNorm.wrappedValue = RMSNorm(
             dimensions: config.hiddenSizePerLayerInput,
-            eps: config.rmsNormEps,
+            eps: config.rmsNormEps
         )
 
         self._altupProjections.wrappedValue = (0 ..< (config.altupNumInputs - 1)).map { _ in
@@ -747,7 +747,7 @@ private class LanguageModel: Module {
 
         self._norm.wrappedValue = RMSNorm(
             dimensions: config.hiddenSize,
-            eps: config.rmsNormEps,
+            eps: config.rmsNormEps
         )
 
         self._perLayerProjectionScale = MLXArray(pow(Float(hiddenSize), -0.5))
