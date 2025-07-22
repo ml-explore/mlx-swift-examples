@@ -45,6 +45,9 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "cohere": create(CohereConfiguration.self, CohereModel.init),
             "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
             "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
+            "deepseek_v3": create(DeepseekV3Configuration.self, DeepseekV3Model.init),
+            "gemma3_text": create(Gemma3TextConfiguration.self, Gemma3TextModel.init),
+            "gemma3": create(Gemma3TextConfiguration.self, Gemma3TextModel.init),
             "granite": create(GraniteConfiguration.self, GraniteModel.init),
             "mimo": create(MiMoConfiguration.self, MiMoModel.init),
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
@@ -239,6 +242,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "What is the difference between a fruit and a vegetable?"
     )
 
+    static public let deepseek_r1_4bit = ModelConfiguration(
+        id: "mlx-community/DeepSeek-R1-4bit",
+        defaultPrompt: "Tell me about the history of Spain."
+    )
+
     static public let granite3_3_2b_4bit = ModelConfiguration(
         id: "mlx-community/granite-3.3-2b-instruct-4bit",
         defaultPrompt: ""
@@ -321,6 +329,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen3_8b_4bit,
             qwen3MoE_30b_a3b_4bit,
             smolLM_135M_4bit,
+            deepseek_r1_4bit,
             mimo_7b_sft_4bit,
             glm4_9b_4bit,
             acereason_7b_4bit,
