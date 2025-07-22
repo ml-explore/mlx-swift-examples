@@ -35,6 +35,9 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "phimoe": create(PhiMoEConfiguration.self, PhiMoEModel.init),
             "gemma": create(GemmaConfiguration.self, GemmaModel.init),
             "gemma2": create(Gemma2Configuration.self, Gemma2Model.init),
+            "gemma3": create(Gemma3TextConfiguration.self, Gemma3TextModel.init),
+            "gemma3_text": create(Gemma3TextConfiguration.self, Gemma3TextModel.init),
+            "gemma3n": create(Gemma3nTextConfiguration.self, Gemma3nTextModel.init),
             "qwen2": create(Qwen2Configuration.self, Qwen2Model.init),
             "qwen3": create(Qwen3Configuration.self, Qwen3Model.init),
             "qwen3_moe": create(Qwen3MoEConfiguration.self, Qwen3MoEModel.init),
@@ -57,7 +60,6 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "exaone4": create(Exaone4Configuration.self, Exaone4Model.init),
         ]
     }
-
 }
 
 /// Registry of models and any overrides that go with them, e.g. prompt augmentation.
@@ -137,6 +139,40 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         overrideTokenizer: "PreTrainedTokenizer",
         // https://www.promptingguide.ai/models/gemma
         defaultPrompt: "What is the difference between lettuce and cabbage?"
+    )
+
+    static public let gemma3_1B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-1b-it-qat-4bit",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3n_E4B_it_lm_bf16 = ModelConfiguration(
+        id: "mlx-community/gemma-3n-E4B-it-lm-bf16",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?",
+        // https://ai.google.dev/gemma/docs/core/prompt-structure
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3n_E2B_it_lm_bf16 = ModelConfiguration(
+        id: "mlx-community/gemma-3n-E2B-it-lm-bf16",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?",
+        // https://ai.google.dev/gemma/docs/core/prompt-structure
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3n_E4B_it_lm_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3n-E4B-it-lm-4bit",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?",
+        // https://ai.google.dev/gemma/docs/core/prompt-structure
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3n_E2B_it_lm_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3n-E2B-it-lm-4bit",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?",
+        // https://ai.google.dev/gemma/docs/core/prompt-structure
+        extraEOSTokens: ["<end_of_turn>"]
     )
 
     static public let qwen205b4bit = ModelConfiguration(
@@ -274,6 +310,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             gemma2bQuantized,
             gemma_2_2b_it_4bit,
             gemma_2_9b_it_4bit,
+            gemma3_1B_qat_4bit,
+            gemma3n_E4B_it_lm_bf16,
+            gemma3n_E2B_it_lm_bf16,
+            gemma3n_E4B_it_lm_4bit,
+            gemma3n_E2B_it_lm_4bit,
             granite3_3_2b_4bit,
             llama3_1_8B_4bit,
             llama3_2_1B_4bit,
