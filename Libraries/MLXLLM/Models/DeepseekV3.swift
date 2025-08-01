@@ -34,6 +34,35 @@ public struct DeepseekV3Configuration: Codable, Sendable {
     var ropeTheta: Float
     var ropeScaling: [String: StringOrNumber]?
     var attentionBias: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case vocabSize = "vocab_size"
+        case hiddenSize = "hidden_size"
+        case intermediateSize = "intermediate_size"
+        case moeIntermediateSize = "moe_intermediate_size"
+        case numHiddenLayers = "num_hidden_layers"
+        case numAttentionHeads = "num_attention_heads"
+        case numKeyValueHeads = "num_key_value_heads"
+        case nSharedExperts = "n_shared_experts"
+        case nRoutedExperts = "n_routed_experts"
+        case routedScalingFactor = "routed_scaling_factor"
+        case kvLoraRank = "kv_lora_rank"
+        case qLoraRank = "q_lora_rank"
+        case qkRopeHeadDim = "qk_rope_head_dim"
+        case vHeadDim = "v_head_dim"
+        case qkNopeHeadDim = "qk_nope_head_dim"
+        case normTopkProb = "norm_topk_prob"
+        case nGroup = "n_group"
+        case topkGroup = "topk_group"
+        case numExpertsPerTok = "num_experts_per_tok"
+        case moeLayerFreq = "moe_layer_freq"
+        case firstKDenseReplace = "first_k_dense_replace"
+        case maxPositionEmbeddings = "max_position_embeddings"
+        case rmsNormEps = "rms_norm_eps"
+        case ropeTheta = "rope_theta"
+        case ropeScaling = "rope_scaling"
+        case attentionBias = "attention_bias"
+    }
 }
 
 private func yarnFindCorrectionDim(
@@ -76,7 +105,7 @@ private class DeepseekV3YarnRotaryEmbedding: Module {
     let originalMaxPositionEmbeddings: Int
     let betaFast: Float
     let betaSlow: Float
-    let freqs: MLXArray
+    private var _freqs: MLXArray
 
     init(
         dim: Int,
@@ -107,7 +136,7 @@ private class DeepseekV3YarnRotaryEmbedding: Module {
 
         let freqMask = 1.0 - yarnLinearRampMask(minVal: low, maxVal: high, dim: dim / 2)
 
-        self.freqs = (freqInter * freqExtra) / (freqInter * freqMask + freqExtra * (1 - freqMask))
+        self._freqs = (freqInter * freqExtra) / (freqInter * freqMask + freqExtra * (1 - freqMask))
     }
 
     func callAsFunction(_ x: MLXArray, offset: Int = 0) -> MLXArray {
@@ -118,7 +147,7 @@ private class DeepseekV3YarnRotaryEmbedding: Module {
             base: nil,
             scale: 1.0,
             offset: offset,
-            freqs: freqs
+            freqs: self._freqs
         )
     }
 }
