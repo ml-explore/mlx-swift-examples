@@ -100,17 +100,24 @@ private enum Language {
             values = values.reshaped(B, L, kvHeads, headDim).transposed(0, 2, 1, 3)
 
             let offset = cache?.offset ?? 0
-            let mask = mask?[0..., 0 ..< keys.dim(-2)]
 
             queries = rotaryEmbedding(queries, offset: offset)
             keys = rotaryEmbedding(keys, offset: offset)
 
-            if let cache {
-                (keys, values) = cache.update(keys: keys, values: values)
-            }
+            let maskConverted: MLXFast.ScaledDotProductAttentionMaskMode =
+                if let mask {
+                    .array(mask[0..., 0 ..< keys.dim(-2)])
+                } else {
+                    .none
+                }
 
-            let output = MLXFast.scaledDotProductAttention(
-                queries: queries, keys: keys, values: values, scale: scale, mask: mask
+            let output = attentionWithCacheUpdate(
+                queries: queries,
+                keys: keys,
+                values: values,
+                cache: cache,
+                scale: scale,
+                mask: maskConverted
             )
             .transposed(0, 2, 1, 3)
             .reshaped(B, L, -1)
@@ -319,7 +326,11 @@ private enum Vision {
             v = v.reshaped(1, sequenceLength, numHeads, -1).transposed(0, 2, 1, 3)
 
             let output = MLXFast.scaledDotProductAttention(
-                queries: q, keys: k, values: v, scale: scale, mask: attentionMask
+                queries: q,
+                keys: k,
+                values: v,
+                scale: scale,
+                mask: .none
             )
             .transposed(0, 2, 1, 3)
             .reshaped(sequenceLength, -1)

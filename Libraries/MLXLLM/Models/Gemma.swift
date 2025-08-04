@@ -72,14 +72,18 @@ private class Attention: Module {
         if let cache {
             queries = rope(queries, offset: cache.offset)
             keys = rope(keys, offset: cache.offset)
-            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope(queries)
             keys = rope(keys)
         }
 
-        let output = MLXFast.scaledDotProductAttention(
-            queries: queries, keys: keys, values: values, scale: scale, mask: mask
+        let output = attentionWithCacheUpdate(
+            queries: queries,
+            keys: keys,
+            values: values,
+            cache: cache,
+            scale: scale,
+            mask: mask
         )
         .transposed(0, 2, 1, 3)
         .reshaped(B, L, -1)
@@ -108,15 +112,15 @@ private class TransformerBlock: Module {
     @ModuleInfo(key: "self_attn") var attention: Attention
     let mlp: MLP
 
-    @ModuleInfo(key: "input_layernorm") var inputLayerNorm: RMSNorm
-    @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: RMSNorm
+    @ModuleInfo(key: "input_layernorm") var inputLayerNorm: Gemma.RMSNorm
+    @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: Gemma.RMSNorm
 
     public init(_ args: GemmaConfiguration) {
         self._attention.wrappedValue = Attention(args)
         self.mlp = MLP(dimensions: args.hiddenSize, hiddenDimensions: args.intermediateSize)
-        self._inputLayerNorm.wrappedValue = RMSNorm(
+        self._inputLayerNorm.wrappedValue = Gemma.RMSNorm(
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
-        self._postAttentionLayerNorm.wrappedValue = RMSNorm(
+        self._postAttentionLayerNorm.wrappedValue = Gemma.RMSNorm(
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
@@ -137,7 +141,7 @@ private class GemmaModelInner: Module {
 
     @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
     fileprivate let layers: [TransformerBlock]
-    fileprivate let norm: RMSNorm
+    fileprivate let norm: Gemma.RMSNorm
 
     public init(_ args: GemmaConfiguration) {
         precondition(args.vocabularySize > 0)
@@ -153,7 +157,7 @@ private class GemmaModelInner: Module {
             .map { _ in
                 TransformerBlock(args)
             }
-        self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+        self.norm = Gemma.RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {

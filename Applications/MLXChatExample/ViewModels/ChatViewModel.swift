@@ -89,6 +89,8 @@ class ChatViewModel {
                 case .info(let info):
                     // Update performance metrics
                     generateCompletionInfo = info
+                case .toolCall(let call):
+                    break
                 }
             }
         }

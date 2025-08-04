@@ -35,6 +35,9 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "phimoe": create(PhiMoEConfiguration.self, PhiMoEModel.init),
             "gemma": create(GemmaConfiguration.self, GemmaModel.init),
             "gemma2": create(Gemma2Configuration.self, Gemma2Model.init),
+            "gemma3": create(Gemma3TextConfiguration.self, Gemma3TextModel.init),
+            "gemma3_text": create(Gemma3TextConfiguration.self, Gemma3TextModel.init),
+            "gemma3n": create(Gemma3nTextConfiguration.self, Gemma3nTextModel.init),
             "qwen2": create(Qwen2Configuration.self, Qwen2Model.init),
             "qwen3": create(Qwen3Configuration.self, Qwen3Model.init),
             "qwen3_moe": create(Qwen3MoEConfiguration.self, Qwen3MoEModel.init),
@@ -42,20 +45,26 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "cohere": create(CohereConfiguration.self, CohereModel.init),
             "openelm": create(OpenElmConfiguration.self, OpenELMModel.init),
             "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
+            "deepseek_v3": create(DeepseekV3Configuration.self, DeepseekV3Model.init),
             "granite": create(GraniteConfiguration.self, GraniteModel.init),
             "mimo": create(MiMoConfiguration.self, MiMoModel.init),
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
             "acereason": create(Qwen2Configuration.self, Qwen2Model.init),
             "falcon_h1": create(FalconH1Configuration.self, FalconH1Model.init),
+            "bitnet": create(BitnetConfiguration.self, BitnetModel.init),
+            "smollm3": create(SmolLM3Configuration.self, SmolLM3Model.init),
+            "ernie4_5": create(Ernie45Configuration.self, Ernie45Model.init),
+            "lfm2": create(LFM2Configuration.self, LFM2Model.init),
+            "baichuan_m1": create(BaichuanM1Configuration.self, BaichuanM1Model.init),
+            "exaone4": create(Exaone4Configuration.self, Exaone4Model.init),
         ]
     }
-
 }
 
 /// Registry of models and any overrides that go with them, e.g. prompt augmentation.
 /// If asked for an unknown configuration this will use the model/tokenizer as-is.
 ///
-/// The python tokenizers have a very rich set of implementations and configuration.  The
+/// The Python tokenizers have a very rich set of implementations and configuration. The
 /// swift-tokenizers code handles a good chunk of that and this is a place to augment that
 /// implementation, if needed.
 public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
@@ -131,6 +140,40 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "What is the difference between lettuce and cabbage?"
     )
 
+    static public let gemma3_1B_qat_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3-1b-it-qat-4bit",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?",
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3n_E4B_it_lm_bf16 = ModelConfiguration(
+        id: "mlx-community/gemma-3n-E4B-it-lm-bf16",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?",
+        // https://ai.google.dev/gemma/docs/core/prompt-structure
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3n_E2B_it_lm_bf16 = ModelConfiguration(
+        id: "mlx-community/gemma-3n-E2B-it-lm-bf16",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?",
+        // https://ai.google.dev/gemma/docs/core/prompt-structure
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3n_E4B_it_lm_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3n-E4B-it-lm-4bit",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?",
+        // https://ai.google.dev/gemma/docs/core/prompt-structure
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
+    static public let gemma3n_E2B_it_lm_4bit = ModelConfiguration(
+        id: "mlx-community/gemma-3n-E2B-it-lm-4bit",
+        defaultPrompt: "What is the difference between a fruit and a vegetable?",
+        // https://ai.google.dev/gemma/docs/core/prompt-structure
+        extraEOSTokens: ["<end_of_turn>"]
+    )
+
     static public let qwen205b4bit = ModelConfiguration(
         id: "mlx-community/Qwen1.5-0.5B-Chat-4bit",
         overrideTokenizer: "PreTrainedTokenizer",
@@ -198,6 +241,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "What is the difference between a fruit and a vegetable?"
     )
 
+    static public let deepseek_r1_4bit = ModelConfiguration(
+        id: "mlx-community/DeepSeek-R1-4bit",
+        defaultPrompt: "Tell me about the history of Spain."
+    )
+
     static public let granite3_3_2b_4bit = ModelConfiguration(
         id: "mlx-community/granite-3.3-2b-instruct-4bit",
         defaultPrompt: ""
@@ -218,6 +266,36 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: ""
     )
 
+    static public let bitnet_b1_58_2b_4t_4bit = ModelConfiguration(
+        id: "mlx-community/bitnet-b1.58-2B-4T-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let baichuan_m1_14b_instruct_4bit = ModelConfiguration(
+        id: "mlx-community/Baichuan-M1-14B-Instruct-4bit-ft",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let smollm3_3b_4bit = ModelConfiguration(
+        id: "mlx-community/SmolLM3-3B-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let ernie_45_0_3BPT_bf16_ft = ModelConfiguration(
+        id: "mlx-community/ERNIE-4.5-0.3B-PT-bf16-ft",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let lfm2_1_2b_4bit = ModelConfiguration(
+        id: "mlx-community/LFM2-1.2B-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let exaone_4_0_1_2b_4bit = ModelConfiguration(
+        id: "mlx-community/exaone-4.0-1.2b-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -225,6 +303,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             gemma2bQuantized,
             gemma_2_2b_it_4bit,
             gemma_2_9b_it_4bit,
+            gemma3_1B_qat_4bit,
+            gemma3n_E4B_it_lm_bf16,
+            gemma3n_E2B_it_lm_bf16,
+            gemma3n_E4B_it_lm_4bit,
+            gemma3n_E2B_it_lm_4bit,
             granite3_3_2b_4bit,
             llama3_1_8B_4bit,
             llama3_2_1B_4bit,
@@ -245,9 +328,16 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             qwen3_8b_4bit,
             qwen3MoE_30b_a3b_4bit,
             smolLM_135M_4bit,
+            deepseek_r1_4bit,
             mimo_7b_sft_4bit,
             glm4_9b_4bit,
             acereason_7b_4bit,
+            bitnet_b1_58_2b_4t_4bit,
+            smollm3_3b_4bit,
+            ernie_45_0_3BPT_bf16_ft,
+            lfm2_1_2b_4bit,
+            baichuan_m1_14b_instruct_4bit,
+            exaone_4_0_1_2b_4bit,
         ]
     }
 
@@ -276,6 +366,7 @@ private struct LLMUserInputProcessor: UserInputProcessor {
         do {
             let promptTokens = try tokenizer.applyChatTemplate(
                 messages: messages, tools: input.tools, additionalContext: input.additionalContext)
+
             return LMInput(tokens: MLXArray(promptTokens))
         } catch TokenizerError.missingChatTemplate {
             print(

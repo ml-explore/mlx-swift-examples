@@ -110,6 +110,8 @@ struct ChatCommand: AsyncParsableCommand {
                         print(string, terminator: "")
                     case .info(let info):
                         result = info
+                    case .toolCall:
+                        break
                     }
                 }
 
