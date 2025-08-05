@@ -4,7 +4,7 @@ import MLXNN
 
 // Port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/switch_layers.py
 
-private func gatherSort(x: MLXArray, indices: MLXArray) -> (MLXArray, MLXArray, MLXArray) {
+public func gatherSort(x: MLXArray, indices: MLXArray) -> (MLXArray, MLXArray, MLXArray) {
     let m = indices.dim(-1)
     let indices = indices.flattened()
     let order = argSort(indices)
@@ -17,7 +17,7 @@ private func gatherSort(x: MLXArray, indices: MLXArray) -> (MLXArray, MLXArray, 
     )
 }
 
-private func scatterUnsort(x: MLXArray, invOrder: MLXArray, shape: [Int]? = nil) -> MLXArray {
+public func scatterUnsort(x: MLXArray, invOrder: MLXArray, shape: [Int]? = nil) -> MLXArray {
     var x = x[invOrder]
     if let shape {
         x = unflatten(x, axis: 0, shape: shape)

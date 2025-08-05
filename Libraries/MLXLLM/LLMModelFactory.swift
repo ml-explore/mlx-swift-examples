@@ -56,6 +56,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "lfm2": create(LFM2Configuration.self, LFM2Model.init),
             "baichuan_m1": create(BaichuanM1Configuration.self, BaichuanM1Model.init),
             "exaone4": create(Exaone4Configuration.self, Exaone4Model.init),
+            "gpt_oss": create(GPTOSSConfiguration.self, GPTOSSModel.init),
         ]
     }
 }

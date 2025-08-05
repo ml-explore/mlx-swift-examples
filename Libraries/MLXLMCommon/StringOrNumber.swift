@@ -13,6 +13,7 @@ public enum StringOrNumber: Codable, Equatable, Sendable {
     case float(Float)
     case ints([Int])
     case floats([Float])
+    case bool(Bool)
 
     public init(from decoder: Decoder) throws {
         let values = try decoder.singleValueContainer()
@@ -25,6 +26,8 @@ public enum StringOrNumber: Codable, Equatable, Sendable {
             self = .ints(v)
         } else if let v = try? values.decode([Float].self) {
             self = .floats(v)
+        } else if let v = try? values.decode(Bool.self) {
+            self = .bool(v)
         } else {
             let v = try values.decode(String.self)
             self = .string(v)
@@ -39,6 +42,7 @@ public enum StringOrNumber: Codable, Equatable, Sendable {
         case .float(let v): try container.encode(v)
         case .ints(let v): try container.encode(v)
         case .floats(let v): try container.encode(v)
+        case .bool(let v): try container.encode(v)
         }
     }
 
@@ -52,6 +56,7 @@ public enum StringOrNumber: Codable, Equatable, Sendable {
         case .float(let float): nil
         case .ints(let array): array
         case .floats(let array): nil
+        case .bool(let bool): nil
         }
     }
 
@@ -65,6 +70,7 @@ public enum StringOrNumber: Codable, Equatable, Sendable {
         case .float(let float): nil
         case .ints(let array): array.count == 1 ? array[0] : nil
         case .floats(let array): nil
+        case .bool(let bool): bool ? 1 : 0
         }
     }
 
@@ -78,6 +84,7 @@ public enum StringOrNumber: Codable, Equatable, Sendable {
         case .float(let float): [float]
         case .ints(let array): array.map { Float($0) }
         case .floats(let array): array
+        case .bool(let bool): [bool ? 1.0 : 0.0]
         }
     }
 
@@ -91,6 +98,7 @@ public enum StringOrNumber: Codable, Equatable, Sendable {
         case .float(let float): float
         case .ints(let array): array.count == 1 ? Float(array[0]) : nil
         case .floats(let array): array.count == 1 ? array[0] : nil
+        case .bool(let bool): bool ? 1.0 : 0.0
         }
     }
 }
