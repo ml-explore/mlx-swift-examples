@@ -145,7 +145,7 @@ public func createCausalMask(n: Int, offset: Int, windowSize: Int? = nil) -> MLX
     var mask = linds .>= rinds
 
     if let windowSize {
-        mask = mask & (linds .< rinds + windowSize)
+        mask = mask & (linds .<= rinds + windowSize)
     }
 
     return mask
