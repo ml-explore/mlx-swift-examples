@@ -145,7 +145,7 @@ class SwiGLUSwitchGLU: Module {
         let xUp = upProj(x, idx, sortedIndices: doSort)
         let xGate = gateProj(x, idx, sortedIndices: doSort)
         x = downProj(
-            compileSwiglu()(xGate, xUp),
+            compileSwiglu()(xUp, xGate),
             idx,
             sortedIndices: doSort)
 
@@ -231,10 +231,15 @@ private class YarnRoPE: Module {
             / yarnGetMscale(scale: scalingFactor, mscale: mscaleAllDim)
 
         let freqExtra = pow(
-            base, MLXArray(Array(0 ..< dimensions / 2)).asType(.float32) / Float(dimensions))
+            base,
+            MLXArray(stride(from: 0, to: dimensions, by: 2)).asType(.float32)
+                / dimensions)
         let freqInter =
             scalingFactor
-            * pow(base, MLXArray(Array(0 ..< dimensions / 2)).asType(.float32) / Float(dimensions))
+            * pow(
+                base,
+                MLXArray(stride(from: 0, to: dimensions, by: 2)).asType(.float32)
+                    / dimensions)
 
         let (low, high) = yarnFindCorrectionRange()
         let freqMask =
@@ -509,7 +514,7 @@ private class ModelInner: Module {
         inputEmbeddings: MLXArray? = nil
     ) -> MLXArray {
         var x: MLXArray
-        if let inputEmbeddings = inputEmbeddings {
+        if let inputEmbeddings {
             x = inputEmbeddings
         } else {
             x = embedTokens(inputs)
