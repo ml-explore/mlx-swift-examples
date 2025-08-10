@@ -334,7 +334,7 @@ private class AttentionBlock: Module {
             return mask
         }
 
-        if training || L > 0 {
+        if L > 8 {
             self._previousMask = nil
             return makeMask(L, offset)
         }
@@ -366,7 +366,7 @@ private class AttentionBlock: Module {
             return mask
         }
 
-        if training || L > 1 {
+        if L > 1 {
             self._previousMask = nil
             return makeMask(L, min(windowSize + 1, offset))
         }
