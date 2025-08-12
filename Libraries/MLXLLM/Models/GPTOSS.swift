@@ -120,11 +120,11 @@ class SwiGLUSwitchGLU: Module {
         self.hiddenDims = hiddenDims
         self.numExperts = numExperts
 
-        self._gateProj.wrappedValue = SwitchLinear(
+        _gateProj.wrappedValue = SwitchLinear(
             inputDims: inputDims, outputDims: hiddenDims, numExperts: numExperts, bias: bias)
-        self._upProj.wrappedValue = SwitchLinear(
+        _upProj.wrappedValue = SwitchLinear(
             inputDims: inputDims, outputDims: hiddenDims, numExperts: numExperts, bias: bias)
-        self._downProj.wrappedValue = SwitchLinear(
+        _downProj.wrappedValue = SwitchLinear(
             inputDims: hiddenDims, outputDims: inputDims, numExperts: numExperts, bias: bias)
 
         super.init()
@@ -172,7 +172,7 @@ private class AttentionBlock: Module {
 
     let rope: YarnRoPE
 
-    private var _previousMask: MLXArray? = nil
+    private var _previousMask: MLXArray?
 
     public init(_ config: GPTOSSConfiguration) {
         self.headDim = config.headDim
@@ -191,19 +191,19 @@ private class AttentionBlock: Module {
         self.smScale = 1.0 / sqrt(Float(config.headDim))
 
         if let ropeScaling = config.ropeScaling {
-            rope = YarnRoPE(
+            self.rope = YarnRoPE(
                 dimensions: headDim,
                 base: config.ropeTheta,
                 scalingFactor: ropeScaling["factor"]?.asFloat() ?? 32.0,
                 originalMaxPositionEmbeddings: ropeScaling["original_max_position_embeddings"]?
                     .asInt() ?? 4096,
                 betaFast: ropeScaling["beta_fast"]?.asFloat() ?? 32.0,
-                betaSlow: ropeScaling["beta_slow"]?.asFloat() ?? 1.0,
+                betaSlow: ropeScaling["beta_slow"]?.asFloat() ?? 1.0
             )
         } else {
-            rope = YarnRoPE(
+            self.rope = YarnRoPE(
                 dimensions: headDim,
-                base: config.ropeTheta,
+                base: config.ropeTheta
             )
         }
     }
@@ -225,18 +225,18 @@ private class AttentionBlock: Module {
         }
 
         if L > 8 {
-            self._previousMask = nil
+            _previousMask = nil
             return makeMask(L, offset)
         }
 
         let length = ((L + offset + 511) / 512) * 512
-        if self._previousMask == nil || self._previousMask!.dim(-1) < length
-            || self._previousMask!.dim(-2) != L
+        if _previousMask == nil || _previousMask!.dim(-1) < length
+            || _previousMask!.dim(-2) != L
         {
-            self._previousMask = makeMask(L, length - L)
+            _previousMask = makeMask(L, length - L)
         }
 
-        return self._previousMask![.ellipsis, 0 ..< L + offset]
+        return _previousMask![.ellipsis, 0 ..< L + offset]
     }
 
     func getSlidingWindowMask(_ x: MLXArray, cache: KVCache?, windowSize: Int) -> MLXArray {
@@ -257,15 +257,15 @@ private class AttentionBlock: Module {
         }
 
         if L > 1 {
-            self._previousMask = nil
+            _previousMask = nil
             return makeMask(L, min(windowSize + 1, offset))
         }
 
-        if self._previousMask == nil {
-            self._previousMask = makeMask(L, windowSize + 1)
+        if _previousMask == nil {
+            _previousMask = makeMask(L, windowSize + 1)
         }
 
-        return self._previousMask![.ellipsis, 0 ..< min(L + offset, windowSize + 1)]
+        return _previousMask![.ellipsis, 0 ..< min(L + offset, windowSize + 1)]
     }
 
     func getMask(_ x: MLXArray, cache: KVCache?, windowSize: Int?) -> MLXArray {
@@ -304,8 +304,7 @@ private class AttentionBlock: Module {
         let vHat = MLXFast.scaledDotProductAttention(
             queries: q, keys: k, values: v,
             scale: smScale,
-            mask: mask
-        )
+            mask: mask)
 
         return oProj(vHat.swappedAxes(1, 2).reshaped(B, L, -1))
     }
@@ -422,8 +421,7 @@ private class ModelInner: Module {
                     layer.selfAttn.getMask(
                         x,
                         cache: cache[i],
-                        windowSize: self.layerTypes[i] == "sliding_attention"
-                            ? self.windowSize : nil
+                        windowSize: layerTypes[i] == "sliding_attention" ? windowSize : nil
                     )
                 )
             }
@@ -433,7 +431,7 @@ private class ModelInner: Module {
             x = layer(x, mask: masks[i], cache: cache[i])
         }
 
-        x = self.norm(x)
+        x = norm(x)
 
         return x
     }
@@ -515,23 +513,28 @@ public class GPTOSSModel: Module, LLMModel, KVCacheDimensionProvider {
 
         var finalWeights: [String: MLXArray] = [:]
         for (k, v) in weights {
-            if k.contains("gate_up_proj") && !k.contains("bias") {
-                finalWeights[k.replacingOccurrences(of: "gate_up_proj", with: "gate_proj.weight")] =
-                    v[.ellipsis, .stride(by: 2), 0...]
-                finalWeights[k.replacingOccurrences(of: "gate_up_proj", with: "up_proj.weight")] =
-                    v[.ellipsis, .stride(from: 1, by: 2), 0...]
-            } else if k.contains("down_proj") && !k.contains("bias") {
-                finalWeights[k.replacingOccurrences(of: "down_proj", with: "down_proj.weight")] = v
+            if k.contains("gate_up_proj"), !k.contains("bias") {
+                finalWeights[
+                    k.replacingOccurrences(of: "gate_up_proj", with: "gate_proj.weight")
+                ] = v[.ellipsis, .stride(by: 2), 0...]
+                finalWeights[
+                    k.replacingOccurrences(of: "gate_up_proj", with: "up_proj.weight")
+                ] = v[.ellipsis, .stride(from: 1, by: 2), 0...]
+            } else if k.contains("down_proj"), !k.contains("bias") {
+                finalWeights[
+                    k.replacingOccurrences(of: "down_proj", with: "down_proj.weight")
+                ] = v
             } else if k.contains("gate_up_proj_bias") {
                 finalWeights[
-                    k.replacingOccurrences(of: "gate_up_proj_bias", with: "gate_proj.bias")] =
-                    v[.ellipsis, .stride(by: 2)]
+                    k.replacingOccurrences(of: "gate_up_proj_bias", with: "gate_proj.bias")
+                ] = v[.ellipsis, .stride(by: 2)]
                 finalWeights[
-                    k.replacingOccurrences(of: "gate_up_proj_bias", with: "up_proj.bias")] =
-                    v[.ellipsis, .stride(from: 1, by: 2)]
+                    k.replacingOccurrences(of: "gate_up_proj_bias", with: "up_proj.bias")
+                ] = v[.ellipsis, .stride(from: 1, by: 2)]
             } else if k.contains("down_proj_bias") {
-                finalWeights[k.replacingOccurrences(of: "down_proj_bias", with: "down_proj.bias")] =
-                    v
+                finalWeights[
+                    k.replacingOccurrences(of: "down_proj_bias", with: "down_proj.bias")
+                ] = v
             } else {
                 finalWeights[k] = v
             }
@@ -543,7 +546,7 @@ public class GPTOSSModel: Module, LLMModel, KVCacheDimensionProvider {
     public func newCache(parameters: GenerateParameters?) -> [any KVCache] {
         var caches: [KVCache] = []
 
-        for lt in self.model.layerTypes {
+        for lt in model.layerTypes {
             if lt == "full_attention" {
                 caches.append(StandardKVCache())
             } else {
