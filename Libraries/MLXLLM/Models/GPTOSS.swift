@@ -85,7 +85,7 @@ private func swiglu(_ xLinear: MLXArray, _ xGlu: MLXArray, alpha: Float = 1.702,
     var xGlu = xGlu
     xGlu = clip(xGlu, max: MLXArray(limit))
     xLinear = clip(xLinear, min: MLXArray(-limit), max: MLXArray(limit))
-    
+
     let gluScaled = alpha * xGlu
     let sig = sigmoid(gluScaled)
 
