@@ -283,6 +283,34 @@ private class AttentionBlock: Module {
         var k = kProj(x).reshaped(B, L, -1, D).swappedAxes(1, 2)
         var v = vProj(x).reshaped(B, L, -1, D).swappedAxes(1, 2)
 
+        // Quantized cache path
+        if let qcache = cache as? QuantizedKVCacheProtocol {
+            if qcache.offset == 0 {
+                q = rope(q)
+                k = rope(k)
+
+                let zeros = MLXArray.zeros([B, Hk, 1, D]).asType(k.dtype)
+                k = concatenated([zeros, k], axis: 2)
+                v = concatenated([zeros, v], axis: 2)
+            } else {
+                q = rope(q, offset: qcache.offset - 1)
+                k = rope(k, offset: qcache.offset - 1)
+            }
+
+            let (qKeys, qValues) = qcache.updateQuantized(keys: k, values: v)
+            let vHat = quantizedScaledDotProductAttention(
+                queries: q,
+                quantizedKeys: qKeys,
+                quantizedValues: qValues,
+                scale: smScale,
+                mask: .array(mask),
+                groupSize: qcache.groupSize,
+                bits: qcache.bits
+            )
+
+            return oProj(vHat.swappedAxes(1, 2).reshaped(B, L, -1))
+        }
+
         if cache == nil || cache?.offset == 0 {
             q = rope(q)
             k = rope(k)
