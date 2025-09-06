@@ -15,7 +15,7 @@ import MLXLMCommon
 import MLXNN
 
 /// Create a bidirectional sliding window mask where tokens can attend to others within the sliding window distance
-func createBidirectionalSlidingWindowMask(
+public func createBidirectionalSlidingWindowMask(
     n: Int,
     offset: Int,
     windowSize: Int
