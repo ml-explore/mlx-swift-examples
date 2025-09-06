@@ -14,6 +14,24 @@ import MLXLLM
 import MLXLMCommon
 import MLXNN
 
+/// Create a bidirectional sliding window mask where tokens can attend to others within the sliding window distance
+func createBidirectionalSlidingWindowMask(
+    n: Int,
+    offset: Int,
+    windowSize: Int
+) -> MLXArray {
+    let rinds = MLXArray(Int32(0) ..< Int32(offset + n))
+    var linds = offset != 0 ? MLXArray(Int32(offset) ..< Int32(offset + n)) : rinds
+    linds = linds[0..., .newAxis]
+    let rindsBcast = rinds[.newAxis]
+    
+    // Create mask where abs(q_idx - kv_idx) < windowSize (bidirectional window)
+    let distance = abs(linds - rindsBcast)
+    let mask = distance .< windowSize
+    
+    return mask
+}
+
 public struct Gemma3TextConfiguration: Codable {
     let modelType: String
     let hiddenSize: Int
@@ -30,6 +48,7 @@ public struct Gemma3TextConfiguration: Codable {
     let queryPreAttnScalar: Float
     let slidingWindow: Int
     let slidingWindowPattern: Int
+    let useBidirectionalAttention: Bool
 
     enum CodingKeys: String, CodingKey {
         case modelType = "model_type"
@@ -47,6 +66,7 @@ public struct Gemma3TextConfiguration: Codable {
         case queryPreAttnScalar = "query_pre_attn_scalar"
         case slidingWindow = "sliding_window"
         case slidingWindowPattern = "sliding_window_pattern"
+        case useBidirectionalAttention = "use_bidirectional_attention"
     }
 
     enum VLMCodingKeys: String, CodingKey {
@@ -82,7 +102,12 @@ public struct Gemma3TextConfiguration: Codable {
             try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
         queryPreAttnScalar =
             try container.decodeIfPresent(Float.self, forKey: .queryPreAttnScalar) ?? 256
-        slidingWindow = try container.decodeIfPresent(Int.self, forKey: .slidingWindow) ?? 512
+        useBidirectionalAttention = 
+            try container.decodeIfPresent(Bool.self, forKey: .useBidirectionalAttention) ?? false
+        
+        let rawSlidingWindow = try container.decodeIfPresent(Int.self, forKey: .slidingWindow) ?? 512
+        // Apply sliding window adjustment for bidirectional attention (from patch: (sliding_window // 2) + 1)
+        slidingWindow = useBidirectionalAttention ? (rawSlidingWindow / 2) + 1 : rawSlidingWindow
         slidingWindowPattern =
             try container.decodeIfPresent(Int.self, forKey: .slidingWindowPattern) ?? 6
     }
@@ -98,6 +123,7 @@ private class Attention: Module {
     let isSliding: Bool
     let slidingWindow: Int
     let slidingWindowPattern: Int
+    let useBidirectionalAttention: Bool
 
     @ModuleInfo(key: "q_proj") var queryProj: Linear
     @ModuleInfo(key: "k_proj") var keyProj: Linear
@@ -118,6 +144,7 @@ private class Attention: Module {
         self.layerIdx = layerIdx
         self.slidingWindow = config.slidingWindow
         self.slidingWindowPattern = config.slidingWindowPattern
+        self.useBidirectionalAttention = config.useBidirectionalAttention
 
         self.scale = pow(config.queryPreAttnScalar, -0.5)
 
@@ -307,9 +334,24 @@ private class Gemma3Model: Module {
             } else {
                 globalLayerCache = []
             }
-            fullMask = createAttentionMask(h: h, cache: globalLayerCache)
-            let allCaches = layerCache?.compactMap { $0 } ?? []
-            slidingWindowMask = createAttentionMask(h: h, cache: allCaches)
+            
+            if config.useBidirectionalAttention {
+                // For bidirectional attention: full attention for global layers, bidirectional sliding window for others
+                fullMask = .array(MLXArray.ones([h.dim(1), h.dim(1)], dtype: .bool))
+                
+                let t = h.dim(1)
+                var offset = 0
+                if let cache = layerCache?.compactMap({ $0 }).first {
+                    offset = cache.offset
+                }
+                slidingWindowMask = .array(createBidirectionalSlidingWindowMask(
+                    n: t, offset: offset, windowSize: config.slidingWindow))
+            } else {
+                // Standard causal attention
+                fullMask = createAttentionMask(h: h, cache: globalLayerCache)
+                let allCaches = layerCache?.compactMap { $0 } ?? []
+                slidingWindowMask = createAttentionMask(h: h, cache: allCaches)
+            }
         }
         for (i, layer) in layers.enumerated() {
             let isGlobal = (i % config.slidingWindowPattern == config.slidingWindowPattern - 1)
