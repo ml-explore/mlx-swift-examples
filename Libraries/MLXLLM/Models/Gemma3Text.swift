@@ -33,22 +33,22 @@ public func createBidirectionalSlidingWindowMask(
 }
 
 public struct Gemma3TextConfiguration: Codable {
-    let modelType: String
-    let hiddenSize: Int
-    let hiddenLayers: Int
-    let intermediateSize: Int
-    let attentionHeads: Int
-    let headDim: Int
-    let rmsNormEps: Float
-    let vocabularySize: Int
-    let kvHeads: Int
-    let ropeGlobalBaseFreq: Float
-    let ropeLocalBaseFreq: Float
-    let ropeTraditional: Bool
-    let queryPreAttnScalar: Float
-    let slidingWindow: Int
-    let slidingWindowPattern: Int
-    let useBidirectionalAttention: Bool
+    public let modelType: String
+    public let hiddenSize: Int
+    public let hiddenLayers: Int
+    public let intermediateSize: Int
+    public let attentionHeads: Int
+    public let headDim: Int
+    public let rmsNormEps: Float
+    public let vocabularySize: Int
+    public let kvHeads: Int
+    public let ropeGlobalBaseFreq: Float
+    public let ropeLocalBaseFreq: Float
+    public let ropeTraditional: Bool
+    public let queryPreAttnScalar: Float
+    public let slidingWindow: Int
+    public let slidingWindowPattern: Int
+    public let useBidirectionalAttention: Bool
 
     enum CodingKeys: String, CodingKey {
         case modelType = "model_type"
