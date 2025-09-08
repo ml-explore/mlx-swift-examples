@@ -32,6 +32,13 @@ public func createBidirectionalSlidingWindowMask(
     return mask
 }
 
+func simpleSDPA(queries: MLXArray, keys: MLXArray, values: MLXArray, mask: MLXArray, scale: Float) -> MLXArray {
+    var attn = matmul(queries, keys.transposed(0, 1, 3, 2))
+    attn = attn - (1 - mask) * 1e6
+    let weights = softmax(scale * attn, axis:-1)
+    return matmul(weights, values)
+}
+
 public struct Gemma3TextConfiguration: Codable {
     public let modelType: String
     public let hiddenSize: Int
@@ -71,6 +78,25 @@ public struct Gemma3TextConfiguration: Codable {
 
     enum VLMCodingKeys: String, CodingKey {
         case textConfig = "text_config"
+    }
+
+    public init(modelType: String, hiddenSize: Int, hiddenLayers: Int, intermediateSize: Int, attentionHeads: Int, headDim: Int, rmsNormEps: Float, vocabularySize: Int, kvHeads: Int, ropeGlobalBaseFreq: Float, ropeLocalBaseFreq: Float, ropeTraditional: Bool, queryPreAttnScalar: Float, slidingWindow: Int, slidingWindowPattern: Int, useBidirectionalAttention: Bool) {
+        self.modelType = modelType
+        self.hiddenSize = hiddenSize
+        self.hiddenLayers = hiddenLayers
+        self.intermediateSize = intermediateSize
+        self.attentionHeads = attentionHeads
+        self.headDim = headDim
+        self.rmsNormEps = rmsNormEps
+        self.vocabularySize = vocabularySize
+        self.kvHeads = kvHeads
+        self.ropeGlobalBaseFreq = ropeGlobalBaseFreq
+        self.ropeLocalBaseFreq = ropeLocalBaseFreq
+        self.ropeTraditional = ropeTraditional
+        self.queryPreAttnScalar = queryPreAttnScalar
+        self.slidingWindow = slidingWindow
+        self.slidingWindowPattern = slidingWindowPattern
+        self.useBidirectionalAttention = useBidirectionalAttention
     }
 
     public init(from decoder: Decoder) throws {
@@ -205,14 +231,17 @@ private class Attention: Module {
             }
         }
 
-        let output = attentionWithCacheUpdate(
-            queries: queries,
-            keys: keys,
-            values: values,
-            cache: cache,
-            scale: scale,
-            mask: finalMask
-        )
+        let maskArr: MLXArray
+        if case .array(let maskArray) = finalMask {
+            maskArr = maskArray
+        } else {
+            fatalError("oh noes")
+        }
+        let output = simpleSDPA(queries: queries,
+                                keys: keys,
+                                values: values,
+                                mask: maskArr,
+                                scale: scale)
         .transposed(0, 2, 1, 3)
         .reshaped(B, L, -1)
         return outputProj(output)
@@ -317,7 +346,7 @@ private class Gemma3Model: Module {
     {
         var h: MLXArray
         h = embedTokens(inputs)
-        let scale = MLXArray(sqrt(Float(config.hiddenSize)), dtype: .bfloat16)
+        let scale = MLXArray(sqrt(Float(config.hiddenSize)), dtype: .float32)
         h = h * scale.asType(h.dtype)
         var layerCache = cache
         if layerCache == nil {
@@ -326,40 +355,45 @@ private class Gemma3Model: Module {
         // Create attention masks
         var fullMask: MLXFast.ScaledDotProductAttentionMaskMode = .none
         var slidingWindowMask: MLXFast.ScaledDotProductAttentionMaskMode = .none
-        if mask == nil {
-            let j = config.slidingWindowPattern
-            let globalLayerCache: [KVCache]
-            if j > 0 && j <= (layerCache?.count ?? 0), let globalCache = layerCache?[j - 1] {
-                globalLayerCache = [globalCache]
-            } else {
-                globalLayerCache = []
+        let j = config.slidingWindowPattern
+        let globalLayerCache: [KVCache]
+        if j > 0 && j <= (layerCache?.count ?? 0), let globalCache = layerCache?[j - 1] {
+            globalLayerCache = [globalCache]
+        } else {
+            globalLayerCache = []
+        }
+        
+        if config.useBidirectionalAttention {
+            // For bidirectional attention: full attention for global layers, bidirectional sliding window for others
+            var fullMaskArray = MLXArray.ones([h.dim(1), h.dim(1)], dtype: .bool)
+            if case .array(let maskArray) = mask {
+                fullMaskArray = fullMaskArray & maskArray
             }
+            fullMask = .array(fullMaskArray)
             
-            if config.useBidirectionalAttention {
-                // For bidirectional attention: full attention for global layers, bidirectional sliding window for others
-                fullMask = .array(MLXArray.ones([h.dim(1), h.dim(1)], dtype: .bool))
-                
-                let t = h.dim(1)
-                var offset = 0
-                if let cache = layerCache?.compactMap({ $0 }).first {
-                    offset = cache.offset
-                }
-                slidingWindowMask = .array(createBidirectionalSlidingWindowMask(
-                    n: t, offset: offset, windowSize: config.slidingWindow))
-            } else {
-                // Standard causal attention
-                fullMask = createAttentionMask(h: h, cache: globalLayerCache)
-                let allCaches = layerCache?.compactMap { $0 } ?? []
-                slidingWindowMask = createAttentionMask(h: h, cache: allCaches)
+            let t = h.dim(1)
+            var offset = 0
+            if let cache = layerCache?.compactMap({ $0 }).first {
+                offset = cache.offset
             }
+            var slidingWindowMaskArray = createBidirectionalSlidingWindowMask(
+                n: t, offset: offset, windowSize: config.slidingWindow)
+            if case .array(let maskArray) = mask {
+                slidingWindowMaskArray = slidingWindowMaskArray & maskArray
+            }
+            slidingWindowMask = .array(slidingWindowMaskArray) 
+        } else {
+            // Standard causal attention
+            // TODO: probably need to merge the custom mask in
+            fullMask = createAttentionMask(h: h, cache: globalLayerCache)
+            let allCaches = layerCache?.compactMap { $0 } ?? []
+            slidingWindowMask = createAttentionMask(h: h, cache: allCaches)
         }
         for (i, layer) in layers.enumerated() {
             let isGlobal = (i % config.slidingWindowPattern == config.slidingWindowPattern - 1)
 
             let localMask: MLXFast.ScaledDotProductAttentionMaskMode
-            if let mask {
-                localMask = mask
-            } else if isGlobal {
+            if isGlobal {
                 localMask = fullMask
             } else {
                 localMask = slidingWindowMask
@@ -385,15 +419,15 @@ public class Gemma3TextModel: Module, LLMModel {
         super.init()
     }
 
-    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
-        var out = model(inputs, mask: nil, cache: cache)
+    public func callAsFunction(_ inputs: MLXArray,  mask: MLXFast.ScaledDotProductAttentionMaskMode? = nil, cache: [KVCache]? = nil) -> MLXArray {
+        var out = model(inputs, mask: mask, cache: cache)
         out = lmHead(out)
         return out
     }
     
     /// Get hidden states before the language modeling head for embedding use cases
-    public func getHiddenStates(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
-        return model(inputs, mask: nil, cache: cache)
+    public func getHiddenStates(_ inputs: MLXArray,  mask: MLXFast.ScaledDotProductAttentionMaskMode? = nil, cache: [KVCache]? = nil) -> MLXArray {
+        return model(inputs, mask: mask, cache: cache)
     }
 
     public func sanitize(weights: [String: MLXArray])
@@ -415,6 +449,12 @@ public class Gemma3TextModel: Module, LLMModel {
                 }
             }
         }
+
+        // EmbeddingGemma contains additional 'dense' weights, which 
+        // confuse loading into a normal Gemma3
+        processedWeights["dense.0.weight"] = nil
+        processedWeights["dense.1.weight"] = nil
+
         return processedWeights
     }
 
