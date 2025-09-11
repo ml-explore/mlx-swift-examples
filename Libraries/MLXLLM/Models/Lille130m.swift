@@ -143,7 +143,8 @@ private final class Lille130mModelInner: Module {
 
     init(_ args: Lille130mConfiguration) {
         precondition(args.vocabularySize > 0)
-        _embedTokens.wrappedValue = Embedding(embeddingCount: args.vocabularySize, dimensions: args.hiddenSize)
+        _embedTokens.wrappedValue = Embedding(
+            embeddingCount: args.vocabularySize, dimensions: args.hiddenSize)
         self.layers = (0 ..< args.hiddenLayers).map { _ in Lille130mBlock(args) }
         self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.layerNormEps)
     }
@@ -192,10 +193,10 @@ public struct Lille130mConfiguration: Codable, Sendable {
     public var modelType: String
     public var blockSize: Int
     public var layerNormEps: Float
-    public var hiddenSize: Int      // n_embd
+    public var hiddenSize: Int  // n_embd
     public var attentionHeads: Int  // n_head
-    public var kvHeads: Int         // n_kv_heads
-    public var hiddenLayers: Int    // n_layer
+    public var kvHeads: Int  // n_kv_heads
+    public var hiddenLayers: Int  // n_layer
     public var ropeTheta: Float
     public var vocabularySize: Int
     public var tieWordEmbeddings: Bool = true
@@ -211,11 +212,11 @@ public struct Lille130mConfiguration: Codable, Sendable {
         case ropeTheta = "rope_theta"
         case vocabularySize = "vocab_size"
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container: KeyedDecodingContainer<Lille130mConfiguration.CodingKeys> =
             try decoder.container(keyedBy: Lille130mConfiguration.CodingKeys.self)
-        
+
         self.modelType = try container.decode(
             String.self, forKey: Lille130mConfiguration.CodingKeys.modelType)
         self.blockSize = try container.decode(
