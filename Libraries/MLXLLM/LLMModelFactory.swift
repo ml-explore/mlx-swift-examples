@@ -57,6 +57,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "baichuan_m1": create(BaichuanM1Configuration.self, BaichuanM1Model.init),
             "exaone4": create(Exaone4Configuration.self, Exaone4Model.init),
             "gpt_oss": create(GPTOSSConfiguration.self, GPTOSSModel.init),
+            "olmoe": create(OlmoEConfiguration.self, OlmoEModel.init),
         ]
     }
 }
@@ -296,6 +297,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
+    static public let olmoe_1b_7b_0125_instruct_4bit = ModelConfiguration(
+        id: "mlx-community/OLMoE-1B-7B-0125-Instruct-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -338,6 +344,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             lfm2_1_2b_4bit,
             baichuan_m1_14b_instruct_4bit,
             exaone_4_0_1_2b_4bit,
+            olmoe_1b_7b_0125_instruct_4bit,
         ]
     }
 
