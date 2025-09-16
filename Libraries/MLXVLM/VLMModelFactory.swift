@@ -58,10 +58,11 @@ private func create<C: Codable, M>(
 
 private func create<C: Codable, P>(
     _ configurationType: C.Type,
-    _ processorInit: @escaping (
-        C,
-        any Tokenizer
-    ) -> P
+    _ processorInit:
+        @escaping (
+            C,
+            any Tokenizer
+        ) -> P
 ) -> (URL, any Tokenizer) throws -> P {
     { url, tokenizer in
         let configuration = try JSONDecoder().decode(
@@ -97,7 +98,8 @@ public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendabl
     public static let shared: VLMProcessorTypeRegistry = .init(creators: all())
 
     /// All predefined processor types.
-    private static func all() -> [String: @Sendable (URL, any Tokenizer) throws ->
+    private static func all() -> [String:
+        @Sendable (URL, any Tokenizer) throws ->
         any UserInputProcessor]
     {
         [
