@@ -135,7 +135,11 @@ private class Attention: Module {
         let ropeType: String = {
             if let v = args.ropeScaling?["type"] ?? args.ropeScaling?["rope_type"],
                 case .string(let s) = v
-            { return s } else { return "default" }
+            {
+                return s
+            } else {
+                return "default"
+            }
         }()
 
         if ropeType == "yarn" {
@@ -271,7 +275,8 @@ private class TransformerBlock: Module {
     init(_ args: OlmoEConfiguration) {
         self._attention.wrappedValue = Attention(args)
         self._mlp.wrappedValue = OlmoeSparseMoeBlock(args)
-        self._inputLayerNorm.wrappedValue = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
+        self._inputLayerNorm.wrappedValue = RMSNorm(
+            dimensions: args.hiddenSize, eps: args.rmsNormEps)
         self._postAttentionLayerNorm.wrappedValue = RMSNorm(
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
@@ -460,4 +465,3 @@ extension OlmoEModel: LoRAModel {
         model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
     }
 }
-
