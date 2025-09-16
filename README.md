@@ -58,7 +58,7 @@ print(try await session.respond(to: "What are two things to see in San Francisco
 print(try await session.respond(to: "How about a great place to eat?")
 ```
 
-Or use the underlying API to control everything aspect of the evaluation.
+Or use the underlying API to control every aspect of the evaluation.
 
 ## Running
 
