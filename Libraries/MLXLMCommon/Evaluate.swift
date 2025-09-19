@@ -126,7 +126,9 @@ public struct GenerateParameters: Sendable {
 
 /// Sampler that uses `argMax` (most likely) to sample the logits.
 public struct ArgMaxSampler: LogitSampler {
-    public func sample(logits: MLX.MLXArray) -> MLX.MLXArray {
+    public init() {}
+
+    public func sample(logits: MLXArray) -> MLXArray {
         argMax(logits, axis: -1)
     }
 }
