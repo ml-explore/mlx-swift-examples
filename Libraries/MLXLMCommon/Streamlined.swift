@@ -190,8 +190,8 @@ public class ChatSession {
     /// - Returns: response from the model
     public func respond(
         to prompt: String, 
-        images: UserInput.Image? = nil, 
-        videos: UserInput.Video? = nil
+        images: [UserInput.Image]? = nil, 
+        videos: [UserInput.Video]? = nil
     ) async throws -> String {
         generator.messages = [
             .user(
