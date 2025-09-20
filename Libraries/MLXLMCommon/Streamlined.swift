@@ -215,7 +215,7 @@ public class ChatSession {
         image: UserInput.Image? = nil, 
         video: UserInput.Video? = nil
     ) async throws -> String {
-        respond(
+        try await respond(
             to: prompt,
             images: image.flatMap { [$0] } ?? [],
             videos: video.flatMap { [$0] } ?? []
