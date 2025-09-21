@@ -185,19 +185,19 @@ public class ChatSession {
     ///
     /// - Parameters:
     ///   - prompt: the prompt
-    ///   - image: optional image (for use with VLMs)
-    ///   - video: optional video (for use with VLMs)
+    ///   - images: list of image (for use with VLMs)
+    ///   - videos: list of video (for use with VLMs)
     /// - Returns: response from the model
     public func respond(
         to prompt: String, 
-        images: [UserInput.Image]? = nil, 
-        videos: [UserInput.Video]? = nil
+        images: [UserInput.Image], 
+        videos: [UserInput.Video]
     ) async throws -> String {
         generator.messages = [
             .user(
                 prompt,
-                images: images ?? [],
-                videos: videos ?? []
+                images: images,
+                videos: videos
             )
         ]
         return try await generator.generate()
@@ -207,8 +207,8 @@ public class ChatSession {
     ///
     /// - Parameters:
     ///   - prompt: the prompt
-    ///   - images: optional images (for use with VLMs)
-    ///   - videos: optional videos (for use with VLMs)
+    ///   - images: optional image (for use with VLMs)
+    ///   - videos: optional video (for use with VLMs)
     /// - Returns: response from the model
     public func respond(
         to prompt: String, 
@@ -226,19 +226,19 @@ public class ChatSession {
     ///
     /// - Parameters:
     ///   - prompt: the prompt
-    ///   - images: optional image (for use with VLMs)
-    ///   - videos: optional video (for use with VLMs)
+    ///   - images: list of image (for use with VLMs)
+    ///   - videos: list of video (for use with VLMs)
     /// - Returns: a stream of tokens (as Strings) from the model
     public func streamResponse(
         to prompt: String, 
-        images: [UserInput.Image]? = nil, 
-        videos: [UserInput.Video]? = nil
+        images: [UserInput.Image], 
+        videos: [UserInput.Video]
     ) -> AsyncThrowingStream<String, Error> {
         generator.messages = [
             .user(
                 prompt,
-                images: images ?? [],
-                videos: videos ?? []
+                images: images,
+                videos: videos
             )
         ]
         return generator.stream()
