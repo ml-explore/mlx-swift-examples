@@ -19,6 +19,10 @@ public struct ToolCall: Hashable, Codable, Sendable {
 
     /// The function to be called
     public let function: Function
+
+    public init(function: Function) {
+        self.function = function
+    }
 }
 
 extension ToolCall {
