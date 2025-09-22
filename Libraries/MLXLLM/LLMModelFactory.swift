@@ -60,6 +60,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "lille-130m": create(Lille130mConfiguration.self, Lille130mModel.init),
             "olmoe": create(OlmoEConfiguration.self, OlmoEModel.init),
             "olmo2": create(Olmo2Configuration.self, Olmo2Model.init),
+            "bailing_moe": create(BailingMoeConfiguration.self, BailingMoeModel.init),
         ]
     }
 }
@@ -314,6 +315,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
+    static public let ling_mini_2_2bit = ModelConfiguration(
+        id: "mlx-community/Ling-mini-2.0-2bit-DWQ",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -359,6 +365,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             lille_130m_bf16,
             olmoe_1b_7b_0125_instruct_4bit,
             olmo_2_1124_7B_Instruct_4bit,
+            ling_mini_2_2bit,
         ]
     }
 
