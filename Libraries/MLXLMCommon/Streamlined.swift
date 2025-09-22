@@ -179,25 +179,69 @@ public class ChatSession {
         self.generator = .init(
             model: .context(model), instructions: instructions, processing: processing,
             generateParameters: generateParameters)
+    }     
+    
+    /// Produces a response to a prompt.
+    ///
+    /// - Parameters:
+    ///   - prompt: the prompt
+    ///   - images: list of image (for use with VLMs)
+    ///   - videos: list of video (for use with VLMs)
+    /// - Returns: response from the model
+    public func respond(
+        to prompt: String, 
+        images: [UserInput.Image], 
+        videos: [UserInput.Video]
+    ) async throws -> String {
+        generator.messages = [
+            .user(
+                prompt,
+                images: images,
+                videos: videos
+            )
+        ]
+        return try await generator.generate()
     }
 
     /// Produces a response to a prompt.
     ///
     /// - Parameters:
     ///   - prompt: the prompt
-    ///   - image: optional image (for use with VLMs)
-    ///   - video: optional video (for use with VLMs)
+    ///   - images: optional image (for use with VLMs)
+    ///   - videos: optional video (for use with VLMs)
     /// - Returns: response from the model
     public func respond(
-        to prompt: String, image: UserInput.Image? = nil, video: UserInput.Video? = nil
+        to prompt: String, 
+        image: UserInput.Image? = nil, 
+        video: UserInput.Video? = nil
     ) async throws -> String {
+        try await respond(
+            to: prompt,
+            images: image.flatMap { [$0] } ?? [],
+            videos: video.flatMap { [$0] } ?? []
+        )
+    }
+
+    /// Produces a response to a prompt.
+    ///
+    /// - Parameters:
+    ///   - prompt: the prompt
+    ///   - images: list of image (for use with VLMs)
+    ///   - videos: list of video (for use with VLMs)
+    /// - Returns: a stream of tokens (as Strings) from the model
+    public func streamResponse(
+        to prompt: String, 
+        images: [UserInput.Image], 
+        videos: [UserInput.Video]
+    ) -> AsyncThrowingStream<String, Error> {
         generator.messages = [
             .user(
                 prompt,
-                images: image.flatMap { [$0] } ?? [],
-                videos: video.flatMap { [$0] } ?? [])
+                images: images,
+                videos: videos
+            )
         ]
-        return try await generator.generate()
+        return generator.stream()
     }
 
     /// Produces a response to a prompt.
@@ -208,14 +252,14 @@ public class ChatSession {
     ///   - video: optional video (for use with VLMs)
     /// - Returns: a stream of tokens (as Strings) from the model
     public func streamResponse(
-        to prompt: String, image: UserInput.Image? = nil, video: UserInput.Video? = nil
+        to prompt: String, 
+        image: UserInput.Image? = nil, 
+        video: UserInput.Video? = nil
     ) -> AsyncThrowingStream<String, Error> {
-        generator.messages = [
-            .user(
-                prompt,
-                images: image.flatMap { [$0] } ?? [],
-                videos: video.flatMap { [$0] } ?? [])
-        ]
-        return generator.stream()
+        streamResponse(
+            to: prompt, 
+            images: image.flatMap { [$0] } ?? [],
+            videos: video.flatMap { [$0] } ?? []
+        )
     }
 }
