@@ -179,8 +179,8 @@ public class ChatSession {
         self.generator = .init(
             model: .context(model), instructions: instructions, processing: processing,
             generateParameters: generateParameters)
-    }     
-    
+    }
+
     /// Produces a response to a prompt.
     ///
     /// - Parameters:
@@ -189,8 +189,8 @@ public class ChatSession {
     ///   - videos: list of video (for use with VLMs)
     /// - Returns: response from the model
     public func respond(
-        to prompt: String, 
-        images: [UserInput.Image], 
+        to prompt: String,
+        images: [UserInput.Image],
         videos: [UserInput.Video]
     ) async throws -> String {
         generator.messages = [
@@ -211,8 +211,8 @@ public class ChatSession {
     ///   - videos: optional video (for use with VLMs)
     /// - Returns: response from the model
     public func respond(
-        to prompt: String, 
-        image: UserInput.Image? = nil, 
+        to prompt: String,
+        image: UserInput.Image? = nil,
         video: UserInput.Video? = nil
     ) async throws -> String {
         try await respond(
@@ -230,8 +230,8 @@ public class ChatSession {
     ///   - videos: list of video (for use with VLMs)
     /// - Returns: a stream of tokens (as Strings) from the model
     public func streamResponse(
-        to prompt: String, 
-        images: [UserInput.Image], 
+        to prompt: String,
+        images: [UserInput.Image],
         videos: [UserInput.Video]
     ) -> AsyncThrowingStream<String, Error> {
         generator.messages = [
@@ -252,12 +252,12 @@ public class ChatSession {
     ///   - video: optional video (for use with VLMs)
     /// - Returns: a stream of tokens (as Strings) from the model
     public func streamResponse(
-        to prompt: String, 
-        image: UserInput.Image? = nil, 
+        to prompt: String,
+        image: UserInput.Image? = nil,
         video: UserInput.Video? = nil
     ) -> AsyncThrowingStream<String, Error> {
         streamResponse(
-            to: prompt, 
+            to: prompt,
             images: image.flatMap { [$0] } ?? [],
             videos: video.flatMap { [$0] } ?? []
         )
