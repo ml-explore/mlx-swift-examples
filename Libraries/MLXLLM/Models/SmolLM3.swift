@@ -270,8 +270,11 @@ public struct SmolLM3Configuration: Sendable {
         }
 
         // Compute noRopeLayers if not provided in JSON
-        if noRopeLayers.isEmpty, let _ = try? container.decode(Int.self, forKey: AnyCodingKey("num_hidden_layers")) {
-            let providedNoRopeLayers = try? container.decode([Int].self, forKey: AnyCodingKey("no_rope_layers"))
+        if noRopeLayers.isEmpty,
+            (try? container.decode(Int.self, forKey: AnyCodingKey("num_hidden_layers"))) != nil
+        {
+            let providedNoRopeLayers = try? container.decode(
+                [Int].self, forKey: AnyCodingKey("no_rope_layers"))
             if providedNoRopeLayers == nil {
                 noRopeLayers = (0 ..< hiddenLayers).map { i in
                     (i + 1) % noRopeLayerInterval != 0 ? 1 : 0

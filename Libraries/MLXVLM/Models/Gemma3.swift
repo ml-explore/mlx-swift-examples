@@ -3,8 +3,8 @@ import MLX
 import MLXFast
 import MLXLMCommon
 import MLXNN
-import Tokenizers
 import ReerCodable
+import Tokenizers
 
 // Based on https://github.com/Blaizzy/mlx-vlm/tree/main/mlx_vlm/models/gemma3
 

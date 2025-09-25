@@ -36,7 +36,7 @@ public struct Gemma3TextConfiguration: Sendable {
 
 public struct Gemma3TextConfigurationContainer: Codable, Sendable {
     public var configuration: Gemma3TextConfiguration
-    
+
     enum VLMCodingKeys: String, CodingKey {
         case textConfig = "text_config"
     }
@@ -45,13 +45,15 @@ public struct Gemma3TextConfigurationContainer: Codable, Sendable {
         // in the case of VLM models convertered using mlx_lm.convert
         // the configuration will still match the VLMs and be under text_config
         let nestedContainer = try decoder.container(keyedBy: VLMCodingKeys.self)
-        if let configuration = try nestedContainer.decodeIfPresent(Gemma3TextConfiguration.self, forKey: .textConfig) {
+        if let configuration = try nestedContainer.decodeIfPresent(
+            Gemma3TextConfiguration.self, forKey: .textConfig)
+        {
             self.configuration = configuration
         } else {
             self.configuration = try Gemma3TextConfiguration(from: decoder)
         }
     }
-    
+
     public func encode(to encoder: any Encoder) throws {
         try configuration.encode(to: encoder)
     }
@@ -304,7 +306,7 @@ public class Gemma3TextModel: Module, LLMModel {
 
     public let config: Gemma3TextConfiguration
     public var vocabularySize: Int { config.vocabularySize }
-    
+
     convenience public init(_ config: Gemma3TextConfigurationContainer) {
         self.init(config.configuration)
     }

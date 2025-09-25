@@ -43,7 +43,8 @@ public struct BailingMoeConfiguration: Sendable {
     @CodingKey("score_function") public var scoreFunction: String = "softmax"
     @CodingKey("n_group") public var nGroup: Int = 1
     @CodingKey("topk_group") public var topkGroup: Int = 4
-    @CodingKey("moe_shared_expert_intermediate_size") public var moeSharedExpertIntermediateSize: Int? = nil
+    @CodingKey("moe_shared_expert_intermediate_size") public var moeSharedExpertIntermediateSize:
+        Int? = nil
 }
 
 private class Attention: Module {

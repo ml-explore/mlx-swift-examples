@@ -4,8 +4,8 @@ import Foundation
 import Hub
 import MLX
 import MLXLMCommon
-import Tokenizers
 import ReerCodable
+import Tokenizers
 
 public enum VLMError: LocalizedError {
     case imageRequired

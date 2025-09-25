@@ -4,8 +4,8 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
-import Tokenizers
 import ReerCodable
+import Tokenizers
 
 // Port of https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/gemma2.py
 
