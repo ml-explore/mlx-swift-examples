@@ -25,9 +25,6 @@ let package = Package(
         .library(
             name: "StableDiffusion",
             targets: ["StableDiffusion"]),
-        .executable(
-            name: "test-embedding-gemma",
-            targets: ["TestEmbeddingGemma"]),
     ],
     dependencies: [
         .package(url: "https://github.com/ml-explore/mlx-swift", .upToNextMinor(from: "0.25.5")),
@@ -35,7 +32,6 @@ let package = Package(
             url: "https://github.com/huggingface/swift-transformers", .upToNextMinor(from: "0.1.23")
         ),
         .package(url: "https://github.com/1024jp/GzipSwift", "6.0.1" ... "6.0.1"),  // Only needed by MLXMNIST
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
     ],
     targets: [
         .target(
@@ -163,17 +159,6 @@ let package = Package(
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]
-        ),
-        .executableTarget(
-            name: "TestEmbeddingGemma",
-            dependencies: [
-                "MLXEmbedders",
-                "MLXLMCommon",
-                .product(name: "MLX", package: "mlx-swift"),
-                .product(name: "Transformers", package: "swift-transformers"),
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            ],
-            path: "Tools/TestEmbeddingGemma"
         ),
     ]
 )
