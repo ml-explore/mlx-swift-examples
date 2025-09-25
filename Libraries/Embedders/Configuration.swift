@@ -1,6 +1,7 @@
 // Copyright © 2024 Apple Inc.
 
 import Foundation
+import MLXLLM
 
 public enum StringOrNumber: Codable, Equatable, Sendable {
     case string(String)
@@ -67,6 +68,13 @@ private class ModelTypeRegistry: @unchecked Sendable {
             let configuration = try JSONDecoder().decode(
                 NomicBertConfiguration.self, from: Data(contentsOf: url))
             let model = NomicBertModel(configuration)
+            return model
+        },
+        "EmbeddingGemma": {
+            url in
+            let configuration = try JSONDecoder().decode(
+                Gemma3TextConfiguration.self, from: Data(contentsOf: url))
+            let model = EmbeddingGemma(configuration)
             return model
         },
     ]

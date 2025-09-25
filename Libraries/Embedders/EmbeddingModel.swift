@@ -87,8 +87,8 @@ extension Module {
 }
 
 public struct EmbeddingModelOutput {
-    let hiddenStates: MLXArray?
-    let pooledOutput: MLXArray?
+    public let hiddenStates: MLXArray?
+    public let pooledOutput: MLXArray?
 }
 
 public protocol EmbeddingModel: Module {
