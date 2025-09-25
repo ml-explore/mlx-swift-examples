@@ -51,12 +51,8 @@ public class EmbeddingGemma: Module, EmbeddingModel {
         return model(inputs, mask: mask, cache: cache)
     }
 
-    public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
-        sanitize(weights: weights, quantizationConfig: nil)
-    }
 
-    public func sanitize(weights: [String: MLXArray],
-        quantizationConfig: QuantizationConfig? = nil)
+    public func sanitize(weights: [String: MLXArray], quantizationConfig: MLXLMCommon.BaseConfiguration.Quantization? = nil)
         -> [String: MLXArray]
     {
         var processedWeights = model.sanitize(weights: weights, quantizationConfig: quantizationConfig)
@@ -87,6 +83,10 @@ public class EmbeddingGemma: Module, EmbeddingModel {
         return processedWeights.filter { key, _ in
             !key.contains("self_attn.rotary_emb.inv_freq")
         }
+    }
+
+    public func sanitize(weights: [String : MLXArray]) -> [String : MLXArray] {
+        sanitize(weights: weights, quantizationConfig: nil)
     }
 
         /// Check if a layer has quantized weights

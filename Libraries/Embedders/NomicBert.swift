@@ -3,6 +3,7 @@
 import Foundation
 import MLX
 import MLXNN
+import MLXLMCommon
 
 class NomicEmbedding: Module {
 
@@ -389,6 +390,10 @@ public class NomicBertModel: Module, EmbeddingModel {
             key = key.replacingOccurrences(of: "pooler.dense.", with: "pooler.")
             result[key] = item.value
         }
+    }
+
+    public func sanitize(weights: [String : MLXArray], quantizationConfig: MLXLMCommon.BaseConfiguration.Quantization?) -> [String : MLXArray] {
+        fatalError("Nomic does not support quantization")
     }
 }
 

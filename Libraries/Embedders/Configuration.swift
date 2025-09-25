@@ -70,7 +70,7 @@ private class ModelTypeRegistry: @unchecked Sendable {
             let model = NomicBertModel(configuration)
             return model
         },
-        "EmbeddingGemma": {
+        "gemma3_text": {
             url in
             let configuration = try JSONDecoder().decode(
                 Gemma3TextConfiguration.self, from: Data(contentsOf: url))

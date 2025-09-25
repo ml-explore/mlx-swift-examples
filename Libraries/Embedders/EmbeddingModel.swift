@@ -4,6 +4,7 @@ import Foundation
 @preconcurrency import Hub
 import MLX
 import MLXNN
+import MLXLMCommon
 import Tokenizers
 
 /// Container for models that guarantees single threaded access.
@@ -99,6 +100,7 @@ public protocol EmbeddingModel: Module {
     ) -> EmbeddingModelOutput
     /// Optionally preprocess the weights and modify / remove values as needed.
     func sanitize(weights: [String: MLXArray]) -> [String: MLXArray]
+    func sanitize(weights: [String: MLXArray], quantizationConfig: MLXLMCommon.BaseConfiguration.Quantization?) -> [String: MLXArray]
 }
 
 extension EmbeddingModel {
