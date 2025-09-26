@@ -1,6 +1,5 @@
 import CoreImage
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
 import ReerCodable

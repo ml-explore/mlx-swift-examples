@@ -4,7 +4,6 @@ import Foundation
 import MLX
 import MLXNN
 import MLXOptimizers
-import MLXRandom
 
 /// Implementation of LoRA `Linear` replacement layer.
 ///
