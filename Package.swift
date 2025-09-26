@@ -29,7 +29,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/ml-explore/mlx-swift", .upToNextMinor(from: "0.25.5")),
         .package(
-            url: "https://github.com/huggingface/swift-transformers", .upToNextMinor(from: "0.1.23")
+            url: "https://github.com/huggingface/swift-transformers", .upToNextMinor(from: "1.0.0")
         ),
         .package(url: "https://github.com/1024jp/GzipSwift", "6.0.1" ... "6.0.1"),  // Only needed by MLXMNIST
     ],
@@ -170,3 +170,4 @@ if Context.environment["MLX_SWIFT_BUILD_DOC"] == "1"
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0")
     )
 }
+
