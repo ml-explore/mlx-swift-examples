@@ -40,7 +40,7 @@ public struct SmolVLMProcessorConfiguration: Sendable {
     public var size: Size
     @CodingKey("max_image_size") public var maxImageSize: Size
     @CodingKey("video_sampling") public var videoSampling: VideoSampling
-    @CodingKey("image_seq_len") public var imageSequenceLength: Int
+    @CodingKey("image_seq_len") public var imageSequenceLength: Int = 64
 
     public var imageMeanTuple: (CGFloat, CGFloat, CGFloat) {
         (imageMean[0], imageMean[1], imageMean[2])
