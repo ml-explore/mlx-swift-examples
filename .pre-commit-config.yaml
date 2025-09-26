@@ -1,8 +1,10 @@
 repos:
+
 - repo: local
   hooks:
     - id: swift-format
       name: swift-format
       language: system
-      entry: swift-format --in-place
-      files: '\.swift$'
+      entry: swift-format format --in-place --configuration .swift-format --recursive .
+      require_serial: true
+      types: [swift]

@@ -29,8 +29,7 @@ jobs:
           command: |
             pip install pre-commit
             brew install swift-format
-            pre-commit run --all
-            if ! git diff --quiet; then echo 'Style checks failed, please install pre-commit and run pre-commit run --all and push the change'; exit 1; fi
+            pre-commit run --all || (echo "Style checks failed, please install pre-commit and run pre-commit run --all and push the change"; echo ""; git --no-pager diff; exit 1)
       - run:
           name: Run Tests (Xcode, macOS)
           command: |
