@@ -55,7 +55,7 @@ private func makeBitLinearKernel() -> MLXFast.MLXFastKernel {
         }
         """
 
-    return metalKernel(
+    return MLXFast.metalKernel(
         name: "bitlinear_matmul",
         inputNames: ["x", "packed_weights", "weight_scale"],
         outputNames: ["out"],
