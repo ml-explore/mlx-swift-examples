@@ -267,8 +267,7 @@ public class SmolVLMProcessor: UserInputProcessor {
                 globalImageToken: globalImageToken
             )
 
-            let splitPrompt = decoded.split(by: imageToken, options: .literal)
-            let prompt = splitPrompt.joined(separator: imagePromptString)
+            let prompt = decoded.replacingOccurrences(of: imageToken, with: imagePromptString)
             let finalPromptTokens = try tokenizer.encode(text: prompt)
 
             let promptArray = MLXArray(finalPromptTokens).expandedDimensions(axis: 0)
@@ -342,8 +341,15 @@ public class SmolVLMProcessor: UserInputProcessor {
                 fakeToken: fakeImageToken, imageToken: imageToken,
                 globalImageToken: globalImageToken)
 
-            let splitPrompt = decoded.split(by: "User: ", options: .literal)
-            let prompt = splitPrompt[0] + "User: " + videoPromptString + splitPrompt[1]
+            let prompt: String
+            if let range = decoded.range(of: "User: ") {
+                let before = decoded[..<range.upperBound]
+                let after = decoded[range.upperBound...]
+                prompt = String(before) + videoPromptString + String(after)
+            } else {
+                // Fallback if the expected marker is not present
+                prompt = decoded + "\n" + videoPromptString
+            }
             let finalPromptTokens = try tokenizer.encode(text: prompt)
 
             let promptArray = MLXArray(finalPromptTokens).expandedDimensions(axis: 0)
