@@ -361,4 +361,3 @@ public class SmolVLMProcessor: UserInputProcessor {
         }
     }
 }
-
