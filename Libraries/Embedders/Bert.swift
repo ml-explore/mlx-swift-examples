@@ -2,6 +2,7 @@
 
 import MLX
 import MLXNN
+import MLXLMCommon
 
 extension MLXArray {
     public static func arange(_ size: Int) -> MLXArray {
@@ -195,6 +196,10 @@ public class BertModel: Module, EmbeddingModel {
             key = key.replacingOccurrences(of: "bert.", with: "")
             result[key] = item.value
         }.filter { key, _ in key != "embeddings.position_ids" }
+    }
+
+    public func sanitize(weights: [String : MLXArray], quantizationConfig: MLXLMCommon.BaseConfiguration.Quantization?) -> [String : MLXArray] {
+        fatalError("Bert does not support quantization")
     }
 }
 
