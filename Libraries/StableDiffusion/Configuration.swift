@@ -7,7 +7,7 @@ import MLXNN
 // port of https://github.com/ml-explore/mlx-examples/blob/main/stable_diffusion/stable_diffusion/config.py
 
 /// Configuration for ``Autoencoder``
-struct AutoencoderConfiguration: Codable {
+struct AutoencoderConfiguration: Codable, Sendable {
 
     public var inputChannels = 3
     public var outputChannels = 3
@@ -60,7 +60,7 @@ struct AutoencoderConfiguration: Codable {
 }
 
 /// Configuration for ``CLIPTextModel``
-struct CLIPTextModelConfiguration: Codable {
+struct CLIPTextModelConfiguration: Codable, Sendable {
 
     public enum ClipActivation: String, Codable {
         case fast = "quick_gelu"
@@ -137,7 +137,7 @@ struct CLIPTextModelConfiguration: Codable {
 }
 
 /// Configuration for ``UNetModel``
-struct UNetConfiguration: Codable {
+struct UNetConfiguration: Codable, Sendable {
 
     public var inputChannels = 4
     public var outputChannels = 4
@@ -250,7 +250,7 @@ struct UNetConfiguration: Codable {
 }
 
 /// Configuration for ``StableDiffusion``
-public struct DiffusionConfiguration: Codable {
+public struct DiffusionConfiguration: Codable, Sendable {
 
     public enum BetaSchedule: String, Codable {
         case linear = "linear"

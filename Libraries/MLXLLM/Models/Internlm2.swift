@@ -4,6 +4,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
 // Port of https://github.com/maiqingqiang/mlx-examples/blob/main/llms/mlx_lm/models/internlm2.py
 
@@ -240,76 +241,36 @@ extension InternLM2Model: LoRAModel {
     }
 }
 
-public struct InternLM2Configuration: Codable, Sendable {
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var kvHeads: Int
-    var maxPositionEmbeddings: Int = 32768
-    var ropeTheta: Float = 10000
-    var ropeTraditional: Bool = false
-    var ropeScaling: [String: StringOrNumber]?
-    var tieWordEmbeddings: Bool = false
-    var bias: Bool = true
+@Codable
+public struct InternLM2Configuration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int = 32768
+    @CodingKey("rope_theta") public var ropeTheta: Float = 10000
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]?
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = false
+    @CodingKey("bias") public var bias: Bool = true
 
     var kvGroups: Int {
         attentionHeads / kvHeads
     }
 
-    enum CodingKeys: String, CodingKey {
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case kvHeads = "num_key_value_heads"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case ropeTheta = "rope_theta"
-        case ropeTraditional = "rope_traditional"
-        case ropeScaling = "rope_scaling"
-        case tieWordEmbeddings = "tie_word_embeddings"
-        case bias = "bias"
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-
-        hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
-        intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
-        attentionHeads = try container.decode(Int.self, forKey: .attentionHeads)
-        rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
-        vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
-        kvHeads = try container.decodeIfPresent(Int.self, forKey: .kvHeads) ?? attentionHeads
-        maxPositionEmbeddings = try container.decode(Int.self, forKey: .maxPositionEmbeddings)
-        if let ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) {
-            self.ropeTheta = ropeTheta
-        }
-        if let ropeTraditional = try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional)
-        {
-            self.ropeTraditional = ropeTraditional
-        }
-        ropeScaling = try container.decodeIfPresent(
-            [String: StringOrNumber].self, forKey: .ropeScaling)
-        if let tieWordEmbeddings = try container.decodeIfPresent(
-            Bool.self, forKey: .tieWordEmbeddings)
-        {
-            self.tieWordEmbeddings = tieWordEmbeddings
-        }
-        if let bias = try container.decodeIfPresent(Bool.self, forKey: .bias) {
-            self.bias = bias
-        }
+    public func didDecode(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: AnyCodingKey.self)
+        let codingKey = AnyCodingKey("rope_scaling")
 
         if let ropeScaling {
             let requiredKeys: Set<String> = ["factor", "type"]
             let keys = Set(ropeScaling.keys)
             if !requiredKeys.isSubset(of: keys) {
                 throw DecodingError.dataCorruptedError(
-                    forKey: .ropeScaling, in: container,
+                    forKey: codingKey, in: container,
                     debugDescription: "rope_scaling must contain keys \(requiredKeys)"
                 )
             }
@@ -317,7 +278,7 @@ public struct InternLM2Configuration: Codable, Sendable {
                 type != .string("linear") && type != .string("dynamic")
             {
                 throw DecodingError.dataCorruptedError(
-                    forKey: .ropeScaling, in: container,
+                    forKey: codingKey, in: container,
                     debugDescription:
                         "rope_scaling 'type' currently only supports 'linear' or 'dynamic'"
                 )

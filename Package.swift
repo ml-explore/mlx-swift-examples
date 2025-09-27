@@ -31,6 +31,7 @@ let package = Package(
         .package(
             url: "https://github.com/huggingface/swift-transformers", .upToNextMinor(from: "1.0.0")
         ),
+        .package(url: "https://github.com/reers/ReerCodable.git", from: "1.3.4"),
         .package(url: "https://github.com/1024jp/GzipSwift", "6.0.1" ... "6.0.1"),  // Only needed by MLXMNIST
     ],
     targets: [
@@ -42,8 +43,8 @@ let package = Package(
                 .product(name: "MLXFast", package: "mlx-swift"),
                 .product(name: "MLXNN", package: "mlx-swift"),
                 .product(name: "MLXOptimizers", package: "mlx-swift"),
-                .product(name: "MLXRandom", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers"),
+                .product(name: "ReerCodable", package: "ReerCodable"),
             ],
             path: "Libraries/MLXLLM",
             exclude: [
@@ -61,8 +62,8 @@ let package = Package(
                 .product(name: "MLXFast", package: "mlx-swift"),
                 .product(name: "MLXNN", package: "mlx-swift"),
                 .product(name: "MLXOptimizers", package: "mlx-swift"),
-                .product(name: "MLXRandom", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers"),
+                .product(name: "ReerCodable", package: "ReerCodable"),
             ],
             path: "Libraries/MLXVLM",
             exclude: [
@@ -78,9 +79,8 @@ let package = Package(
                 .product(name: "MLX", package: "mlx-swift"),
                 .product(name: "MLXNN", package: "mlx-swift"),
                 .product(name: "MLXOptimizers", package: "mlx-swift"),
-                .product(name: "MLXRandom", package: "mlx-swift"),
-                .product(name: "MLXLinalg", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers"),
+                .product(name: "ReerCodable", package: "ReerCodable"),
             ],
             path: "Libraries/MLXLMCommon",
             exclude: [
@@ -96,7 +96,6 @@ let package = Package(
                 .product(name: "MLX", package: "mlx-swift"),
                 .product(name: "MLXNN", package: "mlx-swift"),
                 .product(name: "MLXOptimizers", package: "mlx-swift"),
-                .product(name: "MLXRandom", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers"),
                 "MLXLMCommon",
                 "MLXLLM",
@@ -114,10 +113,9 @@ let package = Package(
             name: "MLXEmbedders",
             dependencies: [
                 .product(name: "MLX", package: "mlx-swift"),
-                .product(name: "MLXFast", package: "mlx-swift"),
                 .product(name: "MLXNN", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers"),
-                .product(name: "MLXLinalg", package: "mlx-swift"),
+                .product(name: "ReerCodable", package: "ReerCodable"),
             ],
             path: "Libraries/Embedders",
             exclude: [
@@ -131,7 +129,6 @@ let package = Package(
                 .product(name: "MLXFast", package: "mlx-swift"),
                 .product(name: "MLXNN", package: "mlx-swift"),
                 .product(name: "MLXOptimizers", package: "mlx-swift"),
-                .product(name: "MLXRandom", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers"),
                 .product(name: "Gzip", package: "GzipSwift"),
             ],
@@ -148,8 +145,8 @@ let package = Package(
             dependencies: [
                 .product(name: "MLX", package: "mlx-swift"),
                 .product(name: "MLXNN", package: "mlx-swift"),
-                .product(name: "MLXRandom", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers"),
+                .product(name: "ReerCodable", package: "ReerCodable"),
             ],
             path: "Libraries/StableDiffusion",
             exclude: [

@@ -9,76 +9,31 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
-public struct LFM2Configuration: Codable, Sendable {
-    let modelType: String
-    let vocabularySize: Int
-    let hiddenSize: Int
-    let hiddenLayers: Int
-    let attentionHeads: Int
-    let kvHeads: Int
-    let maxPositionEmbeddings: Int?
-    let normEps: Float
-    let convBias: Bool
-    let convLCache: Int
-    private let _blockDim: Int?
-    var blockDim: Int { _blockDim ?? hiddenSize }
-    private let _blockFFDim: Int?
-    var blockFFDim: Int { _blockFFDim ?? hiddenSize }
-    let blockMultipleOf: Int
-    let blockFFNDimMultiplier: Float
-    let blockAutoAdjustFFDim: Bool
-    private let _fullAttnIdxs: [Int]?
-    var fullAttnIdxs: [Int] { _fullAttnIdxs ?? Array(0 ..< hiddenLayers) }
-    let ropeTheta: Float
-    var headDimensions: Int { hiddenSize / attentionHeads }
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case vocabularySize = "vocab_size"
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case attentionHeads = "num_attention_heads"
-        case kvHeads = "num_key_value_heads"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case normEps = "norm_eps"
-        case convBias = "conv_bias"
-        case convLCache = "conv_L_cache"
-        case _blockDim = "block_dim"
-        case _blockFFDim = "block_ff_dim"
-        case blockMultipleOf = "block_multiple_of"
-        case blockFFNDimMultiplier = "block_ffn_dim_multiplier"
-        case blockAutoAdjustFFDim = "block_auto_adjust_ff_dim"
-        case _fullAttnIdxs = "full_attn_idxs"
-        case ropeTheta = "rope_theta"
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-
-        self.modelType = try container.decodeIfPresent(String.self, forKey: .modelType) ?? "lfm2"
-        self.vocabularySize =
-            try container.decodeIfPresent(Int.self, forKey: .vocabularySize) ?? 65536
-        self.hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        self.hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
-        self.attentionHeads = try container.decode(Int.self, forKey: .attentionHeads)
-        self.kvHeads = try container.decode(Int.self, forKey: .kvHeads)
-        self.maxPositionEmbeddings = try container.decodeIfPresent(
-            Int.self, forKey: .maxPositionEmbeddings)
-        self.normEps = try container.decode(Float.self, forKey: .normEps)
-        self.convBias = try container.decodeIfPresent(Bool.self, forKey: .convBias) ?? false
-        self.convLCache = try container.decodeIfPresent(Int.self, forKey: .convLCache) ?? 3
-        self._blockDim = try container.decodeIfPresent(Int.self, forKey: ._blockDim)
-        self._blockFFDim = try container.decodeIfPresent(Int.self, forKey: ._blockFFDim)
-        self.blockMultipleOf =
-            try container.decodeIfPresent(Int.self, forKey: .blockMultipleOf) ?? 256
-        self.blockFFNDimMultiplier =
-            try container.decodeIfPresent(Float.self, forKey: .blockFFNDimMultiplier) ?? 1.0
-        self.blockAutoAdjustFFDim =
-            try container.decodeIfPresent(Bool.self, forKey: .blockAutoAdjustFFDim) ?? true
-        self._fullAttnIdxs = try container.decodeIfPresent([Int].self, forKey: ._fullAttnIdxs)
-        self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 1000000.0
-    }
+@Codable
+public struct LFM2Configuration: Sendable {
+    @CodingKey("model_type") public var modelType: String = "lfm2"
+    @CodingKey("vocab_size") public var vocabularySize: Int = 65536
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int?
+    @CodingKey("norm_eps") public var normEps: Float
+    @CodingKey("conv_bias") public var convBias: Bool = false
+    @CodingKey("conv_L_cache") public var convLCache: Int = 3
+    @CodingKey("block_dim") private var _blockDim: Int?
+    public var blockDim: Int { _blockDim ?? hiddenSize }
+    @CodingKey("block_ff_dim") private var _blockFFDim: Int?
+    public var blockFFDim: Int { _blockFFDim ?? hiddenSize }
+    @CodingKey("block_multiple_of") public var blockMultipleOf: Int = 256
+    @CodingKey("block_ffn_dim_multiplier") public var blockFFNDimMultiplier: Float = 1.0
+    @CodingKey("block_auto_adjust_ff_dim") public var blockAutoAdjustFFDim: Bool = true
+    @CodingKey("full_attn_idxs") private var _fullAttnIdxs: [Int]?
+    public var fullAttnIdxs: [Int] { _fullAttnIdxs ?? Array(0 ..< hiddenLayers) }
+    @CodingKey("rope_theta") public var ropeTheta: Float = 1000000.0
+    public var headDimensions: Int { hiddenSize / attentionHeads }
 }
 
 private class Attention: Module {

@@ -9,6 +9,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
 // MARK: - Attention
 
@@ -189,53 +190,18 @@ public final class Lille130mModel: Module, LLMModel, KVCacheDimensionProvider {
 
 // MARK: - Configuration
 
-public struct Lille130mConfiguration: Codable, Sendable {
-    public var modelType: String
-    public var blockSize: Int
-    public var layerNormEps: Float
-    public var hiddenSize: Int  // n_embd
-    public var attentionHeads: Int  // n_head
-    public var kvHeads: Int  // n_kv_heads
-    public var hiddenLayers: Int  // n_layer
-    public var ropeTheta: Float
-    public var vocabularySize: Int
-    public var tieWordEmbeddings: Bool = true
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case blockSize = "block_size"
-        case layerNormEps = "layer_norm_eps"
-        case hiddenSize = "n_embd"
-        case attentionHeads = "n_head"
-        case kvHeads = "n_kv_heads"
-        case hiddenLayers = "n_layer"
-        case ropeTheta = "rope_theta"
-        case vocabularySize = "vocab_size"
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container: KeyedDecodingContainer<Lille130mConfiguration.CodingKeys> =
-            try decoder.container(keyedBy: Lille130mConfiguration.CodingKeys.self)
-
-        self.modelType = try container.decode(
-            String.self, forKey: Lille130mConfiguration.CodingKeys.modelType)
-        self.blockSize = try container.decode(
-            Int.self, forKey: Lille130mConfiguration.CodingKeys.blockSize)
-        self.layerNormEps = try container.decode(
-            Float.self, forKey: Lille130mConfiguration.CodingKeys.layerNormEps)
-        self.hiddenSize = try container.decode(
-            Int.self, forKey: Lille130mConfiguration.CodingKeys.hiddenSize)
-        self.attentionHeads = try container.decode(
-            Int.self, forKey: Lille130mConfiguration.CodingKeys.attentionHeads)
-        self.kvHeads = try container.decode(
-            Int.self, forKey: Lille130mConfiguration.CodingKeys.kvHeads)
-        self.hiddenLayers = try container.decode(
-            Int.self, forKey: Lille130mConfiguration.CodingKeys.hiddenLayers)
-        self.ropeTheta = try container.decode(
-            Float.self, forKey: Lille130mConfiguration.CodingKeys.ropeTheta)
-        self.vocabularySize = try container.decode(
-            Int.self, forKey: Lille130mConfiguration.CodingKeys.vocabularySize)
-    }
+@Codable
+public struct Lille130mConfiguration: Sendable {
+    @CodingKey("model_type") public var modelType: String
+    @CodingKey("block_size") public var blockSize: Int
+    @CodingKey("layer_norm_eps") public var layerNormEps: Float
+    @CodingKey("n_embd") public var hiddenSize: Int
+    @CodingKey("n_head") public var attentionHeads: Int
+    @CodingKey("n_kv_heads") public var kvHeads: Int
+    @CodingKey("n_layer") public var hiddenLayers: Int
+    @CodingKey("rope_theta") public var ropeTheta: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = true
 }
 
 // MARK: - LoRA

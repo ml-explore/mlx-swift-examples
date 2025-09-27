@@ -8,6 +8,7 @@ import Hub
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 import Tokenizers
 
 // MARK: - Language
@@ -629,112 +630,68 @@ public class PaliGemma: Module, VLMModel, KVCacheDimensionProvider {
 // MARK: - Configuration
 
 /// Confguration for ``PaliGemma``
-public struct PaliGemmaConfiguration: Codable, Sendable {
+@Codable
+public struct PaliGemmaConfiguration: Sendable {
 
-    public struct TextConfiguration: Codable, Sendable {
-        public let modelType: String
-        public let hiddenSize: Int
-        public let hiddenLayers: Int
-        public let intermediateSize: Int
-        public let attentionHeads: Int
-        public let kvHeads: Int
-        public let vocabularySize: Int
-        private let _rmsNormEps: Float?
-        public var rmsNormEps: Float { _rmsNormEps ?? 1e-6 }
-        private let _ropeTheta: Float?
-        public var ropeTheta: Float { _ropeTheta ?? 10_000 }
-        private let _ropeTraditional: Bool?
-        public var ropeTraditional: Bool { _ropeTraditional ?? false }
-
-        enum CodingKeys: String, CodingKey {
-            case modelType = "model_type"
-            case hiddenSize = "hidden_size"
-            case hiddenLayers = "num_hidden_layers"
-            case intermediateSize = "intermediate_size"
-            case attentionHeads = "num_attention_heads"
-            case kvHeads = "num_key_value_heads"
-            case vocabularySize = "vocab_size"
-            case _rmsNormEps = "rms_norm_eps"
-            case _ropeTheta = "rope_theta"
-            case _ropeTraditional = "rope_traditional"
-        }
+    @Codable
+    public struct TextConfiguration: Sendable {
+        @CodingKey("model_type") public var modelType: String
+        @CodingKey("hidden_size") public var hiddenSize: Int
+        @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+        @CodingKey("intermediate_size") public var intermediateSize: Int
+        @CodingKey("num_attention_heads") public var attentionHeads: Int
+        @CodingKey("num_key_value_heads") public var kvHeads: Int
+        @CodingKey("vocab_size") public var vocabularySize: Int
+        @CodingKey("rms_norm_eps") public var rmsNormEps: Float = 1e-6
+        @CodingKey("rope_theta") public var ropeTheta: Float = 10_000
+        @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
     }
 
-    public struct VisionConfiguration: Codable, Sendable {
-        public let modelType: String
-        public let hiddenSize: Int
-        public let hiddenLayers: Int
-        public let intermediateSize: Int
-        public let attentionHeads: Int
-        public let patchSize: Int
-        public let projectionDimensions: Int
-        public let imageSize: Int
-        private let _channels: Int?
-        public var channels: Int { _channels ?? 3 }
-        private let _layerNormEps: Float?
-        public var layerNormEps: Float { _layerNormEps ?? 1e-6 }
-
-        enum CodingKeys: String, CodingKey {
-            case modelType = "model_type"
-            case hiddenSize = "hidden_size"
-            case hiddenLayers = "num_hidden_layers"
-            case intermediateSize = "intermediate_size"
-            case attentionHeads = "num_attention_heads"
-            case patchSize = "patch_size"
-            case projectionDimensions = "projection_dim"
-            case imageSize = "image_size"
-            case _channels = "num_channels"
-            case _layerNormEps = "layer_norm_eps"
-        }
+    @Codable
+    public struct VisionConfiguration: Sendable {
+        @CodingKey("model_type") public var modelType: String
+        @CodingKey("hidden_size") public var hiddenSize: Int
+        @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+        @CodingKey("intermediate_size") public var intermediateSize: Int
+        @CodingKey("num_attention_heads") public var attentionHeads: Int
+        @CodingKey("patch_size") public var patchSize: Int
+        @CodingKey("projection_dim") public var projectionDimensions: Int
+        @CodingKey("image_size") public var imageSize: Int
+        @CodingKey("num_channels") public var channels: Int = 3
+        @CodingKey("layer_norm_eps") public var layerNormEps: Float = 1e-6
     }
 
-    public let textConfiguration: TextConfiguration
-    public let visionConfiguration: VisionConfiguration
-    public let modelType: String
-    public let vocabularySize: Int
-    public let ignoreIndex: Int
-    public let imageTokenIndex: Int
-    public let hiddenSize: Int
-    public let padTokenId: Int
-
-    enum CodingKeys: String, CodingKey {
-        case textConfiguration = "text_config"
-        case visionConfiguration = "vision_config"
-        case modelType = "model_type"
-        case vocabularySize = "vocab_size"
-        case ignoreIndex = "ignore_index"
-        case imageTokenIndex = "image_token_index"
-        case hiddenSize = "hidden_size"
-        case padTokenId = "pad_token_id"
-    }
+    @CodingKey("text_config") public var textConfiguration: TextConfiguration
+    @CodingKey("vision_config") public var visionConfiguration: VisionConfiguration
+    @CodingKey("model_type") public var modelType: String
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("ignore_index") public var ignoreIndex: Int
+    @CodingKey("image_token_index") public var imageTokenIndex: Int
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("pad_token_id") public var padTokenId: Int
 }
 
 /// Configuration for ``PaliGemmaProcessor``
-public struct PaliGemmaProcessorConfiguration: Codable, Sendable {
+@Codable
+public struct PaliGemmaProcessorConfiguration: Sendable {
 
-    public struct Size: Codable, Sendable {
-        public let width: Int
-        public let height: Int
+    @Codable
+    public struct Size: Sendable {
+        public var width: Int
+        public var height: Int
 
         var cgSize: CGSize { .init(width: width, height: height) }
     }
 
-    public let imageMean: [CGFloat]
-    public let imageStd: [CGFloat]
-    public let size: Size
-    public let imageSequenceLength: Int
+    @CodingKey("image_mean") public var imageMean: [CGFloat]
+    @CodingKey("image_std") public var imageStd: [CGFloat]
+    public var size: Size
+    @CodingKey("image_seq_length") public var imageSequenceLength: Int
 
     public var imageMeanTuple: (CGFloat, CGFloat, CGFloat) {
         (imageMean[0], imageMean[1], imageMean[2])
     }
     public var imageStdTuple: (CGFloat, CGFloat, CGFloat) {
         (imageStd[0], imageStd[1], imageStd[2])
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case imageMean = "image_mean"
-        case imageStd = "image_std"
-        case size
-        case imageSequenceLength = "image_seq_length"
     }
 }

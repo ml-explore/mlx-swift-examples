@@ -4,8 +4,9 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
-// https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/phi.py
+// https://github.com/ml-explore/mlx-lm/tree/main/mlx_lm/models/phi.py
 
 private class PhiAttention: Module {
 
@@ -179,59 +180,18 @@ public class PhiModel: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct PhiConfiguration: Codable, Sendable {
-    var maxPositionalEmbeddings = 2048
-    var vocabularySize = 51200
-    var hiddenSize = 2560
-    var attentionHeads = 32
-    var hiddenLayers = 32
-    var kvHeads = 32
-    var partialRotaryFactor: Float = 0.4
-    var intermediateSize = 10240
-    var layerNormEps: Float = 1e-5
-    var ropeTheta: Float = 10_000
-
-    enum CodingKeys: String, CodingKey {
-        case maxPositionalEmbeddings = "max_position_embeddings"
-        case vocabularySize = "vocab_size"
-        case hiddenSize = "hidden_size"
-        case attentionHeads = "num_attention_heads"
-        case hiddenLayers = "num_hidden_layers"
-        case kvHeads = "num_key_value_heads"
-        case partialRotaryFactor = "partial_rotary_factor"
-        case intermediateSize = "intermediate_size"
-        case layerNormEps = "layer_norm_eps"
-        case ropeTheta = "rope_theta"
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container: KeyedDecodingContainer<PhiConfiguration.CodingKeys> = try decoder.container(
-            keyedBy: PhiConfiguration.CodingKeys.self)
-
-        self.maxPositionalEmbeddings = try container.decode(
-            Int.self, forKey: PhiConfiguration.CodingKeys.maxPositionalEmbeddings)
-        self.vocabularySize = try container.decode(
-            Int.self, forKey: PhiConfiguration.CodingKeys.vocabularySize)
-        self.hiddenSize = try container.decode(
-            Int.self, forKey: PhiConfiguration.CodingKeys.hiddenSize)
-        self.attentionHeads = try container.decode(
-            Int.self, forKey: PhiConfiguration.CodingKeys.attentionHeads)
-        self.hiddenLayers = try container.decode(
-            Int.self, forKey: PhiConfiguration.CodingKeys.hiddenLayers)
-        self.kvHeads =
-            try container.decodeIfPresent(Int.self, forKey: PhiConfiguration.CodingKeys.kvHeads)
-            ?? attentionHeads
-        self.partialRotaryFactor = try container.decode(
-            Float.self, forKey: PhiConfiguration.CodingKeys.partialRotaryFactor)
-        self.intermediateSize = try container.decode(
-            Int.self, forKey: PhiConfiguration.CodingKeys.intermediateSize)
-        self.layerNormEps = try container.decode(
-            Float.self, forKey: PhiConfiguration.CodingKeys.layerNormEps)
-        self.ropeTheta =
-            try container.decodeIfPresent(Float.self, forKey: PhiConfiguration.CodingKeys.ropeTheta)
-            ?? 10_000
-
-    }
+@Codable
+public struct PhiConfiguration: Sendable {
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings = 2048
+    @CodingKey("vocab_size") public var vocabularySize = 51200
+    @CodingKey("hidden_size") public var hiddenSize = 2560
+    @CodingKey("num_attention_heads") public var attentionHeads = 32
+    @CodingKey("num_hidden_layers") public var hiddenLayers = 32
+    @CodingKey("num_key_value_heads") public var kvHeads = 32
+    @CodingKey("partial_rotary_factor") public var partialRotaryFactor: Float = 0.4
+    @CodingKey("intermediate_size") public var intermediateSize = 10240
+    @CodingKey("layer_norm_eps") public var layerNormEps: Float = 1e-5
+    @CodingKey("rope_theta") public var ropeTheta: Float = 10_000
 }
 
 // MARK: - LoRA

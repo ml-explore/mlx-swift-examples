@@ -9,6 +9,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
 private protocol PositionEmbedding {
     func callAsFunction(_ x: MLXArray, offset: Int) -> MLXArray
@@ -235,132 +236,49 @@ public class SmolLM3Model: Module, LLMModel, KVCacheDimensionProvider {
 
 // MARK: - Configuration
 
-public struct SmolLM3Configuration: Codable, Sendable {
-    var modelType: String
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var headDimensions: Int?
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var kvHeads: Int
-    var maxPositionEmbeddings: Int?
-    var ropeTheta: Float = 10_000
-    var ropeTraditional: Bool = false
-    var ropeScaling: [String: StringOrNumber]?
-    var tieWordEmbeddings: Bool = true
-    var attentionBias: Bool = false
-    var mlpBias: Bool = false
+@Codable
+public struct SmolLM3Configuration: Sendable {
+    @CodingKey("model_type") public var modelType: String = "smollm3"
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("head_dim") public var headDimensions: Int?
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int = 0  // Will be set in didDecode
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int?
+    @CodingKey("rope_theta") public var ropeTheta: Float = 10_000
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]?
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = true
+    @CodingKey("attention_bias") public var attentionBias: Bool = false
+    @CodingKey("mlp_bias") public var mlpBias: Bool = false
+    @CodingKey("no_rope_layer_interval") public var noRopeLayerInterval: Int = 4
+    @CodingKey("no_rope_layers") public var noRopeLayers: [Int] = []
 
-    var noRopeLayerInterval: Int = 4
-    var noRopeLayers: [Int] = []
-
-    var resolvedHeadDimensions: Int {
+    public var resolvedHeadDimensions: Int {
         headDimensions ?? (hiddenSize / attentionHeads)
     }
 
-    public init(
-        modelType: String = "smollm3",
-        hiddenSize: Int,
-        hiddenLayers: Int,
-        intermediateSize: Int,
-        attentionHeads: Int,
-        headDimensions: Int? = nil,
-        rmsNormEps: Float,
-        vocabularySize: Int,
-        kvHeads: Int,
-        maxPositionEmbeddings: Int? = nil,
-        ropeTheta: Float = 10_000,
-        ropeTraditional: Bool = false,
-        ropeScaling: [String: StringOrNumber]? = nil,
-        tieWordEmbeddings: Bool = true,
-        attentionBias: Bool = false,
-        mlpBias: Bool = false,
-        noRopeLayerInterval: Int = 4,
-        noRopeLayers: [Int]? = nil
-    ) {
-        self.modelType = modelType
-        self.hiddenSize = hiddenSize
-        self.hiddenLayers = hiddenLayers
-        self.intermediateSize = intermediateSize
-        self.attentionHeads = attentionHeads
-        self.headDimensions = headDimensions
-        self.rmsNormEps = rmsNormEps
-        self.vocabularySize = vocabularySize
-        self.kvHeads = kvHeads
-        self.maxPositionEmbeddings = maxPositionEmbeddings
-        self.ropeTheta = ropeTheta
-        self.ropeTraditional = ropeTraditional
-        self.ropeScaling = ropeScaling
-        self.tieWordEmbeddings = tieWordEmbeddings
-        self.attentionBias = attentionBias
-        self.mlpBias = mlpBias
-        self.noRopeLayerInterval = noRopeLayerInterval
+    public mutating func didDecode(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: AnyCodingKey.self)
 
-        if let noRopeLayers = noRopeLayers {
-            self.noRopeLayers = noRopeLayers
-        } else {
-            self.noRopeLayers = (0 ..< hiddenLayers).map { i in
-                (i + 1) % noRopeLayerInterval != 0 ? 1 : 0
-            }
+        // Set kvHeads to attentionHeads if not provided in JSON
+        if kvHeads == 0 {
+            kvHeads = attentionHeads
         }
-    }
 
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case headDimensions = "head_dim"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case kvHeads = "num_key_value_heads"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case ropeTheta = "rope_theta"
-        case ropeTraditional = "rope_traditional"
-        case ropeScaling = "rope_scaling"
-        case tieWordEmbeddings = "tie_word_embeddings"
-        case attentionBias = "attention_bias"
-        case mlpBias = "mlp_bias"
-        case noRopeLayerInterval = "no_rope_layer_interval"
-        case noRopeLayers = "no_rope_layers"
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-
-        self.modelType = try container.decodeIfPresent(String.self, forKey: .modelType) ?? "smollm3"
-        self.hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        self.hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
-        self.intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
-        self.attentionHeads = try container.decode(Int.self, forKey: .attentionHeads)
-        self.headDimensions = try container.decodeIfPresent(Int.self, forKey: .headDimensions)
-        self.rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
-        self.vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
-        self.kvHeads = try container.decodeIfPresent(Int.self, forKey: .kvHeads) ?? attentionHeads
-        self.maxPositionEmbeddings = try container.decodeIfPresent(
-            Int.self, forKey: .maxPositionEmbeddings)
-        self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 10_000
-        self.ropeTraditional =
-            try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional) ?? false
-        self.ropeScaling = try container.decodeIfPresent(
-            [String: StringOrNumber].self, forKey: .ropeScaling)
-        self.tieWordEmbeddings =
-            try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? true
-        self.attentionBias =
-            try container.decodeIfPresent(Bool.self, forKey: .attentionBias) ?? false
-        self.mlpBias = try container.decodeIfPresent(Bool.self, forKey: .mlpBias) ?? false
-
-        self.noRopeLayerInterval =
-            try container.decodeIfPresent(Int.self, forKey: .noRopeLayerInterval) ?? 4
-
-        if let noRopeLayers = try container.decodeIfPresent([Int].self, forKey: .noRopeLayers) {
-            self.noRopeLayers = noRopeLayers
-        } else {
-            self.noRopeLayers = (0 ..< hiddenLayers).map { i in
-                (i + 1) % noRopeLayerInterval != 0 ? 1 : 0
+        // Compute noRopeLayers if not provided in JSON
+        if noRopeLayers.isEmpty,
+            (try? container.decode(Int.self, forKey: AnyCodingKey("num_hidden_layers"))) != nil
+        {
+            let providedNoRopeLayers = try? container.decode(
+                [Int].self, forKey: AnyCodingKey("no_rope_layers"))
+            if providedNoRopeLayers == nil {
+                noRopeLayers = (0 ..< hiddenLayers).map { i in
+                    (i + 1) % noRopeLayerInterval != 0 ? 1 : 0
+                }
             }
         }
     }

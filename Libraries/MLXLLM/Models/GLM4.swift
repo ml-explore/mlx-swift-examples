@@ -9,6 +9,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
 // port of https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/glm4.py
 
@@ -166,7 +167,6 @@ public class GLM4Model: Module, LLMModel, KVCacheDimensionProvider {
 
     private let model: GLM4ModelInner
     let configuration: GLM4Configuration
-    let modelType: String
 
     @ModuleInfo(key: "lm_head") var lmHead: Linear
 
@@ -174,7 +174,6 @@ public class GLM4Model: Module, LLMModel, KVCacheDimensionProvider {
         self.configuration = args
         self.vocabularySize = args.vocabularySize
         self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
-        self.modelType = args.modelType
         self.model = GLM4ModelInner(args)
 
         _lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
@@ -196,80 +195,22 @@ public class GLM4Model: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct GLM4Configuration: Codable, Sendable {
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var attentionBias: Bool
-    var headDim: Int
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var kvHeads: Int
-    var partialRotaryFactor: Float
-    var ropeTheta: Float = 10000.0
-    var ropeTraditional: Bool = true
-    var tieWordEmbeddings = false
-    var maxPositionEmbeddings: Int = 32768
-    var modelType: String
-
-    enum CodingKeys: String, CodingKey {
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case attentionBias = "attention_bias"
-        case headDim = "head_dim"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case kvHeads = "num_key_value_heads"
-        case partialRotaryFactor = "partial_rotary_factor"
-        case ropeTheta = "rope_theta"
-        case ropeTraditional = "rope_traditional"
-        case tieWordEmbeddings = "tie_word_embeddings"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case modelType = "model_type"
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container: KeyedDecodingContainer<GLM4Configuration.CodingKeys> =
-            try decoder.container(
-                keyedBy: GLM4Configuration.CodingKeys.self)
-
-        self.modelType = try container.decode(
-            String.self, forKey: GLM4Configuration.CodingKeys.modelType)
-        self.hiddenSize = try container.decode(
-            Int.self, forKey: GLM4Configuration.CodingKeys.hiddenSize)
-        self.hiddenLayers = try container.decode(
-            Int.self, forKey: GLM4Configuration.CodingKeys.hiddenLayers)
-        self.intermediateSize = try container.decode(
-            Int.self, forKey: GLM4Configuration.CodingKeys.intermediateSize)
-        self.attentionHeads = try container.decode(
-            Int.self, forKey: GLM4Configuration.CodingKeys.attentionHeads)
-        self.attentionBias = try container.decode(
-            Bool.self, forKey: GLM4Configuration.CodingKeys.attentionBias)
-        self.headDim = try container.decode(
-            Int.self, forKey: GLM4Configuration.CodingKeys.headDim)
-        self.rmsNormEps = try container.decode(
-            Float.self, forKey: GLM4Configuration.CodingKeys.rmsNormEps)
-        self.vocabularySize = try container.decode(
-            Int.self, forKey: GLM4Configuration.CodingKeys.vocabularySize)
-        self.kvHeads = try container.decode(Int.self, forKey: GLM4Configuration.CodingKeys.kvHeads)
-        self.partialRotaryFactor = try container.decode(
-            Float.self, forKey: GLM4Configuration.CodingKeys.partialRotaryFactor)
-        self.ropeTheta =
-            try container.decodeIfPresent(
-                Float.self, forKey: GLM4Configuration.CodingKeys.ropeTheta)
-            ?? 10000.0
-        self.ropeTraditional =
-            try container.decodeIfPresent(
-                Bool.self, forKey: GLM4Configuration.CodingKeys.ropeTraditional)
-            ?? true
-        self.tieWordEmbeddings =
-            try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
-        self.maxPositionEmbeddings =
-            try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 32768
-    }
+@Codable
+public struct GLM4Configuration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("attention_bias") public var attentionBias: Bool
+    @CodingKey("head_dim") public var headDim: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("partial_rotary_factor") public var partialRotaryFactor: Float
+    @CodingKey("rope_theta") public var ropeTheta: Float = 10000.0
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = true
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings = false
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int = 32768
 }
 
 // MARK: - LoRA

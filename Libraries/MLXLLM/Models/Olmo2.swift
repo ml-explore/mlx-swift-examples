@@ -10,6 +10,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
 // MARK: - RoPE helpers
 
@@ -339,76 +340,29 @@ public class Olmo2Model: Module, LLMModel, KVCacheDimensionProvider {
 
 // MARK: - Configuration
 
-public struct Olmo2Configuration: Codable, Sendable {
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var headDimensions: Int?
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var kvHeads: Int
-    var maxPositionEmbeddings: Int?
-    var ropeTheta: Float = 10_000
-    var ropeTraditional: Bool = false
-    var ropeScaling: [String: StringOrNumber]?
-    var tieWordEmbeddings: Bool = true
-    var attentionBias: Bool = false
-    var mlpBias: Bool = false
+@Codable
+public struct Olmo2Configuration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("head_dim") public var headDimensions: Int?
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int = 0  // Will be set in didDecode
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int?
+    @CodingKey("rope_theta") public var ropeTheta: Float = 10_000
+    @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]?
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = true
+    @CodingKey("attention_bias") public var attentionBias: Bool = false
+    @CodingKey("mlp_bias") public var mlpBias: Bool = false
 
-    var resolvedHeadDimensions: Int { headDimensions ?? (hiddenSize / attentionHeads) }
+    public var resolvedHeadDimensions: Int { headDimensions ?? (hiddenSize / attentionHeads) }
 
-    enum CodingKeys: String, CodingKey {
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case headDimensions = "head_dim"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case kvHeads = "num_key_value_heads"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case ropeTheta = "rope_theta"
-        case ropeTraditional = "rope_traditional"
-        case ropeScaling = "rope_scaling"
-        case tieWordEmbeddings = "tie_word_embeddings"
-        case attentionBias = "attention_bias"
-        case mlpBias = "mlp_bias"
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-
-        hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        hiddenLayers = try container.decode(Int.self, forKey: .hiddenLayers)
-        intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
-        attentionHeads = try container.decode(Int.self, forKey: .attentionHeads)
-        headDimensions = try container.decodeIfPresent(Int.self, forKey: .headDimensions)
-        rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
-        vocabularySize = try container.decode(Int.self, forKey: .vocabularySize)
-        let maybeKV = try container.decodeIfPresent(Int.self, forKey: .kvHeads)
-        kvHeads = maybeKV ?? attentionHeads
-        maxPositionEmbeddings = try container.decodeIfPresent(
-            Int.self, forKey: .maxPositionEmbeddings)
-        if let ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) {
-            self.ropeTheta = ropeTheta
-        }
-        if let ropeTraditional = try container.decodeIfPresent(Bool.self, forKey: .ropeTraditional)
-        {
-            self.ropeTraditional = ropeTraditional
-        }
-        ropeScaling = try container.decodeIfPresent(
-            [String: StringOrNumber].self, forKey: .ropeScaling)
-        if let tieWordEmbeddings = try container.decodeIfPresent(
-            Bool.self, forKey: .tieWordEmbeddings)
-        {
-            self.tieWordEmbeddings = tieWordEmbeddings
-        }
-        if let attentionBias = try container.decodeIfPresent(Bool.self, forKey: .attentionBias) {
-            self.attentionBias = attentionBias
-        }
-        if let mlpBias = try container.decodeIfPresent(Bool.self, forKey: .mlpBias) {
-            self.mlpBias = mlpBias
+    mutating public func didDecode() {
+        if kvHeads == 0 {
+            kvHeads = attentionHeads
         }
     }
 }

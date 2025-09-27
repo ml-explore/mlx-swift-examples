@@ -10,69 +10,41 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
-public struct BailingMoeConfiguration: Codable, Sendable {
-    var modelType: String
-    var hiddenSize: Int
-    var intermediateSize: Int
-    var maxPositionEmbeddings: Int?
-    var moeIntermediateSize: Int
-    var numExperts: Int
-    var numSharedExperts: Int
-    var normTopkProb: Bool
-    var attentionHeads: Int
-    var numExpertsPerToken: Int
-    var hiddenLayers: Int
-    var kvHeads: Int
-    var rmsNormEps: Float
-    var ropeTheta: Float
-    var vocabularySize: Int
-    var firstKDenseReplace: Int
+@Codable
+public struct BailingMoeConfiguration: Sendable {
+    @CodingKey("model_type") public var modelType: String
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int?
+    @CodingKey("moe_intermediate_size") public var moeIntermediateSize: Int
+    @CodingKey("num_experts") public var numExperts: Int
+    @CodingKey("num_shared_experts") public var numSharedExperts: Int
+    @CodingKey("norm_topk_prob") public var normTopkProb: Bool
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("num_experts_per_tok") public var numExpertsPerToken: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("rope_theta") public var ropeTheta: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("first_k_dense_replace") public var firstKDenseReplace: Int
 
     // Optional features
-    var ropeScaling: [String: StringOrNumber]? = nil
-    var useBias: Bool = false
-    var useQKVBias: Bool = false
-    var useQKNorm: Bool = false
-    var tieWordEmbeddings: Bool = false
-    var partialRotaryFactor: Float = 1.0
-    var moeRouterEnableExpertBias: Bool = false
-    var routedScalingFactor: Float = 1.0
-    var scoreFunction: String = "softmax"
-    var nGroup: Int = 1
-    var topkGroup: Int = 4
-    var moeSharedExpertIntermediateSize: Int? = nil
-
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case hiddenSize = "hidden_size"
-        case intermediateSize = "intermediate_size"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case moeIntermediateSize = "moe_intermediate_size"
-        case numExperts = "num_experts"
-        case numSharedExperts = "num_shared_experts"
-        case normTopkProb = "norm_topk_prob"
-        case attentionHeads = "num_attention_heads"
-        case numExpertsPerToken = "num_experts_per_tok"
-        case hiddenLayers = "num_hidden_layers"
-        case kvHeads = "num_key_value_heads"
-        case rmsNormEps = "rms_norm_eps"
-        case ropeTheta = "rope_theta"
-        case vocabularySize = "vocab_size"
-        case firstKDenseReplace = "first_k_dense_replace"
-        case ropeScaling = "rope_scaling"
-        case useBias = "use_bias"
-        case useQKVBias = "use_qkv_bias"
-        case useQKNorm = "use_qk_norm"
-        case tieWordEmbeddings = "tie_word_embeddings"
-        case partialRotaryFactor = "partial_rotary_factor"
-        case moeRouterEnableExpertBias = "moe_router_enable_expert_bias"
-        case routedScalingFactor = "routed_scaling_factor"
-        case scoreFunction = "score_function"
-        case nGroup = "n_group"
-        case topkGroup = "topk_group"
-        case moeSharedExpertIntermediateSize = "moe_shared_expert_intermediate_size"
-    }
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]? = nil
+    @CodingKey("use_bias") public var useBias: Bool = false
+    @CodingKey("use_qkv_bias") public var useQKVBias: Bool = false
+    @CodingKey("use_qk_norm") public var useQKNorm: Bool = false
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = false
+    @CodingKey("partial_rotary_factor") public var partialRotaryFactor: Float = 1.0
+    @CodingKey("moe_router_enable_expert_bias") public var moeRouterEnableExpertBias: Bool = false
+    @CodingKey("routed_scaling_factor") public var routedScalingFactor: Float = 1.0
+    @CodingKey("score_function") public var scoreFunction: String = "softmax"
+    @CodingKey("n_group") public var nGroup: Int = 1
+    @CodingKey("topk_group") public var topkGroup: Int = 4
+    @CodingKey("moe_shared_expert_intermediate_size") public var moeSharedExpertIntermediateSize:
+        Int? = nil
 }
 
 private class Attention: Module {

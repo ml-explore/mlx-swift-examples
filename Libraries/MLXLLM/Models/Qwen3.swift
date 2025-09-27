@@ -9,6 +9,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
 // port of https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/qwen3.py
 
@@ -217,67 +218,20 @@ public class Qwen3Model: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct Qwen3Configuration: Codable, Sendable {
-    var hiddenSize: Int
-    var hiddenLayers: Int
-    var intermediateSize: Int
-    var attentionHeads: Int
-    var rmsNormEps: Float
-    var vocabularySize: Int
-    var kvHeads: Int
-    var ropeTheta: Float = 1_000_000
-    var headDim: Int
-    var ropeScaling: [String: StringOrNumber]? = nil
-    var tieWordEmbeddings = false
-    var maxPositionEmbeddings: Int = 32768
-
-    enum CodingKeys: String, CodingKey {
-        case hiddenSize = "hidden_size"
-        case hiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case attentionHeads = "num_attention_heads"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabularySize = "vocab_size"
-        case kvHeads = "num_key_value_heads"
-        case ropeTheta = "rope_theta"
-        case headDim = "head_dim"
-        case ropeScaling = "rope_scaling"
-        case tieWordEmbeddings = "tie_word_embeddings"
-        case maxPositionEmbeddings = "max_position_embeddings"
-    }
-
-    public init(from decoder: Decoder) throws {
-        // custom implementation to handle optional keys with required values
-        let container: KeyedDecodingContainer<Qwen3Configuration.CodingKeys> =
-            try decoder.container(
-                keyedBy: Qwen3Configuration.CodingKeys.self)
-
-        self.hiddenSize = try container.decode(
-            Int.self, forKey: Qwen3Configuration.CodingKeys.hiddenSize)
-        self.hiddenLayers = try container.decode(
-            Int.self, forKey: Qwen3Configuration.CodingKeys.hiddenLayers)
-        self.intermediateSize = try container.decode(
-            Int.self, forKey: Qwen3Configuration.CodingKeys.intermediateSize)
-        self.attentionHeads = try container.decode(
-            Int.self, forKey: Qwen3Configuration.CodingKeys.attentionHeads)
-        self.rmsNormEps = try container.decode(
-            Float.self, forKey: Qwen3Configuration.CodingKeys.rmsNormEps)
-        self.vocabularySize = try container.decode(
-            Int.self, forKey: Qwen3Configuration.CodingKeys.vocabularySize)
-        self.kvHeads = try container.decode(Int.self, forKey: Qwen3Configuration.CodingKeys.kvHeads)
-        self.ropeTheta =
-            try container.decodeIfPresent(
-                Float.self, forKey: Qwen3Configuration.CodingKeys.ropeTheta)
-            ?? 1_000_000
-        self.headDim = try container.decode(
-            Int.self, forKey: Qwen3Configuration.CodingKeys.headDim)
-        self.ropeScaling = try container.decodeIfPresent(
-            [String: StringOrNumber].self, forKey: Qwen3Configuration.CodingKeys.ropeScaling)
-        self.tieWordEmbeddings =
-            try container.decodeIfPresent(Bool.self, forKey: .tieWordEmbeddings) ?? false
-        self.maxPositionEmbeddings =
-            try container.decodeIfPresent(Int.self, forKey: .maxPositionEmbeddings) ?? 32768
-    }
+@Codable
+public struct Qwen3Configuration: Sendable {
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("num_attention_heads") public var attentionHeads: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("vocab_size") public var vocabularySize: Int
+    @CodingKey("num_key_value_heads") public var kvHeads: Int
+    @CodingKey("rope_theta") public var ropeTheta: Float = 1_000_000
+    @CodingKey("head_dim") public var headDim: Int
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]? = nil
+    @CodingKey("tie_word_embeddings") public var tieWordEmbeddings = false
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int = 32768
 }
 
 // MARK: - LoRA

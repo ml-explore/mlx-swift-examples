@@ -1,36 +1,26 @@
 // Copyright © 2025 Apple Inc.
 
 import Foundation
+import ReerCodable
 
 /// Base ``LanguageModel`` configuration -- provides `modelType`
 /// and `quantization` (used in loading the model).
 ///
 /// This is used by ``ModelFactory/load(hub:configuration:progressHandler:)``
 /// to determine the type of model to load.
-public struct BaseConfiguration: Codable, Sendable {
-    public let modelType: String
+@Codable(memberwiseInit: false)
+public struct BaseConfiguration: Sendable {
+    @CodingKey("model_type") public let modelType: String
 
-    public struct Quantization: Codable, Sendable, Equatable {
-        public init(groupSize: Int, bits: Int) {
-            self.groupSize = groupSize
-            self.bits = bits
-        }
-
-        public let groupSize: Int
+    @Codable
+    public struct Quantization: Sendable, Equatable {
+        @CodingKey("group_size") public let groupSize: Int
         public let bits: Int
-        public var quantMethod: String? = nil
-        public var linearClass: String? = nil
-        public var quantizationMode: String? = nil
+        @CodingKey("quant_method") public var quantMethod: String? = nil
+        @CodingKey("linear_class") public var linearClass: String? = nil
+        @CodingKey("quantization_mode") public var quantizationMode: String? = nil
 
         public var asTuple: (Int, Int) { (groupSize, bits) }
-
-        enum CodingKeys: String, CodingKey {
-            case groupSize = "group_size"
-            case bits = "bits"
-            case quantMethod = "quant_method"
-            case linearClass = "linear_class"
-            case quantizationMode = "quantization_mode"
-        }
     }
 
     /// handling instructions for ``PerLayerQuantization``
@@ -83,39 +73,26 @@ public struct BaseConfiguration: Codable, Sendable {
     ///
     /// This mixed type structure requires manual decoding.
     struct QuantizationContainer: Codable, Sendable {
-        var quantization: Quantization
+        var quantization: Quantization?
         var perLayerQuantization: PerLayerQuantization
 
-        // based on Dictionary's coding key
-        internal struct _DictionaryCodingKey: CodingKey {
-            internal let stringValue: String
-            internal let intValue: Int?
-
-            internal init(stringValue: String) {
-                self.stringValue = stringValue
-                self.intValue = Int(stringValue)
-            }
-
-            internal init(intValue: Int) {
-                self.stringValue = "\(intValue)"
-                self.intValue = intValue
-            }
+        internal init(quantization: Quantization?, perLayerQuantization: PerLayerQuantization) {
+            self.quantization = quantization
+            self.perLayerQuantization = perLayerQuantization
         }
 
         init(from decoder: any Decoder) throws {
             // handle the embedded Quantization
-            self.quantization = try Quantization(from: decoder)
+            self.quantization = try? Quantization(from: decoder)
 
             // and the interleaved per-layer values
             var perLayerQuantization = [String: QuantizationOption]()
-            let container = try decoder.container(keyedBy: _DictionaryCodingKey.self)
+            let container = try decoder.container(keyedBy: AnyCodingKey.self)
             for key in container.allKeys {
                 switch key.stringValue {
-                case Quantization.CodingKeys.groupSize.rawValue: continue
-                case Quantization.CodingKeys.bits.rawValue: continue
-                case Quantization.CodingKeys.quantMethod.rawValue: continue
-                case Quantization.CodingKeys.linearClass.rawValue: continue
-                case Quantization.CodingKeys.quantizationMode.rawValue: continue
+                // ignore keys that belong to Quantization
+                case "group_size", "bits": continue
+                case "quant_method", "linear_class", "quantization_mode": continue
 
                 default:
                     if let f = try? container.decode(Bool.self, forKey: key) {
@@ -135,19 +112,20 @@ public struct BaseConfiguration: Codable, Sendable {
         func encode(to encoder: any Encoder) throws {
             try quantization.encode(to: encoder)
 
-            var container = encoder.container(keyedBy: _DictionaryCodingKey.self)
+            var container = encoder.container(keyedBy: AnyCodingKey.self)
             for (key, value) in perLayerQuantization.perLayerQuantization {
+                guard let key = AnyCodingKey(stringValue: key) else { continue }
                 switch value {
                 case .skip:
-                    try container.encode(false, forKey: .init(stringValue: key))
+                    try container.encode(false, forKey: key)
                 case .quantize(let q):
-                    try container.encode(q, forKey: .init(stringValue: key))
+                    try container.encode(q, forKey: key)
                 }
             }
         }
     }
 
-    var quantizationContainer: QuantizationContainer?
+    @CodingKey("quantization") var quantizationContainer: QuantizationContainer?
 
     @available(*, deprecated, message: "Please use perLayerQuantization instead")
     public var quantization: Quantization? {
@@ -158,8 +136,13 @@ public struct BaseConfiguration: Codable, Sendable {
         quantizationContainer?.perLayerQuantization
     }
 
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case quantizationContainer = "quantization"
+    public init(
+        modelType: String, quantization: Quantization? = nil,
+        perLayerQuantization: PerLayerQuantization? = nil
+    ) {
+        self.modelType = modelType
+        self.quantizationContainer = QuantizationContainer(
+            quantization: quantization,
+            perLayerQuantization: perLayerQuantization ?? .init(perLayerQuantization: [:]))
     }
 }

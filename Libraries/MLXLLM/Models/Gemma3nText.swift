@@ -9,115 +9,65 @@
 
 import Foundation
 import MLX
-import MLXFast
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
 // MARK: - Configuration
 
-public struct Gemma3nTextConfiguration: Codable {
-    let modelType: String
-    let hiddenSize: Int
-    let numHiddenLayers: Int
-    let intermediateSize: Int
-    let numAttentionHeads: Int
-    let headDim: Int
-    let rmsNormEps: Float
-    let vocabSize: Int
-    let numKeyValueHeads: Int
-    let numKvSharedLayers: Int
-    let queryPreAttnScalar: Float
-    let vocabSizePerLayerInput: Int
-    let slidingWindow: Int
-    let maxPositionEmbeddings: Int
-    let ropeLocalBaseFreq: Float
-    let ropeTheta: Float
-    let finalLogitSoftcapping: Float
-    let layerTypes: [String]?
-    let activationSparsityPattern: [Float]?
-    let hiddenSizePerLayerInput: Int
-    let altupNumInputs: Int
-    let altupCoefClip: Float?
-    let altupCorrectScale: Bool
-    let altupActiveIdx: Int
-    let laurelRank: Int
-    let ropeScaling: [String: String]?
-    let slidingWindowPattern: Int?
+@Codable
+public struct Gemma3nTextConfiguration {
+    @CodingKey("model_type") public let modelType: String
+    @CodingKey("hidden_size") public let hiddenSize: Int
+    @CodingKey("num_hidden_layers") public let numHiddenLayers: Int
+    @CodingKey("intermediate_size") public let intermediateSize: Int
+    @CodingKey("num_attention_heads") public let numAttentionHeads: Int
+    @CodingKey("head_dim") public let headDim: Int
+    @CodingKey("rms_norm_eps") public let rmsNormEps: Float
+    @CodingKey("vocab_size") public let vocabSize: Int
+    @CodingKey("num_key_value_heads") public let numKeyValueHeads: Int
+    @CodingKey("num_kv_shared_layers") public let numKvSharedLayers: Int
+    @CodingKey("query_pre_attn_scalar") public let queryPreAttnScalar: Float
+    @CodingKey("vocab_size_per_layer_input") public let vocabSizePerLayerInput: Int
+    @CodingKey("sliding_window") public let slidingWindow: Int
+    @CodingKey("max_position_embeddings") public let maxPositionEmbeddings: Int
+    @CodingKey("rope_local_base_freq") public let ropeLocalBaseFreq: Float
+    @CodingKey("rope_theta") public let ropeTheta: Float
+    @CodingKey("final_logit_softcapping") public let finalLogitSoftcapping: Float
+    @CodingKey("layer_types") public let layerTypes: [String]?
+    @CodingKey("activation_sparsity_pattern") public let activationSparsityPattern: [Float]?
+    @CodingKey("hidden_size_per_layer_input") public let hiddenSizePerLayerInput: Int
+    @CodingKey("altup_num_inputs") public let altupNumInputs: Int
+    @CodingKey("altup_coef_clip") public let altupCoefClip: Float?
+    @CodingKey("altup_correct_scale") public let altupCorrectScale: Bool
+    @CodingKey("altup_active_idx") public let altupActiveIdx: Int
+    @CodingKey("laurel_rank") public let laurelRank: Int
+    @CodingKey("rope_scaling") public let ropeScaling: [String: String]?
+    @CodingKey("sliding_window_pattern") public let slidingWindowPattern: Int?
+}
 
-    enum CodingKeys: String, CodingKey {
-        case modelType = "model_type"
-        case hiddenSize = "hidden_size"
-        case numHiddenLayers = "num_hidden_layers"
-        case intermediateSize = "intermediate_size"
-        case numAttentionHeads = "num_attention_heads"
-        case headDim = "head_dim"
-        case rmsNormEps = "rms_norm_eps"
-        case vocabSize = "vocab_size"
-        case numKeyValueHeads = "num_key_value_heads"
-        case numKvSharedLayers = "num_kv_shared_layers"
-        case queryPreAttnScalar = "query_pre_attn_scalar"
-        case vocabSizePerLayerInput = "vocab_size_per_layer_input"
-        case slidingWindow = "sliding_window"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case ropeLocalBaseFreq = "rope_local_base_freq"
-        case ropeTheta = "rope_theta"
-        case finalLogitSoftcapping = "final_logit_softcapping"
-        case layerTypes = "layer_types"
-        case activationSparsityPattern = "activation_sparsity_pattern"
-        case hiddenSizePerLayerInput = "hidden_size_per_layer_input"
-        case altupNumInputs = "altup_num_inputs"
-        case altupCoefClip = "altup_coef_clip"
-        case altupCorrectScale = "altup_correct_scale"
-        case altupActiveIdx = "altup_active_idx"
-        case laurelRank = "laurel_rank"
-        case ropeScaling = "rope_scaling"
-        case slidingWindowPattern = "sliding_window_pattern"
-    }
+public struct Gemma3nTextConfigurationContainer: Codable, Sendable {
+    public var configuration: Gemma3nTextConfiguration
 
     enum VLMCodingKeys: String, CodingKey {
         case textConfig = "text_config"
     }
 
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
+        // in the case of VLM models convertered using mlx_lm.convert
+        // the configuration will still match the VLMs and be under text_config
         let nestedContainer = try decoder.container(keyedBy: VLMCodingKeys.self)
+        if let configuration = try nestedContainer.decodeIfPresent(
+            Gemma3nTextConfiguration.self, forKey: .textConfig)
+        {
+            self.configuration = configuration
+        } else {
+            self.configuration = try Gemma3nTextConfiguration(from: decoder)
+        }
+    }
 
-        // in the case of Gemma 3n model, the configuration matches VLMs and text config is under a text_config key
-        let container =
-            if nestedContainer.contains(.textConfig) {
-                try nestedContainer.nestedContainer(keyedBy: CodingKeys.self, forKey: .textConfig)
-            } else {
-                try decoder.container(keyedBy: CodingKeys.self)
-            }
-
-        modelType = try container.decode(String.self, forKey: .modelType)
-        hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
-        numHiddenLayers = try container.decode(Int.self, forKey: .numHiddenLayers)
-        intermediateSize = try container.decode(Int.self, forKey: .intermediateSize)
-        numAttentionHeads = try container.decode(Int.self, forKey: .numAttentionHeads)
-        headDim = try container.decode(Int.self, forKey: .headDim)
-        rmsNormEps = try container.decode(Float.self, forKey: .rmsNormEps)
-        vocabSize = try container.decode(Int.self, forKey: .vocabSize)
-        numKeyValueHeads = try container.decode(Int.self, forKey: .numKeyValueHeads)
-        numKvSharedLayers = try container.decode(Int.self, forKey: .numKvSharedLayers)
-        queryPreAttnScalar = try container.decode(Float.self, forKey: .queryPreAttnScalar)
-        vocabSizePerLayerInput = try container.decode(Int.self, forKey: .vocabSizePerLayerInput)
-        slidingWindow = try container.decode(Int.self, forKey: .slidingWindow)
-        maxPositionEmbeddings = try container.decode(Int.self, forKey: .maxPositionEmbeddings)
-        ropeLocalBaseFreq = try container.decode(Float.self, forKey: .ropeLocalBaseFreq)
-        ropeTheta = try container.decode(Float.self, forKey: .ropeTheta)
-        finalLogitSoftcapping = try container.decode(Float.self, forKey: .finalLogitSoftcapping)
-        layerTypes = try container.decode([String]?.self, forKey: .layerTypes)
-        activationSparsityPattern = try container.decodeIfPresent(
-            [Float].self, forKey: .activationSparsityPattern)
-        hiddenSizePerLayerInput = try container.decode(Int.self, forKey: .hiddenSizePerLayerInput)
-        altupNumInputs = try container.decode(Int.self, forKey: .altupNumInputs)
-        altupCoefClip = try container.decodeIfPresent(Float.self, forKey: .altupCoefClip)
-        altupCorrectScale = try container.decode(Bool.self, forKey: .altupCorrectScale)
-        altupActiveIdx = try container.decode(Int.self, forKey: .altupActiveIdx)
-        laurelRank = try container.decode(Int.self, forKey: .laurelRank)
-        ropeScaling = try container.decodeIfPresent([String: String].self, forKey: .ropeScaling)
-        slidingWindowPattern = try container.decodeIfPresent(
-            Int.self, forKey: .slidingWindowPattern)
+    public func encode(to encoder: any Encoder) throws {
+        try configuration.encode(to: encoder)
     }
 }
 
@@ -927,6 +877,10 @@ public class Gemma3nTextModel: Module, LLMModel {
     let textVocabSize: Int
 
     var kvHeads: [Int]
+
+    public convenience init(config: Gemma3nTextConfigurationContainer) {
+        self.init(config: config.configuration)
+    }
 
     public init(config: Gemma3nTextConfiguration) {
         self.config = config

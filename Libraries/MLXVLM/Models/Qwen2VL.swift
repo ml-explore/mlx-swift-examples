@@ -8,6 +8,7 @@ import Hub
 import MLX
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 import Tokenizers
 
 // MARK: - Language
@@ -756,87 +757,45 @@ public class Qwen2VL: Module, VLMModel, KVCacheDimensionProvider {
 /// Configuration for ``Qwen2VL``
 public struct Qwen2VLConfiguration: Codable, Sendable {
 
-    public struct TextConfiguration: Codable, Sendable {
-        public let modelType: String
-        public let hiddenSize: Int
-        public let hiddenLayers: Int
-        public let intermediateSize: Int
-        public let attentionHeads: Int
-        private let _rmsNormEps: Float?
-        public var rmsNormEps: Float { _rmsNormEps ?? 1e-6 }
-        public let vocabularySize: Int
-        public let kvHeads: Int
-        private let _maxPositionEmbeddings: Int?
-        public var maxpPositionEmbeddings: Int { _maxPositionEmbeddings ?? 32768 }
-        private let _ropeTheta: Float?
-        public var ropeTheta: Float { _ropeTheta ?? 1_000_000 }
-        private let _ropeTraditional: Bool?
-        public var ropeTraditional: Bool { _ropeTraditional ?? false }
-        public let ropeScaling: [String: StringOrNumber]?
-        private let _tieWordEmbeddings: Bool?
-        public var tieWordEmbeddings: Bool { _tieWordEmbeddings ?? true }
-
-        enum CodingKeys: String, CodingKey {
-            case modelType = "model_type"
-            case hiddenSize = "hidden_size"
-            case hiddenLayers = "num_hidden_layers"
-            case intermediateSize = "intermediate_size"
-            case attentionHeads = "num_attention_heads"
-            case _rmsNormEps = "rms_norm_eps"
-            case vocabularySize = "vocab_size"
-            case kvHeads = "num_key_value_heads"
-            case _maxPositionEmbeddings = "max_position_embeddings"
-            case _ropeTheta = "rope_theta"
-            case _ropeTraditional = "rope_traditional"
-            case ropeScaling = "rope_scaling"
-            case _tieWordEmbeddings = "tie_word_embeddings"
-        }
+    @Codable
+    public struct TextConfiguration: Sendable {
+        @CodingKey("model_type") public var modelType: String
+        @CodingKey("hidden_size") public var hiddenSize: Int
+        @CodingKey("num_hidden_layers") public var hiddenLayers: Int
+        @CodingKey("intermediate_size") public var intermediateSize: Int
+        @CodingKey("num_attention_heads") public var attentionHeads: Int
+        @CodingKey("rms_norm_eps") public var rmsNormEps: Float = 1e-6
+        @CodingKey("vocab_size") public var vocabularySize: Int
+        @CodingKey("num_key_value_heads") public var kvHeads: Int
+        @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int = 32768
+        @CodingKey("rope_theta") public var ropeTheta: Float = 1_000_000
+        @CodingKey("rope_traditional") public var ropeTraditional: Bool = false
+        @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]?
+        @CodingKey("tie_word_embeddings") public var tieWordEmbeddings: Bool = true
     }
 
-    public struct VisionConfiguration: Codable, Sendable {
-        public let depth: Int
-        public let embedDimensions: Int
-        public let hiddenSize: Int
-        public let numHeads: Int
-        public let patchSize: Int
-        public let mlpRatio: Float
-        public let _inChannels: Int?
-        public var inChannels: Int { _inChannels ?? 3 }
-        public let _layerNormEps: Float?
-        public var layerNormEps: Float { _layerNormEps ?? 1e-6 }
-        public let spatialPatchSize: Int
-        public let spatialMergeSize: Int
-        public let temporalPatchSize: Int
-
-        enum CodingKeys: String, CodingKey {
-            case depth
-            case embedDimensions = "embed_dim"
-            case hiddenSize = "hidden_size"
-            case numHeads = "num_heads"
-            case patchSize = "patch_size"
-            case mlpRatio = "mlp_ratio"
-            case _inChannels = "in_channels"
-            case _layerNormEps = "layer_norm_eps"
-            case spatialPatchSize = "spatial_patch_size"
-            case spatialMergeSize = "spatial_merge_size"
-            case temporalPatchSize = "temporal_patch_size"
-        }
+    @Codable
+    public struct VisionConfiguration: Sendable {
+        public var depth: Int
+        @CodingKey("embed_dim") public var embedDimensions: Int
+        @CodingKey("hidden_size") public var hiddenSize: Int
+        @CodingKey("num_heads") public var numHeads: Int
+        @CodingKey("patch_size") public var patchSize: Int
+        @CodingKey("mlp_ratio") public var mlpRatio: Float
+        @CodingKey("in_channels") public var inChannels: Int = 3
+        @CodingKey("layer_norm_eps") public var layerNormEps: Float = 1e-6
+        @CodingKey("spatial_patch_size") public var spatialPatchSize: Int
+        @CodingKey("spatial_merge_size") public var spatialMergeSize: Int
+        @CodingKey("temporal_patch_size") public var temporalPatchSize: Int
     }
 
-    public struct BaseConfiguration: Codable, Sendable {
-        public let modelType: String
-        public let vocabularySize: Int
-        public let imageTokenId: Int
-        public let videoTokenId: Int
-        public let hiddenSize: Int
-
-        enum CodingKeys: String, CodingKey {
-            case modelType = "model_type"
-            case vocabularySize = "vocab_size"
-            case imageTokenId = "image_token_id"
-            case videoTokenId = "video_token_id"
-            case hiddenSize = "hidden_size"
-        }
+    @Codable
+    public struct BaseConfiguration: Sendable {
+        @CodingKey("model_type") public var modelType: String
+        @CodingKey("vocab_size") public var vocabularySize: Int
+        @CodingKey("image_token_id") public var imageTokenId: Int
+        @CodingKey("video_token_id") public var videoTokenId: Int
+        @CodingKey("hidden_size") public var hiddenSize: Int
     }
 
     public let textConfiguration: TextConfiguration
@@ -858,30 +817,34 @@ public struct Qwen2VLConfiguration: Codable, Sendable {
         self.textConfiguration = try TextConfiguration(from: decoder)
         self.baseConfiguration = try BaseConfiguration(from: decoder)
     }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = try encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(visionConfiguration, forKey: .visionConfiguration)
+        try textConfiguration.encode(to: encoder)
+        try baseConfiguration.encode(to: encoder)
+    }
 }
 
 /// Configuration for ``Qwen2VLProcessor``
-public struct Qwen2VLProcessorConfiguration: Codable, Sendable {
+@Codable
+public struct Qwen2VLProcessorConfiguration: Sendable {
 
-    public struct Size: Codable, Sendable {
-        public let maxPixels: Int
-        public let minPixels: Int
-
-        enum CodingKeys: String, CodingKey {
-            case maxPixels = "max_pixels"
-            case minPixels = "min_pixels"
-        }
+    @Codable
+    public struct Size: Sendable {
+        @CodingKey("max_pixels") public var maxPixels: Int
+        @CodingKey("min_pixels") public var minPixels: Int
     }
 
-    public let imageMean: [CGFloat]
-    public let imageStd: [CGFloat]
-    public let mergeSize: Int
-    public let patchSize: Int
-    public let temporalPatchSize: Int
-
-    private let _size: Size?
-    private let _maxPixels: Int?
-    private let _minPixels: Int?
+    @CodingKey("image_mean") public var imageMean: [CGFloat]
+    @CodingKey("image_std") public var imageStd: [CGFloat]
+    @CodingKey("merge_size") public var mergeSize: Int
+    @CodingKey("patch_size") public var patchSize: Int
+    @CodingKey("temporal_patch_size") public var temporalPatchSize: Int
+    @CodingKey("max_pixels") private var _maxPixels: Int?
+    @CodingKey("min_pixels") private var _minPixels: Int?
+    @CodingKey("size") private var _size: Size?
 
     public var minPixels: Int {
         _minPixels ?? _size?.minPixels ?? 3136
@@ -895,17 +858,6 @@ public struct Qwen2VLProcessorConfiguration: Codable, Sendable {
     }
     public var imageStdTuple: (CGFloat, CGFloat, CGFloat) {
         (imageStd[0], imageStd[1], imageStd[2])
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case imageMean = "image_mean"
-        case imageStd = "image_std"
-        case mergeSize = "merge_size"
-        case patchSize = "patch_size"
-        case temporalPatchSize = "temporal_patch_size"
-        case _maxPixels = "max_pixels"
-        case _minPixels = "min_pixels"
-        case _size = "size"
     }
 }
 

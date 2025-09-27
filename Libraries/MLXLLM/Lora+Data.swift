@@ -48,7 +48,7 @@ public func loadLoRAData(url: URL) throws -> [String] {
 
 func loadJSONL(url: URL) throws -> [String] {
 
-    struct Line: Codable {
+    struct Line: Codable, Sendable {
         let text: String?
     }
 

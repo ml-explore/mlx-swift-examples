@@ -2,67 +2,39 @@
 
 import Foundation
 import MLX
-import MLXFast
 import MLXLLM
 import MLXLMCommon
 import MLXNN
+import ReerCodable
 
-public struct DeepseekV3Configuration: Codable, Sendable {
-    var vocabSize: Int
-    var hiddenSize: Int
-    var intermediateSize: Int
-    var moeIntermediateSize: Int
-    var numHiddenLayers: Int
-    var numAttentionHeads: Int
-    var numKeyValueHeads: Int
-    var nSharedExperts: Int?
-    var nRoutedExperts: Int?
-    var routedScalingFactor: Float
-    var kvLoraRank: Int
-    var qLoraRank: Int
-    var qkRopeHeadDim: Int
-    var vHeadDim: Int
-    var qkNopeHeadDim: Int
-    var normTopkProb: Bool
-    var nGroup: Int?
-    var topkGroup: Int?
-    var numExpertsPerTok: Int?
-    var moeLayerFreq: Int
-    var firstKDenseReplace: Int
-    var maxPositionEmbeddings: Int
-    var rmsNormEps: Float
-    var ropeTheta: Float
-    var ropeScaling: [String: StringOrNumber]?
-    var attentionBias: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case vocabSize = "vocab_size"
-        case hiddenSize = "hidden_size"
-        case intermediateSize = "intermediate_size"
-        case moeIntermediateSize = "moe_intermediate_size"
-        case numHiddenLayers = "num_hidden_layers"
-        case numAttentionHeads = "num_attention_heads"
-        case numKeyValueHeads = "num_key_value_heads"
-        case nSharedExperts = "n_shared_experts"
-        case nRoutedExperts = "n_routed_experts"
-        case routedScalingFactor = "routed_scaling_factor"
-        case kvLoraRank = "kv_lora_rank"
-        case qLoraRank = "q_lora_rank"
-        case qkRopeHeadDim = "qk_rope_head_dim"
-        case vHeadDim = "v_head_dim"
-        case qkNopeHeadDim = "qk_nope_head_dim"
-        case normTopkProb = "norm_topk_prob"
-        case nGroup = "n_group"
-        case topkGroup = "topk_group"
-        case numExpertsPerTok = "num_experts_per_tok"
-        case moeLayerFreq = "moe_layer_freq"
-        case firstKDenseReplace = "first_k_dense_replace"
-        case maxPositionEmbeddings = "max_position_embeddings"
-        case rmsNormEps = "rms_norm_eps"
-        case ropeTheta = "rope_theta"
-        case ropeScaling = "rope_scaling"
-        case attentionBias = "attention_bias"
-    }
+@Codable
+public struct DeepseekV3Configuration: Sendable {
+    @CodingKey("vocab_size") public var vocabSize: Int
+    @CodingKey("hidden_size") public var hiddenSize: Int
+    @CodingKey("intermediate_size") public var intermediateSize: Int
+    @CodingKey("moe_intermediate_size") public var moeIntermediateSize: Int
+    @CodingKey("num_hidden_layers") public var numHiddenLayers: Int
+    @CodingKey("num_attention_heads") public var numAttentionHeads: Int
+    @CodingKey("num_key_value_heads") public var numKeyValueHeads: Int
+    @CodingKey("n_shared_experts") public var nSharedExperts: Int?
+    @CodingKey("n_routed_experts") public var nRoutedExperts: Int?
+    @CodingKey("routed_scaling_factor") public var routedScalingFactor: Float
+    @CodingKey("kv_lora_rank") public var kvLoraRank: Int
+    @CodingKey("q_lora_rank") public var qLoraRank: Int
+    @CodingKey("qk_rope_head_dim") public var qkRopeHeadDim: Int
+    @CodingKey("v_head_dim") public var vHeadDim: Int
+    @CodingKey("qk_nope_head_dim") public var qkNopeHeadDim: Int
+    @CodingKey("norm_topk_prob") public var normTopkProb: Bool
+    @CodingKey("n_group") public var nGroup: Int?
+    @CodingKey("topk_group") public var topkGroup: Int?
+    @CodingKey("num_experts_per_tok") public var numExpertsPerTok: Int?
+    @CodingKey("moe_layer_freq") public var moeLayerFreq: Int
+    @CodingKey("first_k_dense_replace") public var firstKDenseReplace: Int
+    @CodingKey("max_position_embeddings") public var maxPositionEmbeddings: Int
+    @CodingKey("rms_norm_eps") public var rmsNormEps: Float
+    @CodingKey("rope_theta") public var ropeTheta: Float
+    @CodingKey("rope_scaling") public var ropeScaling: [String: StringOrNumber]?
+    @CodingKey("attention_bias") public var attentionBias: Bool
 }
 
 private func yarnFindCorrectionDim(
