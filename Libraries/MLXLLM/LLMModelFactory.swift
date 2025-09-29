@@ -61,6 +61,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "olmoe": create(OlmoEConfiguration.self, OlmoEModel.init),
             "olmo2": create(Olmo2Configuration.self, Olmo2Model.init),
             "bailing_moe": create(BailingMoeConfiguration.self, BailingMoeModel.init),
+            "mamba": create(MambaConfiguration.self, MambaModel.init),
         ]
     }
 }

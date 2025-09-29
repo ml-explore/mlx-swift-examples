@@ -112,6 +112,10 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "--model mlx-community/mamba-130m-hf-f32"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "--model mlx-community/phi-2-hf-4bit-mlx"
             isEnabled = "NO">
          </CommandLineArgument>
