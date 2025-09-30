@@ -26,10 +26,11 @@ open class ProcessorTypeRegistry: @unchecked Sendable {
     /// Add a new model to the type registry.
     public func registerProcessorType(
         _ type: String,
-        creator: @Sendable @escaping (
-            URL,
-            any Tokenizer
-        ) throws -> any UserInputProcessor
+        creator:
+            @Sendable @escaping (
+                URL,
+                any Tokenizer
+            ) throws -> any UserInputProcessor
     ) {
         lock.withLock {
             creators[type] = creator

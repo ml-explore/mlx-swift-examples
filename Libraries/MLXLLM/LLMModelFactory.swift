@@ -57,6 +57,11 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "lfm2": create(LFM2Configuration.self, LFM2Model.init),
             "baichuan_m1": create(BaichuanM1Configuration.self, BaichuanM1Model.init),
             "exaone4": create(Exaone4Configuration.self, Exaone4Model.init),
+            "gpt_oss": create(GPTOSSConfiguration.self, GPTOSSModel.init),
+            "lille-130m": create(Lille130mConfiguration.self, Lille130mModel.init),
+            "olmoe": create(OlmoEConfiguration.self, OlmoEModel.init),
+            "olmo2": create(Olmo2Configuration.self, Olmo2Model.init),
+            "bailing_moe": create(BailingMoeConfiguration.self, BailingMoeModel.init),
         ]
     }
 }
@@ -296,6 +301,26 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
+    static public let lille_130m_bf16 = ModelConfiguration(
+        id: "mlx-community/lille-130m-instruct-bf16",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let olmoe_1b_7b_0125_instruct_4bit = ModelConfiguration(
+        id: "mlx-community/OLMoE-1B-7B-0125-Instruct-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let olmo_2_1124_7B_Instruct_4bit = ModelConfiguration(
+        id: "mlx-community/OLMo-2-1124-7B-Instruct-4bit",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
+    static public let ling_mini_2_2bit = ModelConfiguration(
+        id: "mlx-community/Ling-mini-2.0-2bit-DWQ",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -338,6 +363,10 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             lfm2_1_2b_4bit,
             baichuan_m1_14b_instruct_4bit,
             exaone_4_0_1_2b_4bit,
+            lille_130m_bf16,
+            olmoe_1b_7b_0125_instruct_4bit,
+            olmo_2_1124_7B_Instruct_4bit,
+            ling_mini_2_2bit,
         ]
     }
 

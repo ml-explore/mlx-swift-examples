@@ -84,6 +84,7 @@ public class TokenizerReplacementRegistry: @unchecked Sendable {
         "Qwen2Tokenizer": "PreTrainedTokenizer",
         "Qwen3Tokenizer": "PreTrainedTokenizer",
         "CohereTokenizer": "PreTrainedTokenizer",
+        "GPTNeoXTokenizer": "PreTrainedTokenizer",
     ]
 
     public subscript(key: String) -> String? {

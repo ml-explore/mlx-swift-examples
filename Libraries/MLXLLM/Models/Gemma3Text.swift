@@ -362,8 +362,10 @@ public class Gemma3TextModel: Module, LLMModel {
         }
 
         if processedWeights["lm_head.weight"] == nil {
-            if let embedWeight = processedWeights["model.embed_tokens.weight"] {
-                processedWeights["lm_head.weight"] = embedWeight
+            ["weight", "scales", "biases"].forEach { key in
+                if let embedWeight = processedWeights["model.embed_tokens.\(key)"] {
+                    processedWeights["lm_head.\(key)"] = embedWeight
+                }
             }
         }
         return processedWeights

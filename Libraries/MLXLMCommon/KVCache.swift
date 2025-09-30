@@ -137,7 +137,12 @@ open class BaseKVCache: KVCache {
     open func trim(_ n: Int) -> Int { 0 }
 }
 
-func createCausalMask(n: Int, offset: Int, windowSize: Int? = nil) -> MLXArray {
+public func createCausalMask(
+    n: Int,
+    offset: Int,
+    windowSize: Int? = nil,
+    lengths: MLXArray? = nil
+) -> MLXArray {
     var rinds = MLXArray(Int32(0) ..< Int32(offset + n))
     var linds = offset != 0 ? MLXArray(Int32(offset) ..< Int32(offset + n)) : rinds
     linds = linds[0..., .newAxis]
@@ -145,7 +150,12 @@ func createCausalMask(n: Int, offset: Int, windowSize: Int? = nil) -> MLXArray {
     var mask = linds .>= rinds
 
     if let windowSize {
-        mask = mask & (linds .< rinds + windowSize)
+        mask = mask & (linds .<= rinds + windowSize)
+    }
+
+    if var lengths {
+        lengths = lengths[0..., .newAxis, .newAxis, .newAxis]
+        mask = mask & (rinds .< lengths)
     }
 
     return mask
