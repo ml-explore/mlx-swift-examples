@@ -12,7 +12,6 @@ import MLXNN
 
 // port of https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/models/falcon_h1.py
 
-
 // MARK: - Configuration
 
 public struct FalconH1Configuration: Codable, Sendable {
@@ -199,7 +198,6 @@ public struct FalconH1Configuration: Codable, Sendable {
     }
 }
 
-
 // MARK: - RMSNormGated
 
 private class RMSNormGated: Module {
@@ -242,7 +240,7 @@ private func computeMupVector(_ args: FalconH1Configuration) -> MLXArray {
         intermediateSize,
         groupsTimeStateSize,
         groupsTimeStateSize,
-        numHeads
+        numHeads,
     ]
 
     let segments = zip(sizes, args.ssmMultipliers).map { size, multiplier in
@@ -295,8 +293,7 @@ private class Attention: Module {
         )
     }
 
-    func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache? = nil) -> MLXArray
-    {
+    func callAsFunction(_ x: MLXArray, mask: MLXArray? = nil, cache: KVCache? = nil) -> MLXArray {
         let (B, L, _) = (x.dim(0), x.dim(1), x.dim(2))
 
         var queries = qProj(x)
@@ -494,7 +491,7 @@ private class Mixer: Module {
             convOutput,
             indices: [
                 intermediateSize,
-                intermediateSize + nGroups * ssmStateSize
+                intermediateSize + nGroups * ssmStateSize,
             ],
             axis: -1
         )
@@ -606,6 +603,25 @@ private class DecoderLayer: Module {
     }
 }
 
+// MARK: - Helper Functions
+
+private func createSSMMask(h: MLXArray, cache: ArraysCache?) -> MLXArray? {
+    if let cache = cache {
+        return cache.makeMask(N: h.dim(1))
+    }
+    return nil
+}
+
+private func createAttentionMask(h: MLXArray, cache: [KVCache]?) -> MLXArray? {
+    let N = h.dim(1)
+    // If cache exists and can make masks, use it
+    // Otherwise for single token, no mask needed
+    // For multi-token, SDPA will handle causal mask internally when nil
+    if N == 1 {
+        return nil
+    }
+    return nil  // Will be handled by SDPA internally when nil
+}
 
 // MARK: - Model
 
@@ -614,7 +630,8 @@ private class ModelInner: Module {
     let vocabSize: Int
     let hiddenSize: Int
 
-    fileprivate let layers: [DecoderLayer]
+    let _mupVector: MLXArray
+    let layers: [DecoderLayer]
 
     @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
     @ModuleInfo(key: "final_layernorm") var finalLayerNorm: RMSNorm
@@ -624,10 +641,9 @@ private class ModelInner: Module {
         self.vocabSize = args.vocabSize
         self.hiddenSize = args.hiddenSize
 
-        precondition(vocabSize > 0)
-
         _embedTokens.wrappedValue = Embedding(embeddingCount: vocabSize, dimensions: hiddenSize)
 
+        self._mupVector = computeMupVector(args)
         self.layers = (0 ..< args.numHiddenLayers).map { _ in
             DecoderLayer(args)
         }
@@ -643,7 +659,8 @@ private class ModelInner: Module {
         let cache: [CacheList?] = cache ?? Array(repeating: nil, count: layers.count)
 
         let mambaMask = createSSMMask(h: h, cache: cache[0]?[0] as? MambaCache)
-        let attnMask: MLXArray? = createAttentionMask(h: h, cache: cache[0]?[1] != nil ? [cache[0]![1]] : nil)
+        let attnMask: MLXArray? = createAttentionMask(
+            h: h, cache: cache[0]?[1] != nil ? [cache[0]![1]] : nil)
 
         for (layer, c) in zip(layers, cache) {
             h = layer(
@@ -665,7 +682,7 @@ public class FalconH1Model: Module, LLMModel, KVCacheDimensionProvider {
     private let model: ModelInner
     let configuration: FalconH1Configuration
 
-    @ModuleInfo(key: "lm_head") var lmHead: Linear?
+    @ModuleInfo(key: "lm_head") var lmHead: Linear
 
     public init(_ args: FalconH1Configuration) {
         self.configuration = args
@@ -673,20 +690,18 @@ public class FalconH1Model: Module, LLMModel, KVCacheDimensionProvider {
         self.kvHeads = (0 ..< args.numKeyValueHeads).map { _ in args.numHiddenLayers }
         self.model = ModelInner(args)
 
-        if !args.tieWordEmbeddings {
-            _lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabSize, bias: false)
-        }
+        _lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabSize, bias: false)
     }
 
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
-        var out = model(inputs, cache: cache as? [CacheList])
-        if let lmHead {
-            out = lmHead(out)
-        } else {
-            out = model.embedTokens.asLinear(out)
-        }
+        let out = model(inputs, cache: cache as? [CacheList])
+        return lmHead(out)
+    }
 
-        return out
+    public func makeCache() -> [CacheList] {
+        return (0 ..< configuration.numHiddenLayers).map { _ in
+            CacheList(MambaCache(), KVCacheSimple())
+        }
     }
 
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
@@ -716,8 +731,9 @@ public class FalconH1Model: Module, LLMModel, KVCacheDimensionProvider {
             } else if name.hasSuffix("down_proj.weight") {
                 param = param * args.mlpMultipliers[1]
             } else if name.hasSuffix("in_proj.weight") {
-                let mupVector = computeMupVector(args)
-                param = param * (args.ssmInMultiplier * mupVector.asType(param.dtype)[0..., .newAxis])
+                param =
+                    param
+                    * (args.ssmInMultiplier * model._mupVector.asType(param.dtype)[0..., .newAxis])
             } else if name.contains("conv1d.weight") {
                 param = param.transposed(0, 2, 1)
             }
@@ -740,4 +756,3 @@ extension FalconH1Model: LoRAModel {
         model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
     }
 }
-

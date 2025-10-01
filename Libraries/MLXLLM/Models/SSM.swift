@@ -76,7 +76,6 @@ private final class SSMKernelManager: @unchecked Sendable {
     }
 }
 
-
 func ssmUpdateKernel(
     hiddenStates: MLXArray,
     ALog: MLXArray,
@@ -116,7 +115,6 @@ func ssmUpdateKernel(
     return (outputs[0], outputs[1])
 }
 
-
 public func segsum(_ x: MLXArray, mask: MLXArray? = nil) -> MLXArray {
     let l = x.dim(-1)
     var x = x
@@ -140,7 +138,6 @@ public func segsum(_ x: MLXArray, mask: MLXArray? = nil) -> MLXArray {
 
     return xSegsum
 }
-
 
 public func ssmAttn(
     x: MLXArray,
@@ -209,7 +206,6 @@ public func ssmUpdate(
 ) -> (MLXArray, MLXArray) {
     let seqLen = hiddenStates.dim(1)
 
-  
     if seqLen == 1,
         let state = state,
         SSMKernelManager.shared.ssmKernel != nil
