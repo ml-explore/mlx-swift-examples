@@ -11,13 +11,15 @@ public struct BaseConfiguration: Codable, Sendable {
     public let modelType: String
 
     public struct Quantization: Codable, Sendable, Equatable {
-        public init(groupSize: Int, bits: Int) {
+        public init(groupSize: Int, bits: Int, mode: String?) {
             self.groupSize = groupSize
             self.bits = bits
+            self.mode = mode
         }
 
         public let groupSize: Int
         public let bits: Int
+        public var mode: String? = nil
         public var quantMethod: String? = nil
         public var linearClass: String? = nil
         public var quantizationMode: String? = nil
@@ -27,6 +29,7 @@ public struct BaseConfiguration: Codable, Sendable {
         enum CodingKeys: String, CodingKey {
             case groupSize = "group_size"
             case bits = "bits"
+            case mode = "mode"
             case quantMethod = "quant_method"
             case linearClass = "linear_class"
             case quantizationMode = "quantization_mode"
@@ -113,6 +116,7 @@ public struct BaseConfiguration: Codable, Sendable {
                 switch key.stringValue {
                 case Quantization.CodingKeys.groupSize.rawValue: continue
                 case Quantization.CodingKeys.bits.rawValue: continue
+                case Quantization.CodingKeys.mode.rawValue: continue
                 case Quantization.CodingKeys.quantMethod.rawValue: continue
                 case Quantization.CodingKeys.linearClass.rawValue: continue
                 case Quantization.CodingKeys.quantizationMode.rawValue: continue
