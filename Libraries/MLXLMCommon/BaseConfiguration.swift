@@ -21,6 +21,7 @@ public struct BaseConfiguration: Codable, Sendable {
         public var quantMethod: String? = nil
         public var linearClass: String? = nil
         public var quantizationMode: String? = nil
+        public var mode: String? = nil
 
         public var asTuple: (Int, Int) { (groupSize, bits) }
 
@@ -30,6 +31,7 @@ public struct BaseConfiguration: Codable, Sendable {
             case quantMethod = "quant_method"
             case linearClass = "linear_class"
             case quantizationMode = "quantization_mode"
+            case mode = "mode"
         }
     }
 
@@ -116,6 +118,7 @@ public struct BaseConfiguration: Codable, Sendable {
                 case Quantization.CodingKeys.quantMethod.rawValue: continue
                 case Quantization.CodingKeys.linearClass.rawValue: continue
                 case Quantization.CodingKeys.quantizationMode.rawValue: continue
+                case Quantization.CodingKeys.mode.rawValue: continue
 
                 default:
                     if let f = try? container.decode(Bool.self, forKey: key) {
