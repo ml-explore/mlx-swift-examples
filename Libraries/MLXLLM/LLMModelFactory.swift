@@ -47,6 +47,8 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "internlm2": create(InternLM2Configuration.self, InternLM2Model.init),
             "deepseek_v3": create(DeepseekV3Configuration.self, DeepseekV3Model.init),
             "granite": create(GraniteConfiguration.self, GraniteModel.init),
+            "granitemoehybrid": create(
+                GraniteMoeHybridConfiguration.self, GraniteMoeHybridModel.init),
             "mimo": create(MiMoConfiguration.self, MiMoModel.init),
             "glm4": create(GLM4Configuration.self, GLM4Model.init),
             "acereason": create(Qwen2Configuration.self, Qwen2Model.init),
@@ -321,6 +323,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Why is the sky blue?"
     )
 
+    static public let granite_4_0_h_tiny_4bit_dwq = ModelConfiguration(
+        id: "mlx-community/Granite-4.0-H-Tiny-4bit-DWQ",
+        defaultPrompt: ""
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -334,6 +341,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             gemma3n_E4B_it_lm_4bit,
             gemma3n_E2B_it_lm_4bit,
             granite3_3_2b_4bit,
+            granite_4_0_h_tiny_4bit_dwq,
             llama3_1_8B_4bit,
             llama3_2_1B_4bit,
             llama3_2_3B_4bit,
