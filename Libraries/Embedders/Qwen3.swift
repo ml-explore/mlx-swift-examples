@@ -41,13 +41,13 @@ private class Attention: Module {
         var ropeScale: Float = 1
         if let ropeScaling = args.ropeScaling,
             let typeValue = ropeScaling["type"],
-            case let .string(type) = typeValue, type == "linear",
+            case .string(let type) = typeValue, type == "linear",
             let factorValue = ropeScaling["factor"]
         {
             switch factorValue {
-            case let .float(v):
+            case .float(let v):
                 ropeScale = 1 / v
-            case let .string(s) where Float(s) != nil:
+            case .string(let s) where Float(s) != nil:
                 ropeScale = 1 / Float(s)!
             default:
                 break
