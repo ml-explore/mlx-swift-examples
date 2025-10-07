@@ -69,6 +69,13 @@ private class ModelTypeRegistry: @unchecked Sendable {
             let model = NomicBertModel(configuration)
             return model
         },
+        "qwen3": {
+            url in
+            let configuration = try JSONDecoder().decode(
+                Qwen3Configuration.self, from: Data(contentsOf: url))
+            let model = Qwen3Model(configuration)
+            return model
+        },
     ]
 
     public func registerModelType(

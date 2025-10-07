@@ -312,7 +312,7 @@ private class Encoder: Module {
 
     func callAsFunction(_ inputs: MLXArray, attentionMask: MLXArray? = nil) -> MLXArray {
         var outputs = inputs
-        for (index, layer) in layers.enumerated() {
+        for layer in layers {
             outputs = layer(outputs, mask: attentionMask)
         }
         return outputs

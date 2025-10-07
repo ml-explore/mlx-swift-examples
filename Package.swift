@@ -118,6 +118,7 @@ let package = Package(
                 .product(name: "MLXNN", package: "mlx-swift"),
                 .product(name: "Transformers", package: "swift-transformers"),
                 .product(name: "MLXLinalg", package: "mlx-swift"),
+                .target(name: "MLXLMCommon"),
             ],
             path: "Libraries/Embedders",
             exclude: [
