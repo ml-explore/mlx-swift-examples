@@ -21,6 +21,7 @@ public struct BaseConfiguration: Codable, Sendable {
         public var quantMethod: String? = nil
         public var linearClass: String? = nil
         public var quantizationMode: String? = nil
+        public var mode: String? = nil
 
         public var asTuple: (Int, Int) { (groupSize, bits) }
 
@@ -30,29 +31,7 @@ public struct BaseConfiguration: Codable, Sendable {
             case quantMethod = "quant_method"
             case linearClass = "linear_class"
             case quantizationMode = "quantization_mode"
-            case mode
-        }
-
-        public init(from decoder: any Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            self.groupSize = try container.decode(Int.self, forKey: .groupSize)
-            self.bits = try container.decode(Int.self, forKey: .bits)
-            self.quantMethod = try container.decodeIfPresent(String.self, forKey: .quantMethod)
-            self.linearClass = try container.decodeIfPresent(String.self, forKey: .linearClass)
-            if let qMode = try container.decodeIfPresent(String.self, forKey: .quantizationMode) {
-                self.quantizationMode = qMode
-            } else {
-                self.quantizationMode = try container.decodeIfPresent(String.self, forKey: .mode)
-            }
-        }
-
-        public func encode(to encoder: any Encoder) throws {
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(groupSize, forKey: .groupSize)
-            try container.encode(bits, forKey: .bits)
-            try container.encodeIfPresent(quantMethod, forKey: .quantMethod)
-            try container.encodeIfPresent(linearClass, forKey: .linearClass)
-            try container.encodeIfPresent(quantizationMode, forKey: .quantizationMode)
+            case mode = "mode"
         }
     }
 

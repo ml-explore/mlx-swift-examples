@@ -108,6 +108,8 @@ extension ModelConfiguration {
     public static let bge_m3 = ModelConfiguration(id: "BAAI/bge-m3")
     public static let mixedbread_large = ModelConfiguration(
         id: "mixedbread-ai/mxbai-embed-large-v1")
+    public static let qwen3_embedding = ModelConfiguration(
+        id: "mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ")
 
     private enum BootstrapState: Sendable {
         case idle
@@ -138,6 +140,7 @@ extension ModelConfiguration {
                 snowflake_lg,
                 bge_m3,
                 mixedbread_large,
+                qwen3_embedding,
             ])
             bootstrapState = .bootstrapped
 

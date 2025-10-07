@@ -206,6 +206,13 @@ public func createAttentionMask(h: MLXArray, cache: [KVCache]?, returnArray: Boo
     return .none
 }
 
+public func createSSMMask(h: MLXArray, cache: MambaCache?) -> MLXArray? {
+    if let cache {
+        return cache.makeMask(N: h.dim(1))
+    }
+    return nil
+}
+
 /// Standard KV cache implementation based on Python's KVCache
 /// See https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/base.py#L11
 public class KVCacheSimple: BaseKVCache, CustomDebugStringConvertible {
@@ -887,11 +894,14 @@ public class ChunkedKVCache: KVCacheSimple {
     }
 }
 
-/// Simple cache for Mamba-style state space models
-public class MambaCache: BaseKVCache {
-    private var cache: [MLXArray?] = [nil, nil]
+/// Base cache for array-based state storage
+public class ArraysCache: BaseKVCache {
+    private var cache: [MLXArray?]
+    private var leftPadding: MLXArray?
 
-    public override init() {
+    public init(size: Int, leftPadding: [Int]? = nil) {
+        self.cache = Array(repeating: nil, count: size)
+        self.leftPadding = leftPadding.map { MLXArray($0) }
         super.init()
     }
 
@@ -904,39 +914,48 @@ public class MambaCache: BaseKVCache {
         set { cache[index] = newValue }
     }
 
-    public override func update(keys: MLXArray, values: MLXArray) -> (MLXArray, MLXArray) {
-        // Mamba doesn't use traditional KV cache update pattern
-        fatalError("MambaCache should not use update(keys:values:) - use subscript access instead")
-    }
-
     public override var state: [MLXArray] {
         get {
-            // Need to preserve the structure including nils, similar to Python version
-            // Use empty arrays as placeholders for nil values
-            var result: [MLXArray] = []
-            for item in cache {
-                if let array = item {
-                    result.append(array)
-                } else {
-                    // Use an empty array as placeholder for nil (this shape should never occur naturally)
-                    result.append(MLXArray.zeros([0], dtype: .float32))
-                }
-            }
-            return result
+            return cache.compactMap { $0 }
         }
         set {
-            guard newValue.count == cache.count else {
-                fatalError("MambaCache state must have exactly \(cache.count) elements")
-            }
-            for (i, array) in newValue.enumerated() {
-                // Check if this is our nil placeholder (empty array with size 0)
-                if array.size == 0 {
-                    cache[i] = nil
-                } else {
-                    cache[i] = array
-                }
-            }
+            cache = newValue.map { $0 as MLXArray? }
         }
+    }
+
+    /// In-place filter to keep just the given indices in the cache
+    public func filter(batchIndices: MLXArray) {
+        cache = cache.map { c in
+            c?[batchIndices]
+        }
+        leftPadding = nil
+    }
+
+    /// In-place extend this cache with the other cache
+    public func extend(other: ArraysCache) {
+        cache = zip(cache, other.cache).map { (c, o) in
+            if let c = c, let o = o {
+                return MLX.concatenated([c, o])
+            }
+            return c ?? o
+        }
+        leftPadding = nil
+    }
+
+    /// Create attention mask based on left padding
+    public func makeMask(N: Int) -> MLXArray? {
+        if cache[0] == nil, let leftPadding = leftPadding {
+            return MLXArray(0 ..< N) .>= leftPadding[0..., .newAxis]
+        } else {
+            return nil
+        }
+    }
+}
+
+/// Simple cache for Mamba-style state space models
+public class MambaCache: ArraysCache {
+    public init(leftPadding: [Int]? = nil) {
+        super.init(size: 2, leftPadding: leftPadding)
     }
 }
 
