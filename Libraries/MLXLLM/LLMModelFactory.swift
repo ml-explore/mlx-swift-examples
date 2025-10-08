@@ -64,6 +64,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "olmoe": create(OlmoEConfiguration.self, OlmoEModel.init),
             "olmo2": create(Olmo2Configuration.self, Olmo2Model.init),
             "bailing_moe": create(BailingMoeConfiguration.self, BailingMoeModel.init),
+            "lfm2_moe": create(LFM2MoEConfiguration.self, LFM2MoEModel.init),
         ]
     }
 }
@@ -328,6 +329,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: ""
     )
 
+    static public let lfm2_8b_a1b_3bit_mlx = ModelConfiguration(
+        id: "mlx-community/LFM2-8B-A1B-3bit-MLX",
+        defaultPrompt: ""
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -375,6 +381,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             olmoe_1b_7b_0125_instruct_4bit,
             olmo_2_1124_7B_Instruct_4bit,
             ling_mini_2_2bit,
+            lfm2_8b_a1b_3bit_mlx,
         ]
     }
 
