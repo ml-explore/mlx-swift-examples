@@ -25,9 +25,32 @@ struct CorpusLoader {
         self.limit = limit
     }
 
-    func load() throws -> [Document] {
+    struct LoadResult {
+        let documents: [Document]
+        let failures: [(url: URL, error: ReadError)]
+    }
+
+    enum ReadError: LocalizedError {
+        case binary
+        case decoding
+        case unreadable(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .binary:
+                return "binary content"
+            case .decoding:
+                return "invalid text encoding"
+            case .unreadable(let message):
+                return message
+            }
+        }
+    }
+
+    func load() throws -> LoadResult {
         let fileManager = FileManager.default
         var documents: [Document] = []
+        var failures: [(URL, ReadError)] = []
 
         if recursive {
             guard let enumerator = fileManager.enumerator(
@@ -35,13 +58,19 @@ struct CorpusLoader {
                 includingPropertiesForKeys: [.isRegularFileKey],
                 options: [.skipsHiddenFiles]
             ) else {
-                return []
+                return LoadResult(documents: [], failures: [])
             }
 
             for case let fileURL as URL in enumerator {
                 guard try shouldInclude(url: fileURL) else { continue }
-                if let document = try readDocument(at: fileURL) {
-                    documents.append(document)
+                do {
+                    if let document = try readDocument(at: fileURL) {
+                        documents.append(document)
+                    }
+                } catch let readError as ReadError {
+                    failures.append((fileURL, readError))
+                } catch {
+                    failures.append((fileURL, .unreadable(error.localizedDescription)))
                 }
                 if reachedLimit(current: documents.count) { break }
             }
@@ -54,14 +83,20 @@ struct CorpusLoader {
 
             for fileURL in items {
                 guard try shouldInclude(url: fileURL) else { continue }
-                if let document = try readDocument(at: fileURL) {
-                    documents.append(document)
+                do {
+                    if let document = try readDocument(at: fileURL) {
+                        documents.append(document)
+                    }
+                } catch let readError as ReadError {
+                    failures.append((fileURL, readError))
+                } catch {
+                    failures.append((fileURL, .unreadable(error.localizedDescription)))
                 }
                 if reachedLimit(current: documents.count) { break }
             }
         }
 
-        return documents
+        return LoadResult(documents: documents, failures: failures)
     }
 
     private func shouldInclude(url: URL) throws -> Bool {
@@ -74,12 +109,22 @@ struct CorpusLoader {
     }
 
     private func readDocument(at url: URL) throws -> Document? {
+        let data: Data
         do {
-            let contents = try String(contentsOf: url)
-            return Document(path: relativePath(for: url), contents: contents)
+            data = try Data(contentsOf: url)
         } catch {
-            return nil
+            throw ReadError.unreadable(error.localizedDescription)
         }
+
+        if isLikelyBinary(data) {
+            throw ReadError.binary
+        }
+
+        guard let contents = String(data: data, encoding: .utf8) else {
+            throw ReadError.decoding
+        }
+
+        return Document(path: relativePath(for: url), contents: contents)
     }
 
     private func relativePath(for url: URL) -> String {
@@ -97,5 +142,10 @@ struct CorpusLoader {
     private func reachedLimit(current: Int) -> Bool {
         guard let limit else { return false }
         return current >= limit
+    }
+
+    private func isLikelyBinary(_ data: Data) -> Bool {
+        let sample = data.prefix(4096)
+        return sample.contains { $0 == 0 }
     }
 }

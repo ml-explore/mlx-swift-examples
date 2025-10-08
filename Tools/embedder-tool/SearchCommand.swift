@@ -57,48 +57,73 @@ struct SearchCommand: AsyncParsableCommand {
     }
 
     private func embedQuery(runtime: EmbedderRuntime) async -> [Float] {
-        await runtime.container.perform { model, tokenizer, pooler in
-            let tokens = tokenizer.encode(text: query, addSpecialTokens: true)
-            guard !tokens.isEmpty else { return [] }
+        do {
+            let (vector, fallbackMessage): ([Float], String?) = try await runtime.container.perform { model, tokenizer, pooler in
+                let tokens = tokenizer.encode(text: query, addSpecialTokens: true)
+                guard !tokens.isEmpty else { return ([], nil) }
 
-            let padToken = tokenizer.eosTokenId ?? 0
-            let maxLength = max(tokens.count, 1)
+                let padToken = tokenizer.eosTokenId ?? 0
+                let maxLength = max(tokens.count, 1)
 
-            let padded = stacked([
-                MLXArray(tokens + Array(repeating: padToken, count: maxLength - tokens.count))
-            ])
-            let mask = (padded .!= padToken)
-            let tokenTypes = MLXArray.zeros(like: padded)
+                let padded = stacked([
+                    MLXArray(tokens + Array(repeating: padToken, count: maxLength - tokens.count))
+                ])
+                let mask = (padded .!= padToken)
+                let tokenTypes = MLXArray.zeros(like: padded)
 
-            let outputs = model(
-                padded,
-                positionIds: nil,
-                tokenTypeIds: tokenTypes,
-                attentionMask: mask
-            )
+                let outputs = model(
+                    padded,
+                    positionIds: nil,
+                    tokenTypeIds: tokenTypes,
+                    attentionMask: mask
+                )
 
-            let poolingModule: Pooling = {
-                if runtime.poolingStrategy == .none {
-                    return pooler
-                } else {
-                    return Pooling(strategy: runtime.poolingStrategy)
-                }
-            }()
+                let poolingModule = PoolingSupport.resolvedPooler(base: pooler, runtime: runtime)
+                let pooled = poolingModule(
+                    outputs,
+                    mask: mask,
+                    normalize: runtime.normalize,
+                    applyLayerNorm: runtime.applyLayerNorm
+                )
+                pooled.eval()
+                let extraction = try PoolingSupport.extractVectors(
+                    from: pooled,
+                    expectedCount: 1,
+                    runtime: runtime
+                )
+                return (extraction.vectors.first ?? [], extraction.fallbackDescription)
+            }
 
-            let pooled = poolingModule(outputs, mask: mask, normalize: runtime.normalize)
-            pooled.eval()
-            let vectors: [[Float]] = pooled.map { $0.asArray(Float.self) }
-            return vectors.first ?? []
+            if let fallbackMessage {
+                reportPoolingFallback(fallbackMessage)
+            }
+
+            return vector
+        } catch {
+            reportPoolingError(error)
+            return []
         }
     }
 
     private func rank(entries: [IndexEntry], query: [Float]) -> [(IndexEntry, Float)] {
-        entries.compactMap { entry in
-            guard entry.embedding.count == query.count else { return nil }
+        var mismatched: [(path: String, dimension: Int)] = []
+
+        let scored = entries.compactMap { entry -> (IndexEntry, Float)? in
+            let dimension = entry.embedding.count
+            guard dimension == query.count else {
+                mismatched.append((entry.path, dimension))
+                return nil
+            }
             let score = cosineSimilarity(entry.embedding, query)
             return (entry, score)
         }
         .sorted { $0.1 > $1.1 }
+
+        if !mismatched.isEmpty {
+            reportDimensionMismatch(mismatched, expected: query.count)
+        }
+
+        return scored
     }
 
     private func cosineSimilarity(_ lhs: [Float], _ rhs: [Float]) -> Float {
@@ -115,5 +140,37 @@ struct SearchCommand: AsyncParsableCommand {
         let denominator = sqrt(lhsNorm) * sqrt(rhsNorm)
         guard denominator > 0 else { return 0 }
         return dot / denominator
+    }
+
+    private func reportPoolingFallback(_ message: String) {
+        if let data = (message + "\n").data(using: .utf8) {
+            FileHandle.standardError.write(data)
+        }
+    }
+
+    private func reportPoolingError(_ error: Error) {
+        let message: String
+        if let localized = error as? LocalizedError, let description = localized.errorDescription {
+            message = description
+        } else {
+            message = error.localizedDescription
+        }
+        if let data = ("Pooling error: " + message + "\n").data(using: .utf8) {
+            FileHandle.standardError.write(data)
+        }
+    }
+
+    private func reportDimensionMismatch(_ mismatched: [(path: String, dimension: Int)], expected: Int) {
+        var message = "Skipped \(mismatched.count) index entry(s) with dimension mismatch (expected \(expected))"
+        if !mismatched.isEmpty {
+            let preview = mismatched.prefix(5).map { "\($0.path) (\($0.dimension))" }.joined(separator: ", ")
+            message += ": \(preview)"
+            if mismatched.count > 5 {
+                message += ", ..."
+            }
+        }
+        if let data = (message + "\n").data(using: .utf8) {
+            FileHandle.standardError.write(data)
+        }
     }
 }

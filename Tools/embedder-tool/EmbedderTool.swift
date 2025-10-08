@@ -21,7 +21,7 @@ struct EmbedderTool: AsyncParsableCommand {
 
     mutating func run() async throws {
         let runtime = try await Self.loadRuntime(model: model, pooling: pooling)
-        print("Loaded \(runtime.configuration.name) using \(runtime.poolingStrategy) pooling")
+        print("Loaded \(runtime.configuration.name) using \(runtime.poolingDescription) pooling")
     }
 
     static func loadRuntime(model: ModelArguments, pooling: PoolingArguments) async throws -> EmbedderRuntime {
@@ -29,8 +29,9 @@ struct EmbedderTool: AsyncParsableCommand {
         return EmbedderRuntime(
             configuration: loadedModel.configuration,
             container: loadedModel.container,
-            poolingStrategy: pooling.strategy,
-            normalize: pooling.normalize
+            strategyOverride: pooling.strategy,
+            normalize: pooling.normalize,
+            applyLayerNorm: pooling.layerNorm
         )
     }
 }
@@ -38,8 +39,9 @@ struct EmbedderTool: AsyncParsableCommand {
 struct EmbedderRuntime {
     let configuration: ModelConfiguration
     let container: ModelContainer
-    let poolingStrategy: Pooling.Strategy
+    let strategyOverride: Pooling.Strategy?
     let normalize: Bool
+    let applyLayerNorm: Bool
 }
 
 struct IndexCommand: AsyncParsableCommand {
@@ -64,25 +66,71 @@ struct IndexCommand: AsyncParsableCommand {
     }
 
     private func loadDocuments() throws -> [Document] {
-        try CorpusLoader(
+        let result = try CorpusLoader(
             root: corpus.directoryURL,
             extensions: corpus.normalizedExtensions,
             recursive: corpus.recursive,
             limit: corpus.limit
         ).load()
+
+        if !result.failures.isEmpty {
+            reportCorpusFailures(result.failures)
+        }
+
+        return result.documents
     }
 
     private func embed(documents: [Document], runtime: EmbedderRuntime) async throws -> [IndexEntry] {
         guard !documents.isEmpty else { return [] }
 
-        return await runtime.container.perform { model, tokenizer, pooler in
+        let batchSize = 32
+        var accumulatedEntries: [IndexEntry] = []
+        var skippedDocuments: [String] = []
+        var fallbackMessages: Set<String> = []
+
+        var index = 0
+        while index < documents.count {
+            let upperBound = min(index + batchSize, documents.count)
+            let batch = Array(documents[index..<upperBound])
+            let result = try await embedBatch(documents: batch, runtime: runtime)
+            accumulatedEntries.append(contentsOf: result.entries)
+            skippedDocuments.append(contentsOf: result.skipped)
+            if let message = result.fallbackMessage {
+                fallbackMessages.insert(message)
+            }
+            index = upperBound
+        }
+
+        if !skippedDocuments.isEmpty {
+            reportSkippedDocuments(skippedDocuments)
+        }
+
+        for message in fallbackMessages {
+            reportPoolingFallback(message)
+        }
+
+        return accumulatedEntries
+    }
+
+    private func embedBatch(
+        documents: [Document],
+        runtime: EmbedderRuntime
+    ) async throws -> (entries: [IndexEntry], skipped: [String], fallbackMessage: String?) {
+        guard !documents.isEmpty else { return ([], [], nil) }
+
+        return try await runtime.container.perform { model, tokenizer, pooler in
+            var skippedDocuments: [String] = []
+
             let encoded = documents.compactMap { document -> (Document, [Int])? in
                 let tokens = tokenizer.encode(text: document.contents, addSpecialTokens: true)
-                guard !tokens.isEmpty else { return nil }
+                guard !tokens.isEmpty else {
+                    skippedDocuments.append(document.path)
+                    return nil
+                }
                 return (document, tokens)
             }
 
-            guard !encoded.isEmpty else { return [] }
+            guard !encoded.isEmpty else { return ([IndexEntry](), skippedDocuments, nil) }
 
             let padToken = tokenizer.eosTokenId ?? 0
             let maxLength = encoded.map { $0.1.count }.max() ?? 0
@@ -99,21 +147,24 @@ struct IndexCommand: AsyncParsableCommand {
                 attentionMask: mask
             )
 
-            let poolingModule: Pooling = {
-                if runtime.poolingStrategy == .none {
-                    return pooler
-                } else {
-                    return Pooling(strategy: runtime.poolingStrategy)
-                }
-            }()
-
-            let pooled = poolingModule(outputs, mask: mask, normalize: runtime.normalize)
+            let poolingModule = PoolingSupport.resolvedPooler(base: pooler, runtime: runtime)
+            let pooled = poolingModule(
+                outputs,
+                mask: mask,
+                normalize: runtime.normalize,
+                applyLayerNorm: runtime.applyLayerNorm
+            )
             pooled.eval()
-            let vectors: [[Float]] = pooled.map { $0.asArray(Float.self) }
+            let extraction = try PoolingSupport.extractVectors(
+                from: pooled,
+                expectedCount: encoded.count,
+                runtime: runtime
+            )
 
-            return zip(encoded.map { $0.0 }, vectors).map { document, vector in
+            let entries: [IndexEntry] = zip(encoded.map { $0.0 }, extraction.vectors).map { document, vector in
                 IndexEntry(path: document.path, embedding: vector)
             }
+            return (entries, skippedDocuments, extraction.fallbackDescription)
         }
     }
 
@@ -126,6 +177,43 @@ struct IndexCommand: AsyncParsableCommand {
 
     private var outputURL: URL {
         URL(fileURLWithPath: output)
+    }
+
+    private func reportSkippedDocuments(_ paths: [String]) {
+        var message = "Skipped \(paths.count) document(s) that produced no tokens"
+        if !paths.isEmpty {
+            let preview = paths.prefix(5).joined(separator: ", ")
+            message += ": \(preview)"
+            if paths.count > 5 {
+                message += ", ..."
+            }
+        }
+        if let data = (message + "\n").data(using: .utf8) {
+            FileHandle.standardError.write(data)
+        }
+    }
+
+    private func reportPoolingFallback(_ message: String) {
+        if let data = (message + "\n").data(using: .utf8) {
+            FileHandle.standardError.write(data)
+        }
+    }
+
+    private func reportCorpusFailures(_ failures: [(url: URL, error: CorpusLoader.ReadError)]) {
+        var message = "Skipped \(failures.count) file(s) while reading corpus"
+        if !failures.isEmpty {
+            let preview = failures.prefix(5).map { failure in
+                let description = failure.error.errorDescription ?? "unreadable"
+                return "\(failure.url.lastPathComponent) (\(description))"
+            }.joined(separator: ", ")
+            message += ": \(preview)"
+            if failures.count > 5 {
+                message += ", ..."
+            }
+        }
+        if let data = (message + "\n").data(using: .utf8) {
+            FileHandle.standardError.write(data)
+        }
     }
 }
 

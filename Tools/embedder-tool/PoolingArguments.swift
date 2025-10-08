@@ -5,11 +5,14 @@ import MLXEmbedders
 
 struct PoolingArguments: ParsableArguments {
 
-    @Option(name: .long, help: "Pooling strategy used to collapse token embeddings into a single vector.")
-    var strategy: Pooling.Strategy = .mean
+    @Option(name: .long, help: "Pooling strategy used to collapse token embeddings; defaults to the model's configuration.")
+    var strategy: Pooling.Strategy?
 
     @Flag(name: .long, help: "Normalize pooled embeddings to unit length.")
     var normalize = false
+
+    @Flag(name: .long, help: "Apply layer normalization before pooling.")
+    var layerNorm = false
 }
 
 extension Pooling.Strategy: @retroactive CaseIterable {
