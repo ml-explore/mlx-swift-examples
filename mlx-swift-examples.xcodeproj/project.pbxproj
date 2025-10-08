@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		0A8284222D13863900BEF338 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 0AC74ED92D136223003C90A7 /* MLXVLM */; };
 		0A979CD92E9717C500635D67 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = 0A979CD82E9717C500635D67 /* ArgumentParser */; };
-		0A979D112E9743D800635D67 /* EmbedderTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A979D102E9743D800635D67 /* EmbedderTool.swift */; };
 		0A979D132E9743D800635D67 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = 0A979D122E9743D800635D67 /* MLXEmbedders */; };
 		0AC74ECF2D13622A003C90A7 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0AC74EC92D13622A003C90A7 /* Preview Assets.xcassets */; };
 		0AC74ED02D13622A003C90A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0AC74ECB2D13622A003C90A7 /* Assets.xcassets */; };
