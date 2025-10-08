@@ -1,3 +1,5 @@
+// Copyright © 2025 Apple Inc.
+
 import Foundation
 
 struct Document {

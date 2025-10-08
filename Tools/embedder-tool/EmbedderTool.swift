@@ -10,7 +10,7 @@ import Tokenizers
 struct EmbedderTool: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Command line tool for working with MLX embedders",
-        subcommands: [IndexCommand.self]
+        subcommands: [IndexCommand.self, SearchCommand.self]
     )
 
     private static let defaultModelConfiguration = ModelConfiguration.gte_tiny
@@ -75,7 +75,7 @@ struct IndexCommand: AsyncParsableCommand {
     private func embed(documents: [Document], runtime: EmbedderRuntime) async throws -> [IndexEntry] {
         guard !documents.isEmpty else { return [] }
 
-        return try await runtime.container.perform { model, tokenizer, pooler in
+        return await runtime.container.perform { model, tokenizer, pooler in
             let encoded = documents.compactMap { document -> (Document, [Int])? in
                 let tokens = tokenizer.encode(text: document.contents, addSpecialTokens: true)
                 guard !tokens.isEmpty else { return nil }
@@ -109,18 +109,7 @@ struct IndexCommand: AsyncParsableCommand {
 
             let pooled = poolingModule(outputs, mask: mask, normalize: runtime.normalize)
             pooled.eval()
-            let flattened: [Float] = pooled.asArray(Float.self)
-            let vectorCount = encoded.count
-            let dimension = vectorCount == 0 ? 0 : flattened.count / vectorCount
-            guard dimension > 0 else { return [] }
-
-            var vectors: [[Float]] = []
-            vectors.reserveCapacity(vectorCount)
-            for index in 0..<vectorCount {
-                let start = index * dimension
-                let end = start + dimension
-                vectors.append(Array(flattened[start..<end]))
-            }
+            let vectors: [[Float]] = pooled.map { $0.asArray(Float.self) }
 
             return zip(encoded.map { $0.0 }, vectors).map { document, vector in
                 IndexEntry(path: document.path, embedding: vector)
