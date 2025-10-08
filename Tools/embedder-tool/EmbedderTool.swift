@@ -10,7 +10,7 @@ import Tokenizers
 struct EmbedderTool: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Command line tool for working with MLX embedders",
-        subcommands: [IndexCommand.self, SearchCommand.self]
+        subcommands: [IndexCommand.self, SearchCommand.self, ListCommand.self]
     )
 
     private static let defaultModelConfiguration = ModelConfiguration.gte_tiny
