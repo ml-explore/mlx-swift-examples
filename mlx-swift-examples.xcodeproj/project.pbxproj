@@ -216,7 +216,6 @@
 
 /* Begin PBXFileReference section */
 		0A979CD12E97175800635D67 /* embedder-tool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "embedder-tool"; sourceTree = BUILT_PRODUCTS_DIR; };
-		0A979D102E9743D800635D67 /* EmbedderTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = EmbedderTool.swift; path = Tools/embedder-tool/EmbedderTool.swift; sourceTree = SOURCE_ROOT; };
 		0AC74EBB2D136221003C90A7 /* VLMEval.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VLMEval.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0AC74EC92D13622A003C90A7 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		0AC74ECB2D13622A003C90A7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -1187,7 +1186,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0A979D112E9743D800635D67 /* EmbedderTool.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
