@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		0A8284222D13863900BEF338 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 0AC74ED92D136223003C90A7 /* MLXVLM */; };
+		0A979CD92E9717C500635D67 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = 0A979CD82E9717C500635D67 /* ArgumentParser */; };
+		0A979D112E9743D800635D67 /* EmbedderTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A979D102E9743D800635D67 /* EmbedderTool.swift */; };
+		0A979D132E9743D800635D67 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = 0A979D122E9743D800635D67 /* MLXEmbedders */; };
 		0AC74ECF2D13622A003C90A7 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0AC74EC92D13622A003C90A7 /* Preview Assets.xcassets */; };
 		0AC74ED02D13622A003C90A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0AC74ECB2D13622A003C90A7 /* Assets.xcassets */; };
 		0AC74ED12D13622A003C90A7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC74ECC2D13622A003C90A7 /* ContentView.swift */; };
@@ -77,6 +80,15 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		0A979CCF2E97175800635D67 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		C3056BC12BCD984F00A31D04 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -204,6 +216,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0A979CD12E97175800635D67 /* embedder-tool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "embedder-tool"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A979D102E9743D800635D67 /* EmbedderTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = EmbedderTool.swift; path = Tools/embedder-tool/EmbedderTool.swift; sourceTree = SOURCE_ROOT; };
 		0AC74EBB2D136221003C90A7 /* VLMEval.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VLMEval.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0AC74EC92D13622A003C90A7 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		0AC74ECB2D13622A003C90A7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -293,12 +307,22 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		0A979CD22E97175800635D67 /* embedder-tool */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "embedder-tool"; sourceTree = "<group>"; };
 		0F5AD7422DB70C0300745C06 /* MLXChatExample */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = MLXChatExample; sourceTree = "<group>"; };
 		C397D92E2CD440EF00B87EE2 /* Libraries */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Libraries; sourceTree = "<group>"; };
 		C3C7C4222DB16A02000373CF /* Tests */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C3208F272DB19614006AE6CA /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Tests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		0A979CCE2E97175800635D67 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0A979D132E9743D800635D67 /* MLXEmbedders in Frameworks */,
+				0A979CD92E9717C500635D67 /* ArgumentParser in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0AC74EB82D136221003C90A7 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -594,6 +618,7 @@
 				C3208E6E2DB19451006AE6CA /* MLXLMTests.xctest */,
 				0F5AD7412DB70C0300745C06 /* MLXChatExample.app */,
 				C3132C232DFB2FFB00270E8E /* ExampleLLM */,
+				0A979CD12E97175800635D67 /* embedder-tool */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -626,6 +651,7 @@
 				C34E49222B6A026F00FCB841 /* mnist-tool */,
 				C34E48F32B696F0B00FCB841 /* llm-tool */,
 				C39273762B606A0A00368D5D /* Tutorial */,
+				0A979CD22E97175800635D67 /* embedder-tool */,
 			);
 			path = Tools;
 			sourceTree = "<group>";
@@ -699,6 +725,30 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		0A979CD02E97175800635D67 /* embedder-tool */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0A979CD52E97175800635D67 /* Build configuration list for PBXNativeTarget "embedder-tool" */;
+			buildPhases = (
+				0A979CCD2E97175800635D67 /* Sources */,
+				0A979CCE2E97175800635D67 /* Frameworks */,
+				0A979CCF2E97175800635D67 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				0A979CD22E97175800635D67 /* embedder-tool */,
+			);
+			name = "embedder-tool";
+			packageProductDependencies = (
+				0A979CD82E9717C500635D67 /* ArgumentParser */,
+				0A979D122E9743D800635D67 /* MLXEmbedders */,
+			);
+			productName = "embedder-tool";
+			productReference = 0A979CD12E97175800635D67 /* embedder-tool */;
+			productType = "com.apple.product-type.tool";
+		};
 		0AC74EBA2D136221003C90A7 /* VLMEval */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0AC74EC62D136223003C90A7 /* Build configuration list for PBXNativeTarget "VLMEval" */;
@@ -987,9 +1037,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1630;
+				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
+					0A979CD02E97175800635D67 = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
 					0F5AD7402DB70C0300745C06 = {
 						CreatedOnToolsVersion = 16.2;
 					};
@@ -1060,6 +1113,7 @@
 				C3208E6D2DB19451006AE6CA /* MLXLMTests */,
 				0F5AD7402DB70C0300745C06 /* MLXChatExample */,
 				C3132C222DFB2FFB00270E8E /* ExampleLLM */,
+				0A979CD02E97175800635D67 /* embedder-tool */,
 			);
 		};
 /* End PBXProject section */
@@ -1130,6 +1184,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		0A979CCD2E97175800635D67 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0A979D112E9743D800635D67 /* EmbedderTool.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0AC74EB72D136221003C90A7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1248,6 +1310,86 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		0A979CD62E97175800635D67 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		0A979CD72E97175800635D67 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		0AC74EC72D136223003C90A7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -3101,6 +3243,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		0A979CD52E97175800635D67 /* Build configuration list for PBXNativeTarget "embedder-tool" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0A979CD62E97175800635D67 /* Debug */,
+				0A979CD72E97175800635D67 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		0AC74EC62D136223003C90A7 /* Build configuration list for PBXNativeTarget "VLMEval" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -3288,6 +3439,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0A979CD82E9717C500635D67 /* ArgumentParser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
+			productName = ArgumentParser;
+		};
+		0A979D122E9743D800635D67 /* MLXEmbedders */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
+			productName = MLXEmbedders;
+		};
 		0AC74ED92D136223003C90A7 /* MLXVLM */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
