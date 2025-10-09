@@ -53,7 +53,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "list"
+            argument = "demo"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
