@@ -11,7 +11,7 @@ struct ModelArguments: ParsableArguments {
     var model: String?
 
     @Option(name: .long, help: "Directory used for downloading model assets from the Hub.")
-    var download: String?
+    var download: URL?
 
     @MainActor
     func configuration(default defaultConfiguration: ModelConfiguration) -> ModelConfiguration {
@@ -19,15 +19,15 @@ struct ModelArguments: ParsableArguments {
             return defaultConfiguration
         }
 
-        if model.hasPrefix("/") {
-            return ModelConfiguration(directory: URL(filePath: model))
+        if let localConfiguration = resolveLocalModelPath(model) {
+            return localConfiguration
         }
 
         return ModelConfiguration.configuration(id: model)
     }
 
     var downloadURL: URL? {
-        download.map { URL(fileURLWithPath: $0) }
+        download?.standardizedFileURL
     }
 }
 
@@ -66,5 +66,25 @@ extension ModelArguments {
         }
 
         return HubApi()
+    }
+}
+
+extension ModelArguments {
+    private func resolveLocalModelPath(_ value: String) -> ModelConfiguration? {
+        let expanded = NSString(string: value).expandingTildeInPath
+        let candidate = URL(fileURLWithPath: expanded, isDirectory: true)
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: candidate.path, isDirectory: &isDirectory), isDirectory.boolValue {
+            return ModelConfiguration(directory: candidate.standardizedFileURL)
+        }
+
+        if let url = URL(string: value), url.isFileURL {
+            var isDir: ObjCBool = false
+            if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
+                return ModelConfiguration(directory: url.standardizedFileURL)
+            }
+        }
+
+        return nil
     }
 }

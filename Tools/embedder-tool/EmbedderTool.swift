@@ -61,7 +61,7 @@ struct IndexCommand: AsyncParsableCommand {
     @OptionGroup var pooling: PoolingArguments
 
     @Option(name: .shortAndLong, help: "Destination file for the generated index")
-    var output: String
+    var output: URL
 
     @Option(name: .long, help: "Number of documents to embed per batch (default: 32)")
     var batchSize: Int = 32
@@ -70,7 +70,7 @@ struct IndexCommand: AsyncParsableCommand {
         let runtime = try await EmbedderTool.loadRuntime(model: model, pooling: pooling)
         let documents = try loadDocuments()
         let entries = try await embed(documents: documents, runtime: runtime, batchSize: batchSize)
-        try writeIndex(entries: entries, to: outputURL)
+        try writeIndex(entries: entries, to: output)
     }
 
     private func loadDocuments() throws -> [Document] {
@@ -147,14 +147,10 @@ struct IndexCommand: AsyncParsableCommand {
         try data.write(to: url)
     }
 
-    private var outputURL: URL {
-        URL(fileURLWithPath: output)
-    }
-
     private func reportProgress(processed: Int, total: Int) {
         guard total > 0 else { return }
         let message = "Processed \(processed)/\(total) documents"
-        reportError(message)
+        writeDiagnostic(message, kind: .info)
     }
 
     private func reportSkippedDocuments(_ paths: [String]) {
@@ -166,11 +162,11 @@ struct IndexCommand: AsyncParsableCommand {
                 message += ", ..."
             }
         }
-        reportError(message)
+        writeDiagnostic(message, kind: .warning)
     }
 
     private func reportPoolingFallback(_ message: String) {
-        reportError(message)
+        writeDiagnostic(message, kind: .warning)
     }
 
     private func reportCorpusFailures(_ failures: [(url: URL, error: CorpusLoader.ReadError)]) {
@@ -185,6 +181,6 @@ struct IndexCommand: AsyncParsableCommand {
                 message += ", ..."
             }
         }
-        reportError(message)
+        writeDiagnostic(message, kind: .warning)
     }
 }

@@ -6,7 +6,7 @@ import Foundation
 struct CorpusArguments: ParsableArguments {
 
     @Option(name: .shortAndLong, help: "Directory containing documents to index.")
-    var directory: String = FileManager.default.currentDirectoryPath
+    var directory: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
 
     @Option(name: [.customShort("e"), .long], parsing: .upToNextOption, help: "File extensions to include (without dots).")
     var extensions: [String] = ["txt", "md"]
@@ -25,7 +25,5 @@ struct CorpusArguments: ParsableArguments {
         }
     }
 
-    var directoryURL: URL {
-        URL(fileURLWithPath: directory)
-    }
+    var directoryURL: URL { directory.standardizedFileURL }
 }

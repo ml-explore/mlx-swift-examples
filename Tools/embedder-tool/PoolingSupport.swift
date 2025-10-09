@@ -16,9 +16,14 @@ enum PoolingError: LocalizedError {
     }
 }
 
-enum PoolingSupport {
-    static func resolvedPooler(base pooler: Pooling, runtime: EmbedderRuntime) -> Pooling {
-        guard let override = runtime.strategyOverride else {
+struct PoolingExtraction {
+    let vectors: [[Float]]
+    let fallbackDescription: String?
+}
+
+extension EmbedderRuntime {
+    func resolvedPooler(for pooler: Pooling) -> Pooling {
+        guard let override = strategyOverride else {
             return pooler
         }
 
@@ -33,12 +38,7 @@ enum PoolingSupport {
         }
     }
 
-    static func extractVectors(
-        from array: MLXArray,
-        expectedCount: Int,
-        baseStrategy: Pooling.Strategy,
-        overrideStrategy: Pooling.Strategy?
-    ) throws -> (vectors: [[Float]], fallbackDescription: String?) {
+    func extractVectors(from array: MLXArray, expectedCount: Int) throws -> PoolingExtraction {
         let shape = array.shape
 
         switch shape.count {
@@ -47,7 +47,7 @@ enum PoolingSupport {
             guard vectors.count == expectedCount else {
                 throw PoolingError.vectorCountMismatch(expected: expectedCount, received: vectors.count)
             }
-            return (vectors, nil)
+            return PoolingExtraction(vectors: vectors, fallbackDescription: nil)
 
         case 3:
             let reduced = mean(array, axis: 1)
@@ -57,13 +57,14 @@ enum PoolingSupport {
                 throw PoolingError.vectorCountMismatch(expected: expectedCount, received: vectors.count)
             }
 
+            let effectiveStrategy = strategyOverride ?? baseStrategy
             let description: String
-            if (overrideStrategy ?? baseStrategy) == .none {
+            if effectiveStrategy == .none {
                 description = "Pooling strategy 'none' returned sequence embeddings; falling back to mean over tokens."
             } else {
                 description = "Pooling returned sequence embeddings; falling back to mean over tokens."
             }
-            return (vectors, description)
+            return PoolingExtraction(vectors: vectors, fallbackDescription: description)
 
         default:
             throw PoolingError.unsupportedShape(shape)

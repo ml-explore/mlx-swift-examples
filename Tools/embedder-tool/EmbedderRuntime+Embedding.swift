@@ -4,9 +4,19 @@ import MLXEmbedders
 import Tokenizers
 
 public struct RuntimeEmbeddingResult {
-    let embeddings: [(index: Int, vector: [Float])]
-    let skippedIndices: [Int]
-    let fallbackDescription: String?
+    public let embeddings: [(index: Int, vector: [Float])]
+    public let skippedIndices: [Int]
+    public let fallbackDescription: String?
+
+    public init(
+        embeddings: [(index: Int, vector: [Float])],
+        skippedIndices: [Int],
+        fallbackDescription: String?
+    ) {
+        self.embeddings = embeddings
+        self.skippedIndices = skippedIndices
+        self.fallbackDescription = fallbackDescription
+    }
 }
 
 extension EmbedderRuntime {
@@ -51,7 +61,7 @@ extension EmbedderRuntime {
                 attentionMask: mask
             )
 
-            let poolingModule = PoolingSupport.resolvedPooler(base: pooler, runtime: self)
+            let poolingModule = resolvedPooler(for: pooler)
             let pooled = poolingModule(
                 outputs,
                 mask: mask,
@@ -60,12 +70,7 @@ extension EmbedderRuntime {
             )
             pooled.eval()
 
-            let extraction = try PoolingSupport.extractVectors(
-                from: pooled,
-                expectedCount: encoded.count,
-                baseStrategy: self.baseStrategy,
-                overrideStrategy: self.strategyOverride
-            )
+            let extraction = try extractVectors(from: pooled, expectedCount: encoded.count)
 
             let embeddings = zip(encoded.map { $0.0 }, extraction.vectors).map { index, vector in
                 (index: index, vector: vector)

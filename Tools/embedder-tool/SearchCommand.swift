@@ -8,19 +8,6 @@ import MLXEmbedders
 import Tokenizers
 
 struct SearchCommand: AsyncParsableCommand {
-    enum SearchError: LocalizedError {
-        case indexNotFound(String)
-        case invalidIndex
-
-        var errorDescription: String? {
-            switch self {
-            case .indexNotFound(let path):
-                return "Index file not found at \(path)"
-            case .invalidIndex:
-                return "Index file is empty or malformed"
-            }
-        }
-    }
     static let configuration = CommandConfiguration(
         commandName: "search",
         abstract: "Search an embedding index for the closest matches"
@@ -30,7 +17,7 @@ struct SearchCommand: AsyncParsableCommand {
     @OptionGroup var pooling: PoolingArguments
 
     @Option(name: .shortAndLong, help: "Path to the embedding index JSON file")
-    var index: String
+    var index: URL
 
     @Option(name: .shortAndLong, help: "Query text to embed and search with")
     var query: String
@@ -42,7 +29,7 @@ struct SearchCommand: AsyncParsableCommand {
         let runtime = try await EmbedderTool.loadRuntime(model: model, pooling: pooling)
         let entries = try loadIndex()
         guard !entries.isEmpty else {
-            print("Index at \(index) is empty")
+            print("Index at \(index.path) is empty")
             return
         }
 
@@ -67,18 +54,17 @@ struct SearchCommand: AsyncParsableCommand {
     }
 
     private func loadIndex() throws -> [IndexEntry] {
-        let url = URL(fileURLWithPath: index)
-        guard FileManager.default.fileExists(atPath: url.path) else {
-            throw SearchError.indexNotFound(url.path)
+        guard FileManager.default.fileExists(atPath: index.path) else {
+            throw CommandError("Index file not found at \(index.path)")
         }
-        let data = try Data(contentsOf: url)
+        let data = try Data(contentsOf: index)
         let entries = try JSONDecoder().decode([IndexEntry].self, from: data)
-        guard !entries.isEmpty else { throw SearchError.invalidIndex }
+        guard !entries.isEmpty else { throw CommandError("Index file is empty or malformed") }
 
         if let dimension = entries.first?.embedding.count {
             let mismatched = entries.first { $0.embedding.count != dimension }
             if let mismatch = mismatched {
-                reportError("Warning: index entry \(mismatch.path) has dimension \(mismatch.embedding.count) vs expected \(dimension)")
+                writeDiagnostic("Index entry \(mismatch.path) has dimension \(mismatch.embedding.count) vs expected \(dimension)", kind: .warning)
             }
         }
 
@@ -90,7 +76,7 @@ struct SearchCommand: AsyncParsableCommand {
             let result = try await runtime.embed(texts: [query])
 
             if let fallbackMessage = result.fallbackDescription {
-                reportError(fallbackMessage)
+                writeDiagnostic(fallbackMessage, kind: .warning)
             }
 
             guard let embedding = result.embeddings.first(where: { $0.index == 0 }) else {
@@ -99,7 +85,7 @@ struct SearchCommand: AsyncParsableCommand {
 
             return embedding.vector
         } catch {
-            reportError("Pooling error: \(error.localizedDescription)")
+            writeDiagnostic("Pooling error: \(error.localizedDescription)", kind: .error)
             return []
         }
     }
@@ -108,7 +94,7 @@ struct SearchCommand: AsyncParsableCommand {
         var mismatched: [(path: String, dimension: Int)] = []
 
         if VectorOperations.hasNonFiniteValues(query) {
-            reportError("Query vector contains non-finite values; search aborted")
+            writeDiagnostic("Query vector contains non-finite values; search aborted", kind: .error)
             return []
         }
 
@@ -127,7 +113,7 @@ struct SearchCommand: AsyncParsableCommand {
         .sorted { $0.1 > $1.1 }
 
         if !mismatched.isEmpty {
-            reportError(dimensionMismatchMessage(for: mismatched, expected: query.count))
+            writeDiagnostic(dimensionMismatchMessage(for: mismatched, expected: query.count), kind: .warning)
         }
 
         return scored

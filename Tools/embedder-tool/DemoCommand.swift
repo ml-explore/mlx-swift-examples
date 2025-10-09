@@ -24,7 +24,7 @@ struct DemoCommand: AsyncParsableCommand {
                 } catch {
                     if FileManager.default.fileExists(atPath: indexURL.path) {
                         let message = "Failed to remove temporary index file at \(indexURL.path): \(error.localizedDescription). Please remove it manually."
-                        reportError(message)
+                        writeDiagnostic(message, kind: .warning)
                     }
                 }
             }
