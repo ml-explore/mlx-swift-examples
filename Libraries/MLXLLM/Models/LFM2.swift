@@ -29,7 +29,20 @@ public struct LFM2Configuration: Codable, Sendable {
     let blockFFNDimMultiplier: Float
     let blockAutoAdjustFFDim: Bool
     private let _fullAttnIdxs: [Int]?
-    var fullAttnIdxs: [Int] { _fullAttnIdxs ?? Array(0 ..< hiddenLayers) }
+    private let layerTypes: [String]?
+    var fullAttnIdxs: [Int] {
+        if let fullAttnIdxs = _fullAttnIdxs {
+            return fullAttnIdxs
+        }
+
+        if let layerTypes {
+            return layerTypes.enumerated().compactMap { index, layerType in
+                layerType == "full_attention" ? index : nil
+            }
+        }
+
+        return Array(0 ..< hiddenLayers)
+    }
     let ropeTheta: Float
     var headDimensions: Int { hiddenSize / attentionHeads }
 
@@ -50,6 +63,7 @@ public struct LFM2Configuration: Codable, Sendable {
         case blockFFNDimMultiplier = "block_ffn_dim_multiplier"
         case blockAutoAdjustFFDim = "block_auto_adjust_ff_dim"
         case _fullAttnIdxs = "full_attn_idxs"
+        case layerTypes = "layer_types"
         case ropeTheta = "rope_theta"
     }
 
@@ -77,6 +91,7 @@ public struct LFM2Configuration: Codable, Sendable {
         self.blockAutoAdjustFFDim =
             try container.decodeIfPresent(Bool.self, forKey: .blockAutoAdjustFFDim) ?? true
         self._fullAttnIdxs = try container.decodeIfPresent([Int].self, forKey: ._fullAttnIdxs)
+        self.layerTypes = try container.decodeIfPresent([String].self, forKey: .layerTypes)
         self.ropeTheta = try container.decodeIfPresent(Float.self, forKey: .ropeTheta) ?? 1000000.0
     }
 }
