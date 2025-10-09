@@ -91,22 +91,41 @@ struct IndexCommand: AsyncParsableCommand {
     private func embed(documents: [Document], runtime: EmbedderRuntime, batchSize: Int) async throws -> [IndexEntry] {
         guard !documents.isEmpty else { return [] }
 
-        let batchSize = max(1, batchSize)
+        let batchSize = max(1, min(batchSize, documents.count))
         var accumulatedEntries: [IndexEntry] = []
         var skippedDocuments: [String] = []
         var fallbackMessages: Set<String> = []
+        var lastReportedMilestone: Int = -1
 
         var index = 0
         while index < documents.count {
             let upperBound = min(index + batchSize, documents.count)
             let batch = Array(documents[index..<upperBound])
-            let result = try await embedBatch(documents: batch, runtime: runtime)
-            accumulatedEntries.append(contentsOf: result.entries)
-            skippedDocuments.append(contentsOf: result.skipped)
-            if let message = result.fallbackMessage {
+            let result = try await runtime.embed(texts: batch.map { $0.contents })
+
+            let entries: [IndexEntry] = result.embeddings.compactMap { embedding in
+                guard batch.indices.contains(embedding.index) else { return nil }
+                let document = batch[embedding.index]
+                let normalizedVector = VectorOperations.normalize(embedding.vector)
+                return IndexEntry(path: document.path, embedding: normalizedVector)
+            }
+            accumulatedEntries.append(contentsOf: entries)
+
+            skippedDocuments.append(contentsOf: result.skippedIndices.compactMap { index -> String? in
+                guard batch.indices.contains(index) else { return nil }
+                return batch[index].path
+            })
+
+            if let message = result.fallbackDescription {
                 fallbackMessages.insert(message)
             }
-            reportProgress(processed: upperBound, total: documents.count)
+            if documents.count > 0 {
+                let milestone = Int((Double(upperBound) / Double(documents.count)) * 10.0)
+                if milestone > lastReportedMilestone || upperBound == documents.count {
+                    reportProgress(processed: upperBound, total: documents.count)
+                    lastReportedMilestone = milestone
+                }
+            }
             index = upperBound
         }
 
@@ -119,64 +138,6 @@ struct IndexCommand: AsyncParsableCommand {
         }
 
         return accumulatedEntries
-    }
-
-    private func embedBatch(
-        documents: [Document],
-        runtime: EmbedderRuntime
-    ) async throws -> (entries: [IndexEntry], skipped: [String], fallbackMessage: String?) {
-        guard !documents.isEmpty else { return ([], [], nil) }
-
-        return try await runtime.container.perform { model, tokenizer, pooler in
-            var skippedDocuments: [String] = []
-
-            let encoded = documents.compactMap { document -> (Document, [Int])? in
-                let tokens = tokenizer.encode(text: document.contents, addSpecialTokens: true)
-                guard !tokens.isEmpty else {
-                    skippedDocuments.append(document.path)
-                    return nil
-                }
-                return (document, tokens)
-            }
-
-            guard !encoded.isEmpty else { return ([IndexEntry](), skippedDocuments, nil) }
-
-            let padToken = tokenizer.eosTokenId ?? 0
-            let maxLength = encoded.map { $0.1.count }.max() ?? 0
-
-            let padded = stacked(encoded.map { _, tokens in
-                MLXArray(tokens + Array(repeating: padToken, count: maxLength - tokens.count))
-            })
-            let mask = (padded .!= padToken)
-            let tokenTypes = MLXArray.zeros(like: padded)
-            let outputs = model(
-                padded,
-                positionIds: nil,
-                tokenTypeIds: tokenTypes,
-                attentionMask: mask
-            )
-
-            let poolingModule = PoolingSupport.resolvedPooler(base: pooler, runtime: runtime)
-            let pooled = poolingModule(
-                outputs,
-                mask: mask,
-                normalize: runtime.normalize,
-                applyLayerNorm: runtime.applyLayerNorm
-            )
-            pooled.eval()
-            let extraction = try PoolingSupport.extractVectors(
-                from: pooled,
-                expectedCount: encoded.count,
-                baseStrategy: runtime.baseStrategy,
-                overrideStrategy: runtime.strategyOverride
-            )
-
-            let entries: [IndexEntry] = zip(encoded.map { $0.0 }, extraction.vectors).map { document, vector in
-                let normalizedVector = VectorOperations.normalize(vector)
-                return IndexEntry(path: document.path, embedding: normalizedVector)
-            }
-            return (entries, skippedDocuments, extraction.fallbackDescription)
-        }
     }
 
     private func writeIndex(entries: [IndexEntry], to url: URL) throws {
@@ -227,4 +188,3 @@ struct IndexCommand: AsyncParsableCommand {
         reportError(message)
     }
 }
-

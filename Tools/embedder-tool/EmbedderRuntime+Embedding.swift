@@ -1,0 +1,81 @@
+import Foundation
+import MLX
+import MLXEmbedders
+import Tokenizers
+
+public struct RuntimeEmbeddingResult {
+    let embeddings: [(index: Int, vector: [Float])]
+    let skippedIndices: [Int]
+    let fallbackDescription: String?
+}
+
+extension EmbedderRuntime {
+    func embed(texts: [String]) async throws -> RuntimeEmbeddingResult {
+        guard !texts.isEmpty else {
+            return RuntimeEmbeddingResult(embeddings: [], skippedIndices: [], fallbackDescription: nil)
+        }
+
+        return try await container.perform { model, tokenizer, pooler in
+            var skippedIndices: [Int] = []
+
+            let encoded = texts.enumerated().compactMap { index, text -> (Int, [Int])? in
+                let tokens = tokenizer.encode(text: text, addSpecialTokens: true)
+                guard !tokens.isEmpty else {
+                    skippedIndices.append(index)
+                    return nil
+                }
+                return (index, tokens)
+            }
+
+            guard !encoded.isEmpty else {
+                return RuntimeEmbeddingResult(
+                    embeddings: [],
+                    skippedIndices: skippedIndices,
+                    fallbackDescription: nil
+                )
+            }
+
+            let padToken = tokenizer.eosTokenId ?? 0
+            let maxLength = encoded.map { $0.1.count }.max() ?? 0
+
+            let padded = stacked(encoded.map { _, tokens in
+                MLXArray(tokens + Array(repeating: padToken, count: maxLength - tokens.count))
+            })
+            let mask = (padded .!= padToken)
+            let tokenTypes = MLXArray.zeros(like: padded)
+
+            let outputs = model(
+                padded,
+                positionIds: nil,
+                tokenTypeIds: tokenTypes,
+                attentionMask: mask
+            )
+
+            let poolingModule = PoolingSupport.resolvedPooler(base: pooler, runtime: self)
+            let pooled = poolingModule(
+                outputs,
+                mask: mask,
+                normalize: self.normalize,
+                applyLayerNorm: self.applyLayerNorm
+            )
+            pooled.eval()
+
+            let extraction = try PoolingSupport.extractVectors(
+                from: pooled,
+                expectedCount: encoded.count,
+                baseStrategy: self.baseStrategy,
+                overrideStrategy: self.strategyOverride
+            )
+
+            let embeddings = zip(encoded.map { $0.0 }, extraction.vectors).map { index, vector in
+                (index: index, vector: vector)
+            }
+
+            return RuntimeEmbeddingResult(
+                embeddings: embeddings,
+                skippedIndices: skippedIndices,
+                fallbackDescription: extraction.fallbackDescription
+            )
+        }
+    }
+}

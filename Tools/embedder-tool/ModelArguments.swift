@@ -44,15 +44,15 @@ extension ModelArguments {
         
         print("Loading model \(configuration.name)...")
         
-        var lastReportedPercentage: Int = -1
         let container = try await MLXEmbedders.loadModelContainer(
             hub: hub,
             configuration: configuration,
             progressHandler: { progress in
                 let percentage = Int(progress.fractionCompleted * 100)
-                if percentage != lastReportedPercentage && percentage % 10 == 0 {
+                let previousPercentage = Int((progress.fractionCompleted - 0.01) * 100)
+                
+                if percentage % 10 == 0 && percentage != previousPercentage {
                     print("Downloading model: \(percentage)%")
-                    lastReportedPercentage = percentage
                 }
             }
         )

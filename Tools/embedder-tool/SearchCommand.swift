@@ -87,48 +87,17 @@ struct SearchCommand: AsyncParsableCommand {
 
     private func embedQuery(runtime: EmbedderRuntime) async -> [Float] {
         do {
-            let (vector, fallbackMessage): ([Float], String?) = try await runtime.container.perform { model, tokenizer, pooler in
-                let tokens = tokenizer.encode(text: query, addSpecialTokens: true)
-                guard !tokens.isEmpty else { return ([], nil) }
+            let result = try await runtime.embed(texts: [query])
 
-                let padToken = tokenizer.eosTokenId ?? 0
-                let maxLength = max(tokens.count, 1)
-
-                let padded = stacked([
-                    MLXArray(tokens + Array(repeating: padToken, count: maxLength - tokens.count))
-                ])
-                let mask = (padded .!= padToken)
-                let tokenTypes = MLXArray.zeros(like: padded)
-
-                let outputs = model(
-                    padded,
-                    positionIds: nil,
-                    tokenTypeIds: tokenTypes,
-                    attentionMask: mask
-                )
-
-                let poolingModule = PoolingSupport.resolvedPooler(base: pooler, runtime: runtime)
-                let pooled = poolingModule(
-                    outputs,
-                    mask: mask,
-                    normalize: runtime.normalize,
-                    applyLayerNorm: runtime.applyLayerNorm
-                )
-                pooled.eval()
-                let extraction = try PoolingSupport.extractVectors(
-                    from: pooled,
-                    expectedCount: 1,
-                    baseStrategy: runtime.baseStrategy,
-                    overrideStrategy: runtime.strategyOverride
-                )
-                return (extraction.vectors.first ?? [], extraction.fallbackDescription)
-            }
-
-            if let fallbackMessage {
+            if let fallbackMessage = result.fallbackDescription {
                 reportError(fallbackMessage)
             }
 
-            return vector
+            guard let embedding = result.embeddings.first(where: { $0.index == 0 }) else {
+                return []
+            }
+
+            return embedding.vector
         } catch {
             reportError("Pooling error: \(error.localizedDescription)")
             return []
