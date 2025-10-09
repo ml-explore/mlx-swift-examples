@@ -13,7 +13,7 @@ struct EmbedderTool: AsyncParsableCommand {
         subcommands: [IndexCommand.self, SearchCommand.self, ListCommand.self]
     )
 
-    private static let defaultModelConfiguration = ModelConfiguration.gte_tiny
+    private static let defaultModelConfiguration = ModelConfiguration.nomic_text_v1_5
 
     @OptionGroup var model: ModelArguments
     @OptionGroup var corpus: CorpusArguments
@@ -26,7 +26,7 @@ struct EmbedderTool: AsyncParsableCommand {
 
     static func loadRuntime(model: ModelArguments, pooling: PoolingArguments) async throws -> EmbedderRuntime {
         let loadedModel = try await model.load(default: defaultModelConfiguration)
-        let baseStrategy = try await loadedModel.container.perform { _, _, pooler in
+        let baseStrategy = await loadedModel.container.perform { _, _, pooler in
             pooler.strategy
         }
         return EmbedderRuntime(
