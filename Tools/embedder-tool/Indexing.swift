@@ -10,6 +10,11 @@ struct Document {
 struct IndexEntry: Codable {
     let path: String
     let embedding: [Float]
+    
+    init(path: String, embedding: [Float]) {
+        self.path = path
+        self.embedding = embedding
+    }
 }
 
 struct CorpusLoader {

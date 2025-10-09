@@ -1,5 +1,6 @@
 // Copyright © 2025 Apple Inc.
 
+import Accelerate
 import ArgumentParser
 import Foundation
 import MLX
@@ -45,11 +46,13 @@ struct SearchCommand: AsyncParsableCommand {
             return
         }
 
-        let queryVector = await embedQuery(runtime: runtime)
+        var queryVector = await embedQuery(runtime: runtime)
         guard !queryVector.isEmpty else {
             print("Query produced no tokens")
             return
         }
+        
+        queryVector = VectorOperations.normalize(queryVector)
 
         let results = rank(entries: entries, query: queryVector)
         if results.isEmpty {
@@ -135,13 +138,21 @@ struct SearchCommand: AsyncParsableCommand {
     private func rank(entries: [IndexEntry], query: [Float]) -> [(IndexEntry, Float)] {
         var mismatched: [(path: String, dimension: Int)] = []
 
+        if VectorOperations.hasNonFiniteValues(query) {
+            reportError("Query vector contains non-finite values; search aborted")
+            return []
+        }
+
         let scored = entries.compactMap { entry -> (IndexEntry, Float)? in
             let dimension = entry.embedding.count
             guard dimension == query.count else {
                 mismatched.append((entry.path, dimension))
                 return nil
             }
-            let score = cosineSimilarity(entry.embedding, query)
+            guard !VectorOperations.hasNonFiniteValues(entry.embedding) else {
+                return (entry, 0)
+            }
+            let score = VectorOperations.dotProduct(entry.embedding, query)
             return (entry, score)
         }
         .sorted { $0.1 > $1.1 }
@@ -151,25 +162,6 @@ struct SearchCommand: AsyncParsableCommand {
         }
 
         return scored
-    }
-
-    private func cosineSimilarity(_ lhs: [Float], _ rhs: [Float]) -> Float {
-        guard !lhs.contains(where: { !$0.isFinite }), !rhs.contains(where: { !$0.isFinite }) else {
-            return 0
-        }
-        var dot: Float = 0
-        var lhsNorm: Float = 0
-        var rhsNorm: Float = 0
-
-        for (l, r) in zip(lhs, rhs) {
-            dot += l * r
-            lhsNorm += l * l
-            rhsNorm += r * r
-        }
-
-        let denominator = sqrt(lhsNorm) * sqrt(rhsNorm)
-        guard denominator > 0 else { return 0 }
-        return dot / denominator
     }
 
     private func dimensionMismatchMessage(for mismatched: [(path: String, dimension: Int)], expected: Int) -> String {

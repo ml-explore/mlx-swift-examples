@@ -1,5 +1,6 @@
 // Copyright © 2025 Apple Inc.
 
+import Accelerate
 import ArgumentParser
 import Foundation
 import MLX
@@ -70,7 +71,6 @@ struct IndexCommand: AsyncParsableCommand {
         let documents = try loadDocuments()
         let entries = try await embed(documents: documents, runtime: runtime, batchSize: batchSize)
         try writeIndex(entries: entries, to: outputURL)
-        print("Wrote \(entries.count) embeddings to \(outputURL.path)")
     }
 
     private func loadDocuments() throws -> [Document] {
@@ -172,7 +172,8 @@ struct IndexCommand: AsyncParsableCommand {
             )
 
             let entries: [IndexEntry] = zip(encoded.map { $0.0 }, extraction.vectors).map { document, vector in
-                IndexEntry(path: document.path, embedding: vector)
+                let normalizedVector = VectorOperations.normalize(vector)
+                return IndexEntry(path: document.path, embedding: normalizedVector)
             }
             return (entries, skippedDocuments, extraction.fallbackDescription)
         }
