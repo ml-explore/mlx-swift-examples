@@ -40,7 +40,7 @@ extension EmbedderRuntime {
 
     func extractVectors(from array: MLXArray, expectedCount: Int) throws -> PoolingExtraction {
         let shape = array.shape
-
+        
         switch shape.count {
         case 2:
             let vectors = array.map { $0.asArray(Float.self) }
