@@ -67,6 +67,22 @@ Embeds a query and reports cosine similarity scores against an existing index.
 
 Results whose vector dimensions mismatch the query are skipped with warnings, and any pooling fallbacks are reported.
 
+#### repl
+
+Builds an in-memory embedding index for a directory and launches a simple REPL for quick experiments. Press return on an empty line to exit the loop.
+
+```
+./mlx-run embedder-tool repl \
+    --directory Data/corpus \
+    --extensions md txt \
+    --recursive \
+    --top 5 \
+    --normalize \
+    --show-timing
+```
+
+Use `/help` inside the REPL to discover commands like `/stats` and `/quit`.
+
 #### list
 
 Lists the registered embedder configurations. Add `--include-directories` to show locally registered directories.

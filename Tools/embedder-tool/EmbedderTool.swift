@@ -11,7 +11,7 @@ import Tokenizers
 struct EmbedderTool: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Command line tool for working with MLX embedders",
-        subcommands: [IndexCommand.self, SearchCommand.self, ListCommand.self, DemoCommand.self]
+        subcommands: [IndexCommand.self, SearchCommand.self, ReplCommand.self, ListCommand.self, DemoCommand.self]
     )
 
     private static let defaultModelConfiguration = ModelConfiguration.nomic_text_v1_5
