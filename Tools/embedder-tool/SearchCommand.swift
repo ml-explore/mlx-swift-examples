@@ -7,6 +7,19 @@ import MLXEmbedders
 import Tokenizers
 
 struct SearchCommand: AsyncParsableCommand {
+    enum SearchError: LocalizedError {
+        case indexNotFound(String)
+        case invalidIndex
+
+        var errorDescription: String? {
+            switch self {
+            case .indexNotFound(let path):
+                return "Index file not found at \(path)"
+            case .invalidIndex:
+                return "Index file is empty or malformed"
+            }
+        }
+    }
     static let configuration = CommandConfiguration(
         commandName: "search",
         abstract: "Search an embedding index for the closest matches"
@@ -52,8 +65,21 @@ struct SearchCommand: AsyncParsableCommand {
 
     private func loadIndex() throws -> [IndexEntry] {
         let url = URL(fileURLWithPath: index)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            throw SearchError.indexNotFound(url.path)
+        }
         let data = try Data(contentsOf: url)
-        return try JSONDecoder().decode([IndexEntry].self, from: data)
+        let entries = try JSONDecoder().decode([IndexEntry].self, from: data)
+        guard !entries.isEmpty else { throw SearchError.invalidIndex }
+
+        if let dimension = entries.first?.embedding.count {
+            let mismatched = entries.first { $0.embedding.count != dimension }
+            if let mismatch = mismatched {
+                reportError("Warning: index entry \(mismatch.path) has dimension \(mismatch.embedding.count) vs expected \(dimension)")
+            }
+        }
+
+        return entries
     }
 
     private func embedQuery(runtime: EmbedderRuntime) async -> [Float] {
@@ -89,18 +115,19 @@ struct SearchCommand: AsyncParsableCommand {
                 let extraction = try PoolingSupport.extractVectors(
                     from: pooled,
                     expectedCount: 1,
-                    runtime: runtime
+                    baseStrategy: runtime.baseStrategy,
+                    overrideStrategy: runtime.strategyOverride
                 )
                 return (extraction.vectors.first ?? [], extraction.fallbackDescription)
             }
 
             if let fallbackMessage {
-                reportPoolingFallback(fallbackMessage)
+                reportError(fallbackMessage)
             }
 
             return vector
         } catch {
-            reportPoolingError(error)
+            reportError("Pooling error: \(error.localizedDescription)")
             return []
         }
     }
@@ -120,13 +147,16 @@ struct SearchCommand: AsyncParsableCommand {
         .sorted { $0.1 > $1.1 }
 
         if !mismatched.isEmpty {
-            reportDimensionMismatch(mismatched, expected: query.count)
+            reportError(dimensionMismatchMessage(for: mismatched, expected: query.count))
         }
 
         return scored
     }
 
     private func cosineSimilarity(_ lhs: [Float], _ rhs: [Float]) -> Float {
+        guard !lhs.contains(where: { !$0.isFinite }), !rhs.contains(where: { !$0.isFinite }) else {
+            return 0
+        }
         var dot: Float = 0
         var lhsNorm: Float = 0
         var rhsNorm: Float = 0
@@ -142,25 +172,7 @@ struct SearchCommand: AsyncParsableCommand {
         return dot / denominator
     }
 
-    private func reportPoolingFallback(_ message: String) {
-        if let data = (message + "\n").data(using: .utf8) {
-            FileHandle.standardError.write(data)
-        }
-    }
-
-    private func reportPoolingError(_ error: Error) {
-        let message: String
-        if let localized = error as? LocalizedError, let description = localized.errorDescription {
-            message = description
-        } else {
-            message = error.localizedDescription
-        }
-        if let data = ("Pooling error: " + message + "\n").data(using: .utf8) {
-            FileHandle.standardError.write(data)
-        }
-    }
-
-    private func reportDimensionMismatch(_ mismatched: [(path: String, dimension: Int)], expected: Int) {
+    private func dimensionMismatchMessage(for mismatched: [(path: String, dimension: Int)], expected: Int) -> String {
         var message = "Skipped \(mismatched.count) index entry(s) with dimension mismatch (expected \(expected))"
         if !mismatched.isEmpty {
             let preview = mismatched.prefix(5).map { "\($0.path) (\($0.dimension))" }.joined(separator: ", ")
@@ -169,8 +181,6 @@ struct SearchCommand: AsyncParsableCommand {
                 message += ", ..."
             }
         }
-        if let data = (message + "\n").data(using: .utf8) {
-            FileHandle.standardError.write(data)
-        }
+        return message
     }
 }

@@ -5,7 +5,7 @@ import MLXEmbedders
 
 struct PoolingArguments: ParsableArguments {
 
-    @Option(name: .long, help: "Pooling strategy used to collapse token embeddings; defaults to the model's configuration.")
+    @Option(name: .long, help: "Pooling strategy used to collapse token embeddings. Omit to use the model's configured default (reported when loading).")
     var strategy: Pooling.Strategy?
 
     @Flag(name: .long, help: "Normalize pooled embeddings to unit length.")

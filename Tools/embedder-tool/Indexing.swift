@@ -28,6 +28,10 @@ struct CorpusLoader {
     struct LoadResult {
         let documents: [Document]
         let failures: [(url: URL, error: ReadError)]
+
+        var successCount: Int { documents.count }
+        var failureCount: Int { failures.count }
+        var totalCount: Int { successCount + failureCount }
     }
 
     enum ReadError: LocalizedError {
@@ -145,6 +149,7 @@ struct CorpusLoader {
     }
 
     private func isLikelyBinary(_ data: Data) -> Bool {
+        // Inspect the first 4KB, matching common heuristics for detecting binary files.
         let sample = data.prefix(4096)
         return sample.contains { $0 == 0 }
     }

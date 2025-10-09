@@ -26,9 +26,13 @@ struct EmbedderTool: AsyncParsableCommand {
 
     static func loadRuntime(model: ModelArguments, pooling: PoolingArguments) async throws -> EmbedderRuntime {
         let loadedModel = try await model.load(default: defaultModelConfiguration)
+        let baseStrategy = try await loadedModel.container.perform { _, _, pooler in
+            pooler.strategy
+        }
         return EmbedderRuntime(
             configuration: loadedModel.configuration,
             container: loadedModel.container,
+            baseStrategy: baseStrategy,
             strategyOverride: pooling.strategy,
             normalize: pooling.normalize,
             applyLayerNorm: pooling.layerNorm
@@ -39,6 +43,7 @@ struct EmbedderTool: AsyncParsableCommand {
 struct EmbedderRuntime {
     let configuration: ModelConfiguration
     let container: ModelContainer
+    let baseStrategy: Pooling.Strategy
     let strategyOverride: Pooling.Strategy?
     let normalize: Bool
     let applyLayerNorm: Bool
@@ -57,10 +62,13 @@ struct IndexCommand: AsyncParsableCommand {
     @Option(name: .shortAndLong, help: "Destination file for the generated index")
     var output: String
 
+    @Option(name: .long, help: "Number of documents to embed per batch (default: 32)")
+    var batchSize: Int = 32
+
     func run() async throws {
         let runtime = try await EmbedderTool.loadRuntime(model: model, pooling: pooling)
         let documents = try loadDocuments()
-        let entries = try await embed(documents: documents, runtime: runtime)
+        let entries = try await embed(documents: documents, runtime: runtime, batchSize: batchSize)
         try writeIndex(entries: entries, to: outputURL)
         print("Wrote \(entries.count) embeddings to \(outputURL.path)")
     }
@@ -80,10 +88,10 @@ struct IndexCommand: AsyncParsableCommand {
         return result.documents
     }
 
-    private func embed(documents: [Document], runtime: EmbedderRuntime) async throws -> [IndexEntry] {
+    private func embed(documents: [Document], runtime: EmbedderRuntime, batchSize: Int) async throws -> [IndexEntry] {
         guard !documents.isEmpty else { return [] }
 
-        let batchSize = 32
+        let batchSize = max(1, batchSize)
         var accumulatedEntries: [IndexEntry] = []
         var skippedDocuments: [String] = []
         var fallbackMessages: Set<String> = []
@@ -98,6 +106,7 @@ struct IndexCommand: AsyncParsableCommand {
             if let message = result.fallbackMessage {
                 fallbackMessages.insert(message)
             }
+            reportProgress(processed: upperBound, total: documents.count)
             index = upperBound
         }
 
@@ -158,7 +167,8 @@ struct IndexCommand: AsyncParsableCommand {
             let extraction = try PoolingSupport.extractVectors(
                 from: pooled,
                 expectedCount: encoded.count,
-                runtime: runtime
+                baseStrategy: runtime.baseStrategy,
+                overrideStrategy: runtime.strategyOverride
             )
 
             let entries: [IndexEntry] = zip(encoded.map { $0.0 }, extraction.vectors).map { document, vector in
@@ -179,6 +189,12 @@ struct IndexCommand: AsyncParsableCommand {
         URL(fileURLWithPath: output)
     }
 
+    private func reportProgress(processed: Int, total: Int) {
+        guard total > 0 else { return }
+        let message = "Processed \(processed)/\(total) documents"
+        reportError(message)
+    }
+
     private func reportSkippedDocuments(_ paths: [String]) {
         var message = "Skipped \(paths.count) document(s) that produced no tokens"
         if !paths.isEmpty {
@@ -188,15 +204,11 @@ struct IndexCommand: AsyncParsableCommand {
                 message += ", ..."
             }
         }
-        if let data = (message + "\n").data(using: .utf8) {
-            FileHandle.standardError.write(data)
-        }
+        reportError(message)
     }
 
     private func reportPoolingFallback(_ message: String) {
-        if let data = (message + "\n").data(using: .utf8) {
-            FileHandle.standardError.write(data)
-        }
+        reportError(message)
     }
 
     private func reportCorpusFailures(_ failures: [(url: URL, error: CorpusLoader.ReadError)]) {
@@ -211,9 +223,7 @@ struct IndexCommand: AsyncParsableCommand {
                 message += ", ..."
             }
         }
-        if let data = (message + "\n").data(using: .utf8) {
-            FileHandle.standardError.write(data)
-        }
+        reportError(message)
     }
 }
 

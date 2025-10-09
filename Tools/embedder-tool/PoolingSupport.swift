@@ -22,12 +22,11 @@ enum PoolingSupport {
             return pooler
         }
 
-        if let baseStrategy: Pooling.Strategy = value(for: "strategy", in: pooler), baseStrategy == override {
+        if pooler.strategy == override {
             return pooler
         }
 
-        let dimension: Int? = value(for: "dimension", in: pooler)
-        if let dimension {
+        if let dimension = pooler.dimension {
             return Pooling(strategy: override, dimension: dimension)
         } else {
             return Pooling(strategy: override)
@@ -37,7 +36,8 @@ enum PoolingSupport {
     static func extractVectors(
         from array: MLXArray,
         expectedCount: Int,
-        runtime: EmbedderRuntime
+        baseStrategy: Pooling.Strategy,
+        overrideStrategy: Pooling.Strategy?
     ) throws -> (vectors: [[Float]], fallbackDescription: String?) {
         let shape = array.shape
 
@@ -58,7 +58,7 @@ enum PoolingSupport {
             }
 
             let description: String
-            if runtime.strategyOverride == .none {
+            if (overrideStrategy ?? baseStrategy) == .none {
                 description = "Pooling strategy 'none' returned sequence embeddings; falling back to mean over tokens."
             } else {
                 description = "Pooling returned sequence embeddings; falling back to mean over tokens."
@@ -68,23 +68,6 @@ enum PoolingSupport {
         default:
             throw PoolingError.unsupportedShape(shape)
         }
-    }
-
-    private static func value<T>(for key: String, in pooler: Pooling) -> T? {
-        guard let child = Mirror(reflecting: pooler).children.first(where: { $0.label == key }) else {
-            return nil
-        }
-
-        if let value = child.value as? T {
-            return value
-        }
-
-        let mirror = Mirror(reflecting: child.value)
-        if mirror.displayStyle == .optional, let first = mirror.children.first?.value as? T {
-            return first
-        }
-
-        return nil
     }
 }
 
@@ -103,6 +86,10 @@ extension Pooling.Strategy {
 
 extension EmbedderRuntime {
     var poolingDescription: String {
-        strategyOverride?.cliDescription ?? "model default"
+        if let override = strategyOverride {
+            return "override (\(override.cliDescription))"
+        } else {
+            return "model default (\(baseStrategy.cliDescription))"
+        }
     }
 }
