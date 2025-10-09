@@ -41,9 +41,20 @@ extension ModelArguments {
     func load(default defaultConfiguration: ModelConfiguration) async throws -> LoadedEmbedderModel {
         let configuration = await configuration(default: defaultConfiguration)
         let hub = makeHub()
+        
+        print("Loading model \(configuration.name)...")
+        
+        var lastReportedPercentage: Int = -1
         let container = try await MLXEmbedders.loadModelContainer(
             hub: hub,
-            configuration: configuration
+            configuration: configuration,
+            progressHandler: { progress in
+                let percentage = Int(progress.fractionCompleted * 100)
+                if percentage != lastReportedPercentage && percentage % 10 == 0 {
+                    print("Downloading model: \(percentage)%")
+                    lastReportedPercentage = percentage
+                }
+            }
         )
 
         return LoadedEmbedderModel(configuration: configuration, container: container)

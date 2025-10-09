@@ -43,23 +43,17 @@ struct DemoCommand: AsyncParsableCommand {
     private func buildIndex(at url: URL) async throws {
         print("Indexing sample documentation from Libraries/")
 
-        var indexCommand = IndexCommand()
-        indexCommand.output = url.path
-        indexCommand.batchSize = 4
+        let arguments = [
+            "--output", url.path,
+            "--directory", "Libraries",
+            "--extensions", "md",
+            "--recursive",
+            "--limit", "8",
+            "--batch-size", "4",
+            "--normalize"
+        ]
 
-        var corpus = CorpusArguments()
-        corpus.directory = "Libraries"
-        corpus.extensions = ["md"]
-        corpus.recursive = true
-        corpus.limit = 8
-        indexCommand.corpus = corpus
-
-        var pooling = PoolingArguments()
-        pooling.normalize = true
-        indexCommand.pooling = pooling
-
-        indexCommand.model = ModelArguments()
-
+        let indexCommand = try IndexCommand.parse(arguments)
         try await indexCommand.run()
     }
 
@@ -72,14 +66,13 @@ struct DemoCommand: AsyncParsableCommand {
 
         for query in queries {
             print("Query: \"\(query)\"")
-            var searchCommand = SearchCommand()
-            searchCommand.model = ModelArguments()
-            var pooling = PoolingArguments()
-            pooling.normalize = true
-            searchCommand.pooling = pooling
-            searchCommand.index = indexURL.path
-            searchCommand.query = query
-            searchCommand.top = 2
+            let arguments = [
+                "--index", indexURL.path,
+                "--query", query,
+                "--top", "2",
+                "--normalize"
+            ]
+            let searchCommand = try SearchCommand.parse(arguments)
             try await searchCommand.run()
             print()
         }
