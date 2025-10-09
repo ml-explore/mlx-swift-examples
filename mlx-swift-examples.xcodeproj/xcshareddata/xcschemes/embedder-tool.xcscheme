@@ -55,6 +55,26 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "demo"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "repl"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--recursive"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--directory Libraries"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--batch-size 1"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--top 12"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

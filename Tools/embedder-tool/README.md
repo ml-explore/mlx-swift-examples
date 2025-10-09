@@ -17,8 +17,7 @@ index \
     --output /tmp/embedder-index.json \
     --directory Libraries \
     --extensions md \
-    --recursive \
-    --normalize
+    --recursive
 ```
 
 Then press <kbd>⌘</kbd>+<kbd>R</kbd> to run. The first launch may prompt for access to the Documents directory so the Hugging Face `HubApi` can download model assets.
@@ -28,14 +27,16 @@ Then press <kbd>⌘</kbd>+<kbd>R</kbd> to run. The first launch may prompt for a
 Use the `mlx-run` helper to locate the built binary:
 
 ```
-./mlx-run embedder-tool index --output /tmp/embedder-index.json --directory Libraries --extensions md --recursive --normalize
+./mlx-run embedder-tool index --output /tmp/embedder-index.json --directory Libraries --extensions md --recursive
 ```
 
 By default this runs the Release build. Pass `--debug` after `mlx-run` to execute the Debug configuration.
 
 ### Commands
 
-`embedder-tool` defaults to the `nomic-ai/nomic-embed-text-v1.5` configuration but any registered model from `embedder-tool list` (or a local directory) can be selected with `--model`. Download locations can be overridden with `--download`. Pooling behavior is configured with `--strategy`, `--normalize`, and `--layer-norm`.
+`embedder-tool` defaults to the `nomic-ai/nomic-embed-text-v1.5` configuration but any registered model from `embedder-tool list` (or a local directory) can be selected with `--model`. Download locations can be overridden with `--download`. 
+
+Pooling defaults to mean strategy with normalization enabled, which can be customized with `--strategy`, `--normalize`, and `--layer-norm`.
 
 #### index
 
@@ -47,8 +48,7 @@ Creates an embedding index for a corpus and writes it as prettified JSON.
     --directory Data/corpus \
     --extensions md txt \
     --recursive \
-    --batch-size 32 \
-    --normalize
+    --batch-size 32
 ```
 
 Each document in the target directory (filtered by `--extensions`, optionally `--recursive`, and `--limit`) is embedded in batches controlled by `--batch-size`.
@@ -61,8 +61,7 @@ Embeds a query and reports cosine similarity scores against an existing index.
 ./mlx-run embedder-tool search \
     --index /tmp/embedder-index.json \
     --query "swift embeddings" \
-    --top 5 \
-    --normalize
+    --top 5
 ```
 
 Results whose vector dimensions mismatch the query are skipped with warnings, and any pooling fallbacks are reported.
@@ -77,7 +76,6 @@ Builds an in-memory embedding index for a directory and launches a simple REPL f
     --extensions md txt \
     --recursive \
     --top 5 \
-    --normalize \
     --show-timing
 ```
 
