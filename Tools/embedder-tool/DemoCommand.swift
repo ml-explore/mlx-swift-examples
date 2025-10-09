@@ -4,7 +4,7 @@ import Foundation
 struct DemoCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "demo",
-        abstract: "Run a brief demonstration using sample repository documentation"
+        abstract: "Run a demo using sample repository documentation"
     )
 
     @Flag(name: .long, help: "Keep the generated demo index file instead of removing it")
@@ -12,27 +12,22 @@ struct DemoCommand: AsyncParsableCommand {
 
     func run() async throws {
         print("Embedder Tool Demo")
-        print(String(repeating: "=", count: 20))
-        print()
 
         let indexURL = try makeTemporaryIndexURL()
         defer {
             if !keepIndex {
-                try? FileManager.default.removeItem(at: indexURL)
+                do {
+                    try FileManager.default.removeItem(at: indexURL)
+                } catch {
+                    if FileManager.default.fileExists(atPath: indexURL.path) {
+                        print("Failed to remove temporary index file: \(error.localizedDescription)")
+                    }
+                }
             }
         }
 
         try await buildIndex(at: indexURL)
-        print()
         try await runSampleQueries(using: indexURL)
-        print()
-        print("Try it yourself:")
-        print("  embedder-tool index --directory <your-docs>")
-        print("  embedder-tool search --index <index-file> --query \"your query\"")
-        if keepIndex {
-            print()
-            print("Demo index saved at \(indexURL.path)")
-        }
     }
 
     private func makeTemporaryIndexURL() throws -> URL {
@@ -41,8 +36,6 @@ struct DemoCommand: AsyncParsableCommand {
     }
 
     private func buildIndex(at url: URL) async throws {
-        print("Indexing sample documentation from Libraries/")
-
         let arguments = [
             "--output", url.path,
             "--directory", "Libraries",
@@ -74,7 +67,6 @@ struct DemoCommand: AsyncParsableCommand {
             ]
             let searchCommand = try SearchCommand.parse(arguments)
             try await searchCommand.run()
-            print()
         }
     }
 }
