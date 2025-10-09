@@ -10,6 +10,9 @@ struct DemoCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Keep the generated demo index file instead of removing it")
     var keepIndex = false
 
+    @Argument(help: "Optional queries to run after indexing. Defaults to three sample queries.")
+    var queries: [String] = []
+
     func run() async throws {
         print("Embedder Tool Demo")
 
@@ -27,7 +30,8 @@ struct DemoCommand: AsyncParsableCommand {
         }
 
         try await buildIndex(at: indexURL)
-        try await runSampleQueries(using: indexURL)
+        let queriesToRun = queries.isEmpty ? defaultQueries : queries
+        try await runSampleQueries(using: indexURL, queries: queriesToRun)
     }
 
     private func makeTemporaryIndexURL() throws -> URL {
@@ -50,13 +54,7 @@ struct DemoCommand: AsyncParsableCommand {
         try await indexCommand.run()
     }
 
-    private func runSampleQueries(using indexURL: URL) async throws {
-        let queries = [
-            "How do I use embedding models?",
-            "Training language models",
-            "Vision language models"
-        ]
-
+    private func runSampleQueries(using indexURL: URL, queries: [String]) async throws {
         for query in queries {
             print("Query: \"\(query)\"")
             let arguments = [
@@ -68,5 +66,13 @@ struct DemoCommand: AsyncParsableCommand {
             let searchCommand = try SearchCommand.parse(arguments)
             try await searchCommand.run()
         }
+    }
+
+    private var defaultQueries: [String] {
+        [
+            "How do I use embedding models?",
+            "Training language models",
+            "Vision language models"
+        ]
     }
 }
