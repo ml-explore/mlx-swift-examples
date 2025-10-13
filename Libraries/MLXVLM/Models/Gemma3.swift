@@ -95,18 +95,6 @@ public struct Gemma3VisionConfiguration: Codable, Sendable {
     }
 }
 
-// MARK: - Quantization Configuration
-
-public struct QuantizationConfig: Codable, Sendable {
-    public let groupSize: Int
-    public let bits: Int
-
-    enum CodingKeys: String, CodingKey {
-        case groupSize = "group_size"
-        case bits
-    }
-}
-
 // MARK: - Model Configuration
 
 public struct Gemma3Configuration: Codable, Sendable {
@@ -114,7 +102,7 @@ public struct Gemma3Configuration: Codable, Sendable {
     public let visionConfiguration: Gemma3VisionConfiguration
     public let modelType: String
     public let mmTokensPerImage: Int
-    public let quantization: QuantizationConfig?
+    public let quantization: BaseConfiguration.Quantization?
 
     private let _vocabularySize: Int?
     private let _padTokenId: Int?
@@ -451,7 +439,9 @@ private class LanguageModel: Module, KVCacheDimensionProvider {
         return LMOutput(logits: finalLogits)
     }
 
-    func sanitize(weights: [String: MLXArray], quantizationConfig: QuantizationConfig? = nil)
+    func sanitize(
+        weights: [String: MLXArray], quantizationConfig: BaseConfiguration.Quantization? = nil
+    )
         -> [String: MLXArray]
     {
         var processedWeights = weights
@@ -462,17 +452,16 @@ private class LanguageModel: Module, KVCacheDimensionProvider {
 
         if hasQuantizedLmHead {
             // Use quantization config from model configuration if available
-            let groupSize = quantizationConfig?.groupSize ?? 64
-            let bits = quantizationConfig?.bits ?? 4
+            let q = quantizationConfig?.asTuple ?? (64, 4, .affine)
 
             // Only quantize layers that actually have quantized weights
             quantize(model: self) { path, module in
                 // Check each specific layer path for quantized weights
                 let fullPath = "language_model.\(path)"
-                if weights["\(fullPath).scales"] != nil && weights["\(fullPath).biases"] != nil
+                if weights["\(fullPath).scales"] != nil
                     && weights["\(fullPath).weight"]?.dtype == .uint32
                 {
-                    return (groupSize, bits)
+                    return q
                 }
                 return nil
             }

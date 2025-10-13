@@ -1,6 +1,7 @@
 // Copyright © 2025 Apple Inc.
 
 import Foundation
+import MLX
 
 /// Base ``LanguageModel`` configuration -- provides `modelType`
 /// and `quantization` (used in loading the model).
@@ -18,12 +19,15 @@ public struct BaseConfiguration: Codable, Sendable {
 
         public let groupSize: Int
         public let bits: Int
+        private var _mode: QuantizationMode? = nil
+        public var mode: QuantizationMode { _mode ?? .affine }
 
-        public var asTuple: (Int, Int) { (groupSize, bits) }
+        public var asTuple: (Int, Int, QuantizationMode) { (groupSize, bits, mode) }
 
         enum CodingKeys: String, CodingKey {
             case groupSize = "group_size"
             case bits = "bits"
+            case _mode = "mode"
         }
     }
 

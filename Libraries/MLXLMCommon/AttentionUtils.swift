@@ -52,7 +52,7 @@ public func attentionWithCacheUpdate(
             mask: mask
         )
     }
-    if let quantizedKVCache = cache as? QuantizedKVCache {
+    if let quantizedKVCache = cache as? QuantizedKVCacheProtocol {
         let (quantizedKeys, quantizedValues) = quantizedKVCache.updateQuantized(
             keys: keys, values: values)
         return quantizedScaledDotProductAttention(
@@ -62,7 +62,8 @@ public func attentionWithCacheUpdate(
             scale: scale,
             mask: mask,
             groupSize: quantizedKVCache.groupSize,
-            bits: quantizedKVCache.bits
+            bits: quantizedKVCache.bits,
+            mode: quantizedKVCache.mode
         )
     } else {
         let (cachedKeys, cachedValues) = cache.update(keys: keys, values: values)
