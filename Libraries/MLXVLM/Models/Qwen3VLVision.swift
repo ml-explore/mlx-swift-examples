@@ -457,14 +457,23 @@ enum Qwen3VLVision {
         }
 
         private func cumulativeSequenceLengths(_ grids: [THW]) -> MLXArray {
-            var prefix: [Int] = [0]
+            var seqLengths: [MLXArray] = []
+            
             for grid in grids {
-                let perFrame = grid.h * grid.w  // Full patch count per frame
-                for _ in 0..<grid.t {
-                    prefix.append((prefix.last ?? 0) + perFrame)
-                }
+                let perFrame = grid.h * grid.w
+                let repeated = tiled(MLXArray(perFrame), repetitions: [grid.t])
+                seqLengths.append(repeated)
             }
-            return MLXArray(prefix)
+            
+            guard !seqLengths.isEmpty else {
+                return MLXArray(0, dtype: .int32)
+            }
+            
+            let concatSeqLengths = concatenated(seqLengths).asType(.int32)
+            
+            let cumSum = concatSeqLengths.cumsum()
+            
+            return padded(cumSum, widths: [IntOrPair((1, 0))], mode: .constant, value: MLXArray(0, dtype: cumSum.dtype))
         }
 
         func callAsFunction(_ pixelValues: MLXArray, gridTHW: [THW]) -> (MLXArray, [MLXArray]) {

@@ -283,8 +283,12 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
         return frames
     }
 
-    private func splitSizes(from frames: [THW], mergeSize: Int) -> [Int] {
-        frames.map { $0.product / (mergeSize * mergeSize) }
+    private func cumulativeSplitIndices(from sizes: [Int]) -> [Int] {
+        var sum = 0
+        return sizes.dropLast().map { size in
+            sum += size
+            return sum
+        }
     }
 
     public func prepare(
@@ -327,13 +331,8 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
             let textEmbeds = languageModel.model.embedTokens(inputIds)
             let (visionHidden, deepstackOutputs) = visionModel(pixelValues, gridTHW: framesList)
             let mergeSize = config.visionConfiguration.spatialMergeSize
-            let splits = splitSizes(from: framesList, mergeSize: mergeSize)
-
-            var cumSum = 0
-            let splitIndices = splits.dropLast().map { size in
-                cumSum += size
-                return cumSum
-            }
+            let splits = framesList.map { $0.product / (mergeSize * mergeSize) }
+            let splitIndices = cumulativeSplitIndices(from: splits)
             let featureSlices = visionHidden.split(indices: splitIndices)
             let flattenedFeatures = concatenated(featureSlices).asType(textEmbeds.dtype)
 
@@ -349,11 +348,7 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
 
             if !deepstackOutputs.isEmpty {
                 deepstackEmbeds = deepstackOutputs.map { layerFeatures in
-                    var cumSum = 0
-                    let splitIndices = splits.dropLast().map { size in
-                        cumSum += size
-                        return cumSum
-                    }
+                    let splitIndices = cumulativeSplitIndices(from: splits)
                     let slices = layerFeatures.split(indices: splitIndices)
                     let concatenatedSlices = concatenated(slices).asType(textEmbeds.dtype)
                     return concatenatedSlices
