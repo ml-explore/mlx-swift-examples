@@ -20,13 +20,6 @@ let videoSystemPrompt =
 let imageSystemPrompt =
     "You are an image understanding model capable of describing the salient features of any image."
 
-private let vlmDebugEnabled = ProcessInfo.processInfo.environment["QWEN3VL_DEBUG"] != nil
-
-private func debugLog(_ message: @autoclosure () -> String) {
-    guard vlmDebugEnabled else { return }
-    print("[VLMEval] \(message())")
-}
-
 struct ContentView: View {
 
     @State var llm = VLMEvaluator()
@@ -121,16 +114,13 @@ struct ContentView: View {
                             }
                             .onChange(of: selectedItem) {
                                 Task {
-                                    debugLog("PhotosPicker selection updated")
                                     if let video = try? await selectedItem?.loadTransferable(
                                         type: TransferableVideo.self)
                                     {
-                                        debugLog("PhotosPicker -> loaded video transferable")
                                         selectedVideoURL = video.url
                                     } else if let data = try? await selectedItem?.loadTransferable(
                                         type: Data.self)
                                     {
-                                        debugLog("PhotosPicker -> loaded image data")
                                         selectedImage = PlatformImage(data: data)
                                     }
                                 }
@@ -145,12 +135,10 @@ struct ContentView: View {
                             ) { result in
                                 switch result {
                                 case .success(let file):
-                                    debugLog("File importer success -> \(file.path())")
                                     Task { @MainActor in
                                         do {
                                             let data = try loadData(from: file)
                                             if let image = PlatformImage(data: data) {
-                                                debugLog("File importer -> decoded image")
                                                 selectedImage = image
                                             } else if let fileType = UTType(
                                                 filenameExtension: file.pathExtension),
@@ -159,7 +147,6 @@ struct ContentView: View {
                                                 if let sandboxURL = try? loadVideoToSandbox(
                                                     from: file)
                                                 {
-                                                    debugLog("File importer -> copied video to sandbox")
                                                     selectedVideoURL = sandboxURL
                                                 }
                                             } else {
@@ -172,7 +159,7 @@ struct ContentView: View {
                                         }
                                     }
                                 case .failure(let error):
-                                    debugLog("File importer error -> \(error)")
+                                    print(error.localizedDescription)
                                 }
                             }
                         #endif
@@ -263,12 +250,9 @@ struct ContentView: View {
             }
         }
         .task {
-            debugLog("ContentView.task -> triggering load")
             do {
                 _ = try await llm.load()
-                debugLog("ContentView.task -> load succeeded")
             } catch {
-                debugLog("ContentView.task -> load failed \(error)")
             }
         }
     }
@@ -278,14 +262,12 @@ struct ContentView: View {
             if let selectedImage = selectedImage {
                 #if os(iOS) || os(visionOS)
                     let ciImage = CIImage(image: selectedImage)
-                    debugLog("generate() action -> using selected UIImage/UIImage")
                     llm.generate(image: ciImage ?? CIImage(), videoURL: nil)
                 #else
                     if let cgImage = selectedImage.cgImage(
                         forProposedRect: nil, context: nil, hints: nil)
                     {
                         let ciImage = CIImage(cgImage: cgImage, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
-                        debugLog("generate() action -> using converted CGImage input")
                         llm.generate(image: ciImage, videoURL: nil)
                     }
                 #endif
@@ -293,7 +275,6 @@ struct ContentView: View {
                 do {
                     let (data, _) = try await URLSession.shared.data(from: imageURL)
                     if let ciImage = CIImage(data: data, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!]) {
-                        debugLog("generate() action -> using default remote image")
                         llm.generate(image: ciImage, videoURL: nil)
                     }
                 } catch {
@@ -301,10 +282,8 @@ struct ContentView: View {
                 }
             } else {
                 if let videoURL = selectedVideoURL {
-                    debugLog("generate() action -> using selected video")
                     llm.generate(image: nil, videoURL: videoURL)
                 } else {
-                    debugLog("generate() action -> text-only mode (no image/video)")
                     llm.generate(image: nil, videoURL: nil)
                 }
             }
@@ -384,14 +363,11 @@ class VLMEvaluator {
         switch loadState {
         case .idle:
             // limit the buffer cache
-            debugLog("load() idle -> configuring GPU cache and starting load for \(modelConfiguration.id)")
             MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
 
             let modelContainer = try await VLMModelFactory.shared.loadContainer(
                 configuration: modelConfiguration
             ) { [modelConfiguration] progress in
-                debugLog(
-                    "load() progress -> \(Int(progress.fractionCompleted * 100))% for \(modelConfiguration.id)")
                 Task { @MainActor in
                     self.modelInfo =
                         "Downloading \(modelConfiguration.name): \(Int(progress.fractionCompleted * 100))%"
@@ -399,18 +375,15 @@ class VLMEvaluator {
             }
 
             let numParams = await modelContainer.perform { context in
-                debugLog("load() -> querying parameter count")
                 return context.model.numParameters()
             }
 
             self.prompt = modelConfiguration.defaultPrompt
             self.modelInfo = "Loaded \(modelConfiguration.id). Weights: \(numParams / (1024*1024))M"
-            debugLog("load() complete -> params=\(numParams)")
             loadState = .loaded(modelContainer)
             return modelContainer
 
         case .loaded(let modelContainer):
-            debugLog("load() reuse existing container")
             return modelContainer
         }
     }
@@ -418,22 +391,16 @@ class VLMEvaluator {
     private func generate(prompt: String, image: CIImage?, videoURL: URL?) async {
 
         self.output = ""
-        debugLog(
-            "generate(prompt:image:video:) start -> promptCount=\(prompt.count) imageSet=\(image != nil) videoSet=\(videoURL != nil)")
 
         do {
             let modelContainer = try await load()
-            debugLog("generate -> container ready")
 
             // each time you generate you will get something new
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
-            debugLog("generate -> RNG seeded")
 
             try await modelContainer.perform { (context: ModelContext) -> Void in
                 let images: [UserInput.Image] = if let image { [.ciImage(image)] } else { [] }
                 let videos: [UserInput.Video] = if let videoURL { [.url(videoURL)] } else { [] }
-
-                debugLog("model.perform -> images=\(images.count) videos=\(videos.count) promptCount=\(prompt.count)")
 
                 let systemPrompt =
                     if !videos.isEmpty {
@@ -446,8 +413,6 @@ class VLMEvaluator {
                     .system(systemPrompt),
                     .user(prompt, images: images, videos: videos),
                 ]
-                
-                debugLog("Chat messages: system='\(systemPrompt)' user='\(prompt)'")
 
                 var userInput = UserInput(chat: chat)
                 userInput.processing.resize = .init(width: 448, height: 448)
@@ -456,8 +421,6 @@ class VLMEvaluator {
 
                 let stream = try MLXLMCommon.generate(
                     input: lmInput, parameters: generateParameters, context: context)
-
-                debugLog("Starting token stream...")
                 var tokenCount = 0
                 // generate and output in batches
                 for await batch in stream._throttle(
@@ -466,7 +429,6 @@ class VLMEvaluator {
                     tokenCount += batch.count
                     let output = batch.compactMap { $0.chunk }.joined(separator: "")
                     if !output.isEmpty {
-                        debugLog("Received output chunk: '\(output)'")
                         Task { @MainActor [output] in
                             self.output += output
                         }
@@ -478,32 +440,26 @@ class VLMEvaluator {
                         }
                     }
                 }
-                debugLog("model.perform -> streaming completed, total tokens: \(tokenCount)")
             }
         } catch {
             output = "Failed: \(error)"
-            debugLog("generate -> error \(error)")
         }
     }
 
     func generate(image: CIImage?, videoURL: URL?) {
         guard !running else { return }
-        debugLog("public generate() -> image?=\(image != nil) video?=\(videoURL != nil)")
         let currentPrompt = prompt
         prompt = ""
         generationTask = Task {
             running = true
-            debugLog("generationTask -> started")
             await generate(prompt: currentPrompt, image: image, videoURL: videoURL)
             running = false
-            debugLog("generationTask -> finished")
         }
     }
 
     func cancelGeneration() {
         generationTask?.cancel()
         running = false
-        debugLog("cancelGeneration -> cancelled")
     }
 }
 
