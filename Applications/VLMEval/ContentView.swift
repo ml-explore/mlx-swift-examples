@@ -64,6 +64,14 @@ struct ContentView: View {
 
                     Text(llm.stat)
                 }
+                HStack {
+                    Toggle(isOn: Bindable(llm).enableThinking) {
+                        Text("Thinking")
+                            .help("Switches between thinking and non-thinking modes. Support: Qwen3")
+                    }
+                    .frame(maxWidth: 350, alignment: .leading)
+                    Spacer()
+                }
 
                 VStack {
                     if let player {
@@ -327,6 +335,7 @@ struct ContentView: View {
 class VLMEvaluator {
 
     var running = false
+    var enableThinking = false
 
     var prompt = ""
     var output = ""
@@ -335,8 +344,8 @@ class VLMEvaluator {
 
     /// This controls which model loads. `smolvlm` is very small even unquantized, so it will fit on
     /// more devices.
-    let modelConfiguration = VLMRegistry.smolvlm
-    // let modelConfiguration = VLMRegistry.qwen3VL4BInstruct4Bit
+    //let modelConfiguration = VLMRegistry.smolvlm
+     let modelConfiguration = VLMRegistry.qwen3VL4BInstruct4Bit
 
     /// parameters controlling the output – use values appropriate for the model selected above
     let generateParameters = MLXLMCommon.GenerateParameters(

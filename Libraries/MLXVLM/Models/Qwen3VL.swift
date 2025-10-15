@@ -271,18 +271,7 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
         return indices
     }
 
-    private func splitFeatures(_ features: MLXArray, sizes: [Int]) -> [MLXArray] {
-        guard !sizes.isEmpty else { return [] }
-        var offset = 0
-        var parts: [MLXArray] = []
-        for size in sizes {
-            guard size > 0 else { continue }
-            let slice = features[offset ..< offset + size, 0...]
-            parts.append(slice)
-            offset += size
-        }
-        return parts
-    }
+
 
     private func combinedFrames(
         imageFrames: [THW]?,
@@ -340,7 +329,12 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
             let mergeSize = config.visionConfiguration.spatialMergeSize
             let splits = splitSizes(from: framesList, mergeSize: mergeSize)
 
-            let featureSlices = splitFeatures(visionHidden, sizes: splits)
+            var cumSum = 0
+            let splitIndices = splits.dropLast().map { size in
+                cumSum += size
+                return cumSum
+            }
+            let featureSlices = visionHidden.split(indices: splitIndices)
             let flattenedFeatures = concatenated(featureSlices).asType(textEmbeds.dtype)
 
             let (mergedEmbeds, mask) = try mergeInputIdsWithImageFeatures(
@@ -355,7 +349,12 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
 
             if !deepstackOutputs.isEmpty {
                 deepstackEmbeds = deepstackOutputs.map { layerFeatures in
-                    let slices = splitFeatures(layerFeatures, sizes: splits)
+                    var cumSum = 0
+                    let splitIndices = splits.dropLast().map { size in
+                        cumSum += size
+                        return cumSum
+                    }
+                    let slices = layerFeatures.split(indices: splitIndices)
                     let concatenatedSlices = concatenated(slices).asType(textEmbeds.dtype)
                     return concatenatedSlices
                 }

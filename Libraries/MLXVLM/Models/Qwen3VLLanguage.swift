@@ -295,24 +295,9 @@ enum Qwen3VLLanguage {
             
             let indexArray = MLXArray(indices.map { UInt32($0) })
             
-            let beforeSlice = hiddenStates[0, indexArray[0], 0...]
-            let beforeMean = beforeSlice.mean().item(Float.self)
-            let beforeMin = beforeSlice.min().item(Float.self)
-            let beforeMax = beforeSlice.max().item(Float.self)
-            
-            let embedMean = visualEmbeds.mean().item(Float.self)
-            let embedMin = visualEmbeds.min().item(Float.self)
-            let embedMax = visualEmbeds.max().item(Float.self)
-            
             var result = hiddenStates
             result[0..., indexArray, 0...] = result[0..., indexArray, 0...] + visualEmbeds
             
-            let afterSlice = result[0, indexArray[0], 0...]
-            let afterMean = afterSlice.mean().item(Float.self)
-            let afterMin = afterSlice.min().item(Float.self)
-            let afterMax = afterSlice.max().item(Float.self)
-            
-
             return result
         }
 
