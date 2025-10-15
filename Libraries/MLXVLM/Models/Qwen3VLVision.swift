@@ -282,46 +282,65 @@ enum Qwen3VLVision {
             let halfDim = freqTable.dim(-1)
             
             let merge = spatialMergeSize
-            var positionPairs: [[Int32]] = [[], []]  // [h_positions, w_positions]
+            var allCoords: [MLXArray] = []
             
             for grid in grids {
                 let mergedH = grid.h / merge
                 let mergedW = grid.w / merge
                 
-                // Create block and intra-block indices
-                let blockRows = Array(0..<mergedH)
-                let blockCols = Array(0..<mergedW)
-                let intraIndices = Array(0..<merge)
+                // Create MLX arrays for block and intra-block indices
+                let blockRows = MLXArray(0..<mergedH).asType(.int32)        // (mergedH,)
+                let blockCols = MLXArray(0..<mergedW).asType(.int32)        // (mergedW,)
+                let intraIndices = MLXArray(0..<merge).asType(.int32)       // (merge,)
                 
-                // For each temporal frame
-                for _ in 0..<grid.t {
-                    // Generate all position pairs for this frame
-                    for mh in blockRows {
-                        for mw in blockCols {
-                            for ih in intraIndices {
-                                for iw in intraIndices {
-                                    let hPos = Int32(mh * merge + ih)
-                                    let wPos = Int32(mw * merge + iw)
-                                    positionPairs[0].append(hPos)
-                                    positionPairs[1].append(wPos)
-                                }
-                            }
-                        }
-                    }
+                // Add dimensions for broadcasting
+                let blockRowsExp = expandedDimensions(blockRows, axis: 1)   // (mergedH, 1, 1, 1)
+                let blockRowsExp2 = expandedDimensions(blockRowsExp, axis: 2)
+                let blockRowsExp3 = expandedDimensions(blockRowsExp2, axis: 3)
+                
+                let blockColsExp = expandedDimensions(blockCols, axis: 0)   // (1, mergedW, 1, 1)
+                let blockColsExp2 = expandedDimensions(blockColsExp, axis: 2)
+                let blockColsExp3 = expandedDimensions(blockColsExp2, axis: 3)
+                
+                let intraRowExp = expandedDimensions(intraIndices, axis: 0) // (1, 1, merge, 1)
+                let intraRowExp2 = expandedDimensions(intraRowExp, axis: 1)
+                
+                let intraColExp = expandedDimensions(intraIndices, axis: 0) // (1, 1, 1, merge)
+                let intraColExp2 = expandedDimensions(intraColExp, axis: 1)
+                let intraColExp3 = expandedDimensions(intraColExp2, axis: 2)
+                
+                // Compute grid coordinates via broadcasting
+                let hIndex = blockRowsExp3 * merge + intraRowExp2           // (mergedH, mergedW, merge, merge)
+                let wIndex = blockColsExp3 * merge + intraColExp3           // (mergedH, mergedW, merge, merge)
+                
+                // Flatten to 1D
+                let hFlattened = hIndex.flattened()
+                let wFlattened = wIndex.flattened()
+                
+                // Stack into coordinate pairs: (total, 2)
+                var coords = stacked([hFlattened, wFlattened], axis: -1)
+                
+                // Repeat for temporal frames
+                if grid.t > 1 {
+                    coords = tiled(coords, repetitions: [grid.t, 1])
                 }
+                
+                allCoords.append(coords)
             }
             
-            guard !positionPairs[0].isEmpty else {
+            guard !allCoords.isEmpty else {
                 return MLXArray.zeros([0, halfDim * 2], dtype: freqTable.dtype)
             }
             
-            // Convert to MLX arrays
-            let hArray = MLXArray(positionPairs[0])
-            let wArray = MLXArray(positionPairs[1])
+            // Concatenate all coordinate pairs
+            let allCoordsConcat = concatenated(allCoords, axis: 0)  // (total_tokens, 2)
             
-            // Lookup embeddings using array indexing
-            let hEmbeds = freqTable[hArray, 0...]
-            let wEmbeds = freqTable[wArray, 0...]
+            // Extract h and w indices and lookup embeddings
+            let hIndices = allCoordsConcat[0..., 0].asType(.int32)
+            let wIndices = allCoordsConcat[0..., 1].asType(.int32)
+            
+            let hEmbeds = freqTable[hIndices, 0...]
+            let wEmbeds = freqTable[wIndices, 0...]
             
             // Concatenate height and width embeddings
             return concatenated([hEmbeds, wEmbeds], axis: -1)
