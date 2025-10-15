@@ -283,41 +283,35 @@ enum Qwen3VLVision {
             
             let merge = spatialMergeSize
             var allCoords: [MLXArray] = []
+            let mergeScalar = MLXArray(Int32(merge))
             
             for grid in grids {
                 let mergedH = grid.h / merge
                 let mergedW = grid.w / merge
                 
-                // Create MLX arrays for block and intra-block indices
-                let blockRows = MLXArray(0..<mergedH).asType(.int32)        // (mergedH,)
-                let blockCols = MLXArray(0..<mergedW).asType(.int32)        // (mergedW,)
-                let intraIndices = MLXArray(0..<merge).asType(.int32)       // (merge,)
+                guard mergedH > 0, mergedW > 0 else { continue }
                 
-                // Add dimensions for broadcasting
-                let blockRowsExp = expandedDimensions(blockRows, axis: 1)   // (mergedH, 1, 1, 1)
-                let blockRowsExp2 = expandedDimensions(blockRowsExp, axis: 2)
-                let blockRowsExp3 = expandedDimensions(blockRowsExp2, axis: 3)
+                // Generate block and intra-block indices fully in MLX
+                var blockRows = MLXArray(0..<mergedH).asType(.int32)
+                blockRows = blockRows.reshaped([mergedH, 1, 1, 1])
                 
-                let blockColsExp = expandedDimensions(blockCols, axis: 0)   // (1, mergedW, 1, 1)
-                let blockColsExp2 = expandedDimensions(blockColsExp, axis: 2)
-                let blockColsExp3 = expandedDimensions(blockColsExp2, axis: 3)
+                var blockCols = MLXArray(0..<mergedW).asType(.int32)
+                blockCols = blockCols.reshaped([1, mergedW, 1, 1])
                 
-                let intraRowExp = expandedDimensions(intraIndices, axis: 0) // (1, 1, merge, 1)
-                let intraRowExp2 = expandedDimensions(intraRowExp, axis: 1)
+                var intra = MLXArray(0..<merge).asType(.int32)
+                let intraRow = intra.reshaped([1, 1, merge, 1])
+                let intraCol = intra.reshaped([1, 1, 1, merge])
                 
-                let intraColExp = expandedDimensions(intraIndices, axis: 0) // (1, 1, 1, merge)
-                let intraColExp2 = expandedDimensions(intraColExp, axis: 1)
-                let intraColExp3 = expandedDimensions(intraColExp2, axis: 2)
+                // Broadcast arithmetic mirrors the Python implementation
+                var hIndex = blockRows * mergeScalar + intraRow
+                var wIndex = blockCols * mergeScalar + intraCol
                 
-                // Compute grid coordinates via broadcasting
-                let hIndex = blockRowsExp3 * merge + intraRowExp2           // (mergedH, mergedW, merge, merge)
-                let wIndex = blockColsExp3 * merge + intraColExp3           // (mergedH, mergedW, merge, merge)
+                hIndex = broadcast(hIndex, to: [mergedH, mergedW, merge, merge])
+                wIndex = broadcast(wIndex, to: [mergedH, mergedW, merge, merge])
                 
-                // Flatten to 1D
+                // Flatten and stack coordinate pairs
                 let hFlattened = hIndex.flattened()
                 let wFlattened = wIndex.flattened()
-                
-                // Stack into coordinate pairs: (total, 2)
                 var coords = stacked([hFlattened, wFlattened], axis: -1)
                 
                 // Repeat for temporal frames
