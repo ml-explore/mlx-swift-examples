@@ -1,14 +1,8 @@
+// Copyright © 2025 Apple Inc.
+
 import Foundation
 
-/// Configuration objects for the Qwen3-VL family.
-///
-/// These mirror the structure of the `config.json` distributed with
-/// `mlx-community/Qwen3-VL-4B-Instruct-4bit` on Hugging Face so that the
-/// Swift implementation can decode the model definition and processor
-/// metadata.
 public struct Qwen3VLConfiguration: Codable, Sendable {
-
-    // MARK: Text
 
     public struct TextConfiguration: Codable, Sendable {
         public let modelType: String
@@ -56,8 +50,6 @@ public struct Qwen3VLConfiguration: Codable, Sendable {
         }
     }
 
-    // MARK: Vision
-
     public struct VisionConfiguration: Codable, Sendable {
         public let modelType: String
         public let depth: Int
@@ -93,7 +85,6 @@ public struct Qwen3VLConfiguration: Codable, Sendable {
         }
     }
 
-    // MARK: RoPE Scaling
 
     public struct RoPEScaling: Codable, Sendable {
         public let type: String?
@@ -112,8 +103,6 @@ public struct Qwen3VLConfiguration: Codable, Sendable {
             self.mropeSection = mropeSection
         }
     }
-
-    // MARK: Top-Level
 
     public let textConfiguration: TextConfiguration
     public let visionConfiguration: VisionConfiguration
@@ -171,5 +160,3 @@ public struct Qwen3VLConfiguration: Codable, Sendable {
         self._eosTokenId = eosTokenId
     }
 }
-
-

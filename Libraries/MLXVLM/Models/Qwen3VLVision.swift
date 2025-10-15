@@ -1,3 +1,5 @@
+// Copyright © 2025 Apple Inc.
+
 import Foundation
 import MLX
 import MLXLMCommon
@@ -117,7 +119,6 @@ enum Qwen3VLVision {
                 states = states.reshaped(-1, hiddenSize)
             }
             states = norm(states)
-            // Always reshape after norm to merge spatial patches
             states = states.reshaped(-1, hiddenSize)
             states = linear1(states)
             states = activation(states)
@@ -397,8 +398,6 @@ enum Qwen3VLVision {
         }
 
         private func cumulativeSequenceLengths(_ grids: [THW]) -> MLXArray {
-            // Do NOT divide by mergeArea here - the vision transformer operates on full patches
-            // The spatial merge happens AFTER the transformer blocks, inside PatchMerger
             var prefix: [Int] = [0]
             for grid in grids {
                 let perFrame = grid.h * grid.w  // Full patch count per frame
@@ -411,13 +410,9 @@ enum Qwen3VLVision {
 
         func callAsFunction(_ pixelValues: MLXArray, gridTHW: [THW]) -> (MLXArray, [MLXArray]) {
             var hiddenStates = patchEmbed(pixelValues)
-            print("[Qwen3VLVision] After patchEmbed: mean=\(hiddenStates.mean().item(Float.self)) std=\(hiddenStates.variance().sqrt().item(Float.self))")
             
             let posEmbeds = positionalEmbeddings(gridTHW)
-            print("[Qwen3VLVision] posEmbeds: mean=\(posEmbeds.mean().item(Float.self)) std=\(posEmbeds.variance().sqrt().item(Float.self))")
-            
             hiddenStates = hiddenStates + posEmbeds
-            print("[Qwen3VLVision] After adding posEmbeds: mean=\(hiddenStates.mean().item(Float.self))")
 
             let rotaryEmbeds = rotaryPositionEmbedding(gridTHW)
             let cuSeqlens = cumulativeSequenceLengths(gridTHW)
@@ -433,7 +428,6 @@ enum Qwen3VLVision {
             }
 
             hiddenStates = merger(hiddenStates)
-            print("[Qwen3VLVision] After merger: mean=\(hiddenStates.mean().item(Float.self)) std=\(hiddenStates.variance().sqrt().item(Float.self)) shape=\(hiddenStates.shape)")
             return (hiddenStates, deepstackOutputs)
         }
 

@@ -1,5 +1,5 @@
-// Position ID calculation for Qwen3-VL multimodal RoPE
-// Port of mlx-vlm qwen3_vl/language.py get_rope_index()
+
+// Copyright © 2025 Apple Inc.
 
 import Foundation
 import MLX
@@ -7,9 +7,6 @@ import MLXLMCommon
 
 extension Qwen3VLLanguage {
     
-    /// Calculate 3D RoPE position IDs for multimodal sequences with images/videos
-    /// Returns (position_ids: [3, batch, seq], mrope_deltas: [batch])
-    /// Note: For text-only mode, mrope_deltas will be zeros
     static func getRopeIndex(
         inputIds: MLXArray,
         imageGridTHW: [THW]?,
@@ -23,20 +20,15 @@ extension Qwen3VLLanguage {
         
         let (batchSize, seqLength) = (inputIds.dim(0), inputIds.dim(1))
         
-        // Default: sequential position IDs [batch, seq]
         var positionIds = MLXArray(0..<seqLength).asType(.int32)
         positionIds = broadcast(positionIds[.newAxis, 0...], to: [batchSize, seqLength])
         
-        // Text-only path: no images/videos
         guard inputIds.ndim > 0, (imageGridTHW != nil || videoGridTHW != nil) else {
-            // Python: position_ids = mx.broadcast_to(position_ids, (3, batch, seq))
-            // Python: mrope_position_deltas = mx.zeros([batch, 1])
             let positionIds3D = broadcast(positionIds[.newAxis, 0..., 0...], to: [3, batchSize, seqLength])
             let zeros = MLXArray.zeros([batchSize], dtype: .int32)
             return (positionIds3D, zeros)
         }
         
-        // Create 3D position IDs: [3, batch, seq]
         positionIds = ones(like: inputIds).asType(.int32)
         positionIds = broadcast(positionIds[.newAxis, 0..., 0...], to: [3, batchSize, seqLength])
         

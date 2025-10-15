@@ -1,3 +1,5 @@
+// Copyright © 2025 Apple Inc.
+
 import Foundation
 import MLX
 import MLXLMCommon
@@ -5,7 +7,6 @@ import MLXNN
 
 enum Qwen3VLLanguage {
 
-    // MARK: - Rotary Embedding
 
     final class RotaryEmbedding {
 
@@ -18,27 +19,20 @@ enum Qwen3VLLanguage {
             let baseArray = MLXArray(Float(base))
             self.invFreq = 1.0 / pow(baseArray, freq)
             self.mropeSection = ropeScaling?.mropeSection ?? [24, 20, 20]
-           // print("[RotaryEmbedding] Initialized with headDim=\(headDim) base=\(base) mropeSection=\(self.mropeSection)")
         }
 
         private func applyInterleavedMRope(_ freqs: MLXArray) -> MLXArray {
-            // freqs shape: (3, bs, seq_len, head_dim // 2)
-            // Extract the first dimension as the base output
             let freqs_t = freqs[0, 0..., 0..., 0...]  // (bs, seq_len, head_dim // 2)
             
-            // Convert to mutable array by splitting along last dimension
             let dims = freqs_t.dim(-1)
             var slices: [MLXArray] = []
             
             for idx in 0..<dims {
                 var slice = freqs_t[0..., 0..., idx]
                 
-                // Check if this index should be replaced from H or W dimensions
-                // Python: for dim, offset in enumerate((1, 2), start=1)
                 for (dimIndex, offset) in [(1, 1), (2, 2)] {
                     let end = min(mropeSection[dimIndex] * 3, dims)
                     if idx >= offset && idx < end && (idx - offset) % 3 == 0 {
-                        // This index should come from freqs[dimIndex]
                         slice = freqs[dimIndex, 0..., 0..., idx]
                         break
                     }
@@ -47,7 +41,6 @@ enum Qwen3VLLanguage {
                 slices.append(slice)
             }
             
-            // Stack all slices back together along the last dimension
             return stacked(slices, axis: -1)
         }
 
@@ -58,9 +51,6 @@ enum Qwen3VLLanguage {
                 positionIds = tiled(positionIds, repetitions: [3, 1, 1])
             }
 
-            // Python uses matmul: inv_freq_expanded @ position_ids_expanded
-            // But broadcasting achieves the same outer product:
-            // (3, bs, seq_len, 1) * (1, 1, 1, inv_freq_len) → (3, bs, seq_len, inv_freq_len)
             let pos = positionIds.asType(.float32)
             var invFreq = self.invFreq.asType(.float32)
             invFreq = invFreq[.newAxis, .newAxis, .newAxis, 0...]
@@ -86,7 +76,6 @@ enum Qwen3VLLanguage {
         return (qEmbedded, kEmbedded)
     }
 
-    // MARK: - Attention
 
     final class Attention: Module {
 
@@ -151,15 +140,12 @@ enum Qwen3VLLanguage {
 
             if positionIds == nil {
                 let offset = cache?.offset ?? 0
-                // Python: kv_seq_len += cache.offset + 1
-                // The +1 is because at position N, we can attend to 0..N (N+1 positions)
                 kvSequenceLength += offset + 1
                 var base = MLXArray(stride(from: offset, to: offset + length, by: 1)).asType(.int32)
                 base = tiled(base[.newAxis, 0...], repetitions: [batch, 1])
                 positionIds = base[.newAxis, 0..., 0...]
                 positionIds = tiled(positionIds!, repetitions: [3, 1, 1])
             } else {
-                // Python: kv_seq_len += cache.offset + 1 if cache is not None else 0
                 if let cache {
                     kvSequenceLength += cache.offset + 1
                 }
@@ -167,17 +153,12 @@ enum Qwen3VLLanguage {
 
             let (cosValues, sinValues) = rotaryEmbedding(positionIds: positionIds!, dtype: x.dtype)
             
-            // Debug RoPE values during first few generation steps
-//            if let cache, cache.offset >= 26 && cache.offset <= 28 {
-//                print("[Attention] offset=\(cache.offset) positionIds.shape=\(positionIds!.shape) cos.shape=\(cosValues.shape) queries.shape=\(queries.shape)")
-//            }
             
             (queries, keys) = Qwen3VLLanguage.applyMultimodalRotary(
                 q: queries, k: keys, cos: cosValues, sin: sinValues)
 
             let attentionMask: MLXFast.ScaledDotProductAttentionMaskMode
             if let mask {
-                // Python: mask[..., :kv_seq_len]
                 let slicedMask = mask[.ellipsis, 0 ..< kvSequenceLength]
                 attentionMask = .array(slicedMask)
             } else {
@@ -197,16 +178,10 @@ enum Qwen3VLLanguage {
 
             let result = wo(output)
             
-            // Debug attention output for first few generation steps
-//            if let cache, cache.offset >= 26 && cache.offset <= 28 {
-//                print("[Attention] offset=\(cache.offset) output mean=\(output.mean().item(Float.self)) result mean=\(result.mean().item(Float.self))")
-//            }
-//            
             return result
         }
     }
 
-    // MARK: - Feed Forward
 
     final class MLP: Module, UnaryLayer {
         @ModuleInfo(key: "gate_proj") var gate: Linear
@@ -299,12 +274,6 @@ enum Qwen3VLLanguage {
                 if let embeds = deepstackEmbeds, index < embeds.count,
                     let visualMask
                 {
-                    // Debug deepstack application during prefill
-                    let cacheOffset = layerCache?.offset ?? 0
-                    if cacheOffset == 0 || (cacheOffset > 150 && index == 0) {
-                        let maskSum = visualMask.sum().item(Int.self)
-                        print("[Model.callAsFunction] Layer \(index): Applying deepstack to \(maskSum) positions, hidden.shape=\(hidden.shape), embeds.shape=\(embeds[index].shape)")
-                    }
                     
                     hidden = applyDeepstack(
                         hiddenStates: hidden,
@@ -321,13 +290,11 @@ enum Qwen3VLLanguage {
             visualMask: MLXArray,
             visualEmbeds: MLXArray
         ) -> MLXArray {
-            // visualMask is 1D [seq], convert to indices where mask is True
             let indices = maskIndices(visualMask)
             guard !indices.isEmpty else { return hiddenStates }
             
             let indexArray = MLXArray(indices.map { UInt32($0) })
             
-            // Check stats before deepstack
             let beforeSlice = hiddenStates[0, indexArray[0], 0...]
             let beforeMean = beforeSlice.mean().item(Float.self)
             let beforeMin = beforeSlice.min().item(Float.self)
@@ -337,26 +304,19 @@ enum Qwen3VLLanguage {
             let embedMin = visualEmbeds.min().item(Float.self)
             let embedMax = visualEmbeds.max().item(Float.self)
             
-            // Python: hidden_states[:, visual_indices, :] += visual_embeds
-            // hidden_states is [batch, seq, hidden], visual_embeds is [num_visual, hidden]
             var result = hiddenStates
             result[0..., indexArray, 0...] = result[0..., indexArray, 0...] + visualEmbeds
             
-            // Check stats after deepstack
             let afterSlice = result[0, indexArray[0], 0...]
             let afterMean = afterSlice.mean().item(Float.self)
             let afterMin = afterSlice.min().item(Float.self)
             let afterMax = afterSlice.max().item(Float.self)
             
-            print("[applyDeepstack] Before: mean=\(beforeMean) range=[\(beforeMin), \(beforeMax)]")
-            print("[applyDeepstack] Embeds: mean=\(embedMean) range=[\(embedMin), \(embedMax)]")
-            print("[applyDeepstack] After:  mean=\(afterMean) range=[\(afterMin), \(afterMax)]")
 
             return result
         }
 
         private func maskIndices(_ mask: MLXArray) -> [Int] {
-            // For 1D boolean mask, return indices where True
             let bools = mask.asType(.bool).asArray(Bool.self)
             var indices: [Int] = []
             indices.reserveCapacity(bools.count)
@@ -412,7 +372,6 @@ enum Qwen3VLLanguage {
             var positionIds = providedPositionIds
             
             if positionIds == nil && (mask == nil || mask?.ndim == 2) {
-                // Python: recalculate if offset==0 OR ropeDeltas is None OR cache is None
                 if (cache?.first?.offset ?? 0) == 0 || ropeDeltas == nil || cache == nil {
                     if let inputIds {
                         let (computed, deltas) = Qwen3VLLanguage.getRopeIndex(
@@ -428,7 +387,6 @@ enum Qwen3VLLanguage {
                         positionIds = computed
                         ropeDeltas = deltas
                     } else if let cache, ropeDeltas == nil {
-                        // Text-only generation: no inputIds, just use sequential positions
                         let batch = inputEmbeddings!.dim(0)
                         let seqLength = inputEmbeddings!.dim(1)
                         let currentOffset = cache.first?.offset ?? 0
@@ -438,49 +396,37 @@ enum Qwen3VLLanguage {
                         let offsetValue = MLXArray(currentOffset).asType(.int32)
                         base = base + offsetValue
                         
-                        // Expand to 3D for MRoPE: [batch, seq] -> [3, batch, seq]
                         positionIds = base[.newAxis, 0..., 0...]
                         positionIds = tiled(positionIds!, repetitions: [3, 1, 1])
                     }
                 } else if let cache, let ropeDeltas {
-                    // Python: delta = cache[-1].offset + self.rope_deltas
-                    // Python: position_ids = mx.arange(seq_length) + delta
-                    // Python: position_ids = mx.broadcast_to(position_ids, (3, batch, seq))
                     let batch = (inputIds ?? inputEmbeddings!).dim(0)
                     let seqLength = (inputIds ?? inputEmbeddings!).dim(1)
                     
-                    // CRITICAL: Python uses cache[-1].offset (LAST element), not cache[0].offset!
                     let lastCacheOffset = cache.last?.offset ?? 0
                     
-                    // Python: delta = cache[-1].offset + self.rope_deltas
                     var delta = MLXArray(lastCacheOffset).asType(.int32) + ropeDeltas.asType(.int32)
                     
-                    // Python: position_ids = mx.arange(seq_length).reshape(1, seq_length)
                     var base = MLXArray(0..<seqLength).asType(.int32)
-                    base = base[.newAxis, 0...]  // Shape: [1, seq_length]
+                    base = base[.newAxis, 0...]
                     base = broadcast(base, to: [batch, seqLength])
                     
-                    // Broadcast delta across the batch axis (Python repeats along axis 0)
                     if delta.dim(0) == 1 && batch > 1 {
                         delta = repeated(delta, count: batch, axis: 0)
                     }
                     
-                    // Python: position_ids = mx.add(position_ids, delta)
                     base = base + delta
                     
-                    // Expand to 3D: [batch, seq] -> [3, batch, seq]
                     positionIds = base[.newAxis, 0..., 0...]
                     positionIds = broadcast(positionIds!, to: [3, batch, seqLength])                    
                 }
             }
             
-            // CRITICAL: Python does NOT pass mask to model()!
-            // The Model creates its own causal mask. Passing a 2D mask prevents this.
             var output = model(
                 inputIds,
                 cache: cache,
                 inputEmbeddings: inputEmbeddings,
-                mask: nil,  // Let Model create causal mask
+                mask: nil,
                 positionIds: positionIds,
                 visualMask: visualMask,
                 deepstackEmbeds: deepstackEmbeds)
@@ -531,13 +477,10 @@ enum Qwen3VLLanguage {
                 var tokens = inputIds[batch, 0...].asArray(Int.self)
                 let maskRow = attentionDefaults[batch]
 
-                // Only iterate up to maskRow length to avoid index out of bounds
                 for idx in maskRow.indices where maskRow[idx] == 0 {
                     tokens[idx] = 0
                 }
 
-                // Count the number of actual images/videos from the grids, not token occurrences
-                // Each image may have multiple imageTokenId tokens (one per patch)
                 let imageCount = (imageGridTHW?.count ?? 0) - imageIndex
                 let videoCount = (videoGridTHW?.count ?? 0) - videoIndex
 
@@ -545,7 +488,7 @@ enum Qwen3VLLanguage {
                 var st = 0
                 var remainingImages = imageCount
                 var remainingVideos = videoCount
-                var sequentialTokenPosition = 0  // Track actual token count for text positioning
+                var sequentialTokenPosition = 0
 
                 func currentMax() -> Int {
                     guard let last = segments.last else { return -1 }
@@ -693,11 +636,6 @@ enum Qwen3VLLanguage {
                 let maxPosition = combined[0].max() ?? (seqLength - 1)
                 let deltaValue = max(maxPosition + 1 - seqLength, 0)
                 deltas[batch] = Float(deltaValue)
-                
-                if batch == 0 && seqLength > 200 {
-                    print("[getRoPEIndex] LARGE sequence: seqLength=\(seqLength) maxPos=\(maxPosition) delta=\(deltaValue)")
-                    print("[getRoPEIndex] sequentialTokenPosition ended at: \(sequentialTokenPosition)")
-                }
             }
 
             let flatPositions = positionStorage.flatMap { $0.flatMap { $0 } }
