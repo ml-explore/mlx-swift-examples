@@ -250,10 +250,7 @@ struct ContentView: View {
             }
         }
         .task {
-            do {
-                _ = try await llm.load()
-            } catch {
-            }
+            _ = try? await llm.load()
         }
     }
 
@@ -267,14 +264,14 @@ struct ContentView: View {
                     if let cgImage = selectedImage.cgImage(
                         forProposedRect: nil, context: nil, hints: nil)
                     {
-                        let ciImage = CIImage(cgImage: cgImage, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
+                        let ciImage = CIImage(cgImage: cgImage)
                         llm.generate(image: ciImage, videoURL: nil)
                     }
                 #endif
             } else if let imageURL = currentImageURL {
                 do {
                     let (data, _) = try await URLSession.shared.data(from: imageURL)
-                    if let ciImage = CIImage(data: data, options: [.colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!]) {
+                    if let ciImage = CIImage(data: data) {
                         llm.generate(image: ciImage, videoURL: nil)
                     }
                 } catch {
@@ -283,8 +280,6 @@ struct ContentView: View {
             } else {
                 if let videoURL = selectedVideoURL {
                     llm.generate(image: nil, videoURL: videoURL)
-                } else {
-                    llm.generate(image: nil, videoURL: nil)
                 }
             }
         }
@@ -338,13 +333,14 @@ class VLMEvaluator {
     var modelInfo = ""
     var stat = ""
 
-    /// This controls which model loads. Testing Qwen3-VL-4B-8bit after fixing deepstack bug.
-    let modelConfiguration = VLMRegistry.qwen3VL4BInstruct4Bit
+    /// This controls which model loads. `smolvlm` is very small even unquantized, so it will fit on
+    /// more devices.
+    let modelConfiguration = VLMRegistry.smolvlm
+    // let modelConfiguration = VLMRegistry.qwen3VL4BInstruct4Bit
 
     /// parameters controlling the output – use values appropriate for the model selected above
-    /// Using Qwen3-VL recommended settings: temp=0.7, top_p=0.8, repetition_penalty=1.2
     let generateParameters = MLXLMCommon.GenerateParameters(
-        maxTokens: 800, temperature: 0.7, topP: 0.8, repetitionPenalty: 1.2)
+        maxTokens: 800, temperature: 0.7, topP: 0.9)
     let updateInterval = Duration.seconds(0.25)
 
     /// A task responsible for handling the generation process.
@@ -375,7 +371,7 @@ class VLMEvaluator {
             }
 
             let numParams = await modelContainer.perform { context in
-                return context.model.numParameters()
+                context.model.numParameters()
             }
 
             self.prompt = modelConfiguration.defaultPrompt
@@ -421,12 +417,10 @@ class VLMEvaluator {
 
                 let stream = try MLXLMCommon.generate(
                     input: lmInput, parameters: generateParameters, context: context)
-                var tokenCount = 0
                 // generate and output in batches
                 for await batch in stream._throttle(
                     for: updateInterval, reducing: Generation.collect)
                 {
-                    tokenCount += batch.count
                     let output = batch.compactMap { $0.chunk }.joined(separator: "")
                     if !output.isEmpty {
                         Task { @MainActor [output] in
