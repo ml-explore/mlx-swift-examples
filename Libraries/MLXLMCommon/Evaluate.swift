@@ -204,18 +204,29 @@ public struct RepetitionContext: LogitProcessor {
         precondition(repetitionContextSize > 0)
         self.repetitionPenalty = repetitionPenalty
         self.repetitionContextSize = repetitionContextSize
+        print("[RepetitionPenalty] Initialized with penalty=\(repetitionPenalty) contextSize=\(repetitionContextSize)")
     }
 
     mutating public func prompt(_ prompt: MLXArray) {
-        if prompt.shape[0] <= repetitionContextSize {
-            self.tokens = prompt.asArray(Int.self)
+        print("[RepetitionPenalty] prompt() called with shape=\(prompt.shape) size=\(prompt.size)")
+        
+        // Flatten if needed and get all tokens
+        let allTokens = prompt.flattened().asArray(Int.self)
+        
+        // Keep only the last repetitionContextSize tokens
+        if allTokens.count <= repetitionContextSize {
+            self.tokens = allTokens
         } else {
-            self.tokens = prompt[(-repetitionContextSize)...].asArray(Int.self)
+            self.tokens = Array(allTokens.suffix(repetitionContextSize))
         }
+        
+        print("[RepetitionPenalty] prompt() initialized with \(tokens.count) tokens (max=\(repetitionContextSize))")
     }
 
     public func process(logits: MLXArray) -> MLXArray {
         if tokens.count > 0 {
+            print("[RepetitionPenalty] process() applying penalty to \(tokens.count) tokens")
+            
             let indices = MLXArray(tokens.map { UInt32($0) })
             var selectedLogits = logits[0..., indices]
 
@@ -224,19 +235,28 @@ public struct RepetitionContext: LogitProcessor {
                 selectedLogits / repetitionPenalty)
 
             logits[0..., indices] = selectedLogits
+            
+            if tokens.count >= 3 && tokens.suffix(3).allSatisfy({ $0 == tokens.last }) {
+                print("[RepetitionPenalty] WARNING: Same token repeated 3x, last=\(tokens.last!)")
+            }
+            
             return logits
+        } else {
+            print("[RepetitionPenalty] process() called but tokens.count == 0")
         }
 
         return logits
     }
 
     mutating public func didSample(token: MLXArray) {
+        let tokenId = token.item(Int.self)
         if tokens.count >= repetitionContextSize {
-            tokens[index] = token.item(Int.self)
+            tokens[index] = tokenId
             index = (index + 1) % repetitionContextSize
         } else {
-            tokens.append(token.item(Int.self))
+            tokens.append(tokenId)
         }
+        print("[RepetitionPenalty] didSample token=\(tokenId), context now has \(tokens.count) tokens")
     }
 }
 
@@ -393,6 +413,17 @@ public struct TokenIterator: Sequence, IteratorProtocol {
     mutating func convertToToken(logits: MLXArray) -> MLXArray {
         // process the logits (one hot array of possible tokens)
         var logits = logits[0..., -1, 0...]
+        
+        if tokenCount == 0 {
+            // Print top 10 tokens for first generation
+            let logitArray = logits.asArray(Float.self)
+            let indexed = logitArray.enumerated().sorted { $0.element > $1.element }
+            print("[MLXLMCommon] First token top-10 predictions:")
+            for (i, (tokenId, logitValue)) in indexed.prefix(10).enumerated() {
+                print("  [\(i)]: token=\(tokenId) logit=\(logitValue)")
+            }
+        }
+        
         logits = processor?.process(logits: logits) ?? logits
 
         // transform logits back to a token
@@ -814,13 +845,18 @@ public func generate(
                     start = now
                 }
 
+                if tokenCount < 5 {
+                    print("[MLXLMCommon] Generated token #\(tokenCount): \(token)")
+                }
+
                 if token == context.tokenizer.unknownTokenId
                     || token == context.tokenizer.eosTokenId
                     || additionalEOSTokenIds.contains(token)
                 {
+                    print("[MLXLMCommon] Stopping: token=\(token) unknownId=\(context.tokenizer.unknownTokenId ?? -1) eosId=\(context.tokenizer.eosTokenId ?? -1) additionalEOS=\(additionalEOSTokenIds)")
                     break
                 }
-
+                
                 detokenizer.append(token: token)
                 if let chunk = detokenizer.next() {
                     tokenCount += 1
