@@ -53,11 +53,24 @@ The following models have been tried:
 
 - mlx-community/paligemma-3b-mix-448-8bit
 - mlx-community/Qwen2-VL-2B-Instruct-4bit
+- mlx-community/Qwen2.5-VL-3B-Instruct-4bit
+- lmstudio-community/Qwen3-VL-4B-Instruct-MLX-4bit
+- mlx-community/Qwen3-VL-4B-Instruct-8bit
+- mlx-community/SmolVLM-Instruct-4bit
+- mlx-community/gemma-3-4b-it-qat-4bit
+- mlx-community/gemma-3-12b-it-qat-4bit
+- mlx-community/gemma-3-27b-it-qat-4bit
+- HuggingFaceTB/SmolVLM2-500M-Video-Instruct-mlx
 
 Currently supported model types are:
 
 - paligemma
 - qwen2_vl
+- qwen2_5_vl
+- qwen3_vl
+- idefics3
+- gemma3
+- smolvlm
 
 See [llm-tool](../../Tools/llm-tool)
 

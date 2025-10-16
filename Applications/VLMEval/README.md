@@ -2,8 +2,8 @@
 
 An example that:
 
-- downloads a vision language model (Qwen-VL-2B)
-- processes an image with a prompt
+- downloads a vision language model (SmolVLM2)
+- processes an image or a video with a prompt
 
 You will need to set the Team on the VLMEval target in order to build and run on macOS.
 
@@ -11,15 +11,15 @@ Some notes about the setup:
 
 - This downloads models from hugging face so VLMEval -> Signing & Capabilities has the "Outgoing Connections (Client)" set in the App Sandbox
 - VLM models are large so this uses significant memory
-- The example processes images and provides detailed analysis
+- The example can process image, video and provides detailed analysis
 
 ### Image Processing
 
-The example application uses Qwen-VL-2B model by default, see [ContentView.swift](ContentView.swift):
+The example application uses SmolVLM2 model by default, see [ContentView.swift](ContentView.swift):
 
 ```swift
 self.modelContainer = try await VLMModelFactory.shared.loadContainer(
-    configuration: VLMRegistry.qwen2VL2BInstruct4Bit)
+    configuration: VLMRegistry.smolvlm)
 ```
 
 The application:
