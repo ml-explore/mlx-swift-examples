@@ -2,7 +2,7 @@
 
 An example that:
 
-- downloads a vision language model (Qwen-VL-2B)
+- downloads a vision language model (SmolVLM2)
 - processes an image with a prompt
 
 You will need to set the Team on the VLMEval target in order to build and run on macOS.
@@ -15,11 +15,11 @@ Some notes about the setup:
 
 ### Image Processing
 
-The example application uses Qwen-VL-2B model by default, see [ContentView.swift](ContentView.swift):
+The example application uses SmolVLM2 model by default, see [ContentView.swift](ContentView.swift):
 
 ```swift
 self.modelContainer = try await VLMModelFactory.shared.loadContainer(
-    configuration: VLMRegistry.qwen2VL2BInstruct4Bit)
+    configuration: VLMRegistry.smolvlm)
 ```
 
 The application:
