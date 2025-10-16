@@ -147,7 +147,8 @@ public class QDoRALinear: QuantizedLinear, LoRALayer {
         super.init(
             weight: linear.weight, bias: linear.bias,
             scales: linear.scales, biases: linear.biases,
-            groupSize: linear.groupSize, bits: linear.bits
+            groupSize: linear.groupSize, bits: linear.bits,
+            mode: linear.mode
         )
 
         freeze()
@@ -171,7 +172,8 @@ public class QDoRALinear: QuantizedLinear, LoRALayer {
 
     public override func callAsFunction(_ x: MLXArray) -> MLXArray {
         let y = quantizedMatmul(
-            x, weight, scales: scales, biases: biases, groupSize: groupSize, bits: bits)
+            x, weight, scales: scales, biases: biases, groupSize: groupSize, bits: bits,
+            mode: mode)
         return forward(
             x: x, y: y,
             weight: dequantizedWeight, bias: bias,

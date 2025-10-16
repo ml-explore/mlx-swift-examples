@@ -340,6 +340,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: ""
     )
 
+    static public let gpt_oss_20b_MXFP4_Q8 = ModelConfiguration(
+        id: "mlx-community/gpt-oss-20b-MXFP4-Q8",
+        defaultPrompt: "Why is the sky blue?"
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -389,6 +394,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             ling_mini_2_2bit,
             lfm2_8b_a1b_3bit_mlx,
             nanochat_d20_mlx,
+            gpt_oss_20b_MXFP4_Q8,
         ]
     }
 

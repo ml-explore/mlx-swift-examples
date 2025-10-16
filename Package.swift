@@ -27,7 +27,7 @@ let package = Package(
             targets: ["StableDiffusion"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/ml-explore/mlx-swift", .upToNextMinor(from: "0.25.5")),
+        .package(url: "https://github.com/ml-explore/mlx-swift", .upToNextMinor(from: "0.29.1")),
         .package(
             url: "https://github.com/huggingface/swift-transformers", .upToNextMinor(from: "1.0.0")
         ),

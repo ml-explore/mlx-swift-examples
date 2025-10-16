@@ -1,6 +1,7 @@
 // Copyright © 2025 Apple Inc.
 
 import Foundation
+import MLX
 
 /// Base ``LanguageModel`` configuration -- provides `modelType`
 /// and `quantization` (used in loading the model).
@@ -18,20 +19,15 @@ public struct BaseConfiguration: Codable, Sendable {
 
         public let groupSize: Int
         public let bits: Int
-        public var quantMethod: String? = nil
-        public var linearClass: String? = nil
-        public var quantizationMode: String? = nil
-        public var mode: String? = nil
+        private var _mode: QuantizationMode? = nil
+        public var mode: QuantizationMode { _mode ?? .affine }
 
-        public var asTuple: (Int, Int) { (groupSize, bits) }
+        public var asTuple: (Int, Int, QuantizationMode) { (groupSize, bits, mode) }
 
         enum CodingKeys: String, CodingKey {
             case groupSize = "group_size"
             case bits = "bits"
-            case quantMethod = "quant_method"
-            case linearClass = "linear_class"
-            case quantizationMode = "quantization_mode"
-            case mode = "mode"
+            case _mode = "mode"
         }
     }
 
@@ -115,10 +111,11 @@ public struct BaseConfiguration: Codable, Sendable {
                 switch key.stringValue {
                 case Quantization.CodingKeys.groupSize.rawValue: continue
                 case Quantization.CodingKeys.bits.rawValue: continue
-                case Quantization.CodingKeys.quantMethod.rawValue: continue
-                case Quantization.CodingKeys.linearClass.rawValue: continue
-                case Quantization.CodingKeys.quantizationMode.rawValue: continue
-                case Quantization.CodingKeys.mode.rawValue: continue
+                case Quantization.CodingKeys._mode.rawValue: continue
+
+                // additional keys that are not layer instructions, see
+                // mlx-community/bitnet-b1.58-2B-4T-4bit
+                case "quant_method", "linear_class", "quantization_mode": continue
 
                 default:
                     if let f = try? container.decode(Bool.self, forKey: key) {
