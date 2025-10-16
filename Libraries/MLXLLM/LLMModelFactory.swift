@@ -65,6 +65,7 @@ public class LLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "olmo2": create(Olmo2Configuration.self, Olmo2Model.init),
             "bailing_moe": create(BailingMoeConfiguration.self, BailingMoeModel.init),
             "lfm2_moe": create(LFM2MoEConfiguration.self, LFM2MoEModel.init),
+            "nanochat": create(NanoChatConfiguration.self, NanoChatModel.init),
         ]
     }
 }
@@ -334,6 +335,11 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: ""
     )
 
+    static public let nanochat_d20_mlx = ModelConfiguration(
+        id: "dnakov/nanochat-d20-mlx",
+        defaultPrompt: ""
+    )
+
     private static func all() -> [ModelConfiguration] {
         [
             codeLlama13b4bit,
@@ -382,6 +388,7 @@ public class LLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             olmo_2_1124_7B_Instruct_4bit,
             ling_mini_2_2bit,
             lfm2_8b_a1b_3bit_mlx,
+            nanochat_d20_mlx,
         ]
     }
 
