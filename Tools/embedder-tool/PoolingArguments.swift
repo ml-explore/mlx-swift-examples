@@ -5,10 +5,15 @@ import MLXEmbedders
 
 struct PoolingArguments: ParsableArguments {
 
-    @Option(name: .long, help: "Pooling strategy used to collapse token embeddings (default: mean).")
+    @Option(
+        name: .long, help: "Pooling strategy used to collapse token embeddings (default: mean).")
     var strategy: Pooling.Strategy?
 
-    @Flag(name: .long, inversion: .prefixedNo, help: "Normalize pooled embeddings to unit length (default: true). Use --no-normalize to disable.")
+    @Flag(
+        name: .long, inversion: .prefixedNo,
+        help:
+            "Normalize pooled embeddings to unit length (default: true). Use --no-normalize to disable."
+    )
     var normalize = true
 
     @Flag(name: .long, help: "Apply layer normalization before pooling.")

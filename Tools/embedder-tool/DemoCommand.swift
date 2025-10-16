@@ -32,7 +32,8 @@ struct DemoCommand: AsyncParsableCommand {
                     try FileManager.default.removeItem(at: indexURL)
                 } catch {
                     if FileManager.default.fileExists(atPath: indexURL.path) {
-                        let message = "Failed to remove temporary index file at \(indexURL.path): \(error.localizedDescription). Please remove it manually."
+                        let message =
+                            "Failed to remove temporary index file at \(indexURL.path): \(error.localizedDescription). Please remove it manually."
                         writeDiagnostic(message, kind: .warning)
                     }
                 }
@@ -57,7 +58,7 @@ struct DemoCommand: AsyncParsableCommand {
             "--recursive",
             "--limit", "8",
             "--batch-size", "4",
-            "--normalize"
+            "--normalize",
         ]
 
         var indexCommand = try IndexCommand.parse(arguments)
@@ -71,7 +72,7 @@ struct DemoCommand: AsyncParsableCommand {
                 "--index", indexURL.path,
                 "--query", query,
                 "--top", "2",
-                "--normalize"
+                "--normalize",
             ]
             var searchCommand = try SearchCommand.parse(arguments)
             try await searchCommand.run()
@@ -82,7 +83,7 @@ struct DemoCommand: AsyncParsableCommand {
         [
             "How do I use embedding models?",
             "Training language models",
-            "Vision language models"
+            "Vision language models",
         ]
     }
 }

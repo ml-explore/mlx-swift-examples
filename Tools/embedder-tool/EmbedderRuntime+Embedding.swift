@@ -22,7 +22,8 @@ public struct RuntimeEmbeddingResult {
 extension EmbedderRuntime {
     func embed(texts: [String]) async throws -> RuntimeEmbeddingResult {
         guard !texts.isEmpty else {
-            return RuntimeEmbeddingResult(embeddings: [], skippedIndices: [], fallbackDescription: nil)
+            return RuntimeEmbeddingResult(
+                embeddings: [], skippedIndices: [], fallbackDescription: nil)
         }
 
         return try await container.perform { model, tokenizer, pooler in
@@ -48,9 +49,10 @@ extension EmbedderRuntime {
             let padToken = tokenizer.eosTokenId ?? 0
             let maxLength = encoded.map { $0.1.count }.max() ?? 0
 
-            let padded = stacked(encoded.map { _, tokens in
-                MLXArray(tokens + Array(repeating: padToken, count: maxLength - tokens.count))
-            })
+            let padded = stacked(
+                encoded.map { _, tokens in
+                    MLXArray(tokens + Array(repeating: padToken, count: maxLength - tokens.count))
+                })
             let mask = (padded .!= padToken)
             let tokenTypes = MLXArray.zeros(like: padded)
 

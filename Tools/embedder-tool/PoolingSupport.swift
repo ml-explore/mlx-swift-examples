@@ -40,12 +40,13 @@ extension EmbedderRuntime {
 
     func extractVectors(from array: MLXArray, expectedCount: Int) throws -> PoolingExtraction {
         let shape = array.shape
-        
+
         switch shape.count {
         case 2:
             let vectors = array.map { $0.asArray(Float.self) }
             guard vectors.count == expectedCount else {
-                throw PoolingError.vectorCountMismatch(expected: expectedCount, received: vectors.count)
+                throw PoolingError.vectorCountMismatch(
+                    expected: expectedCount, received: vectors.count)
             }
             return PoolingExtraction(vectors: vectors, fallbackDescription: nil)
 
@@ -54,15 +55,18 @@ extension EmbedderRuntime {
             reduced.eval()
             let vectors = reduced.map { $0.asArray(Float.self) }
             guard vectors.count == expectedCount else {
-                throw PoolingError.vectorCountMismatch(expected: expectedCount, received: vectors.count)
+                throw PoolingError.vectorCountMismatch(
+                    expected: expectedCount, received: vectors.count)
             }
 
             let effectiveStrategy = strategyOverride ?? baseStrategy
             let description: String
             if effectiveStrategy == .none {
-                description = "Pooling strategy 'none' returned sequence embeddings; falling back to mean over tokens."
+                description =
+                    "Pooling strategy 'none' returned sequence embeddings; falling back to mean over tokens."
             } else {
-                description = "Pooling returned sequence embeddings; falling back to mean over tokens."
+                description =
+                    "Pooling returned sequence embeddings; falling back to mean over tokens."
             }
             return PoolingExtraction(vectors: vectors, fallbackDescription: description)
 

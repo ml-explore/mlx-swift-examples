@@ -49,7 +49,7 @@ struct SearchCommand: AsyncParsableCommand {
             print("Query produced no tokens")
             return
         }
-        
+
         queryVector = VectorOperations.sanitize(queryVector)
 
         if runtime.normalize {
@@ -79,7 +79,9 @@ struct SearchCommand: AsyncParsableCommand {
         if let dimension = entries.first?.embedding.count {
             let mismatched = entries.first { $0.embedding.count != dimension }
             if let mismatch = mismatched {
-                writeDiagnostic("Index entry \(mismatch.path) has dimension \(mismatch.embedding.count) vs expected \(dimension)", kind: .warning)
+                writeDiagnostic(
+                    "Index entry \(mismatch.path) has dimension \(mismatch.embedding.count) vs expected \(dimension)",
+                    kind: .warning)
             }
         }
 
@@ -128,16 +130,21 @@ struct SearchCommand: AsyncParsableCommand {
         .sorted { $0.1 > $1.1 }
 
         if !mismatched.isEmpty {
-            writeDiagnostic(dimensionMismatchMessage(for: mismatched, expected: query.count), kind: .warning)
+            writeDiagnostic(
+                dimensionMismatchMessage(for: mismatched, expected: query.count), kind: .warning)
         }
 
         return scored
     }
 
-    private func dimensionMismatchMessage(for mismatched: [(path: String, dimension: Int)], expected: Int) -> String {
-        var message = "Skipped \(mismatched.count) index entry(s) with dimension mismatch (expected \(expected))"
+    private func dimensionMismatchMessage(
+        for mismatched: [(path: String, dimension: Int)], expected: Int
+    ) -> String {
+        var message =
+            "Skipped \(mismatched.count) index entry(s) with dimension mismatch (expected \(expected))"
         if !mismatched.isEmpty {
-            let preview = mismatched.prefix(5).map { "\($0.path) (\($0.dimension))" }.joined(separator: ", ")
+            let preview = mismatched.prefix(5).map { "\($0.path) (\($0.dimension))" }.joined(
+                separator: ", ")
             message += ": \(preview)"
             if mismatched.count > 5 {
                 message += ", ..."

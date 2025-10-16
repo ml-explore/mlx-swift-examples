@@ -49,8 +49,10 @@ struct ReplCommand: AsyncParsableCommand {
             return
         }
 
-        print("Embedding \(loadResult.documents.count) document(s) from \(corpus.directoryURL.path)")
-        let index = try await embed(documents: loadResult.documents, runtime: runtime, batchSize: batchSize)
+        print(
+            "Embedding \(loadResult.documents.count) document(s) from \(corpus.directoryURL.path)")
+        let index = try await embed(
+            documents: loadResult.documents, runtime: runtime, batchSize: batchSize)
 
         guard !index.isEmpty else {
             print("No embeddings were generated for the selected documents")
@@ -80,7 +82,9 @@ struct ReplCommand: AsyncParsableCommand {
         return result
     }
 
-    private func embed(documents: [Document], runtime: EmbedderRuntime, batchSize: Int) async throws -> [IndexEntry] {
+    private func embed(documents: [Document], runtime: EmbedderRuntime, batchSize: Int) async throws
+        -> [IndexEntry]
+    {
         let batchSize = max(1, min(batchSize, documents.count))
         var accumulatedEntries: [IndexEntry] = []
         var skippedDocuments: [String] = []
@@ -89,13 +93,14 @@ struct ReplCommand: AsyncParsableCommand {
 
         while processed < documents.count {
             let upperBound = min(processed + batchSize, documents.count)
-            let batch = Array(documents[processed..<upperBound])
+            let batch = Array(documents[processed ..< upperBound])
             let result = try await runtime.embed(texts: batch.map { $0.contents })
 
             let entries = result.embeddings.compactMap { embedding -> IndexEntry? in
                 guard batch.indices.contains(embedding.index) else { return nil }
                 let document = batch[embedding.index]
-                let vector = runtime.normalize
+                let vector =
+                    runtime.normalize
                     ? VectorOperations.normalize(embedding.vector)
                     : VectorOperations.sanitize(embedding.vector)
                 return IndexEntry(path: document.path, embedding: vector)
@@ -103,10 +108,11 @@ struct ReplCommand: AsyncParsableCommand {
 
             accumulatedEntries.append(contentsOf: entries)
 
-            skippedDocuments.append(contentsOf: result.skippedIndices.compactMap { index -> String? in
-                guard batch.indices.contains(index) else { return nil }
-                return batch[index].path
-            })
+            skippedDocuments.append(
+                contentsOf: result.skippedIndices.compactMap { index -> String? in
+                    guard batch.indices.contains(index) else { return nil }
+                    return batch[index].path
+                })
 
             if let message = result.fallbackDescription {
                 fallbackMessages.insert(message)
@@ -125,8 +131,12 @@ struct ReplCommand: AsyncParsableCommand {
         return accumulatedEntries
     }
 
-    private func runLoop(runtime: EmbedderRuntime, entries: [IndexEntry], stats: EmbeddingStats) async {
-        print("Enter a query to search, or /help for commands. Press return on an empty line to exit.")
+    private func runLoop(runtime: EmbedderRuntime, entries: [IndexEntry], stats: EmbeddingStats)
+        async
+    {
+        print(
+            "Enter a query to search, or /help for commands. Press return on an empty line to exit."
+        )
 
         while true {
             prompt()
@@ -155,7 +165,8 @@ struct ReplCommand: AsyncParsableCommand {
         }
     }
 
-    private func handleQuery(_ query: String, runtime: EmbedderRuntime, entries: [IndexEntry]) async {
+    private func handleQuery(_ query: String, runtime: EmbedderRuntime, entries: [IndexEntry]) async
+    {
         let start = showTiming ? DispatchTime.now() : nil
         var shouldReportTime = false
         defer {
@@ -179,7 +190,8 @@ struct ReplCommand: AsyncParsableCommand {
 
         if VectorOperations.hasNonFiniteValues(queryVector) {
             shouldReportTime = false
-            writeDiagnostic("Query vector contains non-finite values; skipping search", kind: .error)
+            writeDiagnostic(
+                "Query vector contains non-finite values; skipping search", kind: .error)
             return
         }
 
@@ -192,7 +204,9 @@ struct ReplCommand: AsyncParsableCommand {
         let (ranked, mismatched) = rank(entries: entries, query: queryVector)
 
         if !mismatched.isEmpty {
-            writeDiagnostic(dimensionMismatchMessage(for: mismatched, expected: queryVector.count), kind: .warning)
+            writeDiagnostic(
+                dimensionMismatchMessage(for: mismatched, expected: queryVector.count),
+                kind: .warning)
         }
 
         guard !ranked.isEmpty else {
@@ -223,7 +237,9 @@ struct ReplCommand: AsyncParsableCommand {
         }
     }
 
-    private func rank(entries: [IndexEntry], query: [Float]) -> ([(IndexEntry, Float)], [(path: String, dimension: Int)]) {
+    private func rank(entries: [IndexEntry], query: [Float]) -> (
+        [(IndexEntry, Float)], [(path: String, dimension: Int)]
+    ) {
         var mismatched: [(String, Int)] = []
 
         let ranked = entries.compactMap { entry -> (IndexEntry, Float)? in
@@ -245,10 +261,14 @@ struct ReplCommand: AsyncParsableCommand {
         return (ranked, mismatched)
     }
 
-    private func dimensionMismatchMessage(for mismatched: [(path: String, dimension: Int)], expected: Int) -> String {
-        var message = "Skipped \(mismatched.count) index entry(s) with dimension mismatch (expected \(expected))"
+    private func dimensionMismatchMessage(
+        for mismatched: [(path: String, dimension: Int)], expected: Int
+    ) -> String {
+        var message =
+            "Skipped \(mismatched.count) index entry(s) with dimension mismatch (expected \(expected))"
         if !mismatched.isEmpty {
-            let preview = mismatched.prefix(5).map { "\($0.path) (\($0.dimension))" }.joined(separator: ", ")
+            let preview = mismatched.prefix(5).map { "\($0.path) (\($0.dimension))" }.joined(
+                separator: ", ")
             message += ": \(preview)"
             if mismatched.count > 5 {
                 message += ", ..."
@@ -282,12 +302,13 @@ struct ReplCommand: AsyncParsableCommand {
     }
 
     private func printHelp() {
-        print("""
-Available commands:
-  /help   Show this message
-  /stats  Display embedding statistics
-  /quit   Exit the REPL
-""")
+        print(
+            """
+            Available commands:
+              /help   Show this message
+              /stats  Display embedding statistics
+              /quit   Exit the REPL
+            """)
     }
 
     private func printStats(stats: EmbeddingStats) {

@@ -11,7 +11,10 @@ import Tokenizers
 struct EmbedderTool: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Command line tool for working with MLX embedders",
-        subcommands: [IndexCommand.self, SearchCommand.self, ReplCommand.self, ListCommand.self, DemoCommand.self]
+        subcommands: [
+            IndexCommand.self, SearchCommand.self, ReplCommand.self, ListCommand.self,
+            DemoCommand.self,
+        ]
     )
 
     private static let defaultModelConfiguration = ModelConfiguration.nomic_text_v1_5
@@ -35,7 +38,9 @@ struct EmbedderTool: AsyncParsableCommand {
         print("Loaded \(runtime.configuration.name) using \(runtime.poolingDescription) pooling")
     }
 
-    static func loadRuntime(model: ModelArguments, pooling: PoolingArguments) async throws -> EmbedderRuntime {
+    static func loadRuntime(model: ModelArguments, pooling: PoolingArguments) async throws
+        -> EmbedderRuntime
+    {
         let loadedModel = try await model.load(default: defaultModelConfiguration)
         let baseStrategy = await loadedModel.container.perform { _, _, pooler in
             pooler.strategy
@@ -109,7 +114,9 @@ struct IndexCommand: AsyncParsableCommand {
         return result.documents
     }
 
-    private func embed(documents: [Document], runtime: EmbedderRuntime, batchSize: Int) async throws -> [IndexEntry] {
+    private func embed(documents: [Document], runtime: EmbedderRuntime, batchSize: Int) async throws
+        -> [IndexEntry]
+    {
         guard !documents.isEmpty else { return [] }
 
         let batchSize = max(1, min(batchSize, documents.count))
@@ -121,23 +128,25 @@ struct IndexCommand: AsyncParsableCommand {
         var index = 0
         while index < documents.count {
             let upperBound = min(index + batchSize, documents.count)
-            let batch = Array(documents[index..<upperBound])
+            let batch = Array(documents[index ..< upperBound])
             let result = try await runtime.embed(texts: batch.map { $0.contents })
 
             let entries: [IndexEntry] = result.embeddings.compactMap { embedding in
                 guard batch.indices.contains(embedding.index) else { return nil }
                 let document = batch[embedding.index]
-                let vector = runtime.normalize
+                let vector =
+                    runtime.normalize
                     ? VectorOperations.normalize(embedding.vector)
                     : VectorOperations.sanitize(embedding.vector)
                 return IndexEntry(path: document.path, embedding: vector)
             }
             accumulatedEntries.append(contentsOf: entries)
 
-            skippedDocuments.append(contentsOf: result.skippedIndices.compactMap { index -> String? in
-                guard batch.indices.contains(index) else { return nil }
-                return batch[index].path
-            })
+            skippedDocuments.append(
+                contentsOf: result.skippedIndices.compactMap { index -> String? in
+                    guard batch.indices.contains(index) else { return nil }
+                    return batch[index].path
+                })
 
             if let message = result.fallbackDescription {
                 fallbackMessages.insert(message)

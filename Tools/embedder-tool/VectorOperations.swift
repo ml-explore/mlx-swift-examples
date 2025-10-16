@@ -7,15 +7,15 @@ enum VectorOperations {
     static func cosineSimilarity(_ lhs: [Float], _ rhs: [Float]) -> Float {
         guard lhs.count == rhs.count else { return 0 }
         guard !lhs.isEmpty else { return 0 }
-        
+
         var dot: Float = 0
         var lhsNormSquared: Float = 0
         var rhsNormSquared: Float = 0
-        
+
         vDSP_dotpr(lhs, 1, rhs, 1, &dot, vDSP_Length(lhs.count))
         vDSP_svesq(lhs, 1, &lhsNormSquared, vDSP_Length(lhs.count))
         vDSP_svesq(rhs, 1, &rhsNormSquared, vDSP_Length(rhs.count))
-        
+
         let denominator = sqrt(lhsNormSquared * rhsNormSquared)
         guard denominator > 1e-9 else { return 0 }
         return dot / denominator
@@ -59,7 +59,7 @@ enum VectorOperations {
     static func dotProduct(_ lhs: [Float], _ rhs: [Float]) -> Float {
         guard lhs.count == rhs.count else { return 0 }
         guard !lhs.isEmpty else { return 0 }
-        
+
         var result: Float = 0
         vDSP_dotpr(lhs, 1, rhs, 1, &result, vDSP_Length(lhs.count))
         return result
@@ -83,17 +83,18 @@ extension VectorOperations {
         vector.contains(where: { !$0.isFinite })
     }
 
-    static func statistics(_ vector: [Float]) -> (mean: Float, min: Float, max: Float, norm: Float) {
+    static func statistics(_ vector: [Float]) -> (mean: Float, min: Float, max: Float, norm: Float)
+    {
         guard !vector.isEmpty else { return (0, 0, 0, 0) }
-        
+
         var mean: Float = 0
         var min: Float = 0
         var max: Float = 0
-        
+
         vDSP_meanv(vector, 1, &mean, vDSP_Length(vector.count))
         vDSP_minv(vector, 1, &min, vDSP_Length(vector.count))
         vDSP_maxv(vector, 1, &max, vDSP_Length(vector.count))
-        
+
         return (mean, min, max, l2Norm(vector))
     }
 }

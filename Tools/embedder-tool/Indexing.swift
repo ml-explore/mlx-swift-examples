@@ -10,7 +10,7 @@ struct Document {
 struct IndexEntry: Codable {
     let path: String
     let embedding: [Float]
-    
+
     init(path: String, embedding: [Float]) {
         self.path = path
         self.embedding = embedding
@@ -62,11 +62,13 @@ struct CorpusLoader {
         var failures: [(URL, ReadError)] = []
 
         if recursive {
-            guard let enumerator = fileManager.enumerator(
-                at: root,
-                includingPropertiesForKeys: [.isRegularFileKey],
-                options: [.skipsHiddenFiles]
-            ) else {
+            guard
+                let enumerator = fileManager.enumerator(
+                    at: root,
+                    includingPropertiesForKeys: [.isRegularFileKey],
+                    options: [.skipsHiddenFiles]
+                )
+            else {
                 return LoadResult(documents: [], failures: [])
             }
 
