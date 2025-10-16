@@ -336,7 +336,7 @@ public class NomicBertModel: Module, EmbeddingModel {
         _embedder.wrappedValue = NomicEmbedding(config)
 
         if pooler {
-            self.pooler = Linear(config.embedDim, config.embedDim)
+            self.pooler = Linear(config.embedDim, config.embedDim, bias: false)
         } else {
             self.pooler = nil
         }
