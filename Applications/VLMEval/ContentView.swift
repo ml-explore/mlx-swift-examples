@@ -335,16 +335,12 @@ class VLMEvaluator {
 
     /// This controls which model loads. `smolvlm` is very small even unquantized, so it will fit on
     /// more devices.
-    //let modelConfiguration = VLMRegistry.smolvlm
-    let modelConfiguration = VLMRegistry.qwen3VL4BInstruct4Bit
+    let modelConfiguration = VLMRegistry.smolvlm
+    //let modelConfiguration = VLMRegistry.qwen3VL4BInstruct4Bit
 
     /// parameters controlling the output – use values appropriate for the model selected above
-    let generateParameters: MLXLMCommon.GenerateParameters = {
-        var params = MLXLMCommon.GenerateParameters(
-            maxTokens: 800, temperature: 0.7, topP: 0.9)
-        params.prefillStepSize = 256
-        return params
-    }()
+    let generateParameters = MLXLMCommon.GenerateParameters(
+        maxTokens: 800, temperature: 0.7, topP: 0.9)
     let updateInterval = Duration.seconds(0.25)
 
     /// A task responsible for handling the generation process.
