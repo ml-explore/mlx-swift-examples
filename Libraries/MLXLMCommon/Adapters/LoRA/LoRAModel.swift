@@ -79,7 +79,8 @@ extension QuantizedLinear {
             scales: scales,
             biases: biases,
             groupSize: groupSize,
-            bits: bits
+            bits: bits,
+            mode: mode
         )
     }
 }

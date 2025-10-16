@@ -81,6 +81,9 @@ public protocol QuantizedKVCacheProtocol: KVCache {
     /// The number of quantization bits used
     var bits: Int { get }
 
+    /// Quantization mode
+    var mode: QuantizationMode { get }
+
     /// Update cache and return quantized tuples for maximum efficiency
     ///
     /// - Parameters:
@@ -88,14 +91,14 @@ public protocol QuantizedKVCacheProtocol: KVCache {
     ///   - values: New value data to add to cache
     /// - Returns: Quantized tuples (keys, values) as ((weight, scales, biases), (weight, scales, biases))
     func updateQuantized(keys: MLXArray, values: MLXArray) -> (
-        (MLXArray, MLXArray, MLXArray), (MLXArray, MLXArray, MLXArray)
+        (MLXArray, MLXArray, MLXArray?), (MLXArray, MLXArray, MLXArray?)
     )
 
     /// Get current quantized state without updating
     ///
     /// Useful for accessing cached data without adding new tokens.
     /// - Returns: Current quantized state, or nil if cache is empty
-    func getQuantizedState() -> ((MLXArray, MLXArray, MLXArray), (MLXArray, MLXArray, MLXArray))?
+    func getQuantizedState() -> ((MLXArray, MLXArray, MLXArray?), (MLXArray, MLXArray, MLXArray?))?
 }
 
 /// Base cache implementation providing default behaviors
@@ -332,7 +335,7 @@ public class KVCacheSimple: BaseKVCache, CustomDebugStringConvertible {
             quantizedCache.state = [
                 quantizedKeys.wq, quantizedKeys.scales, quantizedKeys.biases,
                 quantizedValues.wq, quantizedValues.scales, quantizedValues.biases,
-            ]
+            ].compactMap { $0 }
         }
 
         return quantizedCache
@@ -573,47 +576,55 @@ public class RotatingKVCache: BaseKVCache, CustomDebugStringConvertible {
 
 /// Quantized KV cache for memory efficiency using MLX quantization
 public class QuantizedKVCache: BaseKVCache, QuantizedKVCacheProtocol {
-    private var keys: (MLXArray, MLXArray, MLXArray)?
-    private var values: (MLXArray, MLXArray, MLXArray)?
+    private var keys: (MLXArray, MLXArray, MLXArray?)?
+    private var values: (MLXArray, MLXArray, MLXArray?)?
     private let step: Int
     public let groupSize: Int
     public let bits: Int
+    public let mode: QuantizationMode
 
-    public init(groupSize: Int = 64, bits: Int = 8) {
+    public init(groupSize: Int = 64, bits: Int = 8, mode: QuantizationMode = .affine) {
         self.groupSize = groupSize
         self.bits = bits
         self.step = 256
+        self.mode = mode
         super.init()
     }
 
     public override func innerState() -> [MLXArray] {
         var arrays: [MLXArray] = []
         if let keys = keys {
-            arrays.append(contentsOf: [keys.0, keys.1, keys.2])
+            arrays.append(contentsOf: [keys.0, keys.1, keys.2].compactMap { $0 })
         }
         if let values = values {
-            arrays.append(contentsOf: [values.0, values.1, values.2])
+            arrays.append(contentsOf: [values.0, values.1, values.2].compactMap { $0 })
         }
         return arrays
     }
 
     /// Tree map equivalent for applying function to tuple elements
-    private func treeMap<T>(_ transform: (MLXArray) -> T, _ tuple: (MLXArray, MLXArray, MLXArray))
-        -> (T, T, T)
+    private func treeMap<T>(_ transform: (MLXArray) -> T, _ tuple: (MLXArray, MLXArray, MLXArray?))
+        -> (T, T, T?)
     {
-        return (transform(tuple.0), transform(tuple.1), transform(tuple.2))
+        if let biases = tuple.2 {
+            return (transform(tuple.0), transform(tuple.1), transform(biases))
+
+        } else {
+            return (transform(tuple.0), transform(tuple.1), nil)
+        }
     }
 
     /// Tree map for two tuples (like Python's tree_map over (keys, values))
     private func treeMapPair<T>(
-        _ transform: (MLXArray) -> T, _ tuple1: (MLXArray, MLXArray, MLXArray),
-        _ tuple2: (MLXArray, MLXArray, MLXArray)
-    ) -> ((T, T, T), (T, T, T)) {
+        _ transform: (MLXArray) -> T, _ tuple1: (MLXArray, MLXArray, MLXArray?),
+        _ tuple2: (MLXArray, MLXArray, MLXArray?)
+    ) -> ((T, T, T?), (T, T, T?)) {
         return (treeMap(transform, tuple1), treeMap(transform, tuple2))
     }
 
     /// Create initial quantized tuples (like Python's init_quant)
-    private func initQuant(dim: Int, shape: [Int], dtype: DType) -> (MLXArray, MLXArray, MLXArray) {
+    private func initQuant(dim: Int, shape: [Int], dtype: DType) -> (MLXArray, MLXArray, MLXArray?)
+    {
         // Create temporary zero arrays and quantize them using native MLX Swift
         let tempArray = MLXArray.zeros(shape + [dim], dtype: dtype)
         let quantized = quantized(tempArray, groupSize: groupSize, bits: bits)
@@ -622,8 +633,8 @@ public class QuantizedKVCache: BaseKVCache, QuantizedKVCacheProtocol {
     }
 
     /// Expand quantized tuple
-    private func expandQuant(_ quantTuple: (MLXArray, MLXArray, MLXArray), newShape: [Int]) -> (
-        MLXArray, MLXArray, MLXArray
+    private func expandQuant(_ quantTuple: (MLXArray, MLXArray, MLXArray?), newShape: [Int]) -> (
+        MLXArray, MLXArray, MLXArray?
     ) {
         return treeMap(
             { array in
@@ -635,7 +646,7 @@ public class QuantizedKVCache: BaseKVCache, QuantizedKVCacheProtocol {
     /// Get current quantized keys and values as tuples (efficient access)
     /// - Returns: Tuple of ((keyWeight, keyScales, keyBiases), (valueWeight, valueScales, valueBiases))
     public func getQuantizedState() -> (
-        (MLXArray, MLXArray, MLXArray), (MLXArray, MLXArray, MLXArray)
+        (MLXArray, MLXArray, MLXArray?), (MLXArray, MLXArray, MLXArray?)
     )? {
         guard let keys = keys, let values = values else { return nil }
 
@@ -653,7 +664,7 @@ public class QuantizedKVCache: BaseKVCache, QuantizedKVCacheProtocol {
     ///   - values: New value data to add to cache
     /// - Returns: Quantized tuples (keys, values) as ((weight, scales, biases), (weight, scales, biases))
     public func updateQuantized(keys: MLXArray, values: MLXArray) -> (
-        (MLXArray, MLXArray, MLXArray), (MLXArray, MLXArray, MLXArray)
+        (MLXArray, MLXArray, MLXArray?), (MLXArray, MLXArray, MLXArray?)
     ) {
         let B = keys.dim(0)
         let nKVHeads = keys.dim(1)
@@ -707,11 +718,15 @@ public class QuantizedKVCache: BaseKVCache, QuantizedKVCacheProtocol {
         // Update each component of the quantized tuples
         currentKeys.0[.ellipsis, prev ..< offset, 0...] = qKeys.0
         currentKeys.1[.ellipsis, prev ..< offset, 0...] = qKeys.1
-        currentKeys.2[.ellipsis, prev ..< offset, 0...] = qKeys.2
+        if let qKeysBiases = qKeys.2 {
+            currentKeys.2![.ellipsis, prev ..< offset, 0...] = qKeysBiases
+        }
 
         currentValues.0[.ellipsis, prev ..< offset, 0...] = qValues.0
         currentValues.1[.ellipsis, prev ..< offset, 0...] = qValues.1
-        currentValues.2[.ellipsis, prev ..< offset, 0...] = qValues.2
+        if let qValuesBiases = qValues.2 {
+            currentValues.2![.ellipsis, prev ..< offset, 0...] = qValuesBiases
+        }
 
         self.keys = currentKeys
         self.values = currentValues
@@ -731,6 +746,7 @@ public class QuantizedKVCache: BaseKVCache, QuantizedKVCacheProtocol {
         )
     }
 
+    /// Array of keys and values -- this will have either 6 elements or 4 elements (if biases are nil).
     public override var state: [MLXArray] {
         get {
             guard let keys = keys, let values = values else { return [] }
@@ -743,21 +759,26 @@ public class QuantizedKVCache: BaseKVCache, QuantizedKVCacheProtocol {
                 return [
                     trimmedKeys.0, trimmedKeys.1, trimmedKeys.2, trimmedValues.0, trimmedValues.1,
                     trimmedValues.2,
-                ]
+                ].compactMap { $0 }
             } else {
                 // Flatten tuples to array for serialization
-                return [keys.0, keys.1, keys.2, values.0, values.1, values.2]
+                return [keys.0, keys.1, keys.2, values.0, values.1, values.2].compactMap { $0 }
             }
         }
         set {
-            guard newValue.count == 6 else {
+            switch newValue.count {
+            case 4:
+                // nil biases case
+                keys = (newValue[0], newValue[1], nil)
+                values = (newValue[2], newValue[3], nil)
+            case 6:
+                keys = (newValue[0], newValue[1], newValue[2])
+                values = (newValue[3], newValue[4], newValue[5])
+            default:
                 fatalError(
-                    "QuantizedKVCache state must have exactly 6 arrays (3 for keys, 3 for values)")
+                    "QuantizedKVCache state must have exactly 6 or 4 arrays (3/2 for keys, 3/2 for values)"
+                )
             }
-
-            // Reconstruct tuples from flat array
-            keys = (newValue[0], newValue[1], newValue[2])
-            values = (newValue[3], newValue[4], newValue[5])
         }
     }
 
@@ -798,10 +819,10 @@ public class QuantizedKVCache: BaseKVCache, QuantizedKVCacheProtocol {
 
             let dequantizedKeys = dequantized(
                 currentKeys.0, scales: currentKeys.1, biases: currentKeys.2,
-                groupSize: groupSize, bits: bits)
+                groupSize: groupSize, bits: bits, mode: mode)
             let dequantizedValues = dequantized(
                 currentValues.0, scales: currentValues.1, biases: currentValues.2,
-                groupSize: groupSize, bits: bits)
+                groupSize: groupSize, bits: bits, mode: mode)
 
             // Set the unquantized state
             simpleCache.state = [dequantizedKeys, dequantizedValues]
@@ -1301,12 +1322,13 @@ public typealias StandardKVCache = KVCacheSimple
 
 public func quantizedScaledDotProductAttention(
     queries: MLXArray,
-    quantizedKeys: (MLXArray, MLXArray, MLXArray),
-    quantizedValues: (MLXArray, MLXArray, MLXArray),
+    quantizedKeys: (MLXArray, MLXArray, MLXArray?),
+    quantizedValues: (MLXArray, MLXArray, MLXArray?),
     scale: Float,
     mask: MLXFast.ScaledDotProductAttentionMaskMode = .none,
     groupSize: Int = 64,
-    bits: Int = 8
+    bits: Int = 8,
+    mode: QuantizationMode = .affine
 ) -> MLXArray {
 
     let (B, nQHeads, L, D) = (queries.dim(0), queries.dim(1), queries.dim(2), queries.dim(3))
@@ -1324,19 +1346,20 @@ public func quantizedScaledDotProductAttention(
         qKeys = (
             expandedDimensions(qKeys.0, axis: -3),
             expandedDimensions(qKeys.1, axis: -3),
-            expandedDimensions(qKeys.2, axis: -3)
+            qKeys.2 == nil ? nil : expandedDimensions(qKeys.2!, axis: -3)
         )
         qValues = (
             expandedDimensions(qValues.0, axis: -3),
             expandedDimensions(qValues.1, axis: -3),
-            expandedDimensions(qValues.2, axis: -3)
+            qValues.2 == nil ? nil : expandedDimensions(qValues.2!, axis: -3)
         )
     }
 
     // Compute attention scores using quantized matmul
     var scores = quantizedMatmul(
         scaledQueries, qKeys.0, scales: qKeys.1, biases: qKeys.2,
-        transpose: true, groupSize: groupSize, bits: bits
+        transpose: true, groupSize: groupSize, bits: bits,
+        mode: mode
     )
 
     // Apply mask
@@ -1375,7 +1398,8 @@ public func quantizedScaledDotProductAttention(
     // Compute output using quantized matmul
     var output = quantizedMatmul(
         attentionWeights, qValues.0, scales: qValues.1, biases: qValues.2,
-        transpose: false, groupSize: groupSize, bits: bits
+        transpose: false, groupSize: groupSize, bits: bits,
+        mode: mode
     )
 
     // Reshape output for GQA
