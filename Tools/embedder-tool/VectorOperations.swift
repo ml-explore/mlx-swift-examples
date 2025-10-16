@@ -31,10 +31,7 @@ enum VectorOperations {
     static func normalize(_ vector: [Float]) -> [Float] {
         guard !vector.isEmpty else { return [] }
 
-        var sanitized = vector
-        for index in sanitized.indices where !sanitized[index].isFinite {
-            sanitized[index] = 0
-        }
+        let sanitized = sanitize(vector)
 
         var sumSquares: Float = 0
         vDSP_svesq(sanitized, 1, &sumSquares, vDSP_Length(sanitized.count))
@@ -47,6 +44,16 @@ enum VectorOperations {
         vDSP_vsdiv(sanitized, 1, &divisor, &normalized, 1, vDSP_Length(sanitized.count))
 
         return normalized
+    }
+
+    static func sanitize(_ vector: [Float]) -> [Float] {
+        guard !vector.isEmpty else { return [] }
+
+        var sanitized = vector
+        for index in sanitized.indices where !sanitized[index].isFinite {
+            sanitized[index] = 0
+        }
+        return sanitized
     }
 
     static func dotProduct(_ lhs: [Float], _ rhs: [Float]) -> Float {

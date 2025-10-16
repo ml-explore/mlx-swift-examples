@@ -39,7 +39,11 @@ struct SearchCommand: AsyncParsableCommand {
             return
         }
         
-        queryVector = VectorOperations.normalize(queryVector)
+        queryVector = VectorOperations.sanitize(queryVector)
+
+        if runtime.normalize {
+            queryVector = VectorOperations.normalize(queryVector)
+        }
 
         let results = rank(entries: entries, query: queryVector)
         if results.isEmpty {

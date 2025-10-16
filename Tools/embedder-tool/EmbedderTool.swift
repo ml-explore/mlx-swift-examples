@@ -106,8 +106,10 @@ struct IndexCommand: AsyncParsableCommand {
             let entries: [IndexEntry] = result.embeddings.compactMap { embedding in
                 guard batch.indices.contains(embedding.index) else { return nil }
                 let document = batch[embedding.index]
-                let normalizedVector = VectorOperations.normalize(embedding.vector)
-                return IndexEntry(path: document.path, embedding: normalizedVector)
+                let vector = runtime.normalize
+                    ? VectorOperations.normalize(embedding.vector)
+                    : VectorOperations.sanitize(embedding.vector)
+                return IndexEntry(path: document.path, embedding: vector)
             }
             accumulatedEntries.append(contentsOf: entries)
 

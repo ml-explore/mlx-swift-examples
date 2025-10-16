@@ -84,8 +84,10 @@ struct ReplCommand: AsyncParsableCommand {
             let entries = result.embeddings.compactMap { embedding -> IndexEntry? in
                 guard batch.indices.contains(embedding.index) else { return nil }
                 let document = batch[embedding.index]
-                let normalized = VectorOperations.normalize(embedding.vector)
-                return IndexEntry(path: document.path, embedding: normalized)
+                let vector = runtime.normalize
+                    ? VectorOperations.normalize(embedding.vector)
+                    : VectorOperations.sanitize(embedding.vector)
+                return IndexEntry(path: document.path, embedding: vector)
             }
 
             accumulatedEntries.append(contentsOf: entries)
@@ -170,7 +172,11 @@ struct ReplCommand: AsyncParsableCommand {
             return
         }
 
-        queryVector = VectorOperations.normalize(queryVector)
+        queryVector = VectorOperations.sanitize(queryVector)
+
+        if runtime.normalize {
+            queryVector = VectorOperations.normalize(queryVector)
+        }
 
         let (ranked, mismatched) = rank(entries: entries, query: queryVector)
 
