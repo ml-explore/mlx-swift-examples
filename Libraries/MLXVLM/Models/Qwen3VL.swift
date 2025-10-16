@@ -12,6 +12,8 @@ private enum Qwen3VLError: Error {
     case featureTokenMismatch(expected: Int, actual: Int)
 }
 
+// MARK: - Processor
+
 public final class Qwen3VLProcessor: UserInputProcessor {
 
     private let config: Qwen3VLProcessorConfiguration
@@ -197,6 +199,8 @@ public struct Qwen3VLProcessorConfiguration: Codable, Sendable {
         case imageProcessorType = "image_processor_type"
     }
 }
+
+// MARK: - Model
 
 public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
 
