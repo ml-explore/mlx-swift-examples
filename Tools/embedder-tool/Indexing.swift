@@ -61,50 +61,36 @@ struct CorpusLoader {
         var documents: [Document] = []
         var failures: [(URL, ReadError)] = []
 
+        let fileURLs: [URL]
         if recursive {
-            guard
-                let enumerator = fileManager.enumerator(
-                    at: root,
-                    includingPropertiesForKeys: [.isRegularFileKey],
-                    options: [.skipsHiddenFiles]
-                )
-            else {
+            guard let enumerator = fileManager.enumerator(
+                at: root,
+                includingPropertiesForKeys: [.isRegularFileKey],
+                options: [.skipsHiddenFiles]
+            ) else {
                 return LoadResult(documents: [], failures: [])
             }
-
-            for case let fileURL as URL in enumerator {
-                guard try shouldInclude(url: fileURL) else { continue }
-                do {
-                    if let document = try readDocument(at: fileURL) {
-                        documents.append(document)
-                    }
-                } catch let readError as ReadError {
-                    failures.append((fileURL, readError))
-                } catch {
-                    failures.append((fileURL, .unreadable(error.localizedDescription)))
-                }
-                if reachedLimit(current: documents.count) { break }
-            }
+            fileURLs = enumerator.allObjects as? [URL] ?? []
         } else {
-            let items = try fileManager.contentsOfDirectory(
+            fileURLs = try fileManager.contentsOfDirectory(
                 at: root,
                 includingPropertiesForKeys: [.isRegularFileKey],
                 options: [.skipsHiddenFiles]
             )
+        }
 
-            for fileURL in items {
-                guard try shouldInclude(url: fileURL) else { continue }
-                do {
-                    if let document = try readDocument(at: fileURL) {
-                        documents.append(document)
-                    }
-                } catch let readError as ReadError {
-                    failures.append((fileURL, readError))
-                } catch {
-                    failures.append((fileURL, .unreadable(error.localizedDescription)))
+        for fileURL in fileURLs {
+            guard try shouldInclude(url: fileURL) else { continue }
+            do {
+                if let document = try readDocument(at: fileURL) {
+                    documents.append(document)
                 }
-                if reachedLimit(current: documents.count) { break }
+            } catch let readError as ReadError {
+                failures.append((fileURL, readError))
+            } catch {
+                failures.append((fileURL, .unreadable(error.localizedDescription)))
             }
+            if reachedLimit(current: documents.count) { break }
         }
 
         return LoadResult(documents: documents, failures: failures)

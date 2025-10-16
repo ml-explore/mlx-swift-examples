@@ -7,7 +7,7 @@ import MLX
 import MLXEmbedders
 import Tokenizers
 
-struct SearchCommand: AsyncParsableCommand {
+struct SearchCommand: EmbedderCommand {
     static let configuration = CommandConfiguration(
         commandName: "search",
         abstract: "Search an embedding index for the closest matches"
@@ -26,18 +26,7 @@ struct SearchCommand: AsyncParsableCommand {
     @Option(name: .shortAndLong, help: "Number of results to display")
     var top: Int = 5
 
-    mutating func run() async throws {
-        var memory = self.memory
-        let capturedModel = model
-        let capturedPooling = pooling
-        let runtime = try await memory.start {
-            try await EmbedderTool.loadRuntime(model: capturedModel, pooling: capturedPooling)
-        }
-        defer {
-            memory.reportMemoryStatistics()
-            self.memory = memory
-        }
-
+    mutating func run(runtime: EmbedderRuntime) async throws {
         let entries = try loadIndex()
         guard !entries.isEmpty else {
             print("Index at \(index.path) is empty")
@@ -49,7 +38,7 @@ struct SearchCommand: AsyncParsableCommand {
             print("Query produced no tokens")
             return
         }
-
+        
         queryVector = VectorOperations.sanitize(queryVector)
 
         if runtime.normalize {

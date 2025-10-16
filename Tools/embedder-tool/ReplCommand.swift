@@ -1,7 +1,7 @@
 import ArgumentParser
 import Foundation
 
-struct ReplCommand: AsyncParsableCommand {
+struct ReplCommand: EmbedderCommand {
     static let configuration = CommandConfiguration(
         commandName: "repl",
         abstract: "Interactively search embeddings built from a local directory"
@@ -30,18 +30,7 @@ struct ReplCommand: AsyncParsableCommand {
     )
     var showTiming = false
 
-    mutating func run() async throws {
-        var memory = self.memory
-        let capturedModel = model
-        let capturedPooling = pooling
-        let runtime = try await memory.start {
-            try await EmbedderTool.loadRuntime(model: capturedModel, pooling: capturedPooling)
-        }
-        defer {
-            memory.reportMemoryStatistics()
-            self.memory = memory
-        }
-
+    mutating func run(runtime: EmbedderRuntime) async throws {
         let loadResult = try loadCorpus()
 
         guard !loadResult.documents.isEmpty else {

@@ -65,16 +65,17 @@ struct EmbedderRuntime {
     let applyLayerNorm: Bool
 }
 
-struct IndexCommand: AsyncParsableCommand {
+struct IndexCommand: EmbedderCommand {
     static let configuration = CommandConfiguration(
         commandName: "index",
         abstract: "Create an embedding index for a corpus"
     )
 
     @OptionGroup var model: ModelArguments
-    @OptionGroup var corpus: CorpusArguments
     @OptionGroup var pooling: PoolingArguments
     @OptionGroup var memory: MemoryArguments
+
+    @OptionGroup var corpus: CorpusArguments
 
     @Option(name: .shortAndLong, help: "Destination file for the generated index")
     var output: URL
@@ -82,18 +83,7 @@ struct IndexCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Number of documents to embed per batch (default: 8)")
     var batchSize: Int = 8
 
-    mutating func run() async throws {
-        var memory = self.memory
-        let capturedModel = model
-        let capturedPooling = pooling
-        let runtime = try await memory.start {
-            try await EmbedderTool.loadRuntime(model: capturedModel, pooling: capturedPooling)
-        }
-        defer {
-            memory.reportMemoryStatistics()
-            self.memory = memory
-        }
-
+    mutating func run(runtime: EmbedderRuntime) async throws {
         let documents = try loadDocuments()
         let entries = try await embed(documents: documents, runtime: runtime, batchSize: batchSize)
         try writeIndex(entries: entries, to: output)
