@@ -19,9 +19,19 @@ struct EmbedderTool: AsyncParsableCommand {
     @OptionGroup var model: ModelArguments
     @OptionGroup var corpus: CorpusArguments
     @OptionGroup var pooling: PoolingArguments
+    @OptionGroup var memory: MemoryArguments
 
     mutating func run() async throws {
-        let runtime = try await Self.loadRuntime(model: model, pooling: pooling)
+        var memory = self.memory
+        let capturedModel = model
+        let capturedPooling = pooling
+        let runtime = try await memory.start {
+            try await Self.loadRuntime(model: capturedModel, pooling: capturedPooling)
+        }
+        defer {
+            memory.reportMemoryStatistics()
+            self.memory = memory
+        }
         print("Loaded \(runtime.configuration.name) using \(runtime.poolingDescription) pooling")
     }
 
@@ -34,7 +44,7 @@ struct EmbedderTool: AsyncParsableCommand {
             configuration: loadedModel.configuration,
             container: loadedModel.container,
             baseStrategy: baseStrategy,
-            strategyOverride: pooling.strategy,
+            strategyOverride: pooling.strategyOverride,
             normalize: pooling.normalize,
             applyLayerNorm: pooling.layerNorm
         )
@@ -59,15 +69,26 @@ struct IndexCommand: AsyncParsableCommand {
     @OptionGroup var model: ModelArguments
     @OptionGroup var corpus: CorpusArguments
     @OptionGroup var pooling: PoolingArguments
+    @OptionGroup var memory: MemoryArguments
 
     @Option(name: .shortAndLong, help: "Destination file for the generated index")
     var output: URL
 
-    @Option(name: .long, help: "Number of documents to embed per batch (default: 32)")
-    var batchSize: Int = 32
+    @Option(name: .long, help: "Number of documents to embed per batch (default: 8)")
+    var batchSize: Int = 8
 
-    func run() async throws {
-        let runtime = try await EmbedderTool.loadRuntime(model: model, pooling: pooling)
+    mutating func run() async throws {
+        var memory = self.memory
+        let capturedModel = model
+        let capturedPooling = pooling
+        let runtime = try await memory.start {
+            try await EmbedderTool.loadRuntime(model: capturedModel, pooling: capturedPooling)
+        }
+        defer {
+            memory.reportMemoryStatistics()
+            self.memory = memory
+        }
+
         let documents = try loadDocuments()
         let entries = try await embed(documents: documents, runtime: runtime, batchSize: batchSize)
         try writeIndex(entries: entries, to: output)

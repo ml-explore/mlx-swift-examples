@@ -10,6 +10,7 @@ struct ReplCommand: AsyncParsableCommand {
     @OptionGroup var model: ModelArguments
     @OptionGroup var corpus: CorpusArguments
     @OptionGroup var pooling: PoolingArguments
+    @OptionGroup var memory: MemoryArguments
 
     @Option(
         name: .shortAndLong,
@@ -19,9 +20,9 @@ struct ReplCommand: AsyncParsableCommand {
 
     @Option(
         name: .long,
-        help: "Number of documents to embed per batch (default: 32)"
+        help: "Number of documents to embed per batch (default: 8)"
     )
-    var batchSize: Int = 32
+    var batchSize: Int = 8
 
     @Flag(
         name: .long,
@@ -29,8 +30,18 @@ struct ReplCommand: AsyncParsableCommand {
     )
     var showTiming = false
 
-    func run() async throws {
-        let runtime = try await EmbedderTool.loadRuntime(model: model, pooling: pooling)
+    mutating func run() async throws {
+        var memory = self.memory
+        let capturedModel = model
+        let capturedPooling = pooling
+        let runtime = try await memory.start {
+            try await EmbedderTool.loadRuntime(model: capturedModel, pooling: capturedPooling)
+        }
+        defer {
+            memory.reportMemoryStatistics()
+            self.memory = memory
+        }
+
         let loadResult = try loadCorpus()
 
         guard !loadResult.documents.isEmpty else {

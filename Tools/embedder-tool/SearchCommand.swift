@@ -15,6 +15,7 @@ struct SearchCommand: AsyncParsableCommand {
 
     @OptionGroup var model: ModelArguments
     @OptionGroup var pooling: PoolingArguments
+    @OptionGroup var memory: MemoryArguments
 
     @Option(name: .shortAndLong, help: "Path to the embedding index JSON file")
     var index: URL
@@ -25,8 +26,18 @@ struct SearchCommand: AsyncParsableCommand {
     @Option(name: .shortAndLong, help: "Number of results to display")
     var top: Int = 5
 
-    func run() async throws {
-        let runtime = try await EmbedderTool.loadRuntime(model: model, pooling: pooling)
+    mutating func run() async throws {
+        var memory = self.memory
+        let capturedModel = model
+        let capturedPooling = pooling
+        let runtime = try await memory.start {
+            try await EmbedderTool.loadRuntime(model: capturedModel, pooling: capturedPooling)
+        }
+        defer {
+            memory.reportMemoryStatistics()
+            self.memory = memory
+        }
+
         let entries = try loadIndex()
         guard !entries.isEmpty else {
             print("Index at \(index.path) is empty")

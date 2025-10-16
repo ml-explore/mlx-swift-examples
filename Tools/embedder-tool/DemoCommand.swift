@@ -7,13 +7,22 @@ struct DemoCommand: AsyncParsableCommand {
         abstract: "Run a demo using sample repository documentation"
     )
 
+    @OptionGroup var memory: MemoryArguments
+
     @Flag(name: .long, help: "Keep the generated demo index file instead of removing it")
     var keepIndex = false
 
     @Argument(help: "Optional queries to run after indexing. Defaults to three sample queries.")
     var queries: [String] = []
 
-    func run() async throws {
+    mutating func run() async throws {
+        var memory = self.memory
+        memory.start()
+        defer {
+            memory.reportMemoryStatistics()
+            self.memory = memory
+        }
+
         print("Embedder Tool Demo")
 
         let indexURL = try makeTemporaryIndexURL()
@@ -51,7 +60,7 @@ struct DemoCommand: AsyncParsableCommand {
             "--normalize"
         ]
 
-        let indexCommand = try IndexCommand.parse(arguments)
+        var indexCommand = try IndexCommand.parse(arguments)
         try await indexCommand.run()
     }
 
@@ -64,7 +73,7 @@ struct DemoCommand: AsyncParsableCommand {
                 "--top", "2",
                 "--normalize"
             ]
-            let searchCommand = try SearchCommand.parse(arguments)
+            var searchCommand = try SearchCommand.parse(arguments)
             try await searchCommand.run()
         }
     }
