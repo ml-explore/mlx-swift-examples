@@ -49,7 +49,7 @@ added there.
 
 This is set up to load models from Hugging Face, e.g. https://huggingface.co/mlx-community
 
-The following models are supported:
+The following models have been tried:
 
 - mlx-community/paligemma-3b-mix-448-8bit
 - mlx-community/Qwen2-VL-2B-Instruct-4bit
