@@ -416,7 +416,6 @@ class VLMEvaluator {
 
                 let stream = try MLXLMCommon.generate(
                     input: lmInput, parameters: generateParameters, context: context)
-
                 // generate and output in batches
                 for await batch in stream._throttle(
                     for: updateInterval, reducing: Generation.collect)

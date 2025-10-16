@@ -85,6 +85,7 @@ public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "paligemma": create(PaliGemmaConfiguration.self, PaliGemma.init),
             "qwen2_vl": create(Qwen2VLConfiguration.self, Qwen2VL.init),
             "qwen2_5_vl": create(Qwen25VLConfiguration.self, Qwen25VL.init),
+            "qwen3_vl": create(Qwen3VLConfiguration.self, Qwen3VL.init),
             "idefics3": create(Idefics3Configuration.self, Idefics3.init),
             "gemma3": create(Gemma3Configuration.self, Gemma3.init),
             "smolvlm": create(SmolVLM2Configuration.self, SmolVLM2.init),
@@ -109,6 +110,8 @@ public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendabl
                 Qwen2VLProcessorConfiguration.self, Qwen2VLProcessor.init),
             "Qwen2_5_VLProcessor": create(
                 Qwen25VLProcessorConfiguration.self, Qwen25VLProcessor.init),
+            "Qwen3VLProcessor": create(
+                Qwen3VLProcessorConfiguration.self, Qwen3VLProcessor.init),
             "Idefics3Processor": create(
                 Idefics3ProcessorConfiguration.self, Idefics3Processor.init),
             "Gemma3Processor": create(
@@ -145,6 +148,16 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         defaultPrompt: "Describe the image in English"
     )
 
+    static public let qwen3VL4BInstruct4Bit = ModelConfiguration(
+        id: "lmstudio-community/Qwen3-VL-4B-Instruct-MLX-4bit",
+        defaultPrompt: "Describe the image in English"
+    )
+
+    static public let qwen3VL4BInstruct8Bit = ModelConfiguration(
+        id: "mlx-community/Qwen3-VL-4B-Instruct-8bit",
+        defaultPrompt: "Write a haiku about Swift programming"
+    )
+
     static public let smolvlminstruct4bit = ModelConfiguration(
         id: "mlx-community/SmolVLM-Instruct-4bit",
         defaultPrompt: "Describe the image in English"
@@ -179,6 +192,8 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             paligemma3bMix448_8bit,
             qwen2VL2BInstruct4Bit,
             qwen2_5VL3BInstruct4Bit,
+            qwen3VL4BInstruct4Bit,
+            qwen3VL4BInstruct8Bit,
             smolvlminstruct4bit,
             gemma3_4B_qat_4bit,
             gemma3_12B_qat_4bit,
