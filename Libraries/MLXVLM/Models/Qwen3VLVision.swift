@@ -40,11 +40,14 @@ enum Qwen3VLVision {
         }
 
         func callAsFunction(sequenceLength: Int) -> MLXArray {
-            let invFreq = 1.0 / pow(
-                MLXArray(theta),
-                MLXArray(stride(from: 0, to: dimension, by: 2)).asType(.float32) / Float(dimension)
-            )
-            let seq = MLXArray(0..<sequenceLength).asType(invFreq.dtype)
+            let invFreq =
+                1.0
+                / pow(
+                    MLXArray(theta),
+                    MLXArray(stride(from: 0, to: dimension, by: 2)).asType(.float32)
+                        / Float(dimension)
+                )
+            let seq = MLXArray(0 ..< sequenceLength).asType(invFreq.dtype)
             return outer(seq, invFreq)
         }
     }
@@ -103,7 +106,8 @@ enum Qwen3VLVision {
         @ModuleInfo(key: "act") var activation: GELU
 
         init(config: Qwen3VLConfiguration.VisionConfiguration, usePostShuffleNorm: Bool) {
-            self.hiddenSize = config.hiddenSize * (config.spatialMergeSize * config.spatialMergeSize)
+            self.hiddenSize =
+                config.hiddenSize * (config.spatialMergeSize * config.spatialMergeSize)
             self.usePostShuffleNorm = usePostShuffleNorm
 
             let normDim = usePostShuffleNorm ? hiddenSize : config.hiddenSize
@@ -171,7 +175,7 @@ enum Qwen3VLVision {
             mask = mask * MLXArray(-1e9, dtype: queries.dtype)
 
             let seqlens = cuSeqlens.asArray(Int.self)
-            for idx in 1..<seqlens.count {
+            for idx in 1 ..< seqlens.count {
                 let start = seqlens[idx - 1]
                 let end = seqlens[idx]
                 mask[0..., start ..< end, start ..< end] = MLXArray(0, dtype: queries.dtype)
@@ -226,7 +230,8 @@ enum Qwen3VLVision {
             rotaryPosEmb: MLXArray
         ) -> MLXArray {
             var states = hiddenStates
-            states = states + attention(norm1(states), cuSeqlens: cuSeqlens, rotaryPosEmb: rotaryPosEmb)
+            states =
+                states + attention(norm1(states), cuSeqlens: cuSeqlens, rotaryPosEmb: rotaryPosEmb)
             states = states + mlp(norm2(states))
             return states
         }
@@ -265,7 +270,7 @@ enum Qwen3VLVision {
                 embeddingCount: config.numPositionEmbeddings,
                 dimensions: config.hiddenSize)
 
-            _blocks.wrappedValue = (0..<config.depth).map { _ in VisionBlock(config) }
+            _blocks.wrappedValue = (0 ..< config.depth).map { _ in VisionBlock(config) }
             _merger.wrappedValue = PatchMerger(config: config, usePostShuffleNorm: false)
 
             _deepstackMergers.wrappedValue = config.deepstackVisualIndexes.map { _ in
@@ -280,62 +285,62 @@ enum Qwen3VLVision {
 
             let freqTable = rotaryEmbedding(sequenceLength: maxHW)
             let halfDim = freqTable.dim(-1)
-            
+
             let merge = spatialMergeSize
             var allCoords: [MLXArray] = []
             let mergeScalar = MLXArray(Int32(merge))
-            
+
             for grid in grids {
                 let mergedH = grid.h / merge
                 let mergedW = grid.w / merge
-                
+
                 guard mergedH > 0, mergedW > 0 else { continue }
-                
+
                 // Generate block and intra-block indices fully in MLX
-                var blockRows = MLXArray(0..<mergedH).asType(.int32)
+                var blockRows = MLXArray(0 ..< mergedH).asType(.int32)
                 blockRows = blockRows.reshaped([mergedH, 1, 1, 1])
-                
-                var blockCols = MLXArray(0..<mergedW).asType(.int32)
+
+                var blockCols = MLXArray(0 ..< mergedW).asType(.int32)
                 blockCols = blockCols.reshaped([1, mergedW, 1, 1])
-                
-                var intra = MLXArray(0..<merge).asType(.int32)
+
+                var intra = MLXArray(0 ..< merge).asType(.int32)
                 let intraRow = intra.reshaped([1, 1, merge, 1])
                 let intraCol = intra.reshaped([1, 1, 1, merge])
-                
+
                 // Broadcast arithmetic mirrors the Python implementation
                 var hIndex = blockRows * mergeScalar + intraRow
                 var wIndex = blockCols * mergeScalar + intraCol
-                
+
                 hIndex = broadcast(hIndex, to: [mergedH, mergedW, merge, merge])
                 wIndex = broadcast(wIndex, to: [mergedH, mergedW, merge, merge])
-                
+
                 // Flatten and stack coordinate pairs
                 let hFlattened = hIndex.flattened()
                 let wFlattened = wIndex.flattened()
                 var coords = stacked([hFlattened, wFlattened], axis: -1)
-                
+
                 // Repeat for temporal frames
                 if grid.t > 1 {
                     coords = tiled(coords, repetitions: [grid.t, 1])
                 }
-                
+
                 allCoords.append(coords)
             }
-            
+
             guard !allCoords.isEmpty else {
                 return MLXArray.zeros([0, halfDim * 2], dtype: freqTable.dtype)
             }
-            
+
             // Concatenate all coordinate pairs
             let allCoordsConcat = concatenated(allCoords, axis: 0)  // (total_tokens, 2)
-            
+
             // Extract h and w indices and lookup embeddings
             let hIndices = allCoordsConcat[0..., 0].asType(.int32)
             let wIndices = allCoordsConcat[0..., 1].asType(.int32)
-            
+
             let hEmbeds = freqTable[hIndices, 0...]
             let wEmbeds = freqTable[wIndices, 0...]
-            
+
             // Concatenate height and width embeddings
             return concatenated([hEmbeds, wEmbeds], axis: -1)
         }
@@ -343,100 +348,104 @@ enum Qwen3VLVision {
         private func positionalEmbeddings(_ grids: [THW]) -> MLXArray {
             let hiddenSize = config.hiddenSize
             let maxIndex = numGridPerSide - 1
-            
+
             // Step 1: Collect all indices and weights from all grids using MLX ops
             var cornerIndices: [[MLXArray]] = Array(repeating: [], count: 4)
             var cornerWeights: [[MLXArray]] = Array(repeating: [], count: 4)
             var gridSizes: [Int] = []
-            
+
             for grid in grids {
                 let h = grid.h
                 let w = grid.w
                 gridSizes.append(h * w)
-                
+
                 // Create linspace indices using broadcasting
-                var hLinspace = MLXArray(0..<h).asType(.float32)
+                var hLinspace = MLXArray(0 ..< h).asType(.float32)
                 hLinspace = hLinspace * MLXArray(Float(maxIndex)) / MLXArray(Float(max(1, h - 1)))
-                
-                var wLinspace = MLXArray(0..<w).asType(.float32)
+
+                var wLinspace = MLXArray(0 ..< w).asType(.float32)
                 wLinspace = wLinspace * MLXArray(Float(maxIndex)) / MLXArray(Float(max(1, w - 1)))
-                
+
                 // Get floor/ceil and deltas
                 let hFloor = hLinspace.asType(.int32)
                 let hCeil = minimum(hFloor + 1, maxIndex)
                 let dh = hLinspace - hFloor.asType(.float32)
-                
+
                 let wFloor = wLinspace.asType(.int32)
                 let wCeil = minimum(wFloor + 1, maxIndex)
                 let dw = wLinspace - wFloor.asType(.float32)
-                
+
                 // Broadcast to create meshgrid
                 let hFloorExpanded = expandedDimensions(hFloor, axis: 1)  // (h, 1)
                 let hCeilExpanded = expandedDimensions(hCeil, axis: 1)
                 let wFloorExpanded = expandedDimensions(wFloor, axis: 0)  // (1, w)
                 let wCeilExpanded = expandedDimensions(wCeil, axis: 0)
-                
+
                 let baseH = hFloorExpanded * numGridPerSide
                 let baseHCeil = hCeilExpanded * numGridPerSide
-                
+
                 // Compute 4 corner indices
                 cornerIndices[0].append((baseH + wFloorExpanded).flattened())
                 cornerIndices[1].append((baseH + wCeilExpanded).flattened())
                 cornerIndices[2].append((baseHCeil + wFloorExpanded).flattened())
                 cornerIndices[3].append((baseHCeil + wCeilExpanded).flattened())
-                
+
                 // Compute bilinear weights
                 let dhExpanded = expandedDimensions(dh, axis: 1)
                 let dwExpanded = expandedDimensions(dw, axis: 0)
-                
+
                 cornerWeights[0].append(((1 - dhExpanded) * (1 - dwExpanded)).flattened())
                 cornerWeights[1].append(((1 - dhExpanded) * dwExpanded).flattened())
                 cornerWeights[2].append((dhExpanded * (1 - dwExpanded)).flattened())
                 cornerWeights[3].append((dhExpanded * dwExpanded).flattened())
             }
-            
+
             guard !cornerIndices[0].isEmpty else {
                 return MLXArray.zeros([0, hiddenSize], dtype: posEmbed.weight.dtype)
             }
-            
+
             // Step 2: Batch embedding lookup
             let indicesTensors = cornerIndices.map { concatenated($0, axis: 0).asType(.int32) }
-            let weightsTensors = cornerWeights.map { concatenated($0, axis: 0).asType(posEmbed.weight.dtype) }
-            
+            let weightsTensors = cornerWeights.map {
+                concatenated($0, axis: 0).asType(posEmbed.weight.dtype)
+            }
+
             let totalPatches = indicesTensors[0].dim(0)
-            var patchPosEmbeds = MLXArray.zeros([totalPatches, hiddenSize], dtype: posEmbed.weight.dtype)
-            
-            for cornerIdx in 0..<4 {
+            var patchPosEmbeds = MLXArray.zeros(
+                [totalPatches, hiddenSize], dtype: posEmbed.weight.dtype)
+
+            for cornerIdx in 0 ..< 4 {
                 let cornerEmbeds = posEmbed(indicesTensors[cornerIdx])
-                let weighted = cornerEmbeds * expandedDimensions(weightsTensors[cornerIdx], axis: -1)
+                let weighted =
+                    cornerEmbeds * expandedDimensions(weightsTensors[cornerIdx], axis: -1)
                 patchPosEmbeds = patchPosEmbeds + weighted
             }
-            
+
             // Step 3: Split by grid (like Python lines 344-349)
             var patchPosEmbedsSplit: [MLXArray] = []
             var offset = 0
-            
+
             for size in gridSizes {
-                let slice = patchPosEmbeds[offset..<(offset + size), 0...]
+                let slice = patchPosEmbeds[offset ..< (offset + size), 0...]
                 patchPosEmbedsSplit.append(slice)
                 offset += size
             }
-            
+
             // Step 4: Process each grid (like Python lines 354-371)
             var resultEmbeds: [MLXArray] = []
             let merge = spatialMergeSize
-            
+
             for (gridIdx, grid) in grids.enumerated() {
                 let posEmbed = patchPosEmbedsSplit[gridIdx]
                 let h = grid.h
                 let w = grid.w
                 let t = grid.t
-                
+
                 let featureDim = posEmbed.dim(-1)
-                
+
                 // Repeat for temporal dimension
                 var temporalEmbeds = tiled(posEmbed, repetitions: [t, 1])
-                
+
                 // Reshape for merge pattern
                 temporalEmbeds = temporalEmbeds.reshaped(t, h, w, featureDim)
                 temporalEmbeds = temporalEmbeds.reshaped(
@@ -449,36 +458,38 @@ enum Qwen3VLVision {
                 )
                 temporalEmbeds = temporalEmbeds.transposed(0, 1, 3, 2, 4, 5)
                 temporalEmbeds = temporalEmbeds.reshaped(-1, featureDim)
-                
+
                 resultEmbeds.append(temporalEmbeds)
             }
-            
+
             return concatenated(resultEmbeds, axis: 0)
         }
 
         private func cumulativeSequenceLengths(_ grids: [THW]) -> MLXArray {
             var seqLengths: [MLXArray] = []
-            
+
             for grid in grids {
                 let perFrame = grid.h * grid.w
                 let repeated = tiled(MLXArray(perFrame), repetitions: [grid.t])
                 seqLengths.append(repeated)
             }
-            
+
             guard !seqLengths.isEmpty else {
                 return MLXArray(0, dtype: .int32)
             }
-            
+
             let concatSeqLengths = concatenated(seqLengths).asType(.int32)
-            
+
             let cumSum = concatSeqLengths.cumsum()
-            
-            return padded(cumSum, widths: [IntOrPair((1, 0))], mode: .constant, value: MLXArray(0, dtype: cumSum.dtype))
+
+            return padded(
+                cumSum, widths: [IntOrPair((1, 0))], mode: .constant,
+                value: MLXArray(0, dtype: cumSum.dtype))
         }
 
         func callAsFunction(_ pixelValues: MLXArray, gridTHW: [THW]) -> (MLXArray, [MLXArray]) {
             var hiddenStates = patchEmbed(pixelValues)
-            
+
             let posEmbeds = positionalEmbeddings(gridTHW)
             hiddenStates = hiddenStates + posEmbeds
 

@@ -49,8 +49,9 @@ public final class Qwen3VLProcessor: UserInputProcessor {
         let targetSize = CGSize(width: resizedWidth, height: resizedHeight)
 
         let resampled = processed.map { MediaProcessing.resampleBicubic($0, to: targetSize) }
-        
-        let normalized = resampled
+
+        let normalized =
+            resampled
             .map {
                 MediaProcessing.normalize(
                     $0,
@@ -58,7 +59,7 @@ public final class Qwen3VLProcessor: UserInputProcessor {
                     std: config.imageStdTuple)
             }
             .map { MediaProcessing.asMLXArray($0) }
-        
+
         return try QwenVL.patchify(
             images: normalized,
             mergeSize: config.mergeSize,
@@ -69,7 +70,6 @@ public final class Qwen3VLProcessor: UserInputProcessor {
     public func prepare(input: UserInput) async throws -> LMInput {
         let messages = Qwen3VLMessageGenerator().generate(from: input)
         var promptTokens = try tokenizer.applyChatTemplate(messages: messages)
-        
 
         if input.images.isEmpty, input.videos.isEmpty {
             let promptArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
@@ -172,8 +172,8 @@ public struct Qwen3VLProcessorConfiguration: Codable, Sendable {
     public let patchSize: Int
     public let temporalPatchSize: Int
     public let imageProcessorType: String
-    
-    public var minPixels: Int { _minPixels ?? 4 * 28 * 28 }      // 3,136
+
+    public var minPixels: Int { _minPixels ?? 4 * 28 * 28 }  // 3,136
     public var maxPixels: Int { _maxPixels ?? 16384 * 28 * 28 }  // 12,845,056
 
     public var size: Size { .init(maxPixels: maxPixels, minPixels: minPixels) }
@@ -228,35 +228,35 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
         let imageMask = (inputIds .== MLXArray(imageTokenIndex))
         let videoMask = (inputIds .== MLXArray(videoTokenIndex))
         var specialMask = (imageMask .|| videoMask)
-        
+
         let nImageTokens = specialMask.sum().item(Int.self)
-        
+
         specialMask = expandedDimensions(specialMask, axis: -1)
         let maskExpanded = broadcast(specialMask, to: inputEmbeds.shape)
-        
+
         let nImageFeatures = imageFeatures.dim(0)
         let nImageMaskElements = maskExpanded.sum().item(Int.self)
         let imageFeatureSize = imageFeatures.size
-        
+
         guard nImageMaskElements == imageFeatureSize else {
             throw Qwen3VLError.featureTokenMismatch(expected: nImageTokens, actual: nImageFeatures)
         }
-        
+
         let originalShape = inputEmbeds.shape
         let flattenedEmbeds = inputEmbeds.flattened()
         let flattenedFeatures = imageFeatures.flattened()
         let flattenedMask = maskExpanded.flattened()
-        
+
         let indices = nonZero(flattenedMask.asType(.bool))
-        
+
         var result = flattenedEmbeds
         if !indices.isEmpty && indices.count == flattenedFeatures.size {
             let indexArray = MLXArray(indices.map { UInt32($0) })
             result[indexArray] = flattenedFeatures
         }
-        
+
         result = result.reshaped(originalShape)
-        
+
         let visualMask = specialMask.squeezed(axis: -1).asType(.bool)
         return (result, visualMask)
     }
@@ -270,8 +270,6 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
         }
         return indices
     }
-
-
 
     private func combinedFrames(
         imageFrames: [THW]?,
@@ -327,7 +325,10 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
         var visualMask: MLXArray?
         var deepstackEmbeds: [MLXArray]? = nil
 
-        if let pixelValues, let framesList = combinedFrames(imageFrames: imageFrames, videoFrames: videoFrames).nilIfEmpty {
+        if let pixelValues,
+            let framesList = combinedFrames(imageFrames: imageFrames, videoFrames: videoFrames)
+                .nilIfEmpty
+        {
             let textEmbeds = languageModel.model.embedTokens(inputIds)
             let (visionHidden, deepstackOutputs) = visionModel(pixelValues, gridTHW: framesList)
             let mergeSize = config.visionConfiguration.spatialMergeSize
@@ -375,9 +376,9 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
 
     public func callAsFunction(_ inputs: MLXArray, cache: [any KVCache]?) -> MLXArray {
         let typedCache = castCacheOptional(cache)
-        
+
         let offset = cache?.first?.offset ?? 0
-        
+
         let result = languageModel(
             inputs,
             cache: typedCache,
@@ -402,11 +403,13 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
             if newKey.contains("model.visual") {
                 newKey = newKey.replacingOccurrences(of: "model.visual", with: "vision_tower")
             } else if newKey.contains("model.language_model") {
-                newKey = newKey.replacingOccurrences(of: "model.language_model", with: "language_model.model")
+                newKey = newKey.replacingOccurrences(
+                    of: "model.language_model", with: "language_model.model")
             }
 
             if newKey.contains("model.lm_head") {
-                newKey = newKey.replacingOccurrences(of: "model.lm_head", with: "language_model.lm_head")
+                newKey = newKey.replacingOccurrences(
+                    of: "model.lm_head", with: "language_model.lm_head")
                 guard !config.textConfiguration.tieWordEmbeddings else { continue }
                 adjusted[newKey] = value
                 continue
@@ -425,17 +428,17 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
     }
 }
 
-private extension Array where Element == THW {
-    var nilIfEmpty: [THW]? { isEmpty ? nil : self }
+extension Array where Element == THW {
+    fileprivate var nilIfEmpty: [THW]? { isEmpty ? nil : self }
 }
 
-private extension Qwen3VL {
-    func castCache(_ cache: [any KVCache]) -> [KVCache]? {
+extension Qwen3VL {
+    fileprivate func castCache(_ cache: [any KVCache]) -> [KVCache]? {
         guard !cache.isEmpty else { return nil }
         return cache.map { $0 }
     }
 
-    func castCacheOptional(_ cache: [any KVCache]?) -> [KVCache]? {
+    fileprivate func castCacheOptional(_ cache: [any KVCache]?) -> [KVCache]? {
         guard let cache else { return nil }
         return castCache(cache)
     }
@@ -452,7 +455,7 @@ public struct Qwen3VLMessageGenerator: MessageGenerator {
         let videoContent = message.videos.map { _ in
             ["type": "video"]
         }
-        
+
         return [
             "role": message.role.rawValue,
             "content": imageContent + videoContent + textContent,

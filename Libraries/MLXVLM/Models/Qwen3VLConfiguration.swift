@@ -85,7 +85,6 @@ public struct Qwen3VLConfiguration: Codable, Sendable {
         }
     }
 
-
     public struct RoPEScaling: Codable, Sendable {
         public let type: String?
         public let mropeInterleaved: Bool?
@@ -97,7 +96,8 @@ public struct Qwen3VLConfiguration: Codable, Sendable {
             case mropeSection = "mrope_section"
         }
 
-        public init(type: String? = nil, mropeInterleaved: Bool? = nil, mropeSection: [Int]? = nil) {
+        public init(type: String? = nil, mropeInterleaved: Bool? = nil, mropeSection: [Int]? = nil)
+        {
             self.type = type
             self.mropeInterleaved = mropeInterleaved
             self.mropeSection = mropeSection
@@ -144,7 +144,13 @@ public struct Qwen3VLConfiguration: Codable, Sendable {
         case _eosTokenId = "eos_token_id"
     }
 
-    public init(textConfiguration: TextConfiguration, visionConfiguration: VisionConfiguration, modelType: String = "qwen3_vl", ignoreIndex: Int = -100, imageTokenId: Int = 151_655, videoTokenId: Int = 151_656, imageTokenIndex: Int? = nil, videoTokenIndex: Int? = nil, visionStartTokenId: Int = 151_652, visionEndTokenId: Int = 151_653, visionTokenId: Int = 151_654, vocabSize: Int? = nil, eosTokenId: [Int]? = nil) {
+    public init(
+        textConfiguration: TextConfiguration, visionConfiguration: VisionConfiguration,
+        modelType: String = "qwen3_vl", ignoreIndex: Int = -100, imageTokenId: Int = 151_655,
+        videoTokenId: Int = 151_656, imageTokenIndex: Int? = nil, videoTokenIndex: Int? = nil,
+        visionStartTokenId: Int = 151_652, visionEndTokenId: Int = 151_653,
+        visionTokenId: Int = 151_654, vocabSize: Int? = nil, eosTokenId: [Int]? = nil
+    ) {
         self.textConfiguration = textConfiguration
         self.visionConfiguration = visionConfiguration
         self.modelType = modelType

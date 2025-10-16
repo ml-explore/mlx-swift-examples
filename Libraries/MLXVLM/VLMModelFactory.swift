@@ -152,7 +152,7 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
         id: "lmstudio-community/Qwen3-VL-4B-Instruct-MLX-4bit",
         defaultPrompt: "Describe the image in English"
     )
-    
+
     static public let qwen3VL4BInstruct8Bit = ModelConfiguration(
         id: "mlx-community/Qwen3-VL-4B-Instruct-8bit",
         defaultPrompt: "Write a haiku about Swift programming"

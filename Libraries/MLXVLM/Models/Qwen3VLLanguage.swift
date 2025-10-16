@@ -7,7 +7,6 @@ import MLXNN
 
 enum Qwen3VLLanguage {
 
-
     final class RotaryEmbedding {
 
         private let invFreq: MLXArray
@@ -23,13 +22,13 @@ enum Qwen3VLLanguage {
 
         private func applyInterleavedMRope(_ freqs: MLXArray) -> MLXArray {
             let freqs_t = freqs[0, 0..., 0..., 0...]  // (bs, seq_len, head_dim // 2)
-            
+
             let dims = freqs_t.dim(-1)
             var slices: [MLXArray] = []
-            
-            for idx in 0..<dims {
+
+            for idx in 0 ..< dims {
                 var slice = freqs_t[0..., 0..., idx]
-                
+
                 for (dimIndex, offset) in [(1, 1), (2, 2)] {
                     let end = min(mropeSection[dimIndex] * 3, dims)
                     if idx >= offset && idx < end && (idx - offset) % 3 == 0 {
@@ -37,10 +36,10 @@ enum Qwen3VLLanguage {
                         break
                     }
                 }
-                
+
                 slices.append(slice)
             }
-            
+
             return stacked(slices, axis: -1)
         }
 
@@ -75,7 +74,6 @@ enum Qwen3VLLanguage {
         let kEmbedded = (k * cos) + (QwenVL.rotateHalf(k) * sin)
         return (qEmbedded, kEmbedded)
     }
-
 
     final class Attention: Module {
 
@@ -152,8 +150,7 @@ enum Qwen3VLLanguage {
             }
 
             let (cosValues, sinValues) = rotaryEmbedding(positionIds: positionIds!, dtype: x.dtype)
-            
-            
+
             (queries, keys) = Qwen3VLLanguage.applyMultimodalRotary(
                 q: queries, k: keys, cos: cosValues, sin: sinValues)
 
@@ -177,11 +174,10 @@ enum Qwen3VLLanguage {
             .reshaped(batch, length, -1)
 
             let result = wo(output)
-            
+
             return result
         }
     }
-
 
     final class MLP: Module, UnaryLayer {
         @ModuleInfo(key: "gate_proj") var gate: Linear
@@ -209,7 +205,8 @@ enum Qwen3VLLanguage {
 
         init(_ config: Qwen3VLConfiguration.TextConfiguration) {
             _attention.wrappedValue = Attention(config)
-            _mlp.wrappedValue = MLP(dimensions: config.hiddenSize, hiddenDimensions: config.intermediateSize)
+            _mlp.wrappedValue = MLP(
+                dimensions: config.hiddenSize, hiddenDimensions: config.intermediateSize)
             _inputLayerNorm.wrappedValue = RMSNorm(
                 dimensions: config.hiddenSize, eps: Float(config.rmsNormEps))
             _postAttentionLayerNorm.wrappedValue = RMSNorm(
@@ -222,7 +219,8 @@ enum Qwen3VLLanguage {
             cache: KVCache?,
             positionIds: MLXArray?
         ) -> MLXArray {
-            var residual = attention(inputLayerNorm(x), mask: mask, cache: cache, positionIds: positionIds)
+            var residual = attention(
+                inputLayerNorm(x), mask: mask, cache: cache, positionIds: positionIds)
             let hidden = x + residual
             residual = mlp(postAttentionLayerNorm(hidden))
             return hidden + residual
@@ -240,8 +238,9 @@ enum Qwen3VLLanguage {
             _embedTokens.wrappedValue = Embedding(
                 embeddingCount: config.vocabSize,
                 dimensions: config.hiddenSize)
-            _layers.wrappedValue = (0..<config.numHiddenLayers).map { _ in DecoderLayer(config) }
-            _norm.wrappedValue = RMSNorm(dimensions: config.hiddenSize, eps: Float(config.rmsNormEps))
+            _layers.wrappedValue = (0 ..< config.numHiddenLayers).map { _ in DecoderLayer(config) }
+            _norm.wrappedValue = RMSNorm(
+                dimensions: config.hiddenSize, eps: Float(config.rmsNormEps))
         }
 
         func callAsFunction(
@@ -274,7 +273,7 @@ enum Qwen3VLLanguage {
                 if let embeds = deepstackEmbeds, index < embeds.count,
                     let visualMask
                 {
-                    
+
                     hidden = applyDeepstack(
                         hiddenStates: hidden,
                         visualMask: visualMask,
@@ -292,12 +291,12 @@ enum Qwen3VLLanguage {
         ) -> MLXArray {
             let indices = maskIndices(visualMask)
             guard !indices.isEmpty else { return hiddenStates }
-            
+
             let indexArray = MLXArray(indices.map { UInt32($0) })
-            
+
             var result = hiddenStates
             result[0..., indexArray, 0...] = result[0..., indexArray, 0...] + visualEmbeds
-            
+
             return result
         }
 
@@ -327,8 +326,9 @@ enum Qwen3VLLanguage {
             self.config = config
             self.textConfig = config.textConfiguration
             self.model = Model(config.textConfiguration)
-            self.kvHeads = Array(repeating: config.textConfiguration.numKeyValueHeads,
-                                 count: config.textConfiguration.numHiddenLayers)
+            self.kvHeads = Array(
+                repeating: config.textConfiguration.numKeyValueHeads,
+                count: config.textConfiguration.numHiddenLayers)
 
             if !config.textConfiguration.tieWordEmbeddings {
                 _lmHead.wrappedValue = Linear(
@@ -355,7 +355,7 @@ enum Qwen3VLLanguage {
             }
 
             var positionIds = providedPositionIds
-            
+
             if positionIds == nil && (mask == nil || mask?.ndim == 2) {
                 if (cache?.first?.offset ?? 0) == 0 || ropeDeltas == nil || cache == nil {
                     if let inputIds {
@@ -368,45 +368,45 @@ enum Qwen3VLLanguage {
                             videoTokenId: config.videoTokenIndex,
                             visionStartTokenId: config.visionStartTokenId,
                             attentionMask: mask)
-                        
+
                         positionIds = computed
                         ropeDeltas = deltas
                     } else if let cache, ropeDeltas == nil {
                         let batch = inputEmbeddings!.dim(0)
                         let seqLength = inputEmbeddings!.dim(1)
                         let currentOffset = cache.first?.offset ?? 0
-                        
-                        var base = MLXArray(0..<seqLength).asType(.int32)
+
+                        var base = MLXArray(0 ..< seqLength).asType(.int32)
                         base = tiled(base[.newAxis, 0...], repetitions: [batch, 1])
                         let offsetValue = MLXArray(currentOffset).asType(.int32)
                         base = base + offsetValue
-                        
+
                         positionIds = base[.newAxis, 0..., 0...]
                         positionIds = tiled(positionIds!, repetitions: [3, 1, 1])
                     }
                 } else if let cache, let ropeDeltas {
                     let batch = (inputIds ?? inputEmbeddings!).dim(0)
                     let seqLength = (inputIds ?? inputEmbeddings!).dim(1)
-                    
+
                     let lastCacheOffset = cache.last?.offset ?? 0
-                    
+
                     var delta = MLXArray(lastCacheOffset).asType(.int32) + ropeDeltas.asType(.int32)
-                    
-                    var base = MLXArray(0..<seqLength).asType(.int32)
+
+                    var base = MLXArray(0 ..< seqLength).asType(.int32)
                     base = base[.newAxis, 0...]
                     base = broadcast(base, to: [batch, seqLength])
-                    
+
                     if delta.dim(0) == 1 && batch > 1 {
                         delta = repeated(delta, count: batch, axis: 0)
                     }
-                    
+
                     base = base + delta
-                    
+
                     positionIds = base[.newAxis, 0..., 0...]
-                    positionIds = broadcast(positionIds!, to: [3, batch, seqLength])                    
+                    positionIds = broadcast(positionIds!, to: [3, batch, seqLength])
                 }
             }
-            
+
             var output = model(
                 inputIds,
                 cache: cache,
