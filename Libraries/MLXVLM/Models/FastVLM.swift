@@ -925,11 +925,48 @@ private enum Vision {
 // MARK: - Processor
 
 public struct FastVLMProcessorConfiguration: Codable, Sendable {
+    public struct Size: Codable, Sendable {
+        public let width: Int
+        public let height: Int
+
+        enum CodingKeys: String, CodingKey {
+            case width
+            case height
+        }
+
+        var cgSize: CGSize { CGSize(width: width, height: height)}
+    }
+
+    public let imageMean: [CGFloat]
+    public let imageStd: [CGFloat]
+    public let cropSize: Size
+
+    // NOTE: Hardcoded config values and assumptions
+    // - crop_size matches size.shortest_edge
+    // - bicubic interpolation
+    // - scale by multiplying by 1/255
+
+    public var imageMeanTuple: (CGFloat, CGFloat, CGFloat) {
+        (imageMean[0], imageMean[1], imageMean[2])
+    }
+
+    public var imageStdTuple: (CGFloat, CGFloat, CGFloat) {
+        (imageStd[0], imageStd[1], imageStd[2])
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case imageMean = "image_mean"
+        case imageStd = "image_std"
+        case cropSize = "crop_size"
+    }
 }
 
 public class FastVLMProcessor: UserInputProcessor {
     private let config: FastVLMProcessorConfiguration
     private let tokenizer: any Tokenizer
+
+    private let imageToken = "<image>"
+    private let imageTokenIndex = -200
 
     public init(
         _ config: FastVLMProcessorConfiguration,
@@ -940,7 +977,49 @@ public class FastVLMProcessor: UserInputProcessor {
     }
 
     public func prepare(input: MLXLMCommon.UserInput) async throws -> MLXLMCommon.LMInput {
-        fatalError("not implemented")
+        let messages = Qwen2VLMessageGenerator().generate(from: input)  // TODO: Create FastVLMMessageGenerator if necessary
+
+        if input.images.isEmpty {
+            // No image scenario
+            let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
+            let tokensArray = MLXArray(promptTokens).expandedDimensions(axis: 0)
+            let mask = ones(like: tokensArray)
+            return LMInput(text: .init(tokens: tokensArray, mask: mask), image: nil)
+        }
+
+        guard input.images.count == 1 else {
+            throw VLMError.singleImageAllowed
+        }
+
+        // Unfortunately we don't have a "render" option in Tokenizers yet, so decoding
+        let promptTokens = try tokenizer.applyChatTemplate(messages: messages)
+        let decoded = try tokenizer.decode(tokens: promptTokens, skipSpecialTokens: false)
+
+        // Find <image> and replace with token id -200
+        let pieces = decoded.split(separator: imageToken)
+        let tokens = Array(pieces.map { tokenizer.encode(text: String($0)) }.joined(separator: [-200]))
+
+        // TODO: the tokenizer chat template does not match the processor's
+        // To be matched with final version of chat template:
+        // [[151644,   8948,    198,   2610,    525,    264,  10950,  17847,     13, 151645,    198, 151644,    872,    198,   -200,    198,  74785,    419, 2168,    304,   7716,     13, 151645,    198, 151644,  77091,    198]]
+        // '<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n<|im_start|>user\n<image>\nDe...n detail.<|im_end|>\n<|im_start|>assistant\n'
+
+        let image = try input.images[0]
+            .asCIImage()
+            .toSRGB()
+            .paddingToSquare()
+            .resampled(to: config.cropSize.cgSize, method: .bicubic)
+            .normalized(mean: config.imageMeanTuple, std: config.imageStdTuple)
+
+        let pixels = image.asMLXArray()//.transposed(0, 2, 3, 1)
+
+        let promptArray = MLXArray(tokens).expandedDimensions(axis: 0)
+        let mask = ones(like: promptArray)
+
+        return LMInput(
+            text: .init(tokens: promptArray, mask: mask),
+            image: .init(pixels: pixels)
+        )
     }
 }
 
@@ -1048,7 +1127,7 @@ public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
             inputIds: inputIds,
             pixelValues: pixelValues
         )
-        let result = languageModel(embeddings, cache: cache)
+        let result = languageModel(nil, cache: cache, inputEmbedding: embeddings)
         return .logits(result)
     }
 
