@@ -64,7 +64,7 @@ public struct FastVLMConfiguration: Codable, Sendable {
 
     public struct BaseConfiguration: Codable, Sendable {
         public let modelType: String
-        private let _imageTokenIndex: Int
+        private let _imageTokenIndex: Int?
         public var imageTokenIndex: Int { _imageTokenIndex ?? -200 }
         public let eosTokenId: Int
         public let multimodalProjectorType: String
@@ -106,35 +106,8 @@ public struct FastVLMConfiguration: Codable, Sendable {
 
 // MARK: - Language
 
-/// Copied from Qwen2VL.Language
+/// Adapted from Qwen2VL.Language, without multimodal rotaty position embeddings
 private enum Language {
-
-    /// Applies Rotary Position Embedding with Multimodal Sections to the query and key tensors
-    static private func applyMultimodalRotaryPositionEmbedding(
-        q: MLXArray, k: MLXArray, cos: MLXArray, sin: MLXArray,
-        positionIds: MLXArray, mropeSection: [Int]
-    ) -> (MLXArray, MLXArray) {
-        var cos = cos[positionIds]
-        var sin = sin[positionIds]
-
-        cos =
-            concatenated(
-                // [m[i % 3] for i, m in enumerate(mx.split(cos, mrope_section, axis=-1))]
-                split(cos, indices: mropeSection, axis: -1).enumerated().map { i, m in m[i % 3] },
-                axis: -1
-            )[0..., .newAxis, 0..., 0...]
-
-        sin =
-            concatenated(
-                split(sin, indices: mropeSection, axis: -1).enumerated().map { i, m in m[i % 3] },
-                axis: -1
-            )[0..., .newAxis, 0..., 0...]
-
-        // Apply rotary embedding
-        let qEmbed = (q * cos) + (QwenVL.rotateHalf(q) * sin)
-        let kEmbed = (k * cos) + (QwenVL.rotateHalf(k) * sin)
-        return (qEmbed, kEmbed)
-    }
 
     fileprivate class Attention: Module {
 
@@ -142,7 +115,6 @@ private enum Language {
         let kvHeads: Int
         let headDim: Int
         let scale: Float
-        let mropeSection: [Int]
 
         @ModuleInfo(key: "q_proj") var wq: Linear
         @ModuleInfo(key: "k_proj") var wk: Linear
@@ -162,21 +134,6 @@ private enum Language {
             self._wk.wrappedValue = Linear(dim, kvHeads * headDim, bias: true)
             self._wv.wrappedValue = Linear(dim, kvHeads * headDim, bias: true)
             self._wo.wrappedValue = Linear(heads * headDim, dim, bias: false)
-
-            if let v = args.ropeScaling?["mrope_section"], let array = v.asInts() {
-                // mrope_section = np.cumsum(mrope_section * 2)[:-1].tolist()
-                self.mropeSection = sequence(state: (0, array.makeIterator())) { state in
-                    if let v = state.1.next() {
-                        // note the *2
-                        state.0 += v * 2
-                        return state.0
-                    } else {
-                        return nil
-                    }
-                }.dropLast()
-            } else {
-                fatalError("rope_scaling['mrope_section'] must be an array of integers")
-            }
 
             self._rotaryEmbedding.wrappedValue = RoPE(
                 dimensions: headDim, traditional: args.ropeTraditional, base: args.ropeTheta)
@@ -393,8 +350,31 @@ private enum Vision {
 
     /// Convolutional FFN Module
     fileprivate class ConvFFN: Module {
+        // Additional wrapper with explicit named components
+        // (mlx-vlm uses NamedSequential as a generic container sequence with names)
+        class ConvWithNorm: Module {
+            @ModuleInfo var conv: Conv2d
+            @ModuleInfo var bn: BatchNorm
+
+            public init(inChannels: Int, outChannels: Int) {
+                self.conv = Conv2d(
+                        inputChannels: inChannels,
+                        outputChannels: outChannels,
+                        kernelSize: IntOrPair(7),
+                        padding: IntOrPair(3),
+                        groups: inChannels,
+                        bias: false
+                )
+                self.bn = BatchNorm(featureCount: outChannels, trackRunningStats: true)
+            }
+
+            public func callAsFunction(_ x: MLXArray) -> MLXArray {
+                bn(conv(x))
+            }
+        }
+
         #warning("We need something like NamedSequential here to store module names")
-        let conv: Sequential
+        let conv: ConvWithNorm
         @ModuleInfo var fc1: Conv2d
         let act: UnaryLayer
         @ModuleInfo var fc2: Conv2d
@@ -404,18 +384,7 @@ private enum Vision {
             let hiddenChannels = hiddenChannels ?? inChannels
 
             #warning("add names - can this be a dictionary to receive the weights?")
-            self.conv = Sequential(layers: [
-                Conv2d(
-                    inputChannels: inChannels,
-                    outputChannels: outChannels,
-                    kernelSize: IntOrPair(7),
-                    padding: IntOrPair(3),
-                    groups: inChannels,
-                    bias: false
-                ),
-                BatchNorm(featureCount: outChannels)
-            ])
-            
+            self.conv = ConvWithNorm(inChannels: inChannels, outChannels: outChannels)
             self._fc1.wrappedValue = Conv2d(
                 inputChannels: inChannels,
                 outputChannels: hiddenChannels,
@@ -560,7 +529,7 @@ private enum Vision {
     fileprivate class ReparamLargeKernelConv: Module, UnaryLayer {
         let activation: GELU
         @ModuleInfo(key: "lkb_reparam") var lkbReparam: Conv2d
-        
+
         public init(
             inChannels: Int,
             outChannels: Int,
@@ -675,20 +644,20 @@ private enum Vision {
     /// For more details on Metaformer structure, please refer to:
     /// `MetaFormer Is Actually What You Need for Vision <https://arxiv.org/pdf/2111.11418.pdf>`_
     fileprivate class RepMixerBlock: Module, UnaryLayer {
-        let tokenMixer: RepMixer
-        let convFFN: ConvFFN
-        let layerScale: MLXArray
-        
+        @ModuleInfo(key: "token_mixer") var tokenMixer: RepMixer
+        @ModuleInfo(key: "convffn") var convFFN: ConvFFN
+        @ModuleInfo(key: "layer_scale") var layerScale: MLXArray
+
         public init(dim: Int, kernelSize: Int = 3, mlpRatio: Float = 4) {
             precondition(mlpRatio > 0, "MLP ratio should be greater than 0, found: \(mlpRatio)")
             
-            self.tokenMixer = RepMixer(dim: dim, kernelSize: kernelSize)
+            self._tokenMixer.wrappedValue = RepMixer(dim: dim, kernelSize: kernelSize)
             let mlpHiddenDim = Int(Float(dim) * mlpRatio)
-            self.convFFN = ConvFFN(
+            self._convFFN.wrappedValue = ConvFFN(
                 inChannels: dim,
                 hiddenChannels: mlpHiddenDim
             )
-            self.layerScale = MLXArray.ones([1, 1, dim])
+            self._layerScale.wrappedValue = MLXArray.ones([1, 1, dim])
         }
         
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
@@ -703,9 +672,8 @@ private enum Vision {
     /// `MetaFormer Is Actually What You Need for Vision <https://arxiv.org/pdf/2111.11418.pdf>`_
     fileprivate class AttentionBlock: Module, UnaryLayer {
         @ModuleInfo(key: "norm") var norm: LayerNormChannel
-        let tokenMixer: MHSA
-        let convFFN: ConvFFN
-        #warning("names: layer_scale_1, layer_scale_2")
+        @ModuleInfo(key: "token_mixer") var tokenMixer: MHSA
+        @ModuleInfo(key: "convffn") var convFFN: ConvFFN
         let layerScale1: MLXArray
         let layerScale2: MLXArray
         
@@ -713,10 +681,10 @@ private enum Vision {
             precondition(mlpRatio > 0, "MLP ratio should be greater than 0, found: \(mlpRatio)")
             
             _norm.wrappedValue = LayerNormChannel(numFeatures: dim)
-            self.tokenMixer = MHSA(dim: dim)
-            
+            self._tokenMixer.wrappedValue = MHSA(dim: dim)
+
             let mlpHiddenDim = Int(Float(dim) * mlpRatio)
-            self.convFFN = ConvFFN(
+            self._convFFN.wrappedValue = ConvFFN(
                 inChannels: dim,
                 hiddenChannels: mlpHiddenDim
             )
@@ -739,7 +707,7 @@ private enum Vision {
         tokenMixerType: String,
         kernelSize: Int = 3,
         mlpRatio: Float = 4.0
-    ) -> [UnaryLayer] {
+    ) -> UnaryLayer {
         var blocks = [UnaryLayer]()
         for _ in 0..<numBlocks[blockIndex] {
             if tokenMixerType == "repmixer" {
@@ -761,7 +729,7 @@ private enum Vision {
                 fatalError("Token mixer type: \(tokenMixerType) not supported")
             }
         }
-        return blocks
+        return Sequential(layers: blocks)
     }
     
     fileprivate static func buildFastViTNetwork(config: FastVLMConfiguration.VisionConfiguration) -> [UnaryLayer] {
@@ -784,7 +752,7 @@ private enum Vision {
                 kernelSize: config.repMixerKernelSize,
                 mlpRatio: Float(config.mlpRatios[i])
             )
-            network.append(contentsOf: stage)
+            network.append(stage)
             
             if i >= config.layers.count - 1 {
                 break
@@ -924,7 +892,7 @@ private enum Vision {
     fileprivate class VisionModel: Module {
         @ModuleInfo(key: "vision_model") var visionModel: FastViTHDModel
         
-        public init(config: FastVLMConfiguration.VisionConfiguration) {
+        public init(_ config: FastVLMConfiguration.VisionConfiguration) {
             self._visionModel.wrappedValue = FastViTHDModel(config: config)
         }
         
@@ -933,14 +901,145 @@ private enum Vision {
         }
         
         func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
-            var sanitizedWeights = weights
+            var sanitizedWeights: [String: MLXArray] = [:]
             for (k, v) in weights {
-                if k.contains("layer_scale_") {
-                    sanitizedWeights[k] = nil
-                    sanitizedWeights[k.replacingOccurrences(of: "layer_scale_", with: "layerScale")] = v
+                var key = k
+                if key.contains("mm_projector") {
+                    // Ignore for now
+                    continue
                 }
+                if key.contains("layer_scale_") {
+                    key = key.replacingOccurrences(of: "layer_scale_", with: "layerScale")
+                }
+                if key.contains("vision_model.network") {
+                    // vision_model.network.0.1 -> vision_model.network.0.layers.1
+                    // (i.e., vision_model.network.0.proj not transformed)
+                    let regex = #/(.+)\.vision_model.network.(\d+)\.(\d+)\.(.+)/#
+                    if let match = key.firstMatch(of: regex) {
+                        key = "\(match.1).vision_model.network.\(match.2).layers.\(match.3).\(match.4)"
+                    }
+                }
+                sanitizedWeights[key] = v
             }
             return sanitizedWeights
         }
+    }
+}
+
+// MARK: - Processor
+
+public struct FastVLMProcessorConfiguration: Codable, Sendable {
+}
+
+public class FastVLMProcessor: UserInputProcessor {
+    private let config: FastVLMProcessorConfiguration
+    private let tokenizer: any Tokenizer
+
+    public init(
+        _ config: FastVLMProcessorConfiguration,
+        tokenizer: any Tokenizer
+    ) {
+        self.config = config
+        self.tokenizer = tokenizer
+    }
+
+    public func prepare(input: MLXLMCommon.UserInput) async throws -> MLXLMCommon.LMInput {
+        fatalError("not implemented")
+    }
+}
+
+// MARK: - Model
+
+public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
+    @ModuleInfo(key: "vision_tower") private var visionModel: Vision.VisionModel
+    @ModuleInfo(key: "language_model") private var languageModel: Language.LanguageModel
+//    @ModuleInfo(key: "mm_projector") private var multimodalProjector: FastVLMMultiModalProjector
+    public let config: FastVLMConfiguration
+
+    public var kvHeads: [Int] { languageModel.kvHeads }
+
+    public init(_ config: FastVLMConfiguration) {
+        self.config = config
+        self._visionModel.wrappedValue = Vision.VisionModel(config.visionConfiguration)
+        self._languageModel.wrappedValue = Language.LanguageModel(config.textConfiguration)
+//        self._mm_projector.wrappedValue = FastVLMMultiModalProjector(config)
+    }
+
+    public func loraLinearLayers() -> LoRALinearLayers {
+        languageModel.model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
+    }
+
+    private func getInputEmbeddings(inputIds: MLXArray, pixelValues: MLXArray?) -> MLXArray {
+        languageModel.model.embedTokens(inputIds)
+    }
+
+//    // inputs_merger
+//    private func prepareInputsForMultimodal(
+//        imageFeatures: MLXArray, inputs_embeds: MLXArray, inputIds: MLXArray
+//    ) -> MLXArray {
+//        // Assumes bs == 1
+//        // inputIds shape: (1, seq_len)
+//        // asArray(Int.self) -> [[Int]], take [0] to get [Int]
+//        let ids: [[Int]] = [inputIds.asArray(Int.self)]
+//
+//        let inputIdArray: [Int] = ids[0]
+//
+//        let imageTokenIndex = config.imageTokenIndex
+//        let imagePositions = inputIdArray.enumerated().compactMap {
+//            $1 == imageTokenIndex ? $0 : nil
+//        }
+//
+//        var segments = [MLXArray]()
+//        var start_idx = 0
+//
+//        let chunkSize = imageFeatures.shape[1]  // 64
+//        let chunkCount = imagePositions.count / chunkSize  // Should be imageFeatures.shape[0]
+//        let chunks = (0 ..< chunkCount).map { startIndex in
+//            let start = startIndex * chunkSize
+//            let end = start + chunkSize
+//            return Array(imagePositions[start ..< end])
+//        }
+//
+//        for (chunkIndex, chunk) in chunks.enumerated() {
+//            let currentImage = imageFeatures[chunkIndex]
+//
+//            for (i, pos) in chunk.enumerated() {
+//                if pos > start_idx {
+//                    segments.append(inputs_embeds[0, start_idx ..< pos])
+//                }
+//                segments.append(currentImage[i ..< i + 1])
+//                start_idx = pos + 1
+//            }
+//        }
+//
+//        if start_idx < inputs_embeds.dim(1) {
+//            segments.append(inputs_embeds[0, start_idx...])
+//        }
+//
+//        let finalEmbeds = concatenated(segments, axis: 0)
+//        return finalEmbeds.expandedDimensions(axis: 0)
+//    }
+
+    public func prepare(_ input: LMInput, cache: [any KVCache], windowSize: Int?) throws
+        -> PrepareResult
+    {
+        let inputIds = input.text.tokens
+        let pixelValues = input.image?.pixels
+        let embeddings = getInputEmbeddings(
+            inputIds: inputIds,
+            pixelValues: pixelValues
+        )
+        let result = languageModel(embeddings, cache: cache)
+        return .logits(result)
+    }
+
+    public func callAsFunction(_ inputs: MLXArray, cache: [any KVCache]?) -> MLXArray {
+        let out = languageModel(inputs, cache: cache).logits
+        return out
+    }
+
+    public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
+        // Not sure we need to replicate the Python logic since the keys were transformed on conversion
+        visionModel.sanitize(weights: weights)
     }
 }

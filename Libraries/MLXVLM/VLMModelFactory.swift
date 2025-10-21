@@ -89,6 +89,9 @@ public class VLMTypeRegistry: ModelTypeRegistry, @unchecked Sendable {
             "idefics3": create(Idefics3Configuration.self, Idefics3.init),
             "gemma3": create(Gemma3Configuration.self, Gemma3.init),
             "smolvlm": create(SmolVLM2Configuration.self, SmolVLM2.init),
+            // TODO: see if we can make it work with fastvlm rather than llava_qwen2
+            "fastvlm": create(FastVLMConfiguration.self, FastVLM.init),
+            "llava_qwen2": create(FastVLMConfiguration.self, FastVLM.init),
         ]
     }
 }
@@ -118,6 +121,8 @@ public class VLMProcessorTypeRegistry: ProcessorTypeRegistry, @unchecked Sendabl
                 Gemma3ProcessorConfiguration.self, Gemma3Processor.init),
             "SmolVLMProcessor": create(
                 SmolVLMProcessorConfiguration.self, SmolVLMProcessor.init),
+            "FastVLMProcessor": create(
+                FastVLMProcessorConfiguration.self, FastVLMProcessor.init),
         ]
     }
 }
@@ -187,6 +192,11 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             "What is the main action or notable event happening in this segment? Describe it in one brief sentence."
     )
 
+    static public let fastvlm = ModelConfiguration(
+        id: "mlx-community/FastVLM-0.5B-bf16",
+        defaultPrompt: "Describe this image in detail."
+    )
+
     static public func all() -> [ModelConfiguration] {
         [
             paligemma3bMix448_8bit,
@@ -199,6 +209,7 @@ public class VLMRegistry: AbstractModelRegistry, @unchecked Sendable {
             gemma3_12B_qat_4bit,
             gemma3_27B_qat_4bit,
             smolvlm,
+            fastvlm,
         ]
     }
 
