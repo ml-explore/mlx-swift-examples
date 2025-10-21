@@ -904,10 +904,6 @@ private enum Vision {
             var sanitizedWeights: [String: MLXArray] = [:]
             for (k, v) in weights {
                 var key = k
-                if key.contains("mm_projector") {
-                    // Ignore for now
-                    continue
-                }
                 if key.contains("layer_scale_") {
                     key = key.replacingOccurrences(of: "layer_scale_", with: "layerScale")
                 }
@@ -948,12 +944,35 @@ public class FastVLMProcessor: UserInputProcessor {
     }
 }
 
+// MARK: - Multimodal Projector
+
+private class FastVLMMultiModalProjector: Sequential {
+    init(_ config: FastVLMConfiguration) {
+        let hiddenSize = config.textConfiguration.hiddenSize
+        let mlpGeluRegex = #/^mlp(\d+)x_gelu$/#
+        guard let match = config.baseConfiguration.multimodalProjectorType.firstMatch(of: mlpGeluRegex) else {
+            // Fall back to Linear if no match
+            super.init(layers: [Linear(config.baseConfiguration.multimodalProjectorHiddenSize, hiddenSize)])
+            return
+        }
+
+        let mlpDepth = Int(match.1) ?? 2
+        super.init {
+            Linear(config.baseConfiguration.multimodalProjectorHiddenSize, hiddenSize)
+            for _ in 1..<mlpDepth {
+                GELU()
+                Linear(hiddenSize, hiddenSize)
+            }
+        }
+    }
+}
+
 // MARK: - Model
 
 public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
     @ModuleInfo(key: "vision_tower") private var visionModel: Vision.VisionModel
     @ModuleInfo(key: "language_model") private var languageModel: Language.LanguageModel
-//    @ModuleInfo(key: "mm_projector") private var multimodalProjector: FastVLMMultiModalProjector
+    @ModuleInfo(key: "mm_projector") private var multimodalProjector: FastVLMMultiModalProjector
     public let config: FastVLMConfiguration
 
     public var kvHeads: [Int] { languageModel.kvHeads }
@@ -962,7 +981,7 @@ public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
         self.config = config
         self._visionModel.wrappedValue = Vision.VisionModel(config.visionConfiguration)
         self._languageModel.wrappedValue = Language.LanguageModel(config.textConfiguration)
-//        self._mm_projector.wrappedValue = FastVLMMultiModalProjector(config)
+        self._multimodalProjector.wrappedValue = FastVLMMultiModalProjector(config)
     }
 
     public func loraLinearLayers() -> LoRALinearLayers {
@@ -1039,7 +1058,16 @@ public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
     }
 
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
-        // Not sure we need to replicate the Python logic since the keys were transformed on conversion
-        visionModel.sanitize(weights: weights)
+        // Not sure we need to replicate the full Python logic since the weights were transformed on conversion
+
+        var sanitizedWeights: [String: MLXArray] = [:]
+        for (k, v) in weights {
+            var key = k
+            if key.contains("mm_projector") {
+                key = key.replacingOccurrences(of: "mm_projector", with: "mm_projector.layers")
+            }
+            sanitizedWeights[key] = v
+        }
+        return visionModel.sanitize(weights: sanitizedWeights)
     }
 }
