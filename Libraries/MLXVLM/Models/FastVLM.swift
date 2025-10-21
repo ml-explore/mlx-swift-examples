@@ -1067,14 +1067,23 @@ public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
         languageModel.model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
     }
 
-    private func getInputEmbeddings(inputIds: MLXArray, pixelValues: MLXArray?) -> MLXArray {
-        languageModel.model.embedTokens(inputIds)
+    private func getInputEmbeddings(inputIds: MLXArray, pixelValues: MLXArray?, mask: MLXArray?) -> MLXArray {
+        guard let pixelValues = pixelValues else {
+            return languageModel.model.embedTokens(inputIds)
+        }
+
+        let (_, imageFeatures, _) = visionModel(pixelValues.reshaped(0, 2, 3, 1))
+        let (B, H, W, C) = (imageFeatures.shape[0], imageFeatures.shape[1], imageFeatures.shape[2], imageFeatures.shape[3])
+        let mmInputs = multimodalProjector(imageFeatures.reshaped(B, H * W, C))
+        let finalEmbeddings = prepareInputsForMultimodal(imageFeatures: mmInputs, inputIds: inputIds, mask: mask)
+        return finalEmbeddings
     }
 
-//    // inputs_merger
-//    private func prepareInputsForMultimodal(
-//        imageFeatures: MLXArray, inputs_embeds: MLXArray, inputIds: MLXArray
-//    ) -> MLXArray {
+    private func prepareInputsForMultimodal(
+        imageFeatures: MLXArray, inputIds: MLXArray, mask: MLXArray?
+    ) -> MLXArray {
+        return imageFeatures
+    }
 //        // Assumes bs == 1
 //        // inputIds shape: (1, seq_len)
 //        // asArray(Int.self) -> [[Int]], take [0] to get [Int]
@@ -1121,11 +1130,10 @@ public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
     public func prepare(_ input: LMInput, cache: [any KVCache], windowSize: Int?) throws
         -> PrepareResult
     {
-        let inputIds = input.text.tokens
-        let pixelValues = input.image?.pixels
         let embeddings = getInputEmbeddings(
-            inputIds: inputIds,
-            pixelValues: pixelValues
+            inputIds: input.text.tokens,
+            pixelValues: input.image?.pixels,
+            mask: input.text.mask
         )
         let result = languageModel(nil, cache: cache, inputEmbedding: embeddings)
         return .logits(result)
