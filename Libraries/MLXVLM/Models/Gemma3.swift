@@ -1209,7 +1209,7 @@ public struct Gemma3ProcessorConfiguration: Codable, Sendable {
 }
 
 extension Gemma3: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        return languageModel.model.layers.map { ($0.selfAttention, ["q_proj", "v_proj"]) }
+    public var loraLayers: [Module] {
+        languageModel.model.layers
     }
 }
