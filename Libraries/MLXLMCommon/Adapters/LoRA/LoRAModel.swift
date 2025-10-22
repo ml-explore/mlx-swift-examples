@@ -10,13 +10,13 @@ import MLX
 import MLXNN
 
 public protocol LoRAModel {
-    
+
     /// Return the layers to apply LoRA adapters to.
     ///
     /// Typically, this includes all transformer layers.
     /// Must be defined explicitly since we can't unify it across all models.
     var loraLayers: [Module] { get }
-    
+
     /// Default layer keys to apply LoRA adapters to.
     ///
     /// Used when not specified in `adapter_config.json`.
@@ -24,20 +24,19 @@ public protocol LoRAModel {
     var loraDefaultKeys: [String] { get }
 }
 
-public extension LoRAModel {
-    
+extension LoRAModel {
+
     /// By default we apply LoRA to all Linear layers.
     /// This is aligned with `mlx-lm` Python logic.
-    var loraDefaultKeys: [String] {
-        let linearKeys = loraLayers
-            .flatMap { $0.namedModules() }
-            .compactMap { key, module in
-                if module is Linear {
-                    return key
-                } else {
-                    return nil
-                }
+    public var loraDefaultKeys: [String] {
+        let namedModules = loraLayers.flatMap { $0.namedModules() }
+        let linearKeys = namedModules.compactMap { key, module in
+            if module is Linear {
+                return key
+            } else {
+                return nil
             }
+        }
         let unique = Set(linearKeys)
         return Array(unique)
     }
