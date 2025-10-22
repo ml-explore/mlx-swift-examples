@@ -977,7 +977,7 @@ public class FastVLMProcessor: UserInputProcessor {
     }
 
     public func prepare(input: MLXLMCommon.UserInput) async throws -> MLXLMCommon.LMInput {
-        let messages = Qwen2VLMessageGenerator().generate(from: input)  // TODO: Create FastVLMMessageGenerator if necessary
+        let messages = FastVLMMessageGenerator().generate(from: input)
 
         if input.images.isEmpty {
             // No image scenario
@@ -998,11 +998,6 @@ public class FastVLMProcessor: UserInputProcessor {
         // Find <image> and replace with token id -200
         let pieces = decoded.split(separator: imageToken)
         let tokens = Array(pieces.map { tokenizer.encode(text: String($0)) }.joined(separator: [-200]))
-
-        // TODO: the tokenizer chat template does not match the processor's
-        // To be matched with final version of chat template:
-        // [[151644,   8948,    198,   2610,    525,    264,  10950,  17847,     13, 151645,    198, 151644,    872,    198,   -200,    198,  74785,    419, 2168,    304,   7716,     13, 151645,    198, 151644,  77091,    198]]
-        // '<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n<|im_start|>user\n<image>\nDe...n detail.<|im_end|>\n<|im_start|>assistant\n'
 
         let image = try input.images[0]
             .asCIImage()
@@ -1136,5 +1131,25 @@ public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
             sanitizedWeights[key] = v
         }
         return visionModel.sanitize(weights: sanitizedWeights)
+    }
+}
+
+public struct FastVLMMessageGenerator: MessageGenerator {
+    public func generate(message: Chat.Message) -> Message {
+        [
+            "role": message.role.rawValue,
+            "content": []
+            + message.images.map { _ in
+                ["type": "image"]
+            }
+            + [["type": "text", "text": message.content]]
+        ]
+    }
+
+    public func generate(messages: [Chat.Message]) -> [Message] {
+        // Remove system role if empty, because the template adds a default one
+        messages
+            .filter { $0.role != .system || ($0.role == .system && !$0.content.isEmpty) }
+            .map { generate(message: $0) }
     }
 }
