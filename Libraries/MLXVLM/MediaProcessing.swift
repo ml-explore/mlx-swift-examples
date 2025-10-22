@@ -261,7 +261,8 @@ public enum MediaProcessing {
         let (w, h) = (rect.width, rect.height)
         let side = max(w, h)
 
-        let background = CIImage(color: backgroundColor).cropped(to: CGRect(x: 0, y: 0, width: side, height: side))
+        let background = CIImage(color: backgroundColor).cropped(
+            to: CGRect(x: 0, y: 0, width: side, height: side))
 
         let tx = (side - w) * 0.5 - rect.origin.x
         let ty = (side - h) * 0.5 - rect.origin.y

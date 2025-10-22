@@ -299,50 +299,54 @@ private enum Language {
 // MARK: - Vision
 
 private enum Vision {
-    
+
     /// Multi-headed Self Attention module
     fileprivate class MHSA: Module {
         let headDim: Int
         let numHeads: Int
         let scale: Float
-        
+
         @ModuleInfo var qkv: Linear
         @ModuleInfo(key: "attn_drop") var attnDrop: Dropout
         @ModuleInfo var proj: Linear
         @ModuleInfo(key: "proj_drop") var projDrop: Dropout
-        
-        public init(dim: Int, headDim: Int = 32, qkvBias: Bool = false, attnDrop: Float = 0.0, projDrop: Float = 0.0) {
+
+        public init(
+            dim: Int, headDim: Int = 32, qkvBias: Bool = false, attnDrop: Float = 0.0,
+            projDrop: Float = 0.0
+        ) {
             precondition(dim % headDim == 0, "dim should be divisible by headDim")
             self.headDim = headDim
             self.numHeads = dim / headDim
             self.scale = pow(Float(headDim), -0.5)
-            
+
             self._qkv.wrappedValue = Linear(dim, dim * 3, bias: qkvBias)
             self._attnDrop.wrappedValue = Dropout(p: attnDrop)
             self._proj.wrappedValue = Linear(dim, dim)
             self._projDrop.wrappedValue = Dropout(p: projDrop)
         }
-        
+
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
             // Source: https://github.com/apple/ml-fastvlm/blob/592b4add3c1c8a518e77d95dc6248e76c1dd591f/llava/model/multimodal_encoder/mobileclip/mci.py#L661
             var x = x.transposed(0, 3, 1, 2)
             let (B, C, H, W) = (x.dim(0), x.dim(1), x.dim(2), x.dim(3))
             let N = H * W
-            
+
             x = x.flattened(start: 2).transposed(0, 2, 1)  // (B, N, C)
             let qkv = self.qkv(x)
                 .reshaped(B, N, 3, numHeads, headDim)
                 .transposed(2, 0, 3, 1, 4)
-            
+
             let q = qkv[0]
             let k = qkv[1]
             let v = qkv[2]
-            
-            x = MLXFast.scaledDotProductAttention(queries: q, keys: k, values: v, scale: scale, mask: .none)
+
+            x = MLXFast.scaledDotProductAttention(
+                queries: q, keys: k, values: v, scale: scale, mask: .none)
             x = x.transposed(0, 2, 1, 3).reshaped(B, N, C)
             x = proj(x)
             x = projDrop(x)
-            
+
             x = x.reshaped(B, H, W, C)
             return x
         }
@@ -358,12 +362,12 @@ private enum Vision {
 
             public init(inChannels: Int, outChannels: Int) {
                 self.conv = Conv2d(
-                        inputChannels: inChannels,
-                        outputChannels: outChannels,
-                        kernelSize: IntOrPair(7),
-                        padding: IntOrPair(3),
-                        groups: inChannels,
-                        bias: false
+                    inputChannels: inChannels,
+                    outputChannels: outChannels,
+                    kernelSize: IntOrPair(7),
+                    padding: IntOrPair(3),
+                    groups: inChannels,
+                    bias: false
                 )
                 self.bn = BatchNorm(featureCount: outChannels, trackRunningStats: true)
             }
@@ -377,8 +381,11 @@ private enum Vision {
         @ModuleInfo var fc1: Conv2d
         let act: UnaryLayer
         @ModuleInfo var fc2: Conv2d
-        
-        public init(inChannels: Int, hiddenChannels: Int? = nil, outChannels: Int? = nil, activation: UnaryLayer = GELU()) {
+
+        public init(
+            inChannels: Int, hiddenChannels: Int? = nil, outChannels: Int? = nil,
+            activation: UnaryLayer = GELU()
+        ) {
             let outChannels = outChannels ?? inChannels
             let hiddenChannels = hiddenChannels ?? inChannels
 
@@ -395,7 +402,7 @@ private enum Vision {
                 kernelSize: IntOrPair(1)
             )
         }
-        
+
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
             var x = conv(x)
             x = fc1(x)
@@ -432,7 +439,7 @@ private enum Vision {
     fileprivate class SEBlock: Module, UnaryLayer {
         @ModuleInfo var reduce: Conv2d
         @ModuleInfo var expand: Conv2d
-        
+
         public init(inChannels: Int, reductionRatio: Float = 0.0625) {
             self._reduce.wrappedValue = Conv2d(
                 inputChannels: inChannels,
@@ -449,7 +456,7 @@ private enum Vision {
                 bias: true
             )
         }
-        
+
         public func callAsFunction(_ inputs: MLXArray) -> MLXArray {
             let (b, h, w, c) = (inputs.dim(0), inputs.dim(1), inputs.dim(2), inputs.dim(3))
 
@@ -473,11 +480,11 @@ private enum Vision {
         let kernelSize: Int
         let inChannels: Int
         let outChannels: Int
-        
+
         let se: UnaryLayer
         let activation: GELU
         @ModuleInfo(key: "reparam_conv") var reparamConv: Conv2d
-        
+
         public init(
             inChannels: Int,
             outChannels: Int,
@@ -495,13 +502,13 @@ private enum Vision {
             self.kernelSize = kernelSize
             self.inChannels = inChannels
             self.outChannels = outChannels
-            
+
             if useSE {
                 self.se = SEBlock(inChannels: outChannels)
             } else {
                 self.se = Identity()
             }
-            
+
             self.activation = GELU()
             self._reparamConv.wrappedValue = Conv2d(
                 inputChannels: inChannels,
@@ -514,12 +521,12 @@ private enum Vision {
                 bias: true
             )
         }
-        
+
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
             activation(se(reparamConv(x)))
         }
     }
-    
+
     /// Building Block of RepLKNet
     /// This class defines overparameterized large kernel conv block
     /// introduced in `RepLKNet <https://arxiv.org/abs/2203.06717>`_
@@ -547,12 +554,12 @@ private enum Vision {
                 bias: true
             )
         }
-        
+
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
             activation(lkbReparam(x))
         }
     }
-    
+
     /// Convolutional patch embedding layer
     fileprivate class PatchEmbed: Module, UnaryLayer {
         let proj: [UnaryLayer]
@@ -579,10 +586,10 @@ private enum Vision {
                     padding: 0,
                     groups: 1,
                     useSE: false
-                )
+                ),
             ]
         }
-        
+
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
             var result = x
             for layer in proj {
@@ -591,13 +598,13 @@ private enum Vision {
             return result
         }
     }
-    
+
     /// Implementation of conditional positional encoding
     /// For more details refer to paper:
     /// `Conditional Positional Encodings for Vision Transformers <https://arxiv.org/pdf/2102.10882.pdf>`_
     fileprivate class RepCPE: Module, UnaryLayer {
         @ModuleInfo(key: "reparam_conv") var reparamConv: Conv2d
-        
+
         public init(inChannels: Int, embedDim: Int = 768, spatialShape: (Int, Int) = (7, 7)) {
             self._reparamConv.wrappedValue = Conv2d(
                 inputChannels: inChannels,
@@ -609,18 +616,18 @@ private enum Vision {
                 bias: true
             )
         }
-        
+
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
             reparamConv(x)
         }
     }
-    
+
     /// Reparameterizable token mixer
     /// For more details, please refer to Apple's paper:
     /// `FastViT: A Fast Hybrid Vision Transformer using Structural Reparameterization <https://arxiv.org/pdf/2303.14189.pdf>`_
     fileprivate class RepMixer: Module {
         @ModuleInfo(key: "reparam_conv") var reparamConv: Conv2d
-        
+
         public init(dim: Int, kernelSize: Int = 3) {
             self._reparamConv.wrappedValue = Conv2d(
                 inputChannels: dim,
@@ -632,12 +639,12 @@ private enum Vision {
                 bias: true
             )
         }
-        
+
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
             reparamConv(x)
         }
     }
-    
+
     /// Implementation of Metaformer block with RepMixer as token mixer
     /// For more details on Metaformer structure, please refer to:
     /// `MetaFormer Is Actually What You Need for Vision <https://arxiv.org/pdf/2111.11418.pdf>`_
@@ -648,7 +655,7 @@ private enum Vision {
 
         public init(dim: Int, kernelSize: Int = 3, mlpRatio: Float = 4) {
             precondition(mlpRatio > 0, "MLP ratio should be greater than 0, found: \(mlpRatio)")
-            
+
             self._tokenMixer.wrappedValue = RepMixer(dim: dim, kernelSize: kernelSize)
             let mlpHiddenDim = Int(Float(dim) * mlpRatio)
             self._convFFN.wrappedValue = ConvFFN(
@@ -657,14 +664,14 @@ private enum Vision {
             )
             self._layerScale.wrappedValue = MLXArray.ones([1, 1, dim])
         }
-        
+
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
             var x = tokenMixer(x)
             x = x + layerScale * convFFN(x)
             return x
         }
     }
-    
+
     /// Implementation of metaformer block with MHSA as token mixer
     /// For more details on Metaformer structure, please refer to:
     /// `MetaFormer Is Actually What You Need for Vision <https://arxiv.org/pdf/2111.11418.pdf>`_
@@ -674,10 +681,10 @@ private enum Vision {
         @ModuleInfo(key: "convffn") var convFFN: ConvFFN
         let layerScale1: MLXArray
         let layerScale2: MLXArray
-        
+
         public init(dim: Int, mlpRatio: Float = 4.0) {
             precondition(mlpRatio > 0, "MLP ratio should be greater than 0, found: \(mlpRatio)")
-            
+
             _norm.wrappedValue = LayerNormChannel(numFeatures: dim)
             self._tokenMixer.wrappedValue = MHSA(dim: dim)
 
@@ -686,18 +693,18 @@ private enum Vision {
                 inChannels: dim,
                 hiddenChannels: mlpHiddenDim
             )
-            
+
             self.layerScale1 = MLXArray.ones([1, 1, dim])
             self.layerScale2 = MLXArray.ones([1, 1, dim])
         }
-        
+
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
             var x = x + layerScale1 * tokenMixer(norm(x))
             x = x + layerScale2 * convFFN(x)
             return x
         }
     }
-    
+
     fileprivate static func basicBlocks(
         dim: Int,
         blockIndex: Int,
@@ -707,7 +714,7 @@ private enum Vision {
         mlpRatio: Float = 4.0
     ) -> UnaryLayer {
         var blocks = [UnaryLayer]()
-        for _ in 0..<numBlocks[blockIndex] {
+        for _ in 0 ..< numBlocks[blockIndex] {
             if tokenMixerType == "repmixer" {
                 blocks.append(
                     RepMixerBlock(
@@ -729,10 +736,12 @@ private enum Vision {
         }
         return Sequential(layers: blocks)
     }
-    
-    fileprivate static func buildFastViTNetwork(config: FastVLMConfiguration.VisionConfiguration) -> [UnaryLayer] {
+
+    fileprivate static func buildFastViTNetwork(config: FastVLMConfiguration.VisionConfiguration)
+        -> [UnaryLayer]
+    {
         var network = [UnaryLayer]()
-        for i in 0..<config.layers.count {
+        for i in 0 ..< config.layers.count {
             if let spatialShape = config.posEmbedShapes[i] {
                 let positionEmbeddings = RepCPE(
                     inChannels: config.embedDimensions[i],
@@ -741,7 +750,7 @@ private enum Vision {
                 )
                 network.append(positionEmbeddings)
             }
-            
+
             let stage = basicBlocks(
                 dim: config.embedDimensions[i],
                 blockIndex: i,
@@ -751,11 +760,11 @@ private enum Vision {
                 mlpRatio: Float(config.mlpRatios[i])
             )
             network.append(stage)
-            
+
             if i >= config.layers.count - 1 {
                 break
             }
-            
+
             // Patch merging/downsampling between stages
             if config.downSamples[i] || config.embedDimensions[i] != config.embedDimensions[i + 1] {
                 network.append(
@@ -768,7 +777,7 @@ private enum Vision {
                 )
             }
         }
-        
+
         return network
     }
 
@@ -779,7 +788,7 @@ private enum Vision {
         public init(config: FastVLMConfiguration.VisionConfiguration) {
             let inChannels = 3
             let outChannels = config.embedDimensions[0]
-            
+
             self.blocks = [
                 MobileOneBlock(
                     inChannels: inChannels,
@@ -804,10 +813,10 @@ private enum Vision {
                     stride: 1,
                     padding: 0,
                     groups: 1
-                )
+                ),
             ]
         }
-        
+
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
             var result = x
             for block in blocks {
@@ -816,18 +825,21 @@ private enum Vision {
             return result
         }
     }
-    
+
     /// This class implements global pooling with linear projection
     fileprivate class GlobalPool2D: Module, UnaryLayer {
         let proj: MLXArray
-        
+
         public init(inDim: Int, outDim: Int) {
             self.proj = MLXArray.zeros([inDim, outDim])
         }
-        
+
         public func callAsFunction(_ x: MLXArray) -> MLXArray {
-            precondition(x.ndim == 4, "Input should be 4-dimensional (Batch x in_height x in_width x in_dim). Got: \(x.shape)")
-            
+            precondition(
+                x.ndim == 4,
+                "Input should be 4-dimensional (Batch x in_height x in_width x in_dim). Got: \(x.shape)"
+            )
+
             // [batch, in_height, in_width, in_dim] --> [batch, in_dim]
             var result = x.mean(axes: [1, 2])
             // [batch, in_dim] x [in_dim, out_dim] --> [batch, out_dim]
@@ -835,7 +847,7 @@ private enum Vision {
             return result
         }
     }
-    
+
     /// FastViTHD Model
     /// Based on https://github.com/apple/ml-fastvlm/blob/592b4add3c1c8a518e77d95dc6248e76c1dd591f/llava/model/multimodal_encoder/mobileclip/mci.py
     /// Hardcoded, for now, for:
@@ -850,7 +862,7 @@ private enum Vision {
 
         public init(config: FastVLMConfiguration.VisionConfiguration) {
             self.config = config
-            
+
             self._patchEmbed.wrappedValue = ConvolutionalStem(config: config)
             self.network = buildFastViTNetwork(config: config)
             self._convExp.wrappedValue = MobileOneBlock(
@@ -867,10 +879,12 @@ private enum Vision {
             let inDim = Int(Float(config.embedDimensions.last!) * config.classHeadRatio)
             head = GlobalPool2D(inDim: inDim, outDim: config.projectionDim)
         }
-        
-        public func callAsFunction(_ x: MLXArray, outputHiddenStates: Bool = false) -> (MLXArray, MLXArray, [MLXArray]?) {
+
+        public func callAsFunction(_ x: MLXArray, outputHiddenStates: Bool = false) -> (
+            MLXArray, MLXArray, [MLXArray]?
+        ) {
             var x = patchEmbed(x)
-            
+
             var encoderStates: [MLXArray]? = outputHiddenStates ? [x] : nil
             for layer in network {
                 x = layer(x)
@@ -878,26 +892,28 @@ private enum Vision {
                     encoderStates?.append(x)
                 }
             }
-            
+
             x = convExp(x)
             let clsOut = head(x)
-            
+
             return (clsOut, x, encoderStates)
         }
     }
-    
+
     /// Vision Model wrapper
     fileprivate class VisionModel: Module {
         @ModuleInfo(key: "vision_model") var visionModel: FastViTHDModel
-        
+
         public init(_ config: FastVLMConfiguration.VisionConfiguration) {
             self._visionModel.wrappedValue = FastViTHDModel(config: config)
         }
-        
-        public func callAsFunction(_ x: MLXArray, outputHiddenStates: Bool = false) -> (MLXArray, MLXArray, [MLXArray]?) {
+
+        public func callAsFunction(_ x: MLXArray, outputHiddenStates: Bool = false) -> (
+            MLXArray, MLXArray, [MLXArray]?
+        ) {
             visionModel(x, outputHiddenStates: outputHiddenStates)
         }
-        
+
         func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
             var sanitizedWeights: [String: MLXArray] = [:]
             for (k, v) in weights {
@@ -910,7 +926,8 @@ private enum Vision {
                     // (i.e., vision_model.network.0.proj not transformed)
                     let regex = #/(.+)\.vision_model.network.(\d+)\.(\d+)\.(.+)/#
                     if let match = key.firstMatch(of: regex) {
-                        key = "\(match.1).vision_model.network.\(match.2).layers.\(match.3).\(match.4)"
+                        key =
+                            "\(match.1).vision_model.network.\(match.2).layers.\(match.3).\(match.4)"
                     }
                 }
                 sanitizedWeights[key] = v
@@ -932,7 +949,7 @@ public struct FastVLMProcessorConfiguration: Codable, Sendable {
             case height
         }
 
-        var cgSize: CGSize { CGSize(width: width, height: height)}
+        var cgSize: CGSize { CGSize(width: width, height: height) }
     }
 
     public let imageMean: [CGFloat]
@@ -995,7 +1012,8 @@ public class FastVLMProcessor: UserInputProcessor {
 
         // Find <image> and replace with token id -200
         let pieces = decoded.split(separator: imageToken)
-        let tokens = Array(pieces.map { tokenizer.encode(text: String($0)) }.joined(separator: [-200]))
+        let tokens = Array(
+            pieces.map { tokenizer.encode(text: String($0)) }.joined(separator: [-200]))
 
         let image = try input.images[0]
             .asCIImage()
@@ -1022,16 +1040,21 @@ private class FastVLMMultiModalProjector: Sequential {
     init(_ config: FastVLMConfiguration) {
         let hiddenSize = config.textConfiguration.hiddenSize
         let mlpGeluRegex = #/^mlp(\d+)x_gelu$/#
-        guard let match = config.baseConfiguration.multimodalProjectorType.firstMatch(of: mlpGeluRegex) else {
+        guard
+            let match = config.baseConfiguration.multimodalProjectorType.firstMatch(
+                of: mlpGeluRegex)
+        else {
             // Fall back to Linear if no match
-            super.init(layers: [Linear(config.baseConfiguration.multimodalProjectorHiddenSize, hiddenSize)])
+            super.init(layers: [
+                Linear(config.baseConfiguration.multimodalProjectorHiddenSize, hiddenSize)
+            ])
             return
         }
 
         let mlpDepth = Int(match.1) ?? 2
         super.init {
             Linear(config.baseConfiguration.multimodalProjectorHiddenSize, hiddenSize)
-            for _ in 1..<mlpDepth {
+            for _ in 1 ..< mlpDepth {
                 GELU()
                 Linear(hiddenSize, hiddenSize)
             }
@@ -1060,15 +1083,21 @@ public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
         languageModel.model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
     }
 
-    private func getInputEmbeddings(inputIds: MLXArray, pixelValues: MLXArray?, mask: MLXArray?) -> MLXArray {
+    private func getInputEmbeddings(inputIds: MLXArray, pixelValues: MLXArray?, mask: MLXArray?)
+        -> MLXArray
+    {
         guard let pixelValues = pixelValues else {
             return languageModel.model.embedTokens(inputIds)
         }
 
         let (_, imageFeatures, _) = visionModel(pixelValues.transposed(0, 2, 3, 1))
-        let (B, H, W, C) = (imageFeatures.shape[0], imageFeatures.shape[1], imageFeatures.shape[2], imageFeatures.shape[3])
+        let (B, H, W, C) = (
+            imageFeatures.shape[0], imageFeatures.shape[1], imageFeatures.shape[2],
+            imageFeatures.shape[3]
+        )
         let mmInputs = multimodalProjector(imageFeatures.reshaped(B, H * W, C))
-        let finalEmbeddings = prepareInputsForMultimodal(imageFeatures: mmInputs, inputIds: inputIds, mask: mask)
+        let finalEmbeddings = prepareInputsForMultimodal(
+            imageFeatures: mmInputs, inputIds: inputIds, mask: mask)
         return finalEmbeddings
     }
 
@@ -1089,12 +1118,14 @@ public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
         let inputIdsArray = inputIds.asArray(Int.self)
         let imageTokenIndex = inputIdsArray.index(of: config.baseConfiguration.imageTokenIndex) ?? 0
         // Embed tokens before and after and then split to insert the image
-        let tokens = inputIdsArray.split(separator: config.baseConfiguration.imageTokenIndex).joined()
+        let tokens = inputIdsArray.split(separator: config.baseConfiguration.imageTokenIndex)
+            .joined()
         let tokenEmbeddings = languageModel.model.embedTokens(MLXArray(tokens))
         let splitTokenEmbeddings = tokenEmbeddings.split(indices: [imageTokenIndex])
 
         // Concatenate - once again this is easy because we assume bs==1 and a single image
-        let embeddings = concatenated([splitTokenEmbeddings[0], imageFeatures[0], splitTokenEmbeddings[1]], axis: 0)
+        let embeddings = concatenated(
+            [splitTokenEmbeddings[0], imageFeatures[0], splitTokenEmbeddings[1]], axis: 0)
 
         // TODO: trim if we went over model_max_length
         return embeddings.expandedDimensions(axis: 0)
@@ -1142,10 +1173,10 @@ public struct FastVLMMessageGenerator: MessageGenerator {
         [
             "role": message.role.rawValue,
             "content": []
-            + message.images.map { _ in
-                ["type": "image"]
-            }
-            + [["type": "text", "text": message.content]]
+                + message.images.map { _ in
+                    ["type": "image"]
+                }
+                + [["type": "text", "text": message.content]],
         ]
     }
 
