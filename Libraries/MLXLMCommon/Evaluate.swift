@@ -240,6 +240,98 @@ public struct RepetitionContext: LogitProcessor {
     }
 }
 
+/// Processor that implements a `repetitionPenalty` with support for excluding masked tokens (e.g., image tokens)
+public struct MaskedRepetitionContext: LogitProcessor {
+    /// tokens in the repetition context sliding window
+    public var tokens = [Int]()
+
+    /// mask indicating which tokens should be excluded from penalty (true = exclude)
+    public var tokenMasks = [Bool]()
+
+    /// current write index into the tokens circular array
+    var index = 0
+
+    /// penalty factor for repeating tokens
+    let repetitionPenalty: Float
+
+    /// number of tokens to consider for repetition penalty
+    let repetitionContextSize: Int
+    
+    /// Optional mask to exclude specific tokens from penalty
+    private let defaultMask: [Bool]?
+
+    public init(repetitionPenalty: Float, repetitionContextSize: Int, mask: [Bool]? = nil) {
+        precondition(repetitionContextSize > 0)
+        self.repetitionPenalty = repetitionPenalty
+        self.repetitionContextSize = repetitionContextSize
+        self.defaultMask = mask
+    }
+
+    mutating public func prompt(_ prompt: MLXArray) {
+        if prompt.shape[0] <= repetitionContextSize {
+            self.tokens = prompt.asArray(Int.self)
+            self.tokenMasks = Array(repeating: false, count: self.tokens.count)
+        } else {
+            self.tokens = prompt[(-repetitionContextSize)...].asArray(Int.self)
+            self.tokenMasks = Array(repeating: false, count: self.tokens.count)
+        }
+    }
+
+    /// Initialize the context with both prompt tokens and their corresponding masks
+    mutating public func prompt(_ prompt: MLXArray, mask: [Bool]) {
+        precondition(prompt.shape[0] == mask.count, "Prompt and mask must have same length")
+
+        if prompt.shape[0] <= repetitionContextSize {
+            self.tokens = prompt.asArray(Int.self)
+            self.tokenMasks = mask
+        } else {
+            self.tokens = prompt[(-repetitionContextSize)...].asArray(Int.self)
+            self.tokenMasks = Array(mask.suffix(repetitionContextSize))
+        }
+    }
+
+    public func process(logits: MLXArray) -> MLXArray {
+        if tokens.count > 0 {
+            // Only consider tokens that are not masked (i.e., not image tokens)
+            let unmaskedTokens = tokens.enumerated().compactMap { index, token in
+                tokenMasks[index] ? nil : token
+            }
+
+            if !unmaskedTokens.isEmpty {
+                let indices = MLXArray(unmaskedTokens.map { UInt32($0) })
+                var selectedLogits = logits[0..., indices]
+
+                selectedLogits = MLX.where(
+                    selectedLogits .< 0, selectedLogits * repetitionPenalty,
+                    selectedLogits / repetitionPenalty)
+
+                logits[0..., indices] = selectedLogits
+            }
+
+            return logits
+        }
+
+        return logits
+    }
+
+    mutating public func didSample(token: MLXArray, isMasked: Bool = false) {
+        let tokenValue = token.item(Int.self)
+
+        if tokens.count >= repetitionContextSize {
+            tokens[index] = tokenValue
+            tokenMasks[index] = isMasked
+            index = (index + 1) % repetitionContextSize
+        } else {
+            tokens.append(tokenValue)
+            tokenMasks.append(isMasked)
+        }
+    }
+
+    mutating public func didSample(token: MLXArray) {
+        didSample(token: token, isMasked: false)
+    }
+}
+
 /// Generator of tokens.
 ///
 /// This is typically used via a call to ``generate(input:parameters:context:didGenerate:)``.
