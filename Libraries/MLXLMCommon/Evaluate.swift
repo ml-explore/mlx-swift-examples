@@ -243,10 +243,10 @@ public struct RepetitionContext: LogitProcessor {
 /// Processor that implements a `repetitionPenalty` with support for excluding masked tokens (e.g., image tokens)
 public struct MaskedRepetitionContext: LogitProcessor {
     /// tokens in the repetition context sliding window
-    public var tokens = [Int]()
+    var tokens = [Int]()
 
     /// mask indicating which tokens should be excluded from penalty (true = exclude)
-    public var tokenMasks = [Bool]()
+    var tokenMasks = [Bool]()
 
     /// current write index into the tokens circular array
     var index = 0
