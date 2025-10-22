@@ -171,7 +171,7 @@ public struct LoRAContainer: ModelAdapter {
     /// This method reverts each adapted layer to its original linear layer, if possible.
     public func unload(from model: LanguageModel) {
         guard let lora = model as? LoRAModel else {
-            return // Don't throw an error because nothing was likely applied before
+            return  // Don't throw an error because nothing was likely applied before
         }
 
         let layers = lora.loraLayers.suffix(configuration.numLayers)
@@ -218,7 +218,7 @@ private func replaceLayers<T>(
                 update.append((key, transformed))
             }
         }
-        
+
         if !update.isEmpty {
             layer.update(modules: .unflattened(update))
         }

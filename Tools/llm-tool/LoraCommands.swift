@@ -50,10 +50,11 @@ struct LoRAModelArguments: ParsableArguments, Sendable {
             modelAdapter = try LoRAContainer.from(directory: adapter)
         } catch {
             modelAdapter = try await modelContainer.perform { context in
-                return try LoRAContainer.from(model: context.model, configuration: LoRAConfiguration(numLayers: loraLayers))
+                return try LoRAContainer.from(
+                    model: context.model, configuration: LoRAConfiguration(numLayers: loraLayers))
             }
         }
-        
+
         return (modelContainer, modelAdapter)
     }
 
