@@ -1004,7 +1004,7 @@ public class FastVLMProcessor: UserInputProcessor {
             .resampled(to: config.cropSize.cgSize, method: .bicubic)
             .normalized(mean: config.imageMeanTuple, std: config.imageStdTuple)
 
-        let pixels = image.asMLXArray()//.transposed(0, 2, 3, 1)
+        let pixels = image.asMLXArray()
 
         let promptArray = MLXArray(tokens).expandedDimensions(axis: 0)
         let mask = ones(like: promptArray)
@@ -1132,6 +1132,11 @@ public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
     }
 }
 
+// MARK: - Message Generator
+
+/// This message generator adheres to the following format:
+/// - Image precedes text content
+/// - Empty system messages are removed - the chat template applies a default one in this case
 public struct FastVLMMessageGenerator: MessageGenerator {
     public func generate(message: Chat.Message) -> Message {
         [
