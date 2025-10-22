@@ -1072,60 +1072,40 @@ public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
             return languageModel.model.embedTokens(inputIds)
         }
 
-        let (_, imageFeatures, _) = visionModel(pixelValues.reshaped(0, 2, 3, 1))
+        let (_, imageFeatures, _) = visionModel(pixelValues.transposed(0, 2, 3, 1))
         let (B, H, W, C) = (imageFeatures.shape[0], imageFeatures.shape[1], imageFeatures.shape[2], imageFeatures.shape[3])
         let mmInputs = multimodalProjector(imageFeatures.reshaped(B, H * W, C))
         let finalEmbeddings = prepareInputsForMultimodal(imageFeatures: mmInputs, inputIds: inputIds, mask: mask)
         return finalEmbeddings
     }
 
+    // This method assumes bs == 1, and one single image
     private func prepareInputsForMultimodal(
-        imageFeatures: MLXArray, inputIds: MLXArray, mask: MLXArray?
+        imageFeatures: MLXArray, inputIds ids: MLXArray, mask: MLXArray?
     ) -> MLXArray {
-        return imageFeatures
+        let inputIds: MLXArray
+        if let mask = mask {
+            // Remove padding
+            let start: Int = mask[0].argMax().item()
+            let end = start + mask[0].sum().item()
+            inputIds = ids[0][start ..< end]
+        } else {
+            inputIds = ids
+        }
+
+        let inputIdsArray = inputIds.asArray(Int.self)
+        let imageTokenIndex = inputIdsArray.index(of: config.baseConfiguration.imageTokenIndex) ?? 0
+        // Embed tokens before and after and then split to insert the image
+        let tokens = inputIdsArray.split(separator: config.baseConfiguration.imageTokenIndex).joined()
+        let tokenEmbeddings = languageModel.model.embedTokens(MLXArray(tokens))
+        let splitTokenEmbeddings = tokenEmbeddings.split(indices: [imageTokenIndex])
+
+        // Concatenate - once again this is easy because we assume bs==1 and a single image
+        let embeddings = concatenated([splitTokenEmbeddings[0], imageFeatures[0], splitTokenEmbeddings[1]], axis: 0)
+
+        // TODO: trim if we went over model_max_length
+        return embeddings.expandedDimensions(axis: 0)
     }
-//        // Assumes bs == 1
-//        // inputIds shape: (1, seq_len)
-//        // asArray(Int.self) -> [[Int]], take [0] to get [Int]
-//        let ids: [[Int]] = [inputIds.asArray(Int.self)]
-//
-//        let inputIdArray: [Int] = ids[0]
-//
-//        let imageTokenIndex = config.imageTokenIndex
-//        let imagePositions = inputIdArray.enumerated().compactMap {
-//            $1 == imageTokenIndex ? $0 : nil
-//        }
-//
-//        var segments = [MLXArray]()
-//        var start_idx = 0
-//
-//        let chunkSize = imageFeatures.shape[1]  // 64
-//        let chunkCount = imagePositions.count / chunkSize  // Should be imageFeatures.shape[0]
-//        let chunks = (0 ..< chunkCount).map { startIndex in
-//            let start = startIndex * chunkSize
-//            let end = start + chunkSize
-//            return Array(imagePositions[start ..< end])
-//        }
-//
-//        for (chunkIndex, chunk) in chunks.enumerated() {
-//            let currentImage = imageFeatures[chunkIndex]
-//
-//            for (i, pos) in chunk.enumerated() {
-//                if pos > start_idx {
-//                    segments.append(inputs_embeds[0, start_idx ..< pos])
-//                }
-//                segments.append(currentImage[i ..< i + 1])
-//                start_idx = pos + 1
-//            }
-//        }
-//
-//        if start_idx < inputs_embeds.dim(1) {
-//            segments.append(inputs_embeds[0, start_idx...])
-//        }
-//
-//        let finalEmbeds = concatenated(segments, axis: 0)
-//        return finalEmbeds.expandedDimensions(axis: 0)
-//    }
 
     public func prepare(_ input: LMInput, cache: [any KVCache], windowSize: Int?) throws
         -> PrepareResult
