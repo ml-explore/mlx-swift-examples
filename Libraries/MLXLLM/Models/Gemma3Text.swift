@@ -413,7 +413,7 @@ public class Gemma3TextModel: Module, LLMModel {
 }
 
 extension Gemma3TextModel: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.map { ($0.selfAttention, ["q_proj", "v_proj"]) }
+    public var loraLayers: [Module] {
+        model.layers
     }
 }

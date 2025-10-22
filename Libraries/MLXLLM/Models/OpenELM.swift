@@ -303,7 +303,7 @@ public struct OpenElmConfiguration: Codable, Sendable {
 // MARK: - LoRA
 
 extension OpenELMModel: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        transformer.layers.map { ($0.attn, ["qkv_proj"]) }
+    public var loraLayers: [Module] {
+        transformer.layers
     }
 }

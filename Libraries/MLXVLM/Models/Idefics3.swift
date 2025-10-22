@@ -634,8 +634,8 @@ public class Idefics3: Module, VLMModel, KVCacheDimensionProvider {
     public var kvHeads: [Int] { languageModel.kvHeads }
     public var headDim: MLX.IntOrPair { languageModel.headDim }
 
-    public func loraLinearLayers() -> LoRALinearLayers {
-        languageModel.layers.map { ($0.selfAttn, ["q_proj", "v_proj"]) }
+    public var loraLayers: [Module] {
+        languageModel.layers
     }
 
     public init(_ config: Idefics3Configuration) {

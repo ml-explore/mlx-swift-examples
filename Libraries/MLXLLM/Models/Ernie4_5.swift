@@ -230,7 +230,7 @@ public class Ernie45Model: Module, LLMModel, KVCacheDimensionProvider {
 // MARK: - LoRA
 
 extension Ernie45Model: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
+    public var loraLayers: [Module] {
+        model.layers
     }
 }

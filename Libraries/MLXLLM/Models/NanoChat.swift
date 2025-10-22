@@ -277,7 +277,7 @@ public struct NanoChatConfiguration: Codable, Sendable {
 // MARK: - LoRA
 
 extension NanoChatModel: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        transformer.layers.map { ($0.attention, ["c_q", "c_v"]) }
+    public var loraLayers: [Module] {
+        transformer.layers
     }
 }
