@@ -373,7 +373,6 @@ private enum Vision {
             }
         }
 
-        #warning("We need something like NamedSequential here to store module names")
         let conv: ConvWithNorm
         @ModuleInfo var fc1: Conv2d
         let act: UnaryLayer
@@ -383,7 +382,6 @@ private enum Vision {
             let outChannels = outChannels ?? inChannels
             let hiddenChannels = hiddenChannels ?? inChannels
 
-            #warning("add names - can this be a dictionary to receive the weights?")
             self.conv = ConvWithNorm(inChannels: inChannels, outChannels: outChannels)
             self._fc1.wrappedValue = Conv2d(
                 inputChannels: inChannels,
