@@ -254,6 +254,23 @@ public enum MediaProcessing {
             ? CGSize(width: newShort, height: newLong) : CGSize(width: newLong, height: newShort)
     }
 
+    /// Enlarge an image by padding to square size.
+    /// The original image is centered inside the square.
+    public static func padToSquare(_ image: CIImage, backgroundColor: CIColor = .black) -> CIImage {
+        let rect = image.extent.integral
+        let (w, h) = (rect.width, rect.height)
+        let side = max(w, h)
+
+        let background = CIImage(color: backgroundColor).cropped(
+            to: CGRect(x: 0, y: 0, width: side, height: side))
+
+        let tx = (side - w) * 0.5 - rect.origin.x
+        let ty = (side - h) * 0.5 - rect.origin.y
+        let centered = image.transformed(by: CGAffineTransform(translationX: tx, y: ty))
+
+        return centered.composited(over: background)
+    }
+
     /// Apply `UserInput.Processing`, if needed, to the image.
     public static func apply(_ image: CIImage, processing: UserInput.Processing?) -> CIImage {
         var image = image
@@ -406,6 +423,10 @@ extension CIImage {
         -> CIImage
     {
         return MediaProcessing.normalize(self, mean: mean, std: std)
+    }
+
+    public func paddingToSquare(backgroundColor color: CIColor = .black) -> CIImage {
+        MediaProcessing.padToSquare(self, backgroundColor: color)
     }
 
     public func asMLXArray(colorSpace: CGColorSpace? = nil) -> MLXArray {
