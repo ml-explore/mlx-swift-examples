@@ -171,8 +171,9 @@ public class QLoRALinear: QuantizedLinear, LoRALayer {
     /// - ``LoRATrain/fuse(model:layers:deQuantize:)``
     public func fused() -> Module {
         let weight = dequantizedWeight
-        let loraB = (scale * loraB.T).asType(.float16)
-        let loraA = loraA.T.asType(.float16)
+        let dtype = dequantizedWeight.dtype
+        let loraB = (scale * loraB.T).asType(dtype)
+        let loraA = loraA.T.asType(dtype)
         return QuantizedLinear(
             weight: weight + matmul(loraB, loraA),
             bias: bias,
