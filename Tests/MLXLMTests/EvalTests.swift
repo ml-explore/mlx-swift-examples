@@ -32,7 +32,10 @@ public class EvalTests: XCTestCase {
         let model = LlamaModel(config)
         quantize(model: model, groupSize: 64, bits: 4)
 
-        LoRATrain.convert(model: model, layers: model.loraLinearLayers(4))
+        let adapter = try LoRAContainer.from(
+            model: model,
+            configuration: LoRAConfiguration(numLayers: 4)
+        )
 
         let optimizer = Adam(learningRate: 1e-5)
 

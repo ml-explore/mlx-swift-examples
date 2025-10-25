@@ -23,7 +23,7 @@ struct LoRACommand: AsyncParsableCommand {
 
 private let defaultModel = MLXLLM.LLMRegistry.mistral7B4bit.name
 
-/// Common arguments for loading a LoRA mdoel with adapter weights
+/// Common arguments for loading a LoRA model with adapter weights
 struct LoRAModelArguments: ParsableArguments, Sendable {
 
     @OptionGroup var args: ModelArguments
@@ -40,19 +40,22 @@ struct LoRAModelArguments: ParsableArguments, Sendable {
     func load(
         defaultModel: String = defaultModel,
         modelFactory: ModelFactory = LLMModelFactory.shared
-    ) async throws -> ModelContainer {
+    ) async throws -> (ModelContainer, ModelAdapter) {
         let modelContainer = try await args.load(
             defaultModel: defaultModel, modelFactory: modelFactory)
 
-        // convert some of the Linear layers to LoRALinear
-        await modelContainer.perform { context in
-            guard let lora = context.model as? LoRAModel else {
-                fatalError("Model \(context.configuration.name) is not a LoRAModel")
+        // Load LoRA adapter from directory or create a new one
+        let modelAdapter: ModelAdapter
+        do {
+            modelAdapter = try LoRAContainer.from(directory: adapter)
+        } catch {
+            modelAdapter = try await modelContainer.perform { context in
+                return try LoRAContainer.from(
+                    model: context.model, configuration: LoRAConfiguration(numLayers: loraLayers))
             }
-            LoRATrain.convert(model: context.model, layers: lora.loraLinearLayers(loraLayers))
         }
 
-        return modelContainer
+        return (modelContainer, modelAdapter)
     }
 
     func describe(model: Module) {
@@ -120,7 +123,7 @@ struct LoRATrainCommand: AsyncParsableCommand {
 
     @MainActor
     mutating func run() async throws {
-        let modelContainer = try await args.load()
+        let (modelContainer, modelAdapter) = try await args.load()
         await modelContainer.perform { [args] context in
             args.describe(model: context.model)
         }
@@ -129,8 +132,8 @@ struct LoRATrainCommand: AsyncParsableCommand {
 
         if resume {
             print("Loading pretrained adapters from \(args.adapter.path())")
-            try await modelContainer.perform { [args] context in
-                try LoRATrain.loadLoRAWeights(model: context.model, url: args.adapter)
+            try await modelContainer.perform { context in
+                try context.model.load(adapter: modelAdapter)
             }
         }
 
@@ -186,22 +189,11 @@ struct LoRAFuseCommand: AsyncParsableCommand {
             outputURL = HubApi().localRepoLocation(repo)
         }
 
-        let modelContainer = try await args.load()
+        let (modelContainer, modelAdapter) = try await args.load()
 
-        // load the prepared weights
-        try await modelContainer.perform { [args] context in
-            try LoRATrain.loadLoRAWeights(model: context.model, url: args.adapter)
-        }
-
-        // fuse them back into Linear/QuantizedLinear
-        await modelContainer.perform { [args, deQuantize] context in
-            guard let lora = context.model as? LoRAModel else {
-                fatalError("Model \(context.configuration.name) is not a LoRAModel")
-            }
-
-            LoRATrain.fuse(
-                model: context.model, layers: lora.loraLinearLayers(args.loraLayers),
-                deQuantize: deQuantize)
+        // fuse LoRA layers back into Linear/QuantizedLinear
+        try await modelContainer.perform { context in
+            try context.model.fuse(with: modelAdapter)
         }
 
         // make the new directory and copy files from source model
@@ -249,12 +241,9 @@ struct LoRATestCommand: AsyncParsableCommand {
 
     @MainActor
     mutating func run() async throws {
-        let modelContainer = try await args.load()
+        let (modelContainer, _) = try await args.load()
         await modelContainer.perform { [args] context in
             args.describe(model: context.model)
-        }
-        try await modelContainer.perform { [args] context in
-            try LoRATrain.loadLoRAWeights(model: context.model, url: args.adapter)
         }
 
         memory.start()
@@ -286,12 +275,9 @@ struct LoRAEvalCommand: AsyncParsableCommand {
 
     @MainActor
     mutating func run() async throws {
-        let modelContainer = try await args.load()
+        let (modelContainer, _) = try await args.load()
         await modelContainer.perform { [args] context in
             args.describe(model: context.model)
-        }
-        try await modelContainer.perform { [args] context in
-            try LoRATrain.loadLoRAWeights(model: context.model, url: args.adapter)
         }
 
         memory.start()

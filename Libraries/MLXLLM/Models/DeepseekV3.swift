@@ -559,7 +559,7 @@ public class DeepseekV3Model: Module, LLMModel, KVCacheDimensionProvider, LoRAMo
         }
     }
 
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.map { ($0.selfAttn, ["q_proj", "v_proj"]) }
+    public var loraLayers: [Module] {
+        model.layers
     }
 }

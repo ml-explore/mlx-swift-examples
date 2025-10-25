@@ -752,7 +752,7 @@ public class FalconH1Model: Module, LLMModel, KVCacheDimensionProvider {
 // MARK: - LoRA
 
 extension FalconH1Model: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
+    public var loraLayers: [Module] {
+        model.layers
     }
 }

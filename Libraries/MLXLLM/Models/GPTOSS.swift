@@ -588,9 +588,7 @@ public class GPTOSSModel: Module, LLMModel, KVCacheDimensionProvider {
 }
 
 extension GPTOSSModel: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.map { layer in
-            (layer.selfAttn, ["q_proj", "k_proj", "v_proj", "o_proj"])
-        }
+    public var loraLayers: [Module] {
+        model.layers
     }
 }

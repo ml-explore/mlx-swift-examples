@@ -174,17 +174,6 @@ class LoRAEvaluator {
         }
     }
 
-    nonisolated private func loraLayers(model: Module) -> LoRALinearLayers {
-        guard let layerProvider = model as? LoRAModel else {
-            // the layerProvider will indicate which Linear layers need to be replaced
-            fatalError(
-                "Model \(type(of: model)) (\(modelConfiguration.name)) must implement the LoRALayerProvider protocol"
-            )
-        }
-
-        return Array(layerProvider.loraLinearLayers().suffix(loraLayers))
-    }
-
     private func startInner() async throws {
         // setup
         GPU.set(cacheLimit: 32 * 1024 * 1024)
@@ -197,9 +186,11 @@ class LoRAEvaluator {
         let modelContainer = try await loadModel()
 
         // apply LoRA adapters and train
-        await modelContainer.perform { context in
-            LoRATrain.convert(
-                model: context.model, layers: loraLayers(model: context.model))
+        let modelAdapter = try await modelContainer.perform { context in
+            try LoRAContainer.from(
+                model: context.model,
+                configuration: LoRAConfiguration(numLayers: loraLayers)
+            )
         }
 
         let train = try loadLoRAData(name: "train")

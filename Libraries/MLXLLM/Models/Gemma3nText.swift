@@ -991,9 +991,7 @@ public class Gemma3nTextModel: Module, LLMModel {
 }
 
 extension Gemma3nTextModel: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        return languageModel.layers.map { layer in
-            (layer.selfAttn, ["q_proj", "v_proj"])
-        }
+    public var loraLayers: [Module] {
+        languageModel.layers
     }
 }

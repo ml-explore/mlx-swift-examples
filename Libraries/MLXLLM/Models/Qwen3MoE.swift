@@ -357,7 +357,7 @@ public struct Qwen3MoEConfiguration: Codable, Sendable {
 // MARK: - LoRA
 
 extension Qwen3MoEModel: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.map { ($0.selfAttn, ["q_proj", "v_proj"]) }
+    public var loraLayers: [Module] {
+        model.layers
     }
 }
