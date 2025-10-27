@@ -155,14 +155,11 @@ public struct LoRAContainer: ModelAdapter {
             throw ModelAdapterError.incompatibleModelType
         }
 
+        try load(into: model)
         let layers = lora.loraLayers.suffix(configuration.numLayers)
         let keys = configuration.loraParameters.keys ?? lora.loraDefaultKeys
-        replaceLayers(layers: layers, keys: keys) { (layer: Module) in
-            if let lora = layer as? LoRALayer {
-                lora.fused()
-            } else {
-                createReplacementLayer(target: layer, configuration: configuration)?.fused()
-            }
+        replaceLayers(layers: layers, keys: keys) { (lora: LoRALayer) in
+            lora.fused()
         }
     }
 
