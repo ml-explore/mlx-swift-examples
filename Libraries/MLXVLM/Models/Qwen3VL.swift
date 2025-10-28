@@ -1710,24 +1710,16 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
 
         for (key, value) in weights {
             var newKey = key
-            if newKey.contains("model.visual") {
-                newKey = newKey.replacingOccurrences(of: "model.visual", with: "vision_tower")
-            } else if newKey.contains("model.language_model") {
-                newKey = newKey.replacingOccurrences(
-                    of: "model.language_model", with: "language_model.model")
-            }
 
-            if newKey.contains("model.lm_head") {
-                newKey = newKey.replacingOccurrences(
-                    of: "model.lm_head", with: "language_model.lm_head")
-                guard !config.textConfiguration.tieWordEmbeddings else { continue }
-                adjusted[newKey] = value
-                continue
-            } else if newKey.contains("lm_head") && !newKey.contains("language_model") {
+            if newKey.contains("model") {
+                if newKey.contains("model.visual") {
+                    newKey = newKey.replacingOccurrences(of: "model.visual", with: "vision_tower")
+                } else if newKey.contains("model.language_model") {
+                    newKey = newKey.replacingOccurrences(
+                        of: "model.language_model", with: "language_model.model")
+                }
+            } else if newKey.contains("lm_head") {
                 newKey = newKey.replacingOccurrences(of: "lm_head", with: "language_model.lm_head")
-                guard !config.textConfiguration.tieWordEmbeddings else { continue }
-                adjusted[newKey] = value
-                continue
             }
 
             adjusted[newKey] = value
