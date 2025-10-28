@@ -19,7 +19,7 @@ func prepareModelDirectory(
         case .id(let id):
             // download the model weights
             let repo = Hub.Repo(id: id)
-            let modelFiles = ["*.safetensors", "config.json"]
+            let modelFiles = ["*.safetensors", "config.json", "*/config.json"]
             return try await hub.snapshot(
                 from: repo, matching: modelFiles, progressHandler: progressHandler)
 
