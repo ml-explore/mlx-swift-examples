@@ -1722,6 +1722,11 @@ public final class Qwen3VL: Module, VLMModel, KVCacheDimensionProvider {
                 newKey = newKey.replacingOccurrences(of: "lm_head", with: "language_model.lm_head")
             }
 
+            if config.textConfiguration.tieWordEmbeddings && newKey.contains(".lm_head.") {
+                // if using tieWordEmbeddings omit these keys as they will not be consumed
+                continue
+            }
+
             adjusted[newKey] = value
         }
 
