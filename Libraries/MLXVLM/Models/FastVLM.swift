@@ -1079,8 +1079,8 @@ public class FastVLM: Module, VLMModel, KVCacheDimensionProvider {
         self._multimodalProjector.wrappedValue = FastVLMMultiModalProjector(config)
     }
 
-    public func loraLinearLayers() -> LoRALinearLayers {
-        languageModel.model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
+    public var loraLayers: [Module] {
+        languageModel.model.layers
     }
 
     private func getInputEmbeddings(inputIds: MLXArray, pixelValues: MLXArray?, mask: MLXArray?)
