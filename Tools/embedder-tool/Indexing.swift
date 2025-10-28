@@ -63,11 +63,13 @@ struct CorpusLoader {
 
         let fileURLs: [URL]
         if recursive {
-            guard let enumerator = fileManager.enumerator(
-                at: root,
-                includingPropertiesForKeys: [.isRegularFileKey],
-                options: [.skipsHiddenFiles]
-            ) else {
+            guard
+                let enumerator = fileManager.enumerator(
+                    at: root,
+                    includingPropertiesForKeys: [.isRegularFileKey],
+                    options: [.skipsHiddenFiles]
+                )
+            else {
                 return LoadResult(documents: [], failures: [])
             }
             fileURLs = enumerator.allObjects as? [URL] ?? []

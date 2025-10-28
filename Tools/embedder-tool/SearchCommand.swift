@@ -38,7 +38,7 @@ struct SearchCommand: EmbedderCommand {
             print("Query produced no tokens")
             return
         }
-        
+
         queryVector = VectorOperations.sanitize(queryVector)
 
         if runtime.normalize {
