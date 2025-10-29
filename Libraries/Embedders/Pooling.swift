@@ -42,8 +42,8 @@ public class Pooling: Module {
         case max
         case none
     }
-    let strategy: Strategy
-    let dimension: Int?
+    public private(set) var strategy: Strategy
+    public private(set) var dimension: Int?
 
     public init(
         strategy: Strategy, dimension: Int? = nil

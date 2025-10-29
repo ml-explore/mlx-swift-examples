@@ -66,7 +66,7 @@ private class ModelTypeRegistry: @unchecked Sendable {
             url in
             let configuration = try JSONDecoder().decode(
                 NomicBertConfiguration.self, from: Data(contentsOf: url))
-            let model = NomicBertModel(configuration)
+            let model = NomicBertModel(configuration, pooler: false)
             return model
         },
         "qwen3": {
