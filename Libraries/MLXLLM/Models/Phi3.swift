@@ -320,7 +320,7 @@ public struct Phi3Configuration: Codable, Sendable {
 // MARK: - LoRA
 
 extension Phi3Model: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.map { ($0.attention, ["qkv_proj"]) }
+    public var loraLayers: [Module] {
+        model.layers
     }
 }

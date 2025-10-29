@@ -590,13 +590,8 @@ public class GraniteMoeHybridModel: Module, LLMModel, KVCacheDimensionProvider {
         return sanitized
     }
 
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.compactMap { layer in
-            if layer.layerType == .attention, let attention = layer.selfAttention {
-                return (attention, ["q_proj", "v_proj"])
-            }
-            return nil
-        }
+    public var loraLayers: [Module] {
+        model.layers
     }
 }
 

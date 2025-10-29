@@ -9,37 +9,36 @@ import Foundation
 import MLX
 import MLXNN
 
-/// Layers to apply LoRA adapters to.
-///
-/// This is the value returned by ``LoRAModel/loraLinearLayers()``.
-public typealias LoRALinearLayers = [(Module, [String])]
-
 public protocol LoRAModel {
-    /// Return the layers and keys to apply LoRA adapters to.
-    ///
-    /// For example this might apply the adapters to the `q` an `v` projections in the
-    /// Attention layers:
-    ///
-    /// ```swift
-    /// model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
-    /// ```
-    ///
-    /// It is not required that a model implement this protocol to have LoRA adapters applied, but
-    /// the command line driver example uses this to produce the ``LoRALinearLayers``.
-    ///
-    /// ### See Also
-    /// - ``LoRATrain/convert(model:layers:)``
-    func loraLinearLayers() -> LoRALinearLayers
 
-    /// Return a suffix of the layers and keys to apply LoRA adapters to.
+    /// Return the layers to apply LoRA adapters to.
     ///
-    /// See ``loraLinearLayers()``
-    func loraLinearLayers(_ count: Int) -> LoRALinearLayers
+    /// Typically, this includes all transformer layers.
+    /// Must be defined explicitly since we can't unify it across all models.
+    var loraLayers: [Module] { get }
+
+    /// Default layer keys to apply LoRA adapters to.
+    ///
+    /// Used when not specified in `adapter_config.json`.
+    /// Otherwise, keys from the config are applied.
+    var loraDefaultKeys: [String] { get }
 }
 
 extension LoRAModel {
-    public func loraLinearLayers(_ count: Int) -> LoRALinearLayers {
-        loraLinearLayers().suffix(count)
+
+    /// By default we apply LoRA to all Linear layers.
+    /// This is aligned with `mlx-lm` Python logic.
+    public var loraDefaultKeys: [String] {
+        let namedModules = loraLayers.flatMap { $0.namedModules() }
+        let linearKeys = namedModules.compactMap { key, module in
+            if module is Linear {
+                return key
+            } else {
+                return nil
+            }
+        }
+        let unique = Set(linearKeys)
+        return Array(unique)
     }
 }
 

@@ -294,7 +294,7 @@ public class BaichuanM1Model: Module, LLMModel, KVCacheDimensionProvider {
 }
 
 extension BaichuanM1Model: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.map { ($0.attention, ["W_pack"]) }
+    public var loraLayers: [Module] {
+        model.layers
     }
 }

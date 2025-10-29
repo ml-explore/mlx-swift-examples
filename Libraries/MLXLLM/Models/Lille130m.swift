@@ -241,7 +241,7 @@ public struct Lille130mConfiguration: Codable, Sendable {
 // MARK: - LoRA
 
 extension Lille130mModel: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        transformer.layers.map { ($0.attention, ["qkv_proj"]) }
+    public var loraLayers: [Module] {
+        transformer.layers
     }
 }

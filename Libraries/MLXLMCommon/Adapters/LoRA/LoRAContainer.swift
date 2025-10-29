@@ -24,21 +24,23 @@ import MLXNN
 ///   }
 /// }
 /// ```
-public struct LoRAConfiguration: Codable {
+public struct LoRAConfiguration: Sendable, Codable {
 
-    public enum FineTuneType: String, Codable {
+    public enum FineTuneType: String, Sendable, Codable {
         case lora
         case dora
     }
 
-    public struct LoRAParameters: Codable {
+    public struct LoRAParameters: Sendable, Codable {
 
         public let rank: Int
         public let scale: Float
+        public let keys: [String]?
 
-        public init(rank: Int = 8, scale: Float = 10.0) {
+        public init(rank: Int = 8, scale: Float = 10.0, keys: [String]? = nil) {
             self.rank = rank
             self.scale = scale
+            self.keys = keys
         }
     }
 
@@ -92,9 +94,10 @@ public struct LoRAContainer: ModelAdapter {
             throw ModelAdapterError.incompatibleModelType
         }
 
-        try model.freeze()
-        let layers = lora.loraLinearLayers(configuration.numLayers)
-        replaceLayers(layers: layers) { (layer: Module) in
+        model.freeze()
+        let layers = lora.loraLayers.suffix(configuration.numLayers)
+        let keys = configuration.loraParameters.keys ?? lora.loraDefaultKeys
+        replaceLayers(layers: layers, keys: keys) { (layer: Module) in
             createReplacementLayer(target: layer, configuration: configuration)
         }
 
@@ -131,8 +134,9 @@ public struct LoRAContainer: ModelAdapter {
             throw ModelAdapterError.incompatibleModelType
         }
 
-        let layers = lora.loraLinearLayers(configuration.numLayers)
-        replaceLayers(layers: layers) { (layer: Module) in
+        let layers = lora.loraLayers.suffix(configuration.numLayers)
+        let keys = configuration.loraParameters.keys ?? lora.loraDefaultKeys
+        replaceLayers(layers: layers, keys: keys) { (layer: Module) in
             createReplacementLayer(target: layer, configuration: configuration)
         }
 
@@ -151,13 +155,11 @@ public struct LoRAContainer: ModelAdapter {
             throw ModelAdapterError.incompatibleModelType
         }
 
-        let layers = lora.loraLinearLayers(configuration.numLayers)
-        replaceLayers(layers: layers) { (layer: Module) in
-            if let lora = layer as? LoRALayer {
-                lora.fused()
-            } else {
-                createReplacementLayer(target: layer, configuration: configuration)?.fused()
-            }
+        try load(into: model)
+        let layers = lora.loraLayers.suffix(configuration.numLayers)
+        let keys = configuration.loraParameters.keys ?? lora.loraDefaultKeys
+        replaceLayers(layers: layers, keys: keys) { (lora: LoRALayer) in
+            lora.fused()
         }
     }
 
@@ -169,8 +171,9 @@ public struct LoRAContainer: ModelAdapter {
             return  // Don't throw an error because nothing was likely applied before
         }
 
-        let layers = lora.loraLinearLayers(configuration.numLayers)
-        replaceLayers(layers: layers) { (lora: LoRALayer) in
+        let layers = lora.loraLayers.suffix(configuration.numLayers)
+        let keys = configuration.loraParameters.keys ?? lora.loraDefaultKeys
+        replaceLayers(layers: layers, keys: keys) { (lora: LoRALayer) in
             lora.reverted()
         }
     }
@@ -201,23 +204,20 @@ private func createReplacementLayer(
 
 /// Traverses the model and replaces its layers using a transformation closure.
 private func replaceLayers<T>(
-    layers: LoRALinearLayers,
+    layers: ArraySlice<Module>,
+    keys: [String],
     transforming transform: (T) -> Module?
 ) {
-    for (layer, keys) in layers {
-        var update = ModuleChildren()
-        let children = layer.children()
-
-        for key in keys {
-            if let item = children[key], case .value(let child) = item {
-                if let child = child as? T, let transformed = transform(child) {
-                    update[key] = .value(transformed)
-                }
+    for layer in layers {
+        var update: [(String, Module)] = []
+        for (key, child) in layer.namedModules() where keys.contains(key) {
+            if let child = child as? T, let transformed = transform(child) {
+                update.append((key, transformed))
             }
         }
 
         if !update.isEmpty {
-            layer.update(modules: update)
+            layer.update(modules: .unflattened(update))
         }
     }
 }

@@ -359,7 +359,7 @@ public class BailingMoeModel: Module, LLMModel, KVCacheDimensionProvider {
 }
 
 extension BailingMoeModel: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.map { ($0.attention, ["query_key_value"]) }
+    public var loraLayers: [Module] {
+        model.layers
     }
 }

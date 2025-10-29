@@ -237,7 +237,7 @@ public struct PhiConfiguration: Codable, Sendable {
 // MARK: - LoRA
 
 extension PhiModel: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.map { ($0.selfAttention, ["q_proj", "v_proj"]) }
+    public var loraLayers: [Module] {
+        model.layers
     }
 }

@@ -491,12 +491,7 @@ public class LFM2MoEModel: Module, LLMModel, KVCacheDimensionProvider {
 }
 
 extension LFM2MoEModel: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.compactMap { layer in
-            if layer.isAttentionLayer, let attention = layer.attention {
-                return (attention, ["q_proj", "v_proj"])
-            }
-            return nil
-        }
+    public var loraLayers: [Module] {
+        model.layers
     }
 }
