@@ -14,12 +14,14 @@ private class Generator {
     var messages = [Chat.Message]()
     let processing: UserInput.Processing
     let generateParameters: GenerateParameters
+    let additionalContext: [String: Any]?
     var cache: [KVCache]
 
     init(
         model: Model, instructions: String?, prompt: String, image: UserInput.Image?,
         video: UserInput.Video?, processing: UserInput.Processing,
-        generateParameters: GenerateParameters
+        generateParameters: GenerateParameters,
+        additionalContext: [String: Any]?
     ) {
         self.model = model
         self.messages = []
@@ -31,12 +33,14 @@ private class Generator {
                 prompt, images: image.flatMap { [$0] } ?? [], videos: video.flatMap { [$0] } ?? []))
         self.processing = processing
         self.generateParameters = generateParameters
+        self.additionalContext = additionalContext
         self.cache = []
     }
 
     init(
         model: Model, instructions: String?, processing: UserInput.Processing,
-        generateParameters: GenerateParameters
+        generateParameters: GenerateParameters,
+        additionalContext: [String: Any]?
     ) {
         self.model = model
         if let instructions {
@@ -46,6 +50,7 @@ private class Generator {
         }
         self.processing = processing
         self.generateParameters = generateParameters
+        self.additionalContext = additionalContext
         self.cache = []
     }
 
@@ -53,7 +58,8 @@ private class Generator {
         func generate(context: ModelContext) async throws -> String {
             // prepare the input -- first the structured messages,
             // next the tokens
-            let userInput = UserInput(chat: messages, processing: processing)
+            let userInput = UserInput(
+                chat: messages, processing: processing, additionalContext: additionalContext)
             let input = try await context.processor.prepare(input: userInput)
 
             if cache.isEmpty {
@@ -90,7 +96,8 @@ private class Generator {
             do {
                 // prepare the input -- first the structured messages,
                 // next the tokens
-                let userInput = UserInput(chat: messages, processing: processing)
+                let userInput = UserInput(
+                    chat: messages, processing: processing, additionalContext: additionalContext)
                 let input = try await context.processor.prepare(input: userInput)
 
                 if cache.isEmpty {
@@ -154,14 +161,16 @@ public class ChatSession {
     ///   - instructions: optional instructions to the chat session, e.g. describing what type of responses to give
     ///   - generateParameters: parameters that control the generation of output, e.g. token limits and temperature
     ///   - processing: optional media processing instructions
+    ///   - additionalContext: optional context (model/tokenizer specific)
     public init(
         _ model: ModelContainer, instructions: String? = nil,
         generateParameters: GenerateParameters = .init(),
-        processing: UserInput.Processing = .init(resize: CGSize(width: 512, height: 512))
+        processing: UserInput.Processing = .init(resize: CGSize(width: 512, height: 512)),
+        additionalContext: [String: Any]? = nil
     ) {
         self.generator = .init(
             model: .container(model), instructions: instructions, processing: processing,
-            generateParameters: generateParameters)
+            generateParameters: generateParameters, additionalContext: additionalContext)
     }
 
     /// Initialize the `ChatSession`.
@@ -171,14 +180,16 @@ public class ChatSession {
     ///   - instructions: optional instructions to the chat session, e.g. describing what type of responses to give
     ///   - generateParameters: parameters that control the generation of output, e.g. token limits and temperature
     ///   - processing: optional media processing instructions
+    ///   - additionalContext: optional context (model/tokenizer specific)
     public init(
         _ model: ModelContext, instructions: String? = nil,
         generateParameters: GenerateParameters = .init(),
-        processing: UserInput.Processing = .init(resize: CGSize(width: 512, height: 512))
+        processing: UserInput.Processing = .init(resize: CGSize(width: 512, height: 512)),
+        additionalContext: [String: Any]? = nil
     ) {
         self.generator = .init(
             model: .context(model), instructions: instructions, processing: processing,
-            generateParameters: generateParameters)
+            generateParameters: generateParameters, additionalContext: additionalContext)
     }
 
     /// Produces a response to a prompt.
