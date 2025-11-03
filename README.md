@@ -27,6 +27,8 @@ Example [MLX Swift](https://github.com/ml-explore/mlx-swift) programs.
 
 - [MLXChatExample](Applications/MLXChatExample/README.md): An example chat app that runs on both iOS and macOS that supports LLMs and VLMs.
 
+- [LoRATrainingExample](Applications/LoRATrainingExample/README.md): An example that runs on macOS that downloads an LLM and fine-tunes it using LoRA (Low-Rank Adaptation) with training data.
+
 - [LinearModelTraining](Tools/LinearModelTraining/README.md): An example that
   trains a simple linear model.
 
