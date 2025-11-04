@@ -54,7 +54,7 @@ public protocol LogitProcessor: Sendable {
 public struct GenerateParameters: Sendable {
 
     /// Step size for processing the prompt
-    public var prefillStepSize = 512
+    public var prefillStepSize: Int
 
     /// Maximum tokens to generate
     public var maxTokens: Int?
@@ -67,22 +67,22 @@ public struct GenerateParameters: Sendable {
     public var kvBits: Int?
 
     /// Group size for KV cache quantization (default: 64)
-    public var kvGroupSize: Int = 64
+    public var kvGroupSize: Int
 
     /// Step to begin using a quantized KV cache when kvBits is non-nil (default: 0)
-    public var quantizedKVStart: Int = 0
+    public var quantizedKVStart: Int
 
     /// sampling temperature
-    public var temperature: Float = 0.6
+    public var temperature: Float
 
     /// top p sampling
-    public var topP: Float = 1.0
+    public var topP: Float
 
     /// penalty factor for repeating tokens
     public var repetitionPenalty: Float?
 
     /// number of tokens to consider for repetition penalty
-    public var repetitionContextSize: Int = 20
+    public var repetitionContextSize: Int
 
     public init(
         maxTokens: Int? = nil,
@@ -90,8 +90,11 @@ public struct GenerateParameters: Sendable {
         kvBits: Int? = nil,
         kvGroupSize: Int = 64,
         quantizedKVStart: Int = 0,
-        temperature: Float = 0.6, topP: Float = 1.0, repetitionPenalty: Float? = nil,
-        repetitionContextSize: Int = 20
+        temperature: Float = 0.6,
+        topP: Float = 1.0,
+        repetitionPenalty: Float? = nil,
+        repetitionContextSize: Int = 20,
+        prefillStepSize: Int = 512
     ) {
         self.maxTokens = maxTokens
         self.maxKVSize = maxKVSize
@@ -102,6 +105,7 @@ public struct GenerateParameters: Sendable {
         self.topP = topP
         self.repetitionPenalty = repetitionPenalty
         self.repetitionContextSize = repetitionContextSize
+        self.prefillStepSize = prefillStepSize
     }
 
     public func sampler() -> LogitSampler {
