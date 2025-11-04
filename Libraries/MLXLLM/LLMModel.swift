@@ -32,6 +32,7 @@ extension LLMModel {
             let result = self(input, cache: cache.isEmpty ? nil : cache, state: state)
             eval(cache)
             y = y[prefillStepSize...]
+            GPU.clearCache()
         }
 
         return .tokens(y)

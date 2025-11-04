@@ -623,7 +623,11 @@ public func generate(
         {
             break
         }
+
         tokens.append(token)
+        if tokens.count % 256 == 0 {
+            GPU.clearCache()
+        }
 
         if didGenerate(tokens) == .stop {
             break
@@ -713,6 +717,9 @@ public func generate(
         }
 
         tokenCount += 1
+        if tokenCount % 256 == 0 {
+            GPU.clearCache()
+        }
 
         // Invoke the callback with the current token
         if didGenerate(token) == .stop {
@@ -824,6 +831,9 @@ public func generate(
                 detokenizer.append(token: token)
                 if let chunk = detokenizer.next() {
                     tokenCount += 1
+                    if tokenCount % 256 == 0 {
+                        GPU.clearCache()
+                    }
 
                     // Process chunk through the tool call processor
                     if let textToYield = toolCallProcessor.processChunk(chunk) {
