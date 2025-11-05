@@ -22,8 +22,8 @@ A lightweight chat application demonstrating MLX integration for iOS and macOS. 
 
 ## Dependencies
 
-- MLX: Core machine learning operations
-- MLXLMCommon: Common language model utilities
+- [MLX](https://github.com/ml-explore/mlx-swift): Core machine learning operations
+- [MLXLMCommon](https://github.com/ml-explore/mlx-swift-lm): Common language model utilities
 - MLXLLM: Large language model support
 - MLXVLM: Vision-language model support
 

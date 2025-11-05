@@ -8,26 +8,15 @@ let package = Package(
     platforms: [.macOS(.v14), .iOS(.v16)],
     products: [
         .library(
-            name: "MLXLLM",
-            targets: ["MLXLLM"]),
-        .library(
-            name: "MLXVLM",
-            targets: ["MLXVLM"]),
-        .library(
-            name: "MLXLMCommon",
-            targets: ["MLXLMCommon"]),
-        .library(
             name: "MLXMNIST",
             targets: ["MLXMNIST"]),
-        .library(
-            name: "MLXEmbedders",
-            targets: ["MLXEmbedders"]),
         .library(
             name: "StableDiffusion",
             targets: ["StableDiffusion"]),
     ],
     dependencies: [
         .package(url: "https://github.com/ml-explore/mlx-swift", .upToNextMinor(from: "0.29.1")),
+        .package(url: "https://github.com/ml-explore/mlx-swift-lm", .upToNextMinor(from: "2.29.1")),
         .package(
             url: "https://github.com/huggingface/swift-transformers",
             .upToNextMinor(from: "1.1.0")
@@ -35,97 +24,6 @@ let package = Package(
         .package(url: "https://github.com/1024jp/GzipSwift", "6.0.1" ... "6.0.1"),  // Only needed by MLXMNIST
     ],
     targets: [
-        .target(
-            name: "MLXLLM",
-            dependencies: [
-                "MLXLMCommon",
-                .product(name: "MLX", package: "mlx-swift"),
-                .product(name: "MLXFast", package: "mlx-swift"),
-                .product(name: "MLXNN", package: "mlx-swift"),
-                .product(name: "MLXOptimizers", package: "mlx-swift"),
-                .product(name: "MLXRandom", package: "mlx-swift"),
-                .product(name: "Transformers", package: "swift-transformers"),
-            ],
-            path: "Libraries/MLXLLM",
-            exclude: [
-                "README.md"
-            ],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
-        ),
-        .target(
-            name: "MLXVLM",
-            dependencies: [
-                "MLXLMCommon",
-                .product(name: "MLX", package: "mlx-swift"),
-                .product(name: "MLXFast", package: "mlx-swift"),
-                .product(name: "MLXNN", package: "mlx-swift"),
-                .product(name: "MLXOptimizers", package: "mlx-swift"),
-                .product(name: "MLXRandom", package: "mlx-swift"),
-                .product(name: "Transformers", package: "swift-transformers"),
-            ],
-            path: "Libraries/MLXVLM",
-            exclude: [
-                "README.md"
-            ],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
-        ),
-        .target(
-            name: "MLXLMCommon",
-            dependencies: [
-                .product(name: "MLX", package: "mlx-swift"),
-                .product(name: "MLXNN", package: "mlx-swift"),
-                .product(name: "MLXOptimizers", package: "mlx-swift"),
-                .product(name: "MLXRandom", package: "mlx-swift"),
-                .product(name: "MLXLinalg", package: "mlx-swift"),
-                .product(name: "Transformers", package: "swift-transformers"),
-            ],
-            path: "Libraries/MLXLMCommon",
-            exclude: [
-                "README.md"
-            ],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
-        ),
-        .testTarget(
-            name: "MLXLMTests",
-            dependencies: [
-                .product(name: "MLX", package: "mlx-swift"),
-                .product(name: "MLXNN", package: "mlx-swift"),
-                .product(name: "MLXOptimizers", package: "mlx-swift"),
-                .product(name: "MLXRandom", package: "mlx-swift"),
-                .product(name: "Transformers", package: "swift-transformers"),
-                "MLXLMCommon",
-                "MLXLLM",
-                "MLXVLM",
-            ],
-            path: "Tests/MLXLMTests",
-            exclude: [
-                "README.md"
-            ],
-            swiftSettings: [
-                .enableExperimentalFeature("StrictConcurrency")
-            ]
-        ),
-        .target(
-            name: "MLXEmbedders",
-            dependencies: [
-                .product(name: "MLX", package: "mlx-swift"),
-                .product(name: "MLXFast", package: "mlx-swift"),
-                .product(name: "MLXNN", package: "mlx-swift"),
-                .product(name: "Transformers", package: "swift-transformers"),
-                .product(name: "MLXLinalg", package: "mlx-swift"),
-                .target(name: "MLXLMCommon"),
-            ],
-            path: "Libraries/Embedders",
-            exclude: [
-                "README.md"
-            ]
-        ),
         .target(
             name: "MLXMNIST",
             dependencies: [

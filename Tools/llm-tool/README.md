@@ -2,9 +2,9 @@
 
 See various READMEs:
 
-- [MLXLMCommon](../../Libraries/MLXLMCommon/README.md) -- common LM code
-- [MLXLLM](../../Libraries/MLXLLM/README.md) -- large language models
-- [MLXVLM](../../Libraries/MLXVLM/README.md) -- vision language models
+- [MLXLMCommon](https://github.com/ml-explore/mlx-swift-lm/Libraries/MLXLMCommon/README.md) -- common LM code
+- [MLXLLM](https://github.com/ml-explore/mlx-swift-lm/Libraries/MLXLLM/README.md) -- large language models
+- [MLXVLM](https://github.com/ml-explore/mlx-swift-lm/Libraries/MLXVLM/README.md) -- vision language models
 
 ### Building
 
@@ -30,7 +30,7 @@ The model should be a path in the Hugging Face repository, e.g.:
 - `mlx-community/Mistral-7B-Instruct-v0.3-4bit`
 - `mlx-community/phi-2-hf-4bit-mlx`
 
-See [LLM](../../Libraries/MLXLLM/README.md) for more info.
+See [LLM](https://github.com/ml-explore/mlx-swift-lm/Libraries/MLXLLM/README.md) for more info.
 
 ### Running: Command Line
 
@@ -49,22 +49,6 @@ to find and run the tool built in _Debug_ configuration.
 See also:
 
 - [MLX troubleshooting](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx/troubleshooting)
-
-### Troubleshooting
-
-If the program crashes with a very deep stack trace you may need to build
-in Release configuration. This seems to depend on the size of the model.
-
-There are a couple options:
-
-- build Release
-- force the model evaluation to run on the main thread, e.g. using @MainActor
-- build `Cmlx` with optimizations by modifying `mlx/Package.swift` and adding `.unsafeFlags(["-O"]),` around line 87
-
-Building in Release / optimizations will remove a lot of tail calls in the C++ 
-layer. These lead to the stack overflows.
-
-See discussion here: https://github.com/ml-explore/mlx-swift-examples/issues/3
 
 ## LoRA
 
