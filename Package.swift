@@ -8,26 +8,20 @@ let package = Package(
     platforms: [.macOS(.v14), .iOS(.v16)],
     products: [
         .library(
-            name: "MLXLLM",
-            targets: ["MLXLLM"]),
+            name: "MLXLLM", type: .static, targets: ["MLXLLM"]),
         .library(
-            name: "MLXVLM",
-            targets: ["MLXVLM"]),
+            name: "MLXVLM", type: .static, targets: ["MLXVLM"]),
         .library(
-            name: "MLXLMCommon",
-            targets: ["MLXLMCommon"]),
+            name: "MLXLMCommon", type: .static, targets: ["MLXLMCommon"]),
         .library(
-            name: "MLXMNIST",
-            targets: ["MLXMNIST"]),
+            name: "MLXMNIST", type: .static, targets: ["MLXMNIST"]),
         .library(
-            name: "MLXEmbedders",
-            targets: ["MLXEmbedders"]),
+            name: "MLXEmbedders", type: .static, targets: ["MLXEmbedders"]),
         .library(
-            name: "StableDiffusion",
-            targets: ["StableDiffusion"]),
+            name: "StableDiffusion", type: .static, targets: ["StableDiffusion"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/ml-explore/mlx-swift", .upToNextMinor(from: "0.29.1")),
+        .package(url: "https://github.com/muyouming/mlx-swift.git", branch: "static-linking")),
         .package(
             url: "https://github.com/huggingface/swift-transformers",
             .upToNextMinor(from: "1.1.0")
