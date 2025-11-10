@@ -1,0 +1,56 @@
+name: Build and Test
+
+on: pull_request  
+
+permissions:
+  contents: read
+
+jobs:
+  mac_build_and_test:
+    if: github.repository == 'ml-explore/mlx-swift-lm'
+    runs-on: [self-hosted, macos]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+     
+      - name: Verify MetalToolchain installed
+        shell: bash
+        run: xcodebuild -showComponent MetalToolchain
+      
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+            python-version: ${{ inputs.python-version }}
+            activate-environment: true
+     
+      - name: Setup swift-format
+        shell: sh
+        run: |
+          uv pip install pre-commit
+          brew install swift-format
+     
+      - name: Run style checks
+        shell: sh
+        run: |
+          pre-commit run --all || (echo "Style checks failed, please install pre-commit and run pre-commit run --all and push the change"; echo ""; git --no-pager diff; exit 1)
+      
+      - name: Build Package (Xcode, macOS)
+        shell: sh
+        run: |
+          xcodebuild -version
+          xcrun --show-sdk-build-version
+          swift --version
+          rm -rf ~/Library/Developer/Xcode/DerivedData/*
+          xcodebuild build-for-testing -scheme mlx-libraries-Package -destination 'platform=macOS'
+
+      - name: Build tools (Xcode, macOS)
+        shell: sh
+        run: |
+          xcodebuild -version
+          xcrun --show-sdk-build-version
+          swift --version
+          find . -name Package.resolved -exec rm {} \;
+          xcodebuild -scheme llm-tool
+          xcodebuild -scheme image-tool
+          xcodebuild -scheme mnist-tool
