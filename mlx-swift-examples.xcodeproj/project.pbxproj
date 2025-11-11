@@ -1093,7 +1093,7 @@
 				C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */,
 				C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */,
 				C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
-				C32AA12E2EB97625002914C6 /* XCLocalSwiftPackageReference "../mlx-swift-lm" */,
+				C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
 			);
 			productRefGroup = C39273752B606A0A00368D5D /* Products */;
 			projectDirPath = "";
@@ -3379,10 +3379,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		C32AA12E2EB97625002914C6 /* XCLocalSwiftPackageReference "../mlx-swift-lm" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "../mlx-swift-lm";
-		};
 		C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Libraries/..;
@@ -3404,6 +3400,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 0.25.4;
+			};
+		};
+		C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.29.2;
 			};
 		};
 		C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
@@ -3543,12 +3547,12 @@
 		};
 		C32AA20B2EB977C4002914C6 /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C32AA12E2EB97625002914C6 /* XCLocalSwiftPackageReference "../mlx-swift-lm" */;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
 			productName = MLXLLM;
 		};
 		C32AA20D2EB977C4002914C6 /* MLXVLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C32AA12E2EB97625002914C6 /* XCLocalSwiftPackageReference "../mlx-swift-lm" */;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
 			productName = MLXVLM;
 		};
 		C32B4C6C2DA7136000EF663D /* AsyncAlgorithms */ = {
