@@ -12,9 +12,9 @@ print(try await session.respond(to: "How about a great place to eat?")
 
 See various READMEs:
 
-- [MLXLMCommon](../../Libraries/MLXLMCommon/README.md) -- common LM code
-- [MLXLLM](../../Libraries/MLXLLM/README.md) -- large language models
-- [MLXVLM](../../Libraries/MLXVLM/README.md) -- vision language models
+- [MLXLMCommon](https://github.com/ml-explore/mlx-swift-lm/Libraries/MLXLMCommon/README.md) -- common LM code
+- [MLXLLM](https://github.com/ml-explore/mlx-swift-lm/Libraries/MLXLLM/README.md) -- large language models
+- [MLXVLM](https://github.com/ml-explore/mlx-swift-lm/Libraries/MLXVLM/README.md) -- vision language models
 
 ### Building
 

@@ -31,14 +31,6 @@ jobs:
             brew install swift-format
             pre-commit run --all || (echo "Style checks failed, please install pre-commit and run pre-commit run --all and push the change"; echo ""; git --no-pager diff; exit 1)
       - run:
-          name: Run Tests (Xcode, macOS)
-          command: |
-            xcodebuild -version
-            xcrun --show-sdk-build-version
-            swift --version
-            find . -name Package.resolved -exec rm {} \;
-            xcodebuild test -scheme mlx-libraries-Package -destination 'platform=OS X'
-      - run:
           name: Build Examples
           command: |
             xcodebuild -version
@@ -48,6 +40,7 @@ jobs:
             xcodebuild -scheme llm-tool
             xcodebuild -scheme image-tool
             xcodebuild -scheme mnist-tool
+            xcodebuild -scheme embedder-tool
 
 workflows:
   build_and_test:
@@ -62,7 +55,7 @@ workflows:
       - mac_build_and_test:
           matrix:
             parameters:
-              xcode_version: ["16.0.0", "16.3.0"]
+              xcode_version: ["16.3.0"]
 
   prb:
     when:
@@ -78,4 +71,4 @@ workflows:
           requires: [ hold ]
           matrix:
             parameters:
-              xcode_version: ["16.0.0", "16.3.0"]
+              xcode_version: ["16.3.0"]
