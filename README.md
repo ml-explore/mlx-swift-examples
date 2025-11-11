@@ -1,7 +1,7 @@
 # MLX Swift Examples
 
 Example [MLX Swift](https://github.com/ml-explore/mlx-swift) programs.  The language model
-examples use models implemented in [mlx-swift-lm](https://github.com/ml-explore/mlx-swift-lm).
+examples use models implemented in [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm).
 
 - [MNISTTrainer](Applications/MNISTTrainer/README.md): An example that runs on
   both iOS and macOS that downloads MNIST training data and trains a
@@ -51,14 +51,14 @@ the new repository.
 
 # Reusable Libraries
 
-LLM and VLM implementations are available in [mlx-swift-lm](https://github.com/ml-explore/mlx-swift-lm):
+LLM and VLM implementations are available in [MLX Swift LM](https://github.com/ml-explore/mlx-swift-lm):
 
 - [MLXLLMCommon](https://swiftpackageindex.com/ml-explore/mlx-swift-lm/main/documentation/mlxlmcommon) -- common API for LLM and VLM
 - [MLXLLM](https://swiftpackageindex.com/ml-explore/mlx-swift-lm/main/documentation/mlxllm) -- large language model example implementations
 - [MLXVLM](https://swiftpackageindex.com/ml-explore/mlx-swift-lm/main/documentation/mlxvlm) -- vision language model example implementations
 - [MLXEmbedders](https://swiftpackageindex.com/ml-explore/mlx-swift-lm/main/documentation/mlxembedders) -- popular Encoders / Embedding models example implementations
 
-`mlx-swift-examples` also contains a few reusable libraries that can be imported with this code in your `Package.swift` or by referencing the URL in Xcode:
+MLX Swift Examples also contains a few reusable libraries that can be imported with this code in your `Package.swift` or by referencing the URL in Xcode:
 
 ```swift
 .package(url: "https://github.com/ml-explore/mlx-swift-examples/", branch: "main"),
