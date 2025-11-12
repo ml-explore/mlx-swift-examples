@@ -38,7 +38,7 @@ examples use models implemented in [MLX Swift LM](https://github.com/ml-explore/
   
 > [!IMPORTANT]
 > `MLXLMCommon`, `MLXLLM`, `MLXVLM` and `MLXEmbedders` have moved to a new repository
-> containing _only_ reusable libraries: [mlx-swift-lm](https://github.com/ml-explore/mlx-swift).
+> containing _only_ reusable libraries: [mlx-swift-lm](https://github.com/ml-explore/mlx-swift-lm).
 
 Previous URLs and tags will continue to work, but going forward all updates to these
 libraries will be done in the other repository.  Previous tags _are_ supported in
