@@ -10,7 +10,7 @@ jobs:
     if: github.repository == 'ml-explore/mlx-swift-examples'
     runs-on: [self-hosted, macos]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
      
