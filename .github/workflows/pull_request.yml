@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   mac_build_and_test:
-    if: github.repository == 'ml-explore/mlx-swift-lm'
+    if: github.repository == 'ml-explore/mlx-swift-examples'
     runs-on: [self-hosted, macos]
     steps:
       - uses: actions/checkout@v5
