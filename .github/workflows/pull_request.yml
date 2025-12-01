@@ -9,6 +9,8 @@ jobs:
   lint:
     if: github.repository == 'ml-explore/mlx-swift-examples'
     runs-on: ubuntu-latest
+    container:
+      image: swift:6.2-rhel-ubi9
     steps:
       - uses: actions/checkout@v6
         with:
@@ -19,11 +21,19 @@ jobs:
         with:
             activate-environment: true
      
+      - name: Setup pre-commit
+        shell: sh
+        run: |
+          uv pip install pre-commit
+     
       - name: Setup swift-format
         shell: sh
         run: |
           uv pip install pre-commit
-          brew install swift-format
+          git clone https://github.com/swiftlang/swift-format.git
+          cd swift-format
+          swift build -c release
+          sudo ln -s "$(swift build --show-bin-path -c release)/swift-format" /usr/local/bin/swift-format
      
       - name: Run style checks
         shell: sh
