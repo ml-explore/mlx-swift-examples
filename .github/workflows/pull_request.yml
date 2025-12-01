@@ -53,6 +53,8 @@ jobs:
       - name: Run style checks
         shell: sh
         run: |
+          pwd
+          ls -l
           pre-commit run --all || (echo "Style checks failed, please install pre-commit and run pre-commit run --all and push the change"; echo ""; git --no-pager diff; exit 1)
       
 
