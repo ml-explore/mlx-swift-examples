@@ -6,22 +6,17 @@ permissions:
   contents: read
 
 jobs:
-  mac_build_and_test:
+  lint:
     if: github.repository == 'ml-explore/mlx-swift-examples'
-    runs-on: [self-hosted, macos]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
-     
-      - name: Verify MetalToolchain installed
-        shell: bash
-        run: xcodebuild -showComponent MetalToolchain
-      
+           
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
         with:
-            python-version: ${{ inputs.python-version }}
             activate-environment: true
      
       - name: Setup swift-format
@@ -35,6 +30,20 @@ jobs:
         run: |
           pre-commit run --all || (echo "Style checks failed, please install pre-commit and run pre-commit run --all and push the change"; echo ""; git --no-pager diff; exit 1)
       
+
+  mac_build_and_test:
+    needs: lint
+    if: github.repository == 'ml-explore/mlx-swift-examples'
+    runs-on: [self-hosted, macos]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+     
+      - name: Verify MetalToolchain installed
+        shell: bash
+        run: xcodebuild -showComponent MetalToolchain
+            
       - name: Build Package (Xcode, macOS)
         shell: sh
         run: |
