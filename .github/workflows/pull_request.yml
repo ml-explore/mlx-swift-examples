@@ -25,15 +25,30 @@ jobs:
         shell: sh
         run: |
           uv pip install pre-commit
-     
-      - name: Setup swift-format
+
+      - name: Clone swift-format
         shell: sh
         run: |
-          uv pip install pre-commit
-          git clone https://github.com/swiftlang/swift-format.git
+          git clone --depth 1 https://github.com/swiftlang/swift-format.git
+
+      - name: Cache swift-format build
+        uses: actions/cache@v4
+        with:
+          path: swift-format/.build
+          key: ${{ runner.os }}-swift-format-build-${{ hashFiles('swift-format/Package.swift', 'swift-format/Package.resolved') }}-${{ steps.setup-swift.outputs.swift-version }}
+          restore-keys: |
+            ${{ runner.os }}-swift-format-build-
+
+      - name: Build swift-format
+        shell: sh
+        run: |
           cd swift-format
           swift build -c release
-          sudo ln -s "$(swift build --show-bin-path -c release)/swift-format" /usr/local/bin/swift-format
+
+      - name: Link swift-format to /usr/local/bin
+        shell: sh
+        run: |
+          ln -s "$(swift build --show-bin-path -c release)/swift-format" /usr/local/bin/swift-format
      
       - name: Run style checks
         shell: sh
