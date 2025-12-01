@@ -49,7 +49,7 @@ jobs:
       - name: Link swift-format to /usr/local/bin
         shell: sh
         run: |
-          cd swift-format
+          cd ../swift-format
           ln -s "$(swift build --show-bin-path -c release)/swift-format" /usr/local/bin/swift-format
      
       - name: Run style checks
