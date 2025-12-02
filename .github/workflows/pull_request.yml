@@ -55,10 +55,14 @@ jobs:
           cd /tmp/swift-format
           ln -s "$(swift build --show-bin-path -c release)/swift-format" /usr/local/bin/swift-format
      
+      - name: Configure safe directory for git
+        shell: sh
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+     
       - name: Run style checks
         shell: sh
         run: |
-          git status
           pre-commit run --all || (echo "Style checks failed, please install pre-commit and run pre-commit run --all and push the change"; echo ""; git --no-pager diff; exit 1)
       
 
