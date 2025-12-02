@@ -30,7 +30,9 @@ jobs:
         shell: sh
         run: |
           cd /tmp
-          LATEST_TAG=$(curl -s https://api.github.com/repos/swiftlang/swift-format/releases/latest | jq -r .tag_name)
+          LATEST_TAG=$(curl -s https://api.github.com/repos/swiftlang/swift-format/releases/latest | \
+            grep '"tag_name":' | \
+            sed -E 's/.*"([^"]+)".*/\1/')
           echo "swift-format $LATEST_TAG"
           git clone --branch $LATEST_TAG --depth 1 https://github.com/swiftlang/swift-format.git
           echo "SWIFT_FORMAT_VERSION=$LATEST_TAG" >> $GITHUB_ENV
