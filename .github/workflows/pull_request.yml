@@ -26,8 +26,8 @@ jobs:
         run: |
           uv pip install pre-commit
 
-      - name: Clone swift-format
-        id: clone-swift-format
+      - name: Get swift-format tag
+        id: swift-format
         shell: sh
         run: |
           cd /tmp
@@ -35,7 +35,6 @@ jobs:
             grep '"tag_name":' | \
             sed -E 's/.*"([^"]+)".*/\1/')
           echo "swift-format $LATEST_TAG"
-          git clone --branch $LATEST_TAG --depth 1 https://github.com/swiftlang/swift-format.git
           echo "SWIFT_FORMAT_VERSION=$LATEST_TAG" >> $GITHUB_OUTPUT
 
       - name: Cache swift-format build
@@ -43,13 +42,15 @@ jobs:
         id: cache-swift-format
         with:
           path: /tmp/swift-format/.build
-          key: ${{ runner.os }}-swift-format-build-${{ steps.clone-swift-format.outputs.SWIFT_FORMAT_VERSION }}
+          key: ${{ runner.os }}-swift-format-build-${{ steps.swift-format.outputs.SWIFT_FORMAT_VERSION }}
 
       - name: Build swift-format
         if: steps.cache-swift-format.outputs.cache-hit != 'true'
         shell: sh
         run: |
-          cd /tmp/swift-format
+          cd /tmp
+          git clone --branch ${{ steps.swift-format.outputs.SWIFT_FORMAT_VERSION }} --depth 1 https://github.com/swiftlang/swift-format.git
+          cd swift-format
           swift build -c release
 
       - name: Link swift-format to /usr/local/bin
