@@ -16,15 +16,8 @@ jobs:
         with:
           submodules: recursive
            
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v6
-        with:
-            activate-environment: true
-     
-      - name: Setup pre-commit
-        shell: sh
-        run: |
-          uv pip install pre-commit
+      - uses: actions/setup-python@v3
+      - uses: pre-commit/action@v3.0.1
 
       - name: Clone swift-format
         shell: sh
@@ -35,13 +28,13 @@ jobs:
             sed -E 's/.*"([^"]+)".*/\1/')
           echo "swift-format $LATEST_TAG"
           git clone --branch $LATEST_TAG --depth 1 https://github.com/swiftlang/swift-format.git
-          echo "SWIFT_FORMAT_VERSION=$LATEST_TAG" >> $GITHUB_ENV
+          echo "SWIFT_FORMAT_VERSION=$LATEST_TAG" >> $GITHUB_OUTPUT
 
       - name: Cache swift-format build
         uses: actions/cache@v4
         with:
           path: /tmp/swift-format/.build
-          key: ${{ runner.os }}-swift-format-build-${{ env.SWIFT_FORMAT_VERSION }}
+          key: ${{ runner.os }}-swift-format-build-${{ needs.lint.outputs.SWIFT_FORMAT_VERSION }}
 
       - name: Build swift-format
         shell: sh
