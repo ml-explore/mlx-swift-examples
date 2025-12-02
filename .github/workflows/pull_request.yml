@@ -44,6 +44,7 @@ jobs:
           key: ${{ runner.os }}-swift-format-build-${{ needs.lint.outputs.SWIFT_FORMAT_VERSION }}
 
       - name: Build swift-format
+        if: steps.cache-action.outputs.cache-hit != 'true'
         shell: sh
         run: |
           cd /tmp/swift-format
