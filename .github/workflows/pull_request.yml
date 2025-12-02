@@ -8,8 +8,6 @@ permissions:
 jobs:
   lint:
     if: github.repository == 'ml-explore/mlx-swift-examples'
-
-    # pin the host OS version to ensure consistent GLIBC
     runs-on: ubuntu-22.04
     container:
       image: swift:6.2-rhel-ubi9
@@ -17,10 +15,16 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: recursive           
-      - uses: actions/setup-python@v6
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: '3.13' 
-      - uses: pre-commit/action@v3.0.1
+            activate-environment: true
+     
+      - name: Setup pre-commit
+        shell: sh
+        run: |
+          uv pip install pre-commit
 
       - name: Clone swift-format
         shell: sh
