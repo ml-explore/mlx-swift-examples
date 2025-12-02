@@ -30,15 +30,16 @@ jobs:
         shell: sh
         run: |
           cd /tmp
-          git clone --depth 1 https://github.com/swiftlang/swift-format.git
+          LATEST_TAG=$(curl -s https://api.github.com/repos/swiftlang/swift-format/releases/latest | jq -r .tag_name)
+          echo "swift-format $LATEST_TAG"
+          git clone --branch $LATEST_TAG --depth 1 https://github.com/swiftlang/swift-format.git
+          echo "SWIFT_FORMAT_VERSION=$LATEST_TAG" >> $GITHUB_ENV
 
       - name: Cache swift-format build
         uses: actions/cache@v4
         with:
           path: /tmp/swift-format/.build
-          key: ${{ runner.os }}-swift-format-build-${{ hashFiles('swift-format/Package.swift', 'swift-format/Package.resolved') }}-${{ steps.setup-swift.outputs.swift-version }}
-          restore-keys: |
-            ${{ runner.os }}-swift-format-build-
+          key: ${{ runner.os }}-swift-format-build-${{ env.SWIFT_FORMAT_VERSION }}
 
       - name: Build swift-format
         shell: sh
