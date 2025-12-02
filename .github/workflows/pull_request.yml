@@ -27,6 +27,7 @@ jobs:
           uv pip install pre-commit
 
       - name: Clone swift-format
+        id: clone-swift-format
         shell: sh
         run: |
           cd /tmp
@@ -42,7 +43,7 @@ jobs:
         id: cache-swift-format
         with:
           path: /tmp/swift-format/.build
-          key: ${{ runner.os }}-swift-format-build-${{ needs.lint.outputs.SWIFT_FORMAT_VERSION }}
+          key: ${{ runner.os }}-swift-format-build-${{ steps.clone-swift-format.outputs.SWIFT_FORMAT_VERSION }}
 
       - name: Build swift-format
         if: steps.cache-swift-format.outputs.cache-hit != 'true'
