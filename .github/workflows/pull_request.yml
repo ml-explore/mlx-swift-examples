@@ -8,7 +8,9 @@ permissions:
 jobs:
   lint:
     if: github.repository == 'ml-explore/mlx-swift-examples'
-    runs-on: ubuntu-latest
+
+    # pin the host OS version to ensure consistent GLIBC
+    runs-on: ubuntu-22.04
     container:
       image: swift:6.2-rhel-ubi9
     steps:
