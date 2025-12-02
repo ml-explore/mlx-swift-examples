@@ -39,12 +39,13 @@ jobs:
 
       - name: Cache swift-format build
         uses: actions/cache@v4
+        id: cache-swift-format
         with:
           path: /tmp/swift-format/.build
           key: ${{ runner.os }}-swift-format-build-${{ needs.lint.outputs.SWIFT_FORMAT_VERSION }}
 
       - name: Build swift-format
-        if: steps.cache-action.outputs.cache-hit != 'true'
+        if: steps.cache-swift-format.outputs.cache-hit != 'true'
         shell: sh
         run: |
           cd /tmp/swift-format
