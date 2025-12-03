@@ -23,7 +23,6 @@
 		C3208E7B2DB194ED006AE6CA /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FC2CFFB98A0092A5B6 /* MLXLLM */; };
 		C3208ED02DB195A7006AE6CA /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FE2CFFB98A0092A5B6 /* MLXVLM */; };
 		C3288D7B2B6D9339009FF608 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C3288D7A2B6D9339009FF608 /* ArgumentParser */; };
-		C32A18092CFFD1B70092A5B6 /* StableDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18082CFFD1B70092A5B6 /* StableDiffusion */; };
 		C32A18462D00E1490092A5B6 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18452D00E1490092A5B6 /* MLX */; };
 		C32A18482D00E1540092A5B6 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18472D00E1540092A5B6 /* MLX */; };
 		C32A184A2D00E1540092A5B6 /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18492D00E1540092A5B6 /* MLXNN */; };
@@ -33,11 +32,9 @@
 		C32B4C6D2DA7136000EF663D /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = C32B4C6C2DA7136000EF663D /* AsyncAlgorithms */; };
 		C32B4C6F2DA71ADC00EF663D /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = C32B4C6E2DA71ADC00EF663D /* AsyncAlgorithms */; };
 		C34E49292B6A028100FCB841 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C34E49282B6A028100FCB841 /* ArgumentParser */; };
-		C36BEFE62BC32988002914C6 /* StableDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFE52BC32988002914C6 /* StableDiffusion */; };
 		C36BEFEF2BC329C5002D4AFE /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFEE2BC329C5002D4AFE /* ArgumentParser */; };
 		C36BEFF22BC32A9A002D4AFE /* Progress in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFF12BC32A9A002D4AFE /* Progress */; };
 		C397C59C2B62C6D0004B084D /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C397C59B2B62C6D0004B084D /* ArgumentParser */; };
-		C3A8B3D12B92951E002914C6 /* MLXMNIST in Frameworks */ = {isa = PBXBuildFile; productRef = C3A8B3D02B92951E002914C6 /* MLXMNIST */; };
 		C3A8B4022EB977C4002914C6 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C3A8B4002EB977C4002914C6 /* MLXLLM */; };
 		C3A8B4032EB977C4002914C6 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = C3A8B4012EB977C4002914C6 /* MLXLMCommon */; };
 		C3C7C4FB2DB19026000373CF /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3C7C4FA2DB19026000373CF /* AVKit.framework */; };
@@ -464,7 +461,6 @@
 			files = (
 				C36BEFEF2BC329C5002D4AFE /* ArgumentParser in Frameworks */,
 				C36BEFF22BC32A9A002D4AFE /* Progress in Frameworks */,
-				C36BEFE62BC32988002914C6 /* StableDiffusion in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -472,7 +468,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C32A18092CFFD1B70092A5B6 /* StableDiffusion in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -498,7 +493,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3A8B3D12B92951E002914C6 /* MLXMNIST in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -759,7 +753,6 @@
 			packageProductDependencies = (
 				C36BEFEE2BC329C5002D4AFE /* ArgumentParser */,
 				C36BEFF12BC32A9A002D4AFE /* Progress */,
-				C36BEFE52BC32988002914C6 /* StableDiffusion */,
 			);
 			productName = "image-tool";
 			productReference = C36BEFE02BC32988002D4AFE /* image-tool */;
@@ -780,7 +773,6 @@
 			);
 			name = StableDiffusionExample;
 			packageProductDependencies = (
-				C32A18082CFFD1B70092A5B6 /* StableDiffusion */,
 			);
 			productName = StableDiffusionEval;
 			productReference = C36BF0012BC5CE55002D4AFE /* StableDiffusionExample.app */;
@@ -844,7 +836,6 @@
 			);
 			name = MNISTTrainer;
 			packageProductDependencies = (
-				C3A8B3D02B92951E002914C6 /* MLXMNIST */,
 			);
 			productName = MNISTTrainer;
 			productReference = C3A8B3B22B9295090002EFB8 /* MNISTTrainer.app */;
@@ -939,7 +930,6 @@
 				C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */,
 				C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 				C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
-				C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */,
 			);
 			productRefGroup = C39273752B606A0A00368D5D /* Products */;
 			projectDirPath = "";
@@ -3336,11 +3326,6 @@
 			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXVLM;
 		};
-		C32A18082CFFD1B70092A5B6 /* StableDiffusion */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
-			productName = StableDiffusion;
-		};
 		C32A18452D00E1490092A5B6 /* MLX */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */;
@@ -3386,11 +3371,6 @@
 			package = C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
 			productName = ArgumentParser;
 		};
-		C36BEFE52BC32988002914C6 /* StableDiffusion */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
-			productName = StableDiffusion;
-		};
 		C36BEFEE2BC329C5002D4AFE /* ArgumentParser */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
@@ -3405,11 +3385,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
 			productName = ArgumentParser;
-		};
-		C3A8B3D02B92951E002914C6 /* MLXMNIST */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
-			productName = MLXMNIST;
 		};
 		C3A8B4002EB977C4002914C6 /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
