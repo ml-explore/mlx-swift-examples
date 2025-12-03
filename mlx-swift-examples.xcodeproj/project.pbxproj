@@ -3,44 +3,26 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 71;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0A8284222D13863900BEF338 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 0AC74ED92D136223003C90A7 /* MLXVLM */; };
 		0A979CD92E9717C500635D67 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = 0A979CD82E9717C500635D67 /* ArgumentParser */; };
-		0A979D132E9743D800635D67 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = 0A979D122E9743D800635D67 /* MLXEmbedders */; };
-		0AC74ECF2D13622A003C90A7 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0AC74EC92D13622A003C90A7 /* Preview Assets.xcassets */; };
-		0AC74ED02D13622A003C90A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0AC74ECB2D13622A003C90A7 /* Assets.xcassets */; };
-		0AC74ED12D13622A003C90A7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC74ECC2D13622A003C90A7 /* ContentView.swift */; };
-		0AC74ED22D13622A003C90A7 /* VLMEvalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC74ECD2D13622A003C90A7 /* VLMEvalApp.swift */; };
-		0AC74ED32D136265003C90A7 /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
-		0F5AD8002DB70E6300745C06 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FC2CFFB98A0092A5B6 /* MLXLLM */; };
-		0F5AD8012DB70E6300745C06 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FE2CFFB98A0092A5B6 /* MLXVLM */; };
-		12305EAF2B9D864400C92FEE /* PredictionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12305EAE2B9D864400C92FEE /* PredictionView.swift */; };
+		0A979CDB2E9717C5002914C6 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = 0A979CDA2E9717C5002914C6 /* MLXEmbedders */; };
+		0AC74EDC2D136221002914C6 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 0AC74EDA2D136221002914C6 /* MLXVLM */; };
+		0AC74EDD2D136221002914C6 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 0AC74EDB2D136221002914C6 /* MLXLMCommon */; };
+		0F5AD7512DB70C03002914C6 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 0F5AD7502DB70C03002914C6 /* MLXLMCommon */; };
+		0F5AD7542DB70C03002914C6 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 0F5AD7522DB70C03002914C6 /* MLXLLM */; };
+		0F5AD7552DB70C03002914C6 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 0F5AD7532DB70C03002914C6 /* MLXVLM */; };
 		81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 81695B402BA373D300F260D8 /* MarkdownUI */; };
-		819BEFF82BAF8B4E0002CCEE /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
-		C3056BAE2BCD97B700A31D04 /* LoRATrainingExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAD2BCD97B700A31D04 /* LoRATrainingExampleApp.swift */; };
-		C3056BB02BCD97B700A31D04 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAF2BCD97B700A31D04 /* ContentView.swift */; };
-		C3056BB22BCD97B800A31D04 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3056BB12BCD97B800A31D04 /* Assets.xcassets */; };
-		C3056BB62BCD97B800A31D04 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3056BB52BCD97B800A31D04 /* Preview Assets.xcassets */; };
-		C3056BBA2BCD981900A31D04 /* train.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA22BCD973400A31D04 /* train.jsonl */; };
-		C3056BBB2BCD981900A31D04 /* test.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA12BCD973400A31D04 /* test.jsonl */; };
-		C3056BBC2BCD981900A31D04 /* valid.jsonl in Resources */ = {isa = PBXBuildFile; fileRef = C3056BA32BCD973400A31D04 /* valid.jsonl */; };
-		C3132C2C2DFB301A00270E8E /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3132C2A2DFB301A00270E8E /* main.swift */; };
-		C3132C2E2DFB317C00270E8E /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = C3132C2D2DFB317C00270E8E /* MLXVLM */; };
-		C3132C302DFB317C00270E8E /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C3132C2F2DFB317C00270E8E /* MLXLLM */; };
+		C3056BBF2BCD9817002914C6 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C3056BBD2BCD9817002914C6 /* MLXLLM */; };
+		C3056BC02BCD9817002914C6 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = C3056BBE2BCD9817002914C6 /* MLXLMCommon */; };
+		C3132C2E2DFB301A002914C6 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = C3132C2D2DFB301A002914C6 /* MLXLMCommon */; };
 		C3208E762DB1945D006AE6CA /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C3208E752DB1945D006AE6CA /* MLX */; };
 		C3208E7A2DB1945D006AE6CA /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = C3208E792DB1945D006AE6CA /* MLXNN */; };
 		C3208E7B2DB194ED006AE6CA /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FC2CFFB98A0092A5B6 /* MLXLLM */; };
 		C3208ED02DB195A7006AE6CA /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FE2CFFB98A0092A5B6 /* MLXVLM */; };
-		C3288D762B6D9313009FF608 /* LinearModelTraining.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3288D752B6D9313009FF608 /* LinearModelTraining.swift */; };
 		C3288D7B2B6D9339009FF608 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C3288D7A2B6D9339009FF608 /* ArgumentParser */; };
-		C32A18012CFFD1810092A5B6 /* MLXMNIST in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18002CFFD1810092A5B6 /* MLXMNIST */; };
-		C32A18032CFFD1920092A5B6 /* MLXMNIST in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18022CFFD1920092A5B6 /* MLXMNIST */; };
-		C32A18052CFFD19F0092A5B6 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18042CFFD19F0092A5B6 /* MLXLLM */; };
-		C32A18072CFFD1AA0092A5B6 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18062CFFD1AA0092A5B6 /* MLXLLM */; };
-		C32A18092CFFD1B70092A5B6 /* StableDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18082CFFD1B70092A5B6 /* StableDiffusion */; };
 		C32A18462D00E1490092A5B6 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18452D00E1490092A5B6 /* MLX */; };
 		C32A18482D00E1540092A5B6 /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18472D00E1540092A5B6 /* MLX */; };
 		C32A184A2D00E1540092A5B6 /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = C32A18492D00E1540092A5B6 /* MLXNN */; };
@@ -49,33 +31,13 @@
 		C32AA20E2EB977C4002914C6 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32AA20D2EB977C4002914C6 /* MLXVLM */; };
 		C32B4C6D2DA7136000EF663D /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = C32B4C6C2DA7136000EF663D /* AsyncAlgorithms */; };
 		C32B4C6F2DA71ADC00EF663D /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = C32B4C6E2DA71ADC00EF663D /* AsyncAlgorithms */; };
-		C34E48F52B696F0B00FCB841 /* LLMTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E48F42B696F0B00FCB841 /* LLMTool.swift */; };
-		C34E49242B6A026F00FCB841 /* MNISTTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34E49232B6A026F00FCB841 /* MNISTTool.swift */; };
 		C34E49292B6A028100FCB841 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C34E49282B6A028100FCB841 /* ArgumentParser */; };
-		C36BEFB52BBDEAD8002D4AFE /* LoraCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */; };
-		C36BEFB82BBDED51002D4AFE /* Arguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFB62BBDECBC002D4AFE /* Arguments.swift */; };
-		C36BEFE32BC32988002D4AFE /* ImageTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BEFE22BC32988002D4AFE /* ImageTool.swift */; };
 		C36BEFEF2BC329C5002D4AFE /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFEE2BC329C5002D4AFE /* ArgumentParser */; };
 		C36BEFF22BC32A9A002D4AFE /* Progress in Frameworks */ = {isa = PBXBuildFile; productRef = C36BEFF12BC32A9A002D4AFE /* Progress */; };
-		C36BF0042BC5CE55002D4AFE /* StableDiffusionExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BF0032BC5CE55002D4AFE /* StableDiffusionExampleApp.swift */; };
-		C36BF0062BC5CE55002D4AFE /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BF0052BC5CE55002D4AFE /* ContentView.swift */; };
-		C36BF0082BC5CE56002D4AFE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C36BF0072BC5CE56002D4AFE /* Assets.xcassets */; };
-		C36BF00C2BC5CE56002D4AFE /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C36BF00B2BC5CE56002D4AFE /* Preview Assets.xcassets */; };
-		C36BF0352BC70F11002D4AFE /* Arguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36BF0342BC70F11002D4AFE /* Arguments.swift */; };
-		C37133A22DD6524B00D19830 /* ListCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = C37133A12DD6524B00D19830 /* ListCommands.swift */; };
-		C38BA3AA2DB8321600BAFA88 /* Chat.swift in Sources */ = {isa = PBXBuildFile; fileRef = C38BA3A92DB8321600BAFA88 /* Chat.swift */; };
-		C392737D2B606A1D00368D5D /* Tutorial.swift in Sources */ = {isa = PBXBuildFile; fileRef = C392737C2B606A1D00368D5D /* Tutorial.swift */; };
 		C397C59C2B62C6D0004B084D /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C397C59B2B62C6D0004B084D /* ArgumentParser */; };
-		C3A8B3CB2B92951E0002EFB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3C32B92951E0002EFB8 /* Assets.xcassets */; };
-		C3A8B3CC2B92951E0002EFB8 /* MNISTTrainerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3C42B92951E0002EFB8 /* MNISTTrainerApp.swift */; };
-		C3A8B3CD2B92951E0002EFB8 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3C62B92951E0002EFB8 /* Preview Assets.xcassets */; };
-		C3A8B3CF2B92951E0002EFB8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3C92B92951E0002EFB8 /* ContentView.swift */; };
-		C3A8B3F32B92A2A90002EFB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3EC2B92A2A90002EFB8 /* Assets.xcassets */; };
-		C3A8B3F42B92A2A90002EFB8 /* LLMEvalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3ED2B92A2A90002EFB8 /* LLMEvalApp.swift */; };
-		C3A8B3F52B92A2A90002EFB8 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3EF2B92A2A90002EFB8 /* Preview Assets.xcassets */; };
-		C3A8B3F72B92A2A90002EFB8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3F22B92A2A90002EFB8 /* ContentView.swift */; };
+		C3A8B4022EB977C4002914C6 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C3A8B4002EB977C4002914C6 /* MLXLLM */; };
+		C3A8B4032EB977C4002914C6 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = C3A8B4012EB977C4002914C6 /* MLXLMCommon */; };
 		C3C7C4FB2DB19026000373CF /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3C7C4FA2DB19026000373CF /* AVKit.framework */; };
-		C3E7D94D2CF6C9B20056C095 /* StableDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = C3E7D94C2CF6C9B20056C095 /* StableDiffusion */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -217,80 +179,182 @@
 /* Begin PBXFileReference section */
 		0A979CD12E97175800635D67 /* embedder-tool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "embedder-tool"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0AC74EBB2D136221003C90A7 /* VLMEval.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VLMEval.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		0AC74EC92D13622A003C90A7 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		0AC74ECB2D13622A003C90A7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		0AC74ECC2D13622A003C90A7 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		0AC74ECD2D13622A003C90A7 /* VLMEvalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VLMEvalApp.swift; sourceTree = "<group>"; };
-		0AC74ED42D13630D003C90A7 /* VLMEval.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = VLMEval.entitlements; sourceTree = "<group>"; };
-		0AC74F282D1376F1003C90A7 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		0F5AD7412DB70C0300745C06 /* MLXChatExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MLXChatExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		12305EAE2B9D864400C92FEE /* PredictionView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PredictionView.swift; sourceTree = "<group>"; };
-		819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceStat.swift; sourceTree = "<group>"; };
-		C3056BA12BCD973400A31D04 /* test.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = test.jsonl; sourceTree = "<group>"; };
-		C3056BA22BCD973400A31D04 /* train.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = train.jsonl; sourceTree = "<group>"; };
-		C3056BA32BCD973400A31D04 /* valid.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = valid.jsonl; sourceTree = "<group>"; };
-		C3056BA42BCD973400A31D04 /* wikisql.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = wikisql.py; sourceTree = "<group>"; };
 		C3056BAB2BCD97B700A31D04 /* LoRATrainingExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LoRATrainingExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C3056BAD2BCD97B700A31D04 /* LoRATrainingExampleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoRATrainingExampleApp.swift; sourceTree = "<group>"; };
-		C3056BAF2BCD97B700A31D04 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		C3056BB12BCD97B800A31D04 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		C3056BB32BCD97B800A31D04 /* LoRATrainingExample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LoRATrainingExample.entitlements; sourceTree = "<group>"; };
-		C3056BB52BCD97B800A31D04 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		C3056BC42BCDAB8600A31D04 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C3132C232DFB2FFB00270E8E /* ExampleLLM */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ExampleLLM; sourceTree = BUILT_PRODUCTS_DIR; };
-		C3132C2A2DFB301A00270E8E /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		C3208E6E2DB19451006AE6CA /* MLXLMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MLXLMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C325DE3F2B648CDB00628871 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C3288D732B6D9313009FF608 /* LinearModelTraining */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LinearModelTraining; sourceTree = BUILT_PRODUCTS_DIR; };
-		C3288D752B6D9313009FF608 /* LinearModelTraining.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinearModelTraining.swift; sourceTree = "<group>"; };
-		C3288D842B6D94BD009FF608 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		C34E48F42B696F0B00FCB841 /* LLMTool.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LLMTool.swift; sourceTree = "<group>"; };
-		C34E48F92B69930300FCB841 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C34E49212B6A026F00FCB841 /* mnist-tool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "mnist-tool"; sourceTree = BUILT_PRODUCTS_DIR; };
-		C34E49232B6A026F00FCB841 /* MNISTTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MNISTTool.swift; sourceTree = "<group>"; };
-		C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoraCommands.swift; sourceTree = "<group>"; };
-		C36BEFB62BBDECBC002D4AFE /* Arguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Arguments.swift; sourceTree = "<group>"; };
 		C36BEFE02BC32988002D4AFE /* image-tool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "image-tool"; sourceTree = BUILT_PRODUCTS_DIR; };
-		C36BEFE22BC32988002D4AFE /* ImageTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageTool.swift; sourceTree = "<group>"; };
 		C36BF0012BC5CE55002D4AFE /* StableDiffusionExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StableDiffusionExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C36BF0032BC5CE55002D4AFE /* StableDiffusionExampleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StableDiffusionExampleApp.swift; sourceTree = "<group>"; };
-		C36BF0052BC5CE55002D4AFE /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		C36BF0072BC5CE56002D4AFE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		C36BF0092BC5CE56002D4AFE /* StableDiffusionExample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StableDiffusionExample.entitlements; sourceTree = "<group>"; };
-		C36BF00B2BC5CE56002D4AFE /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		C36BF0342BC70F11002D4AFE /* Arguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Arguments.swift; sourceTree = "<group>"; };
-		C37133A12DD6524B00D19830 /* ListCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListCommands.swift; sourceTree = "<group>"; };
-		C38BA3A92DB8321600BAFA88 /* Chat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chat.swift; sourceTree = "<group>"; };
 		C39273742B606A0A00368D5D /* Tutorial */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Tutorial; sourceTree = BUILT_PRODUCTS_DIR; };
-		C392737C2B606A1D00368D5D /* Tutorial.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Tutorial.swift; sourceTree = "<group>"; };
 		C397C58B2B62C6A9004B084D /* llm-tool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "llm-tool"; sourceTree = BUILT_PRODUCTS_DIR; };
-		C3A5CCF52DFB8FFC004708FF /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C3A8B3B22B9295090002EFB8 /* MNISTTrainer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MNISTTrainer.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C3A8B3C22B92951E0002EFB8 /* MNISTTrainer-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "MNISTTrainer-Info.plist"; sourceTree = "<group>"; };
-		C3A8B3C32B92951E0002EFB8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		C3A8B3C42B92951E0002EFB8 /* MNISTTrainerApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MNISTTrainerApp.swift; sourceTree = "<group>"; };
-		C3A8B3C62B92951E0002EFB8 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		C3A8B3C72B92951E0002EFB8 /* MNISTTrainer.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = MNISTTrainer.entitlements; sourceTree = "<group>"; };
-		C3A8B3C82B92951E0002EFB8 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		C3A8B3C92B92951E0002EFB8 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C3A8B3DC2B92A29E0002EFB8 /* LLMEval.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LLMEval.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C3A8B3EC2B92A2A90002EFB8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		C3A8B3ED2B92A2A90002EFB8 /* LLMEvalApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LLMEvalApp.swift; sourceTree = "<group>"; };
-		C3A8B3EF2B92A2A90002EFB8 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		C3A8B3F02B92A2A90002EFB8 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		C3A8B3F12B92A2A90002EFB8 /* LLMEval.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = LLMEval.entitlements; sourceTree = "<group>"; };
-		C3A8B3F22B92A2A90002EFB8 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		C3C3240B2B6CA689007D2D9A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		C3C36A6B2CA714600099FFA4 /* Build.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Build.xcconfig; sourceTree = "<group>"; };
 		C3C7C4D92DB16C83000373CF /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.4.sdk/System/Library/Frameworks/AVFoundation.framework; sourceTree = DEVELOPER_DIR; };
 		C3C7C4DB2DB16C89000373CF /* CoreImage.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreImage.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.4.sdk/System/Library/Frameworks/CoreImage.framework; sourceTree = DEVELOPER_DIR; };
 		C3C7C4DD2DB16CA2000373CF /* CoreAudioTypes.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioTypes.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.4.sdk/System/Library/Frameworks/CoreAudioTypes.framework; sourceTree = DEVELOPER_DIR; };
 		C3C7C4FA2DB19026000373CF /* AVKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.4.sdk/System/Library/Frameworks/AVKit.framework; sourceTree = DEVELOPER_DIR; };
-		C3D573052C40701E00857A35 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		F8D7023A2BB4E223003D7CF5 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		920428992EE0F80A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				LLMEval/Assets.xcassets,
+				LLMEval/ContentView.swift,
+				LLMEval/LLMEvalApp.swift,
+				"LLMEval/Preview Content/Preview Assets.xcassets",
+				LLMEval/ViewModels/DeviceStat.swift,
+			);
+			target = C3A8B3DB2B92A29D0002EFB8 /* LLMEval */;
+		};
+		9204289A2EE0F80A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				LLMEval/ViewModels/DeviceStat.swift,
+				VLMEval/Assets.xcassets,
+				VLMEval/ContentView.swift,
+				"VLMEval/Preview Content/Preview Assets.xcassets",
+				VLMEval/VLMEvalApp.swift,
+			);
+			target = 0AC74EBA2D136221003C90A7 /* VLMEval */;
+		};
+		9204289B2EE0F80A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MLXChatExample/ChatView.swift,
+				MLXChatExample/MLXChatExampleApp.swift,
+				MLXChatExample/Models/LMModel.swift,
+				MLXChatExample/Models/Message.swift,
+				MLXChatExample/README.md,
+				MLXChatExample/Services/MLXService.swift,
+				MLXChatExample/Support/Assets.xcassets,
+				"MLXChatExample/Support/HubApi+default.swift",
+				"MLXChatExample/Support/Preview Content/Preview Assets.xcassets",
+				MLXChatExample/Support/SampleData.swift,
+				MLXChatExample/ViewModels/ChatViewModel.swift,
+				MLXChatExample/Views/ConversationView.swift,
+				MLXChatExample/Views/MediaPreviewView.swift,
+				MLXChatExample/Views/MessageView.swift,
+				MLXChatExample/Views/PromptField.swift,
+				MLXChatExample/Views/Toolbar/ChatToolbarView.swift,
+				MLXChatExample/Views/Toolbar/DownloadProgressView.swift,
+				MLXChatExample/Views/Toolbar/ErrorView.swift,
+				MLXChatExample/Views/Toolbar/GenerationInfoView.swift,
+			);
+			target = 0F5AD7402DB70C0300745C06 /* MLXChatExample */;
+		};
+		9204289C2EE0F80A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MNISTTrainer/Assets.xcassets,
+				MNISTTrainer/ContentView.swift,
+				MNISTTrainer/MNISTTrainerApp.swift,
+				MNISTTrainer/PredictionView.swift,
+				"MNISTTrainer/Preview Content/Preview Assets.xcassets",
+			);
+			target = C3A8B3B12B9295090002EFB8 /* MNISTTrainer */;
+		};
+		9204289D2EE0F80A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				LoRATrainingExample/Assets.xcassets,
+				LoRATrainingExample/ContentView.swift,
+				LoRATrainingExample/LoRATrainingExampleApp.swift,
+				"LoRATrainingExample/Preview Content/Preview Assets.xcassets",
+			);
+			target = C3056BAA2BCD97B700A31D04 /* LoRATrainingExample */;
+		};
+		9204289E2EE0F80A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				StableDiffusionExample/Assets.xcassets,
+				StableDiffusionExample/ContentView.swift,
+				"StableDiffusionExample/Preview Content/Preview Assets.xcassets",
+				StableDiffusionExample/StableDiffusionExampleApp.swift,
+			);
+			target = C36BF0002BC5CE55002D4AFE /* StableDiffusionExample */;
+		};
+		920428E42EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Tutorial/Tutorial.swift,
+			);
+			target = C39273732B606A0A00368D5D /* Tutorial */;
+		};
+		920428E52EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"llm-tool/Arguments.swift",
+				"llm-tool/Chat.swift",
+				"llm-tool/ListCommands.swift",
+				"llm-tool/LLMTool.swift",
+				"llm-tool/LoraCommands.swift",
+			);
+			target = C397C58A2B62C6A9004B084D /* llm-tool */;
+		};
+		920428E62EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"mnist-tool/MNISTTool.swift",
+			);
+			target = C34E49202B6A026F00FCB841 /* mnist-tool */;
+		};
+		920428E72EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"embedder-tool/ArgumentSupport.swift",
+				"embedder-tool/CommandError.swift",
+				"embedder-tool/CorpusArguments.swift",
+				"embedder-tool/DemoCommand.swift",
+				"embedder-tool/Diagnostics.swift",
+				"embedder-tool/EmbedderCommand.swift",
+				"embedder-tool/EmbedderRuntime+Embedding.swift",
+				"embedder-tool/EmbedderTool.swift",
+				"embedder-tool/Indexing.swift",
+				"embedder-tool/ListCommand.swift",
+				"embedder-tool/MemoryArguments.swift",
+				"embedder-tool/ModelArguments.swift",
+				"embedder-tool/PoolingArguments.swift",
+				"embedder-tool/PoolingSupport.swift",
+				"embedder-tool/ReplCommand.swift",
+				"embedder-tool/SearchCommand.swift",
+				"embedder-tool/VectorOperations.swift",
+			);
+			target = 0A979CD02E97175800635D67 /* embedder-tool */;
+		};
+		920428E82EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				LinearModelTraining/LinearModelTraining.swift,
+			);
+			target = C3288D722B6D9313009FF608 /* LinearModelTraining */;
+		};
+		920428E92EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"image-tool/Arguments.swift",
+				"image-tool/ImageTool.swift",
+			);
+			target = C36BEFDF2BC32988002D4AFE /* image-tool */;
+		};
+		920428EA2EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ExampleLLM/main.swift,
+			);
+			target = C3132C222DFB2FFB00270E8E /* ExampleLLM */;
+		};
+		920428F52EE0F81A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				lora/wikisql.py,
+			);
+			target = C3056BAA2BCD97B700A31D04 /* LoRATrainingExample */;
+		};
 		C3208F272DB19614006AE6CA /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -305,8 +369,10 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0A979CD22E97175800635D67 /* embedder-tool */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "embedder-tool"; sourceTree = "<group>"; };
-		0F5AD7422DB70C0300745C06 /* MLXChatExample */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = MLXChatExample; sourceTree = "<group>"; };
+		9204286E2EE0F80A009402BE /* Applications */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (920428992EE0F80A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 9204289A2EE0F80A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 9204289B2EE0F80A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 9204289C2EE0F80A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 9204289D2EE0F80A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 9204289E2EE0F80A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Applications; sourceTree = "<group>"; };
+		920428C72EE0F80F009402BE /* Tools */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (920428E42EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 920428E52EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 920428E62EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 920428E72EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 920428E82EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 920428E92EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 920428EA2EE0F80F009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Tools; sourceTree = "<group>"; };
+		920428F02EE0F81A009402BE /* Data */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (920428F52EE0F81A009402BE /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Data; sourceTree = "<group>"; };
+		920428F72EE0F829009402BE /* Configuration */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Configuration; sourceTree = "<group>"; };
 		C397D92E2CD440EF00B87EE2 /* Libraries */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Libraries; sourceTree = "<group>"; };
 		C3C7C4222DB16A02000373CF /* Tests */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C3208F272DB19614006AE6CA /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Tests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -316,8 +382,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0A979D132E9743D800635D67 /* MLXEmbedders in Frameworks */,
 				0A979CD92E9717C500635D67 /* ArgumentParser in Frameworks */,
+				0A979CDB2E9717C5002914C6 /* MLXEmbedders in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -326,8 +392,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				C3C7C4FB2DB19026000373CF /* AVKit.framework in Frameworks */,
-				0A8284222D13863900BEF338 /* MLXVLM in Frameworks */,
 				C32B4C6D2DA7136000EF663D /* AsyncAlgorithms in Frameworks */,
+				0AC74EDC2D136221002914C6 /* MLXVLM in Frameworks */,
+				0AC74EDD2D136221002914C6 /* MLXLMCommon in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -335,8 +402,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0F5AD8012DB70E6300745C06 /* MLXVLM in Frameworks */,
-				0F5AD8002DB70E6300745C06 /* MLXLLM in Frameworks */,
+				0F5AD7512DB70C03002914C6 /* MLXLMCommon in Frameworks */,
+				0F5AD7542DB70C03002914C6 /* MLXLLM in Frameworks */,
+				0F5AD7552DB70C03002914C6 /* MLXVLM in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -344,7 +412,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C32A18072CFFD1AA0092A5B6 /* MLXLLM in Frameworks */,
+				C3056BBF2BCD9817002914C6 /* MLXLLM in Frameworks */,
+				C3056BC02BCD9817002914C6 /* MLXLMCommon in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -352,8 +421,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3132C2E2DFB317C00270E8E /* MLXVLM in Frameworks */,
-				C3132C302DFB317C00270E8E /* MLXLLM in Frameworks */,
+				C3132C2E2DFB301A002914C6 /* MLXLMCommon in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -383,7 +451,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C32A18012CFFD1810092A5B6 /* MLXMNIST in Frameworks */,
 				C34E49292B6A028100FCB841 /* ArgumentParser in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -393,7 +460,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				C36BEFEF2BC329C5002D4AFE /* ArgumentParser in Frameworks */,
-				C3E7D94D2CF6C9B20056C095 /* StableDiffusion in Frameworks */,
 				C36BEFF22BC32A9A002D4AFE /* Progress in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -402,7 +468,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C32A18092CFFD1B70092A5B6 /* StableDiffusion in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -428,7 +493,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C32A18032CFFD1920092A5B6 /* MLXMNIST in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -436,165 +500,27 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C32A18052CFFD19F0092A5B6 /* MLXLLM in Frameworks */,
 				81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */,
 				C32B4C6F2DA71ADC00EF663D /* AsyncAlgorithms in Frameworks */,
+				C3A8B4022EB977C4002914C6 /* MLXLLM in Frameworks */,
+				C3A8B4032EB977C4002914C6 /* MLXLMCommon in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0AC74ECA2D13622A003C90A7 /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				0AC74EC92D13622A003C90A7 /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
-			sourceTree = "<group>";
-		};
-		0AC74ECE2D13622A003C90A7 /* VLMEval */ = {
-			isa = PBXGroup;
-			children = (
-				0AC74F282D1376F1003C90A7 /* README.md */,
-				0AC74ED42D13630D003C90A7 /* VLMEval.entitlements */,
-				0AC74ECA2D13622A003C90A7 /* Preview Content */,
-				0AC74ECB2D13622A003C90A7 /* Assets.xcassets */,
-				0AC74ECC2D13622A003C90A7 /* ContentView.swift */,
-				0AC74ECD2D13622A003C90A7 /* VLMEvalApp.swift */,
-			);
-			path = VLMEval;
-			sourceTree = "<group>";
-		};
-		819BEFF72BAF8B4E0002CCEE /* ViewModels */ = {
-			isa = PBXGroup;
-			children = (
-				819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */,
-			);
-			path = ViewModels;
-			sourceTree = "<group>";
-		};
-		C3056BA52BCD973400A31D04 /* lora */ = {
-			isa = PBXGroup;
-			children = (
-				C3056BA12BCD973400A31D04 /* test.jsonl */,
-				C3056BA22BCD973400A31D04 /* train.jsonl */,
-				C3056BA32BCD973400A31D04 /* valid.jsonl */,
-				C3056BA42BCD973400A31D04 /* wikisql.py */,
-			);
-			path = lora;
-			sourceTree = "<group>";
-		};
-		C3056BA62BCD973400A31D04 /* Data */ = {
-			isa = PBXGroup;
-			children = (
-				C3056BA52BCD973400A31D04 /* lora */,
-			);
-			path = Data;
-			sourceTree = "<group>";
-		};
-		C3056BAC2BCD97B700A31D04 /* LoRATrainingExample */ = {
-			isa = PBXGroup;
-			children = (
-				C3056BAD2BCD97B700A31D04 /* LoRATrainingExampleApp.swift */,
-				C3056BAF2BCD97B700A31D04 /* ContentView.swift */,
-				C3056BB12BCD97B800A31D04 /* Assets.xcassets */,
-				C3056BB32BCD97B800A31D04 /* LoRATrainingExample.entitlements */,
-				C3056BB42BCD97B800A31D04 /* Preview Content */,
-				C3056BC42BCDAB8600A31D04 /* README.md */,
-			);
-			path = LoRATrainingExample;
-			sourceTree = "<group>";
-		};
-		C3056BB42BCD97B800A31D04 /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				C3056BB52BCD97B800A31D04 /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
-			sourceTree = "<group>";
-		};
-		C3132C2B2DFB301A00270E8E /* ExampleLLM */ = {
-			isa = PBXGroup;
-			children = (
-				C3132C2A2DFB301A00270E8E /* main.swift */,
-				C3A5CCF52DFB8FFC004708FF /* README.md */,
-			);
-			path = ExampleLLM;
-			sourceTree = "<group>";
-		};
-		C3288D742B6D9313009FF608 /* LinearModelTraining */ = {
-			isa = PBXGroup;
-			children = (
-				C3288D752B6D9313009FF608 /* LinearModelTraining.swift */,
-				C3288D842B6D94BD009FF608 /* README.md */,
-			);
-			path = LinearModelTraining;
-			sourceTree = "<group>";
-		};
-		C34E48F32B696F0B00FCB841 /* llm-tool */ = {
-			isa = PBXGroup;
-			children = (
-				C34E48F92B69930300FCB841 /* README.md */,
-				C34E48F42B696F0B00FCB841 /* LLMTool.swift */,
-				C36BEFB32BBDEA69002D4AFE /* LoraCommands.swift */,
-				C36BEFB62BBDECBC002D4AFE /* Arguments.swift */,
-				C38BA3A92DB8321600BAFA88 /* Chat.swift */,
-				C37133A12DD6524B00D19830 /* ListCommands.swift */,
-			);
-			path = "llm-tool";
-			sourceTree = "<group>";
-		};
-		C34E49222B6A026F00FCB841 /* mnist-tool */ = {
-			isa = PBXGroup;
-			children = (
-				C34E49232B6A026F00FCB841 /* MNISTTool.swift */,
-				C3C3240B2B6CA689007D2D9A /* README.md */,
-			);
-			path = "mnist-tool";
-			sourceTree = "<group>";
-		};
-		C36BEFE12BC32988002D4AFE /* image-tool */ = {
-			isa = PBXGroup;
-			children = (
-				C36BEFE22BC32988002D4AFE /* ImageTool.swift */,
-				C36BF0342BC70F11002D4AFE /* Arguments.swift */,
-			);
-			path = "image-tool";
-			sourceTree = "<group>";
-		};
-		C36BF0022BC5CE55002D4AFE /* StableDiffusionExample */ = {
-			isa = PBXGroup;
-			children = (
-				C3D573052C40701E00857A35 /* README.md */,
-				C36BF0032BC5CE55002D4AFE /* StableDiffusionExampleApp.swift */,
-				C36BF0052BC5CE55002D4AFE /* ContentView.swift */,
-				C36BF0072BC5CE56002D4AFE /* Assets.xcassets */,
-				C36BF0092BC5CE56002D4AFE /* StableDiffusionExample.entitlements */,
-				C36BF00A2BC5CE56002D4AFE /* Preview Content */,
-			);
-			path = StableDiffusionExample;
-			sourceTree = "<group>";
-		};
-		C36BF00A2BC5CE56002D4AFE /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				C36BF00B2BC5CE56002D4AFE /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
-			sourceTree = "<group>";
-		};
 		C39273672B60697700368D5D = {
 			isa = PBXGroup;
 			children = (
 				C325DE3F2B648CDB00628871 /* README.md */,
 				F8D7023A2BB4E223003D7CF5 /* Package.swift */,
-				C3C36A6C2CA714600099FFA4 /* Configuration */,
-				C3056BA62BCD973400A31D04 /* Data */,
+				920428F72EE0F829009402BE /* Configuration */,
+				920428F02EE0F81A009402BE /* Data */,
 				C397D92E2CD440EF00B87EE2 /* Libraries */,
 				C3C7C4222DB16A02000373CF /* Tests */,
-				C3A8B3AD2B9294E30002EFB8 /* Applications */,
-				C39273812B606A7400368D5D /* Tools */,
+				9204286E2EE0F80A009402BE /* Applications */,
+				920428C72EE0F80F009402BE /* Tools */,
 				C39273752B606A0A00368D5D /* Products */,
 				C392737E2B606A2C00368D5D /* Frameworks */,
 			);
@@ -621,14 +547,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		C39273762B606A0A00368D5D /* Tutorial */ = {
-			isa = PBXGroup;
-			children = (
-				C392737C2B606A1D00368D5D /* Tutorial.swift */,
-			);
-			path = Tutorial;
-			sourceTree = "<group>";
-		};
 		C392737E2B606A2C00368D5D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -638,86 +556,6 @@
 				C3C7C4D92DB16C83000373CF /* AVFoundation.framework */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		C39273812B606A7400368D5D /* Tools */ = {
-			isa = PBXGroup;
-			children = (
-				C3132C2B2DFB301A00270E8E /* ExampleLLM */,
-				C36BEFE12BC32988002D4AFE /* image-tool */,
-				C3288D742B6D9313009FF608 /* LinearModelTraining */,
-				C34E49222B6A026F00FCB841 /* mnist-tool */,
-				C34E48F32B696F0B00FCB841 /* llm-tool */,
-				C39273762B606A0A00368D5D /* Tutorial */,
-				0A979CD22E97175800635D67 /* embedder-tool */,
-			);
-			path = Tools;
-			sourceTree = "<group>";
-		};
-		C3A8B3AD2B9294E30002EFB8 /* Applications */ = {
-			isa = PBXGroup;
-			children = (
-				C3056BAC2BCD97B700A31D04 /* LoRATrainingExample */,
-				C36BF0022BC5CE55002D4AFE /* StableDiffusionExample */,
-				C3A8B3EB2B92A2A90002EFB8 /* LLMEval */,
-				C3A8B3C12B92951E0002EFB8 /* MNISTTrainer */,
-				0AC74ECE2D13622A003C90A7 /* VLMEval */,
-				0F5AD7422DB70C0300745C06 /* MLXChatExample */,
-			);
-			path = Applications;
-			sourceTree = "<group>";
-		};
-		C3A8B3C12B92951E0002EFB8 /* MNISTTrainer */ = {
-			isa = PBXGroup;
-			children = (
-				C3A8B3C32B92951E0002EFB8 /* Assets.xcassets */,
-				C3A8B3C92B92951E0002EFB8 /* ContentView.swift */,
-				12305EAE2B9D864400C92FEE /* PredictionView.swift */,
-				C3A8B3C22B92951E0002EFB8 /* MNISTTrainer-Info.plist */,
-				C3A8B3C72B92951E0002EFB8 /* MNISTTrainer.entitlements */,
-				C3A8B3C42B92951E0002EFB8 /* MNISTTrainerApp.swift */,
-				C3A8B3C52B92951E0002EFB8 /* Preview Content */,
-				C3A8B3C82B92951E0002EFB8 /* README.md */,
-			);
-			path = MNISTTrainer;
-			sourceTree = "<group>";
-		};
-		C3A8B3C52B92951E0002EFB8 /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				C3A8B3C62B92951E0002EFB8 /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
-			sourceTree = "<group>";
-		};
-		C3A8B3EB2B92A2A90002EFB8 /* LLMEval */ = {
-			isa = PBXGroup;
-			children = (
-				819BEFF72BAF8B4E0002CCEE /* ViewModels */,
-				C3A8B3EC2B92A2A90002EFB8 /* Assets.xcassets */,
-				C3A8B3F22B92A2A90002EFB8 /* ContentView.swift */,
-				C3A8B3F12B92A2A90002EFB8 /* LLMEval.entitlements */,
-				C3A8B3ED2B92A2A90002EFB8 /* LLMEvalApp.swift */,
-				C3A8B3EE2B92A2A90002EFB8 /* Preview Content */,
-				C3A8B3F02B92A2A90002EFB8 /* README.md */,
-			);
-			path = LLMEval;
-			sourceTree = "<group>";
-		};
-		C3A8B3EE2B92A2A90002EFB8 /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				C3A8B3EF2B92A2A90002EFB8 /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
-			sourceTree = "<group>";
-		};
-		C3C36A6C2CA714600099FFA4 /* Configuration */ = {
-			isa = PBXGroup;
-			children = (
-				C3C36A6B2CA714600099FFA4 /* Build.xcconfig */,
-			);
-			path = Configuration;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -735,13 +573,10 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				0A979CD22E97175800635D67 /* embedder-tool */,
-			);
 			name = "embedder-tool";
 			packageProductDependencies = (
 				0A979CD82E9717C500635D67 /* ArgumentParser */,
-				0A979D122E9743D800635D67 /* MLXEmbedders */,
+				0A979CDA2E9717C5002914C6 /* MLXEmbedders */,
 			);
 			productName = "embedder-tool";
 			productReference = 0A979CD12E97175800635D67 /* embedder-tool */;
@@ -761,8 +596,9 @@
 			);
 			name = VLMEval;
 			packageProductDependencies = (
-				0AC74ED92D136223003C90A7 /* MLXVLM */,
 				C32B4C6C2DA7136000EF663D /* AsyncAlgorithms */,
+				0AC74EDA2D136221002914C6 /* MLXVLM */,
+				0AC74EDB2D136221002914C6 /* MLXLMCommon */,
 			);
 			productName = VLMEval;
 			productReference = 0AC74EBB2D136221003C90A7 /* VLMEval.app */;
@@ -780,13 +616,11 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				0F5AD7422DB70C0300745C06 /* MLXChatExample */,
-			);
 			name = MLXChatExample;
 			packageProductDependencies = (
-				C32A17FC2CFFB98A0092A5B6 /* MLXLLM */,
-				C32A17FE2CFFB98A0092A5B6 /* MLXVLM */,
+				0F5AD7502DB70C03002914C6 /* MLXLMCommon */,
+				0F5AD7522DB70C03002914C6 /* MLXLLM */,
+				0F5AD7532DB70C03002914C6 /* MLXVLM */,
 			);
 			productName = MLXChatExample;
 			productReference = 0F5AD7412DB70C0300745C06 /* MLXChatExample.app */;
@@ -805,9 +639,13 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				920428F02EE0F81A009402BE /* Data */,
+			);
 			name = LoRATrainingExample;
 			packageProductDependencies = (
-				C32A18062CFFD1AA0092A5B6 /* MLXLLM */,
+				C3056BBD2BCD9817002914C6 /* MLXLLM */,
+				C3056BBE2BCD9817002914C6 /* MLXLMCommon */,
 			);
 			productName = LoRATrainingExample;
 			productReference = C3056BAB2BCD97B700A31D04 /* LoRATrainingExample.app */;
@@ -827,8 +665,7 @@
 			);
 			name = ExampleLLM;
 			packageProductDependencies = (
-				C3132C2D2DFB317C00270E8E /* MLXVLM */,
-				C3132C2F2DFB317C00270E8E /* MLXLLM */,
+				C3132C2D2DFB301A002914C6 /* MLXLMCommon */,
 			);
 			productName = ExampleLLM;
 			productReference = C3132C232DFB2FFB00270E8E /* ExampleLLM */;
@@ -894,7 +731,6 @@
 			name = "mnist-tool";
 			packageProductDependencies = (
 				C34E49282B6A028100FCB841 /* ArgumentParser */,
-				C32A18002CFFD1810092A5B6 /* MLXMNIST */,
 			);
 			productName = "mnist-tool";
 			productReference = C34E49212B6A026F00FCB841 /* mnist-tool */;
@@ -917,7 +753,6 @@
 			packageProductDependencies = (
 				C36BEFEE2BC329C5002D4AFE /* ArgumentParser */,
 				C36BEFF12BC32A9A002D4AFE /* Progress */,
-				C3E7D94C2CF6C9B20056C095 /* StableDiffusion */,
 			);
 			productName = "image-tool";
 			productReference = C36BEFE02BC32988002D4AFE /* image-tool */;
@@ -937,6 +772,8 @@
 			dependencies = (
 			);
 			name = StableDiffusionExample;
+			packageProductDependencies = (
+			);
 			productName = StableDiffusionEval;
 			productReference = C36BF0012BC5CE55002D4AFE /* StableDiffusionExample.app */;
 			productType = "com.apple.product-type.application";
@@ -999,7 +836,6 @@
 			);
 			name = MNISTTrainer;
 			packageProductDependencies = (
-				C32A18022CFFD1920092A5B6 /* MLXMNIST */,
 			);
 			productName = MNISTTrainer;
 			productReference = C3A8B3B22B9295090002EFB8 /* MNISTTrainer.app */;
@@ -1021,8 +857,9 @@
 			name = LLMEval;
 			packageProductDependencies = (
 				81695B402BA373D300F260D8 /* MarkdownUI */,
-				C32A18042CFFD19F0092A5B6 /* MLXLLM */,
 				C32B4C6E2DA71ADC00EF663D /* AsyncAlgorithms */,
+				C3A8B4002EB977C4002914C6 /* MLXLLM */,
+				C3A8B4012EB977C4002914C6 /* MLXLMCommon */,
 			);
 			productName = LLMEval;
 			productReference = C3A8B3DC2B92A29E0002EFB8 /* LLMEval.app */;
@@ -1090,7 +927,6 @@
 				C34E491A2B69C43600FCB841 /* XCRemoteSwiftPackageReference "GzipSwift" */,
 				81695B3F2BA373D300F260D8 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				C36BEFF02BC32A8C002D4AFE /* XCRemoteSwiftPackageReference "Progress" */,
-				C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */,
 				C32A18442D00E13E0092A5B6 /* XCRemoteSwiftPackageReference "mlx-swift" */,
 				C32B4C6B2DA7132C00EF663D /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 				C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
@@ -1122,8 +958,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0AC74ECF2D13622A003C90A7 /* Preview Assets.xcassets in Resources */,
-				0AC74ED02D13622A003C90A7 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1138,11 +972,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3056BBA2BCD981900A31D04 /* train.jsonl in Resources */,
-				C3056BBB2BCD981900A31D04 /* test.jsonl in Resources */,
-				C3056BBC2BCD981900A31D04 /* valid.jsonl in Resources */,
-				C3056BB62BCD97B800A31D04 /* Preview Assets.xcassets in Resources */,
-				C3056BB22BCD97B800A31D04 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1157,8 +986,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C36BF00C2BC5CE56002D4AFE /* Preview Assets.xcassets in Resources */,
-				C36BF0082BC5CE56002D4AFE /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1166,8 +993,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3A8B3CD2B92951E0002EFB8 /* Preview Assets.xcassets in Resources */,
-				C3A8B3CB2B92951E0002EFB8 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1175,8 +1000,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3A8B3F52B92A2A90002EFB8 /* Preview Assets.xcassets in Resources */,
-				C3A8B3F32B92A2A90002EFB8 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1194,9 +1017,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0AC74ED12D13622A003C90A7 /* ContentView.swift in Sources */,
-				0AC74ED32D136265003C90A7 /* DeviceStat.swift in Sources */,
-				0AC74ED22D13622A003C90A7 /* VLMEvalApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1211,8 +1031,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3056BB02BCD97B700A31D04 /* ContentView.swift in Sources */,
-				C3056BAE2BCD97B700A31D04 /* LoRATrainingExampleApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1220,7 +1038,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3132C2C2DFB301A00270E8E /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1235,7 +1052,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3288D762B6D9313009FF608 /* LinearModelTraining.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1243,7 +1059,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C34E49242B6A026F00FCB841 /* MNISTTool.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1251,8 +1066,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C36BF0352BC70F11002D4AFE /* Arguments.swift in Sources */,
-				C36BEFE32BC32988002D4AFE /* ImageTool.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1260,8 +1073,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C36BF0062BC5CE55002D4AFE /* ContentView.swift in Sources */,
-				C36BF0042BC5CE55002D4AFE /* StableDiffusionExampleApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1269,7 +1080,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C392737D2B606A1D00368D5D /* Tutorial.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1277,11 +1087,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C36BEFB82BBDED51002D4AFE /* Arguments.swift in Sources */,
-				C38BA3AA2DB8321600BAFA88 /* Chat.swift in Sources */,
-				C34E48F52B696F0B00FCB841 /* LLMTool.swift in Sources */,
-				C36BEFB52BBDEAD8002D4AFE /* LoraCommands.swift in Sources */,
-				C37133A22DD6524B00D19830 /* ListCommands.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1289,9 +1094,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				12305EAF2B9D864400C92FEE /* PredictionView.swift in Sources */,
-				C3A8B3CC2B92951E0002EFB8 /* MNISTTrainerApp.swift in Sources */,
-				C3A8B3CF2B92951E0002EFB8 /* ContentView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1299,9 +1101,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3A8B3F42B92A2A90002EFB8 /* LLMEvalApp.swift in Sources */,
-				C3A8B3F72B92A2A90002EFB8 /* ContentView.swift in Sources */,
-				819BEFF82BAF8B4E0002CCEE /* DeviceStat.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2550,7 +2349,8 @@
 		};
 		C392736C2B60697700368D5D /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C3C36A6B2CA714600099FFA4 /* Build.xcconfig */;
+			baseConfigurationReferenceAnchor = 920428F72EE0F829009402BE /* Configuration */;
+			baseConfigurationReferenceRelativePath = Build.xcconfig;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -2589,7 +2389,8 @@
 		};
 		C392736D2B60697700368D5D /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C3C36A6B2CA714600099FFA4 /* Build.xcconfig */;
+			baseConfigurationReferenceAnchor = 920428F72EE0F829009402BE /* Configuration */;
+			baseConfigurationReferenceRelativePath = Build.xcconfig;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -3450,14 +3251,34 @@
 			package = C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
 			productName = ArgumentParser;
 		};
-		0A979D122E9743D800635D67 /* MLXEmbedders */ = {
+		0A979CDA2E9717C5002914C6 /* MLXEmbedders */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
 			productName = MLXEmbedders;
 		};
-		0AC74ED92D136223003C90A7 /* MLXVLM */ = {
+		0AC74EDA2D136221002914C6 /* MLXVLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXVLM;
+		};
+		0AC74EDB2D136221002914C6 /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLMCommon;
+		};
+		0F5AD7502DB70C03002914C6 /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLMCommon;
+		};
+		0F5AD7522DB70C03002914C6 /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
+		};
+		0F5AD7532DB70C03002914C6 /* MLXVLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
 			productName = MLXVLM;
 		};
 		81695B402BA373D300F260D8 /* MarkdownUI */ = {
@@ -3465,15 +3286,20 @@
 			package = 81695B3F2BA373D300F260D8 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
 			productName = MarkdownUI;
 		};
-		C3132C2D2DFB317C00270E8E /* MLXVLM */ = {
+		C3056BBD2BCD9817002914C6 /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
-			productName = MLXVLM;
-		};
-		C3132C2F2DFB317C00270E8E /* MLXLLM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
 			productName = MLXLLM;
+		};
+		C3056BBE2BCD9817002914C6 /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLMCommon;
+		};
+		C3132C2D2DFB301A002914C6 /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLMCommon;
 		};
 		C3208E752DB1945D006AE6CA /* MLX */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -3499,31 +3325,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
 			productName = MLXVLM;
-		};
-		C32A18002CFFD1810092A5B6 /* MLXMNIST */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
-			productName = MLXMNIST;
-		};
-		C32A18022CFFD1920092A5B6 /* MLXMNIST */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
-			productName = MLXMNIST;
-		};
-		C32A18042CFFD19F0092A5B6 /* MLXLLM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
-			productName = MLXLLM;
-		};
-		C32A18062CFFD1AA0092A5B6 /* MLXLLM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
-			productName = MLXLLM;
-		};
-		C32A18082CFFD1B70092A5B6 /* StableDiffusion */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
-			productName = StableDiffusion;
 		};
 		C32A18452D00E1490092A5B6 /* MLX */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -3585,10 +3386,15 @@
 			package = C392736E2B60699100368D5D /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
 			productName = ArgumentParser;
 		};
-		C3E7D94C2CF6C9B20056C095 /* StableDiffusion */ = {
+		C3A8B4002EB977C4002914C6 /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C397D8F22CD2F60B00B87EE2 /* XCLocalSwiftPackageReference "Libraries/.." */;
-			productName = StableDiffusion;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
+		};
+		C3A8B4012EB977C4002914C6 /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C32AA12E2EB97625002914C6 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLMCommon;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
