@@ -2,7 +2,7 @@
 
 An example that:
 
-- downloads a huggingface model (phi-2) and tokenizer
+- downloads a huggingface model and tokenizer
 - evaluates a prompt
 - displays the output as it generates text
 
@@ -13,23 +13,25 @@ Some notes about the setup:
 - this downloads models from hugging face so LLMEval -> Signing & Capabilities has the "Outgoing Connections (Client)" set in the App Sandbox
 - LLM models are large so this uses the Increased Memory Limit entitlement on iOS to allow ... increased memory limits for devices that have more memory
 - `MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)` is used to limit the buffer cache size
-- The Phi2 4 bit model is small enough to run on some iPhone models
-    - this can be changed by editing `let modelConfiguration = ModelConfiguration.phi4bit`
 
 ### Trying Different Models
 
-The example application uses Phi2 model by default, see [ContentView.swift](ContentView.swift#L58):
+The example app uses an 8 billion parameter quantized Qwen3 model by default, see [LLMEvaluator.swift](ViewModels/LLMEvaluator.swift#L52):
 
 ```
-    /// this controls which model loads -- phi4bit is one of the smaller ones so this will fit on
-    /// more devices
-    let modelConfiguration = ModelConfiguration.phi4bit
+    var modelConfiguration = LLMRegistry.qwen3_8b_4bit
 ```
 
 There are some pre-configured models in [MLXLLM/LLMModelFactory.swift](../../Libraries/MLXLLM/LLMModelFactory.swift#L78)
 and you can load any weights from Hugging Face where there
 is a model architecture defined and you have enough
 memory.
+
+For example:
+```
+    /// phi4bit is one of the smaller models so will fit on more devices
+    var modelConfiguration = LLMRegistry.phi4bit
+```
 
 ### Troubleshooting
 

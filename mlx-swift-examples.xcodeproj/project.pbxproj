@@ -14,12 +14,12 @@
 		0AC74ED02D13622A003C90A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0AC74ECB2D13622A003C90A7 /* Assets.xcassets */; };
 		0AC74ED12D13622A003C90A7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC74ECC2D13622A003C90A7 /* ContentView.swift */; };
 		0AC74ED22D13622A003C90A7 /* VLMEvalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC74ECD2D13622A003C90A7 /* VLMEvalApp.swift */; };
-		0AC74ED32D136265003C90A7 /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
 		0F5AD8002DB70E6300745C06 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FC2CFFB98A0092A5B6 /* MLXLLM */; };
 		0F5AD8012DB70E6300745C06 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FE2CFFB98A0092A5B6 /* MLXVLM */; };
 		12305EAF2B9D864400C92FEE /* PredictionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12305EAE2B9D864400C92FEE /* PredictionView.swift */; };
+		6C5EF5D82EEA33FA00134C83 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 6C5EF5D72EEA33FA00134C83 /* AppIcon.icon */; };
+		6C5EF5DC2EEA35B700134C83 /* AssetCatalog.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6C5EF5DB2EEA35B700134C83 /* AssetCatalog.xcassets */; };
 		81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 81695B402BA373D300F260D8 /* MarkdownUI */; };
-		819BEFF82BAF8B4E0002CCEE /* DeviceStat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */; };
 		C3056BAE2BCD97B700A31D04 /* LoRATrainingExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAD2BCD97B700A31D04 /* LoRATrainingExampleApp.swift */; };
 		C3056BB02BCD97B700A31D04 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3056BAF2BCD97B700A31D04 /* ContentView.swift */; };
 		C3056BB22BCD97B800A31D04 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3056BB12BCD97B800A31D04 /* Assets.xcassets */; };
@@ -70,10 +70,7 @@
 		C3A8B3CC2B92951E0002EFB8 /* MNISTTrainerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3C42B92951E0002EFB8 /* MNISTTrainerApp.swift */; };
 		C3A8B3CD2B92951E0002EFB8 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3C62B92951E0002EFB8 /* Preview Assets.xcassets */; };
 		C3A8B3CF2B92951E0002EFB8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3C92B92951E0002EFB8 /* ContentView.swift */; };
-		C3A8B3F32B92A2A90002EFB8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3EC2B92A2A90002EFB8 /* Assets.xcassets */; };
 		C3A8B3F42B92A2A90002EFB8 /* LLMEvalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3ED2B92A2A90002EFB8 /* LLMEvalApp.swift */; };
-		C3A8B3F52B92A2A90002EFB8 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3A8B3EF2B92A2A90002EFB8 /* Preview Assets.xcassets */; };
-		C3A8B3F72B92A2A90002EFB8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A8B3F22B92A2A90002EFB8 /* ContentView.swift */; };
 		C3C7C4FB2DB19026000373CF /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3C7C4FA2DB19026000373CF /* AVKit.framework */; };
 		C3E7D94D2CF6C9B20056C095 /* StableDiffusion in Frameworks */ = {isa = PBXBuildFile; productRef = C3E7D94C2CF6C9B20056C095 /* StableDiffusion */; };
 /* End PBXBuildFile section */
@@ -225,7 +222,8 @@
 		0AC74F282D1376F1003C90A7 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		0F5AD7412DB70C0300745C06 /* MLXChatExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MLXChatExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		12305EAE2B9D864400C92FEE /* PredictionView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PredictionView.swift; sourceTree = "<group>"; };
-		819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceStat.swift; sourceTree = "<group>"; };
+		6C5EF5D72EEA33FA00134C83 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		6C5EF5DB2EEA35B700134C83 /* AssetCatalog.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = AssetCatalog.xcassets; sourceTree = "<group>"; };
 		C3056BA12BCD973400A31D04 /* test.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = test.jsonl; sourceTree = "<group>"; };
 		C3056BA22BCD973400A31D04 /* train.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = train.jsonl; sourceTree = "<group>"; };
 		C3056BA32BCD973400A31D04 /* valid.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = valid.jsonl; sourceTree = "<group>"; };
@@ -274,12 +272,9 @@
 		C3A8B3C82B92951E0002EFB8 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C3A8B3C92B92951E0002EFB8 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C3A8B3DC2B92A29E0002EFB8 /* LLMEval.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LLMEval.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C3A8B3EC2B92A2A90002EFB8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C3A8B3ED2B92A2A90002EFB8 /* LLMEvalApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LLMEvalApp.swift; sourceTree = "<group>"; };
-		C3A8B3EF2B92A2A90002EFB8 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		C3A8B3F02B92A2A90002EFB8 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C3A8B3F12B92A2A90002EFB8 /* LLMEval.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = LLMEval.entitlements; sourceTree = "<group>"; };
-		C3A8B3F22B92A2A90002EFB8 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C3C3240B2B6CA689007D2D9A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		C3C36A6B2CA714600099FFA4 /* Build.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Build.xcconfig; sourceTree = "<group>"; };
 		C3C7C4D92DB16C83000373CF /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.4.sdk/System/Library/Frameworks/AVFoundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -307,6 +302,10 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0A979CD22E97175800635D67 /* embedder-tool */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "embedder-tool"; sourceTree = "<group>"; };
 		0F5AD7422DB70C0300745C06 /* MLXChatExample */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = MLXChatExample; sourceTree = "<group>"; };
+		6C5EF5A82EEA33B000134C83 /* Models */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Models; sourceTree = "<group>"; };
+		6C5EF5BE2EEA33CD00134C83 /* ViewModels */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = ViewModels; sourceTree = "<group>"; };
+		6C5EF5C92EEA33D900134C83 /* Views */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Views; sourceTree = "<group>"; };
+		6C5EF5D42EEA33E800134C83 /* Services */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Services; sourceTree = "<group>"; };
 		C397D92E2CD440EF00B87EE2 /* Libraries */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Libraries; sourceTree = "<group>"; };
 		C3C7C4222DB16A02000373CF /* Tests */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C3208F272DB19614006AE6CA /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Tests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -464,14 +463,6 @@
 				0AC74ECD2D13622A003C90A7 /* VLMEvalApp.swift */,
 			);
 			path = VLMEval;
-			sourceTree = "<group>";
-		};
-		819BEFF72BAF8B4E0002CCEE /* ViewModels */ = {
-			isa = PBXGroup;
-			children = (
-				819BEFF62BAF8B4E0002CCEE /* DeviceStat.swift */,
-			);
-			path = ViewModels;
 			sourceTree = "<group>";
 		};
 		C3056BA52BCD973400A31D04 /* lora */ = {
@@ -693,23 +684,17 @@
 		C3A8B3EB2B92A2A90002EFB8 /* LLMEval */ = {
 			isa = PBXGroup;
 			children = (
-				819BEFF72BAF8B4E0002CCEE /* ViewModels */,
-				C3A8B3EC2B92A2A90002EFB8 /* Assets.xcassets */,
-				C3A8B3F22B92A2A90002EFB8 /* ContentView.swift */,
+				6C5EF5C92EEA33D900134C83 /* Views */,
+				6C5EF5D42EEA33E800134C83 /* Services */,
+				6C5EF5A82EEA33B000134C83 /* Models */,
+				6C5EF5BE2EEA33CD00134C83 /* ViewModels */,
+				6C5EF5DB2EEA35B700134C83 /* AssetCatalog.xcassets */,
 				C3A8B3F12B92A2A90002EFB8 /* LLMEval.entitlements */,
 				C3A8B3ED2B92A2A90002EFB8 /* LLMEvalApp.swift */,
-				C3A8B3EE2B92A2A90002EFB8 /* Preview Content */,
 				C3A8B3F02B92A2A90002EFB8 /* README.md */,
+				6C5EF5D72EEA33FA00134C83 /* AppIcon.icon */,
 			);
 			path = LLMEval;
-			sourceTree = "<group>";
-		};
-		C3A8B3EE2B92A2A90002EFB8 /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				C3A8B3EF2B92A2A90002EFB8 /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
 			sourceTree = "<group>";
 		};
 		C3C36A6C2CA714600099FFA4 /* Configuration */ = {
@@ -1018,6 +1003,12 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				6C5EF5A82EEA33B000134C83 /* Models */,
+				6C5EF5BE2EEA33CD00134C83 /* ViewModels */,
+				6C5EF5C92EEA33D900134C83 /* Views */,
+				6C5EF5D42EEA33E800134C83 /* Services */,
+			);
 			name = LLMEval;
 			packageProductDependencies = (
 				81695B402BA373D300F260D8 /* MarkdownUI */,
@@ -1175,8 +1166,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3A8B3F52B92A2A90002EFB8 /* Preview Assets.xcassets in Resources */,
-				C3A8B3F32B92A2A90002EFB8 /* Assets.xcassets in Resources */,
+				6C5EF5D82EEA33FA00134C83 /* AppIcon.icon in Resources */,
+				6C5EF5DC2EEA35B700134C83 /* AssetCatalog.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1195,7 +1186,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				0AC74ED12D13622A003C90A7 /* ContentView.swift in Sources */,
-				0AC74ED32D136265003C90A7 /* DeviceStat.swift in Sources */,
 				0AC74ED22D13622A003C90A7 /* VLMEvalApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1300,8 +1290,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				C3A8B3F42B92A2A90002EFB8 /* LLMEvalApp.swift in Sources */,
-				C3A8B3F72B92A2A90002EFB8 /* ContentView.swift in Sources */,
-				819BEFF82BAF8B4E0002CCEE /* DeviceStat.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3100,8 +3088,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_ASSET_PATHS = "\"Applications/LLMEval/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = R5P89TMFPL;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -3193,9 +3181,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_ASSET_PATHS = "\"Applications/LLMEval/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = R5P89TMFPL;
 				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
