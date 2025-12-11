@@ -1,11 +1,11 @@
 // Copyright © 2025 Apple Inc.
 
+import Hub
 import MLX
 import MLXLLM
 import MLXLMCommon
 import Metal
 import SwiftUI
-import Hub
 
 @Observable
 @MainActor
@@ -85,7 +85,7 @@ class LLMEvaluator {
 
         case .loading:
             // Already loading, wait and retry
-            try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            try await Task.sleep(nanoseconds: 100_000_000)  // 100ms
             return try await load()
 
         case .loaded(let modelContainer):
@@ -100,7 +100,9 @@ class LLMEvaluator {
 
         MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
 
-        let hub = HubApi(downloadBase: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first)
+        let hub = HubApi(
+            downloadBase: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+        )
 
         do {
             let modelDirectory = try await downloadModel(
@@ -122,7 +124,10 @@ class LLMEvaluator {
                 throw NSError(
                     domain: "LLMEvaluator",
                     code: -1,
-                    userInfo: [NSLocalizedDescriptionKey: "Model download failed. Please check your network connection and try again."]
+                    userInfo: [
+                        NSLocalizedDescriptionKey:
+                            "Model download failed. Please check your network connection and try again."
+                    ]
                 )
             }
 
@@ -156,7 +161,8 @@ class LLMEvaluator {
         if progress.totalUnitCount > 0 && progress.totalUnitCount < 100 {
             totalSize = "File \(progress.completedUnitCount + 1) of \(progress.totalUnitCount)"
         } else if progress.totalUnitCount > 0 {
-            totalSize = "\(formatBytes(progress.completedUnitCount)) of \(formatBytes(progress.totalUnitCount))"
+            totalSize =
+                "\(formatBytes(progress.completedUnitCount)) of \(formatBytes(progress.totalUnitCount))"
         } else {
             totalSize = nil
         }
@@ -207,11 +213,12 @@ class LLMEvaluator {
             // Start the real-time TTFT timer
             generationStartTime = Date.timeIntervalSinceReferenceDate
             ttftTimer?.invalidate()
-            ttftTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
+            ttftTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) {
+                [weak self] _ in
                 guard let self = self else { return }
                 Task { @MainActor in
                     let elapsed = Date.timeIntervalSinceReferenceDate - self.generationStartTime
-                    self.timeToFirstToken = elapsed * 1000 // Convert to ms
+                    self.timeToFirstToken = elapsed * 1000  // Convert to ms
                 }
             }
         }
@@ -256,16 +263,19 @@ class LLMEvaluator {
                     Task { @MainActor in
                         self.ttftTimer?.invalidate()
                         self.ttftTimer = nil
-                        self.timeToFirstToken = promptTime * 1000 // Convert to ms
+                        self.timeToFirstToken = promptTime * 1000  // Convert to ms
                         self.promptLength = promptTokenCount
 
                         // Start real-time generation metrics tracking
                         self.firstTokenTime = Date.timeIntervalSinceReferenceDate
                         self.generationTimer?.invalidate()
-                        self.generationTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+                        self.generationTimer = Timer.scheduledTimer(
+                            withTimeInterval: 0.1, repeats: true
+                        ) { [weak self] _ in
                             guard let self = self else { return }
                             Task { @MainActor in
-                                let elapsed = Date.timeIntervalSinceReferenceDate - self.firstTokenTime
+                                let elapsed =
+                                    Date.timeIntervalSinceReferenceDate - self.firstTokenTime
                                 if elapsed > 0 && self.totalTokens > 0 {
                                     self.tokensPerSecond = Double(self.totalTokens) / elapsed
                                     self.totalTime = elapsed
@@ -328,7 +338,8 @@ class LLMEvaluator {
 
                     // Handle tool call if one was made
                     if let toolCall = pendingToolCall {
-                        await self.executeToolAndContinue(toolCall: toolCall, originalPrompt: prompt)
+                        await self.executeToolAndContinue(
+                            toolCall: toolCall, originalPrompt: prompt)
                     }
                 }
             }

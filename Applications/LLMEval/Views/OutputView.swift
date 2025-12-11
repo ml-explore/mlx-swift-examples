@@ -1,7 +1,7 @@
 // Copyright © 2025 Apple Inc.
 
-import SwiftUI
 import MarkdownUI
+import SwiftUI
 
 struct OutputView: View {
     let output: String

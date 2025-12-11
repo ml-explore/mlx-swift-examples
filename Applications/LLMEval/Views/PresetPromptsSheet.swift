@@ -19,8 +19,11 @@ struct PresetPromptsSheet: View {
                             // Clean up whitespace for better preview
                             let cleanedPrompt = preset.prompt
                                 .trimmingCharacters(in: .whitespacesAndNewlines)
-                                .replacingOccurrences(of: #"\n\n+"#, with: " ", options: .regularExpression)
-                                .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+                                .replacingOccurrences(
+                                    of: #"\n\n+"#, with: " ", options: .regularExpression
+                                )
+                                .replacingOccurrences(
+                                    of: #"\s+"#, with: " ", options: .regularExpression)
 
                             Text(cleanedPrompt)
                                 .multilineTextAlignment(.leading)
@@ -39,29 +42,30 @@ struct PresetPromptsSheet: View {
                                         BadgeView(icon: "hammer.fill", text: "Tools", color: .blue)
                                     }
                                     if preset.isLongPrompt {
-                                        BadgeView(icon: "doc.text.fill", text: "Long", color: .orange)
+                                        BadgeView(
+                                            icon: "doc.text.fill", text: "Long", color: .orange)
                                     }
                                 }
                             }
                         }
                         .padding(.vertical, 8)
                         #if os(macOS)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                         #endif
                     }
                     .buttonStyle(.plain)
                     #if os(macOS)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+                        .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
                     #endif
                 }
             }
             #if os(macOS)
-            .listStyle(.inset)
+                .listStyle(.inset)
             #endif
             .navigationTitle("Example Prompts")
             #if !os(macOS)
-            .navigationBarTitleDisplayMode(.inline)
+                .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -72,7 +76,7 @@ struct PresetPromptsSheet: View {
             }
         }
         #if os(macOS)
-        .frame(minWidth: 600, minHeight: 500)
+            .frame(minWidth: 600, minHeight: 500)
         #endif
     }
 }

@@ -40,11 +40,13 @@ struct LoadingOverlayView: View {
                         .monospacedDigit()
                 }
 
-                Text("Models are large and may take a couple of minutes to download on first use. They are cached locally for faster loading in the future.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 300)
+                Text(
+                    "Models are large and may take a couple of minutes to download on first use. They are cached locally for faster loading in the future."
+                )
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 300)
             }
             .padding(32)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))

@@ -1,7 +1,7 @@
 // Copyright © 2025 Apple Inc.
 
-import SwiftUI
 import MLX
+import SwiftUI
 
 struct MetricsView: View {
     let tokensPerSecond: Double
@@ -56,7 +56,7 @@ struct MetricsView: View {
                     )
                     Button(action: {
                         #if os(iOS)
-                        showMemoryDetails = true
+                            showMemoryDetails = true
                         #endif
                     }) {
                         Image(systemName: "info.circle.fill")
@@ -78,9 +78,10 @@ struct MetricsView: View {
         }
         .padding(.top, 8)
         .alert("Memory Details", isPresented: $showMemoryDetails) {
-            Button("OK", role: .cancel) { }
+            Button("OK", role: .cancel) {}
         } message: {
-            Text("""
+            Text(
+                """
                 Active Memory: \(FormatUtilities.formatMemory(memoryUsed))/\(FormatUtilities.formatMemory(GPU.memoryLimit))
                 Cache Memory: \(FormatUtilities.formatMemory(cacheMemory))/\(FormatUtilities.formatMemory(GPU.cacheLimit))
                 Peak Memory: \(FormatUtilities.formatMemory(peakMemory))
@@ -88,4 +89,3 @@ struct MetricsView: View {
         }
     }
 }
-

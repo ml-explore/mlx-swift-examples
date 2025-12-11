@@ -36,7 +36,7 @@ struct PromptInputView: View {
             // Prompt text field with dynamic sizing
             TextField("Enter your prompt...", text: $llm.prompt, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
-                .lineLimit(isPromptExpanded ? 15...50 : 1...3)
+                .lineLimit(isPromptExpanded ? 15 ... 50 : 1 ... 3)
                 .frame(height: isPromptExpanded ? 400 : nil)
                 .onSubmit(onGenerate)
                 .disabled(llm.running || llm.isLoading)

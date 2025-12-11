@@ -57,7 +57,7 @@ struct HeaderView: View {
                                 get: { log2(Double(llm.maxTokens)) },
                                 set: { llm.maxTokens = Int(pow(2, $0)) }
                             ),
-                            in: 10...15,  // 2^10 (1024) to 2^15 (32768)
+                            in: 10 ... 15,  // 2^10 (1024) to 2^15 (32768)
                             step: 1
                         )
                         .frame(width: 120)
