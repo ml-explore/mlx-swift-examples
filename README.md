@@ -7,12 +7,13 @@ examples use models implemented in [MLX Swift LM](https://github.com/ml-explore/
   both iOS and macOS that downloads MNIST training data and trains a
   [LeNet](https://en.wikipedia.org/wiki/LeNet).
 
+- [LLMBasic](Applications/LLMBasic/README.md): A **minimal** LLM chat example
+  application.  It has only two features: load the model and evaluate a prompt.
+
 - [LLMEval](Applications/LLMEval/README.md): An example that runs on both iOS
   and macOS that downloads an LLM and tokenizer from Hugging Face and
-  generates text from a given prompt.
-
-- [VLMEval](Applications/VLMEval/README.md): An example that runs on iOS, macOS and visionOS to download a VLM and tokenizer from Hugging Face and
-  analyzes the given image and describe it in text.
+  generates text from a given prompt.  It has some preset prompts, tool integration,
+  etc.  Additionally it shows detailed statistics on the run.
 
 - [MLXChatExample](Applications/MLXChatExample/README.md): An example chat app that runs on both iOS and macOS that supports LLMs and VLMs.
 
@@ -28,7 +29,7 @@ examples use models implemented in [MLX Swift LM](https://github.com/ml-explore/
 - [llm-tool](Tools/llm-tool/README.md): A command line tool for generating text
   using a variety of LLMs available on the Hugging Face hub.
 
-- [ExampleLLM](Tools/ExampleLLM/README.md): A command line tool using the simplified API to interact with LLMs.
+- [ExampleLLM](Tools/ExampleLLM/README.md): A command line tool using the simplified API to interact with LLMs.  See also `LLMBasic`.
 
 - [image-tool](Tools/image-tool/README.md): A command line tool for generating images
   using a stable diffusion model from Hugging Face.

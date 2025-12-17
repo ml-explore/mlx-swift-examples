@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1620"
+   LastUpgradeVersion = "2620"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -15,9 +15,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0AC74EBA2D136221003C90A7"
-               BuildableName = "VLMEval.app"
-               BlueprintName = "VLMEval"
+               BlueprintIdentifier = "C36BEFDF2BC32988002D4AFE"
+               BuildableName = "image-tool"
+               BlueprintName = "image-tool"
                ReferencedContainer = "container:mlx-swift-examples.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -39,14 +39,15 @@
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
-      allowLocationSimulation = "YES">
+      allowLocationSimulation = "YES"
+      viewDebuggingEnabled = "No">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0AC74EBA2D136221003C90A7"
-            BuildableName = "VLMEval.app"
-            BlueprintName = "VLMEval"
+            BlueprintIdentifier = "C36BEFDF2BC32988002D4AFE"
+            BuildableName = "image-tool"
+            BlueprintName = "image-tool"
             ReferencedContainer = "container:mlx-swift-examples.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -61,9 +62,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0AC74EBA2D136221003C90A7"
-            BuildableName = "VLMEval.app"
-            BlueprintName = "VLMEval"
+            BlueprintIdentifier = "C36BEFDF2BC32988002D4AFE"
+            BuildableName = "image-tool"
+            BlueprintName = "image-tool"
             ReferencedContainer = "container:mlx-swift-examples.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

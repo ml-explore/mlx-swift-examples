@@ -1,6 +1,5 @@
 // Copyright © 2025 Apple Inc.
 
-import AsyncAlgorithms
 import MLX
 import MLXLLM
 import MLXLMCommon
