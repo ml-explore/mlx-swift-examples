@@ -15,7 +15,20 @@ struct MetricsView: View {
 
     @State private var showMemoryDetails = false
 
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+
     var body: some View {
+        if horizontalSizeClass == .compact {
+            DisclosureGroup("Statistics") {
+                stats
+                    .scaleEffect(0.8)
+            }
+        } else {
+            stats
+        }
+    }
+
+    var stats: some View {
         VStack(spacing: 12) {
             // Top row
             HStack(spacing: 12) {

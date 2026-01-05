@@ -79,17 +79,18 @@ class LLMEvaluator {
 
     /// Load and return the model. Can be called multiple times; subsequent calls return the cached model.
     func load() async throws -> ModelContainer {
-        switch loadState {
-        case .idle:
-            return try await performLoad()
+        while true {
+            switch loadState {
+            case .idle:
+                return try await performLoad()
 
-        case .loading:
-            // Already loading, wait and retry
-            try await Task.sleep(nanoseconds: 100_000_000)  // 100ms
-            return try await load()
+            case .loading:
+                // Already loading, wait and retry
+                try await Task.sleep(for: .milliseconds(100))
 
-        case .loaded(let modelContainer):
-            return modelContainer
+            case .loaded(let modelContainer):
+                return modelContainer
+            }
         }
     }
 
