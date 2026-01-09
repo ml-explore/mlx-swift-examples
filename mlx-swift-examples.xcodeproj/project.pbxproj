@@ -366,17 +366,6 @@
 			);
 			target = C314FEDA2EF33B2F00E5B73A /* LLMBasic */;
 		};
-		C3208F272DB19614006AE6CA /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				MLXLMTests/BaseConfigurationTests.swift,
-				MLXLMTests/EvalTests.swift,
-				MLXLMTests/StreamlinedTests.swift,
-				MLXLMTests/ToolTests.swift,
-				MLXLMTests/UserInputTests.swift,
-			);
-			target = C3208E6D2DB19451006AE6CA /* MLXLMTests */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -385,7 +374,6 @@
 		C314FD242EF3315100E5B73A /* Tools */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C314FD422EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FD472EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FD442EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FD462EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FD432EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FD412EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FD452EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Tools; sourceTree = "<group>"; };
 		C314FDA02EF3315A00E5B73A /* Applications */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C314FDD82EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FDDA2EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FEED2EF33B3900E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FDDD2EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FDDC2EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FDDB2EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Applications; sourceTree = "<group>"; };
 		C397D92E2CD440EF00B87EE2 /* Libraries */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Libraries; sourceTree = "<group>"; };
-		C3C7C4222DB16A02000373CF /* Tests */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C3208F272DB19614006AE6CA /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Tests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -527,7 +515,6 @@
 				C314FCF02EF3313B00E5B73A /* Configuration */,
 				C314FCF62EF3314200E5B73A /* Data */,
 				C397D92E2CD440EF00B87EE2 /* Libraries */,
-				C3C7C4222DB16A02000373CF /* Tests */,
 				C314FDA02EF3315A00E5B73A /* Applications */,
 				C314FD242EF3315100E5B73A /* Tools */,
 				C39273752B606A0A00368D5D /* Products */,
