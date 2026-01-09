@@ -12,7 +12,7 @@ Some notes about the setup:
 
 - this downloads models from hugging face so LLMEval -> Signing & Capabilities has the "Outgoing Connections (Client)" set in the App Sandbox
 - LLM models are large so this uses the Increased Memory Limit entitlement on iOS to allow ... increased memory limits for devices that have more memory
-- `MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)` is used to limit the buffer cache size
+- `Memory.cacheLimit = 20 * 1024 * 1024` is used to limit the buffer cache size
 
 `MLXChatExample` is a more full featured multi-turn chat example that supports VLMs.
 `LLMBasic` is a **minimal** LLM chat example.

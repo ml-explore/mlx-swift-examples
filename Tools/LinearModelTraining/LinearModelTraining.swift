@@ -34,8 +34,12 @@ struct Train: AsyncParsableCommand {
     @Option var device = DeviceType.cpu
 
     func run() async throws {
-        Device.setDefault(device: Device(device))
+        try await Device.withDefaultDevice(Device(device)) {
+            try await runWithDevice()
+        }
+    }
 
+    func runWithDevice() async throws {
         // A very simple model that implements the equation
         // for a linear function: y = mx + b. This can be trained
         // to match data – in this case, an unknown (to the model)

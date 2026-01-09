@@ -208,49 +208,49 @@ struct MemoryArguments: ParsableArguments, Sendable {
     @Option(name: .long, help: "Maximum memory size in M")
     var memorySize: Int?
 
-    var startMemory: GPU.Snapshot?
+    var startMemory: Memory.Snapshot?
 
     mutating func start<L>(_ load: @Sendable () async throws -> L) async throws -> L {
         if let cacheSize {
-            GPU.set(cacheLimit: cacheSize * 1024 * 1024)
+            Memory.cacheLimit = cacheSize * 1024 * 1024
         }
 
         if let memorySize {
-            GPU.set(memoryLimit: memorySize * 1024 * 1024)
+            Memory.memoryLimit = memorySize * 1024 * 1024
         }
 
         let result = try await load()
-        startMemory = GPU.snapshot()
+        startMemory = Memory.snapshot()
 
         return result
     }
 
     mutating func start() {
         if let cacheSize {
-            GPU.set(cacheLimit: cacheSize * 1024 * 1024)
+            Memory.cacheLimit = cacheSize * 1024 * 1024
         }
 
         if let memorySize {
-            GPU.set(memoryLimit: memorySize * 1024 * 1024)
+            Memory.memoryLimit = memorySize * 1024 * 1024
         }
 
-        startMemory = GPU.snapshot()
+        startMemory = Memory.snapshot()
     }
 
     func reportCurrent() {
         if memoryStats {
-            let memory = GPU.snapshot()
+            let memory = Memory.snapshot()
             print(memory.description)
         }
     }
 
     func reportMemoryStatistics() {
         if memoryStats, let startMemory {
-            let endMemory = GPU.snapshot()
+            let endMemory = Memory.snapshot()
 
             print("=======")
-            print("Memory size: \(GPU.memoryLimit / 1024)K")
-            print("Cache size:  \(GPU.cacheLimit / 1024)K")
+            print("Memory size: \(Memory.memoryLimit / 1024)K")
+            print("Cache size:  \(Memory.cacheLimit / 1024)K")
 
             print("")
             print("=======")
@@ -336,18 +336,27 @@ struct EvaluateCommand: AsyncParsableCommand {
             print(userInput.prompt, terminator: " ")
         }
 
-        let (result, _) = try await modelContainer.perform { [generate] context in
-            let input = try await context.processor.prepare(input: userInput)
-            return try await generate.generate(input: input, context: context)
+        var completionInfo: GenerateCompletionInfo?
+
+        let lmInput = try await modelContainer.prepare(input: userInput)
+        for await item in try await modelContainer.generate(
+            input: lmInput, parameters: generate.generateParameters)
+        {
+            if let info = item.info {
+                completionInfo = info
+            }
+            if let chunk = item.chunk {
+                print(chunk, terminator: "")
+            }
         }
 
         // wait for any asynchronous cleanup, e.g. tearing down compiled functions
         // before the task exits -- this would race with mlx::core shutdown
         try await Task.sleep(for: .milliseconds(30))
 
-        if !generate.quiet {
+        if !generate.quiet, let completionInfo {
             print("------")
-            print(result.summary())
+            print(completionInfo.summary())
 
             memory.reportMemoryStatistics()
         }

@@ -3,7 +3,7 @@
 import Foundation
 import MLXLMCommon
 
-public typealias ToolSpec = [String: Any]
+public typealias ToolSpec = [String: Sendable]
 
 /// Manages tool definitions and execution for LLM function calling
 @MainActor

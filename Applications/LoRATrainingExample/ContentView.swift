@@ -176,7 +176,7 @@ class LoRAEvaluator {
 
     private func startInner() async throws {
         // setup
-        GPU.set(cacheLimit: 32 * 1024 * 1024)
+        Memory.cacheLimit = 32 * 1024 * 1024
         await MainActor.run {
             output = ""
             state = .training

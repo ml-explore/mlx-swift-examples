@@ -138,15 +138,15 @@ actor ModelFactory {
         self.canUseNegativeText = defaultParameters.cfgWeight > 1
 
         // this will be true e.g. if the computer has 8G of memory or less
-        self.conserveMemory = MLX.GPU.memoryLimit < 8 * 1024 * 1024 * 1024
+        self.conserveMemory = Memory.memoryLimit < 8 * 1024 * 1024 * 1024
 
         if conserveMemory {
             print("conserving memory")
             loadConfiguration.quantize = true
-            MLX.GPU.set(cacheLimit: 1 * 1024 * 1024)
-            MLX.GPU.set(memoryLimit: 3 * 1024 * 1024 * 1024)
+            Memory.cacheLimit = 1 * 1024 * 1024
+            Memory.memoryLimit = 3 * 1024 * 1024 * 1024
         } else {
-            MLX.GPU.set(cacheLimit: 256 * 1024 * 1024)
+            Memory.cacheLimit = 256 * 1024 * 1024
         }
     }
 

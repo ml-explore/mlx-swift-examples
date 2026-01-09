@@ -81,8 +81,8 @@ struct MetricsView: View {
                     .buttonStyle(.plain)
                     .help(
                         """
-                        Active Memory: \(FormatUtilities.formatMemory(memoryUsed))/\(FormatUtilities.formatMemory(GPU.memoryLimit))
-                        Cache Memory: \(FormatUtilities.formatMemory(cacheMemory))/\(FormatUtilities.formatMemory(GPU.cacheLimit))
+                        Active Memory: \(FormatUtilities.formatMemory(memoryUsed))/\(FormatUtilities.formatMemory(Memory.memoryLimit))
+                        Cache Memory: \(FormatUtilities.formatMemory(cacheMemory))/\(FormatUtilities.formatMemory(Memory.cacheLimit))
                         Peak Memory: \(FormatUtilities.formatMemory(peakMemory))
                         """
                     )
@@ -95,8 +95,8 @@ struct MetricsView: View {
         } message: {
             Text(
                 """
-                Active Memory: \(FormatUtilities.formatMemory(memoryUsed))/\(FormatUtilities.formatMemory(GPU.memoryLimit))
-                Cache Memory: \(FormatUtilities.formatMemory(cacheMemory))/\(FormatUtilities.formatMemory(GPU.cacheLimit))
+                Active Memory: \(FormatUtilities.formatMemory(memoryUsed))/\(FormatUtilities.formatMemory(Memory.memoryLimit))
+                Cache Memory: \(FormatUtilities.formatMemory(cacheMemory))/\(FormatUtilities.formatMemory(Memory.cacheLimit))
                 Peak Memory: \(FormatUtilities.formatMemory(peakMemory))
                 """)
         }

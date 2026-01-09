@@ -9,7 +9,7 @@ import SwiftUI
 struct LLMBasicApp: App {
 
     init() {
-        MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
+        Memory.cacheLimit = 20 * 1024 * 1024
     }
 
     @State var loader = ModelLoader()

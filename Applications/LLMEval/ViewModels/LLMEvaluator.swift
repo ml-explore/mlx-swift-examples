@@ -99,7 +99,7 @@ class LLMEvaluator {
         modelInfo = "Downloading \(modelName)..."
         downloadProgress = 0.0
 
-        MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
+        Memory.cacheLimit = 20 * 1024 * 1024
 
         let hub = HubApi(
             downloadBase: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
@@ -248,100 +248,97 @@ class LLMEvaluator {
             // Seed random generator to ensure varied output each generation
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
-            try await modelContainer.perform { (context: ModelContext) -> Void in
-                let lmInput = try await context.processor.prepare(input: userInput)
-                let start = Date.timeIntervalSinceReferenceDate
-                let stream = try MLXLMCommon.generate(
-                    input: lmInput, parameters: parameters, context: context)
+            let lmInput = try await modelContainer.prepare(input: userInput)
+            let promptTokenCount = lmInput.text.tokens.size
+            let start = Date.timeIntervalSinceReferenceDate
+            let stream = try await modelContainer.generate(input: lmInput, parameters: parameters)
 
-                var iterator = stream.makeAsyncIterator()
-                if let first = await iterator.next() {
-                    let firstTick = Date.timeIntervalSinceReferenceDate
-                    let promptTime = firstTick - start
-                    let promptTokenCount = lmInput.text.tokens.size
+            var iterator = stream.makeAsyncIterator()
+            if let first = await iterator.next() {
+                let firstTick = Date.timeIntervalSinceReferenceDate
+                let promptTime = firstTick - start
 
-                    // Update TTFT and prompt length
-                    Task { @MainActor in
-                        self.ttftTimer?.invalidate()
-                        self.ttftTimer = nil
-                        self.timeToFirstToken = promptTime * 1000  // Convert to ms
-                        self.promptLength = promptTokenCount
+                // Update TTFT and prompt length
+                Task { @MainActor in
+                    self.ttftTimer?.invalidate()
+                    self.ttftTimer = nil
+                    self.timeToFirstToken = promptTime * 1000  // Convert to ms
+                    self.promptLength = promptTokenCount
 
-                        // Start real-time generation metrics tracking
-                        self.firstTokenTime = Date.timeIntervalSinceReferenceDate
-                        self.generationTimer?.invalidate()
-                        self.generationTimer = Timer.scheduledTimer(
-                            withTimeInterval: 0.1, repeats: true
-                        ) { [weak self] _ in
-                            guard let self = self else { return }
-                            Task { @MainActor in
-                                let elapsed =
-                                    Date.timeIntervalSinceReferenceDate - self.firstTokenTime
-                                if elapsed > 0 && self.totalTokens > 0 {
-                                    self.tokensPerSecond = Double(self.totalTokens) / elapsed
-                                    self.totalTime = elapsed
+                    // Start real-time generation metrics tracking
+                    self.firstTokenTime = Date.timeIntervalSinceReferenceDate
+                    self.generationTimer?.invalidate()
+                    self.generationTimer = Timer.scheduledTimer(
+                        withTimeInterval: 0.1, repeats: true
+                    ) { [weak self] _ in
+                        guard let self = self else { return }
+                        Task { @MainActor in
+                            let elapsed =
+                                Date.timeIntervalSinceReferenceDate - self.firstTokenTime
+                            if elapsed > 0 && self.totalTokens > 0 {
+                                self.tokensPerSecond = Double(self.totalTokens) / elapsed
+                                self.totalTime = elapsed
+                            }
+                        }
+                    }
+                }
+
+                var generateTokens: Double = 1
+                var pendingToolCall: ToolCall?
+
+                // Check if first token is a tool call
+                if let toolCall = first.toolCall {
+                    pendingToolCall = toolCall
+                } else if let chunk = first.chunk {
+                    if !chunk.isEmpty {
+                        Task { @MainActor [chunk] in
+                            self.output += chunk
+                            self.totalTokens += 1
+                        }
+                    }
+                }
+
+                // Only continue iterating if we haven't hit a tool call
+                if pendingToolCall == nil {
+                    while let next = await iterator.next() {
+                        // Check for tool calls
+                        if let toolCall = next.toolCall {
+                            pendingToolCall = toolCall
+                            break
+                        }
+
+                        // Handle text chunks
+                        if let chunk = next.chunk {
+                            if !chunk.isEmpty {
+                                Task { @MainActor [chunk] in
+                                    self.output += chunk
+                                    self.totalTokens += 1
                                 }
+                                generateTokens += 1
                             }
                         }
                     }
+                }
+                let secondTick = Date.timeIntervalSinceReferenceDate
+                let generateTime = secondTick - firstTick
+                let generateTps = generateTokens / generateTime
 
-                    var generateTokens: Double = 1
-                    var pendingToolCall: ToolCall?
+                Task { @MainActor in
+                    self.generationTimer?.invalidate()
+                    self.generationTimer = nil
+                    self.tokensPerSecond = generateTps
+                    self.totalTime = generateTime
 
-                    // Check if first token is a tool call
-                    if let toolCall = first.toolCall {
-                        pendingToolCall = toolCall
-                    } else if let chunk = first.chunk {
-                        if !chunk.isEmpty {
-                            Task { @MainActor [chunk] in
-                                self.output += chunk
-                                self.totalTokens += 1
-                            }
-                        }
+                    // Check if generation was truncated due to max tokens
+                    if self.totalTokens >= parameters.maxTokens ?? Int.max {
+                        self.wasTruncated = true
                     }
+                }
 
-                    // Only continue iterating if we haven't hit a tool call
-                    if pendingToolCall == nil {
-                        while let next = await iterator.next() {
-                            // Check for tool calls
-                            if let toolCall = next.toolCall {
-                                pendingToolCall = toolCall
-                                break
-                            }
-
-                            // Handle text chunks
-                            if let chunk = next.chunk {
-                                if !chunk.isEmpty {
-                                    Task { @MainActor [chunk] in
-                                        self.output += chunk
-                                        self.totalTokens += 1
-                                    }
-                                    generateTokens += 1
-                                }
-                            }
-                        }
-                    }
-                    let secondTick = Date.timeIntervalSinceReferenceDate
-                    let generateTime = secondTick - firstTick
-                    let generateTps = generateTokens / generateTime
-
-                    Task { @MainActor in
-                        self.generationTimer?.invalidate()
-                        self.generationTimer = nil
-                        self.tokensPerSecond = generateTps
-                        self.totalTime = generateTime
-
-                        // Check if generation was truncated due to max tokens
-                        if self.totalTokens >= parameters.maxTokens ?? Int.max {
-                            self.wasTruncated = true
-                        }
-                    }
-
-                    // Handle tool call if one was made
-                    if let toolCall = pendingToolCall {
-                        await self.executeToolAndContinue(
-                            toolCall: toolCall, originalPrompt: prompt)
-                    }
+                // Handle tool call if one was made
+                if let toolCall = pendingToolCall {
+                    await self.executeToolAndContinue(
+                        toolCall: toolCall, originalPrompt: prompt)
                 }
             }
 

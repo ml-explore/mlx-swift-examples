@@ -1221,7 +1221,7 @@ class LLMInference {
   - Time to first token (TTFT)
   - Total tokens in response
   - Total generation time
-  - GPU memory usage (use `GPU.snapshot()`)
+  - GPU memory usage (use `Memory.snapshot()`)
 
   **Print metrics in a clean format:**
   ─────────────────────────────
@@ -1323,8 +1323,8 @@ class LLMInference {
   // Apple Silicon's unified memory means GPU and CPU share the same physical
   // memory. We can access model weights and activations from both CPU (for
   // tokenization) and GPU (for inference) without copying. This is why
-  // GPU.snapshot() can report memory instantly without data transfers.
-  let snapshot = GPU.snapshot()
+  // Memory.snapshot() can report memory instantly without data transfers.
+  let snapshot = Memory.snapshot()
   let memoryMB = Double(snapshot.activeMemory) / 1024 / 1024
 
   Streaming Generation:

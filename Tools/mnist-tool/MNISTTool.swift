@@ -46,8 +46,12 @@ struct Train: AsyncParsableCommand {
     @Flag var compile = false
 
     func run() async throws {
-        Device.setDefault(device: Device(device))
+        try await Device.withDefaultDevice(Device(device)) {
+            try await runWithDevice()
+        }
+    }
 
+    func runWithDevice() async throws {
         MLXRandom.seed(seed)
         var generator: RandomNumberGenerator = SplitMix64(seed: seed)
 

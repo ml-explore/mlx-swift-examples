@@ -48,7 +48,7 @@ class MLXService {
     /// - Throws: Errors that might occur during model loading
     private func load(model: LMModel) async throws -> ModelContainer {
         // Set GPU memory limit to prevent out of memory issues
-        MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
+        Memory.cacheLimit = 20 * 1024 * 1024
 
         // Return cached model if available to avoid reloading
         if let container = modelCache.object(forKey: model.name as NSString) {

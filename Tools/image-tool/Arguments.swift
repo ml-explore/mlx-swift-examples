@@ -40,45 +40,45 @@ struct MemoryArguments: ParsableArguments, Sendable {
     @Option(name: .long, help: "Maximum memory size in M")
     var memorySize: Int?
 
-    var startMemory: GPU.Snapshot?
+    var startMemory: Memory.Snapshot?
 
     mutating func start<L>(_ load: () async throws -> L) async throws -> L {
-        GPU.set(cacheLimit: cacheSize * 1024 * 1024)
+        Memory.cacheLimit = cacheSize * 1024 * 1024
 
         if let memorySize {
-            GPU.set(memoryLimit: memorySize * 1024 * 1024)
+            Memory.memoryLimit = memorySize * 1024 * 1024
         }
 
         let result = try await load()
-        startMemory = GPU.snapshot()
+        startMemory = Memory.snapshot()
 
         return result
     }
 
     mutating func start() {
-        GPU.set(cacheLimit: cacheSize * 1024 * 1024)
+        Memory.cacheLimit = cacheSize * 1024 * 1024
 
         if let memorySize {
-            GPU.set(memoryLimit: memorySize * 1024 * 1024)
+            Memory.memoryLimit = memorySize * 1024 * 1024
         }
 
-        startMemory = GPU.snapshot()
+        startMemory = Memory.snapshot()
     }
 
     func reportCurrent() {
         if memoryStats {
-            let memory = GPU.snapshot()
+            let memory = Memory.snapshot()
             print(memory.description)
         }
     }
 
     func reportMemoryStatistics() {
         if memoryStats, let startMemory {
-            let endMemory = GPU.snapshot()
+            let endMemory = Memory.snapshot()
 
             print("=======")
-            print("Memory size: \(GPU.memoryLimit / 1024)K")
-            print("Cache size:  \(GPU.cacheLimit / 1024)K")
+            print("Memory size: \(Memory.memoryLimit / 1024)K")
+            print("Cache size:  \(Memory.cacheLimit / 1024)K")
 
             print("")
             print("=======")

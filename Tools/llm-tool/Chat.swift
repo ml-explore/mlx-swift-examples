@@ -174,9 +174,9 @@ struct ChatCommand: AsyncParsableCommand {
             return .exit
 
         case "/memory":
-            let memory = GPU.snapshot()
-            print("Memory size: \(GPU.memoryLimit / 1024)K")
-            print("Cache size:  \(GPU.cacheLimit / 1024)K")
+            let memory = Memory.snapshot()
+            print("Memory size: \(Memory.memoryLimit / 1024)K")
+            print("Cache size:  \(Memory.cacheLimit / 1024)K")
             print(memory.description)
 
         case "/stats":
