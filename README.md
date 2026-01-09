@@ -29,8 +29,6 @@ examples use models implemented in [MLX Swift LM](https://github.com/ml-explore/
 - [llm-tool](Tools/llm-tool/README.md): A command line tool for generating text
   using a variety of LLMs available on the Hugging Face hub.
 
-- [ExampleLLM](Tools/ExampleLLM/README.md): A command line tool using the simplified API to interact with LLMs.  See also `LLMBasic`.
-
 - [image-tool](Tools/image-tool/README.md): A command line tool for generating images
   using a stable diffusion model from Hugging Face.
 
