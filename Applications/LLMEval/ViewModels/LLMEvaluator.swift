@@ -78,6 +78,7 @@ class LLMEvaluator {
     }
 
     /// Load and return the model. Can be called multiple times; subsequent calls return the cached model.
+    @discardableResult
     func load() async throws -> ModelContainer {
         switch loadState {
         case .idle:

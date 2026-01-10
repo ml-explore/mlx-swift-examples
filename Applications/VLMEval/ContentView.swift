@@ -250,7 +250,7 @@ struct ContentView: View {
             }
         }
         .task {
-            _ = try? await llm.load()
+            try? await llm.load()
         }
     }
 
@@ -354,6 +354,7 @@ class VLMEvaluator {
 
     /// load and return the model -- can be called multiple times, subsequent calls will
     /// just return the loaded model
+    @discardableResult
     func load() async throws -> ModelContainer {
         switch loadState {
         case .idle:
