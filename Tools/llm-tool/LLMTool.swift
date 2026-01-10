@@ -283,20 +283,6 @@ struct EvaluateCommand: AsyncParsableCommand {
     @OptionGroup var prompt: PromptArguments
     @OptionGroup var media: MediaArguments
 
-    private func userInput(modelConfiguration: ModelConfiguration) -> UserInput {
-        let prompt =
-            (try? self.prompt.resolvePrompt(configuration: modelConfiguration))
-            ?? modelConfiguration.defaultPrompt
-
-        return UserInput(
-            chat: [
-                .system(generate.system),
-                .user(prompt, images: media.images, videos: media.videos),
-            ],
-            processing: media.processing
-        )
-    }
-
     @MainActor
     mutating func run() async throws {
         let modelFactory: ModelFactory
@@ -325,34 +311,38 @@ struct EvaluateCommand: AsyncParsableCommand {
         // Get the resolved configuration (this has the default prompt)
         let modelConfiguration = await modelContainer.configuration
 
+        let prompt =
+            (try? self.prompt.resolvePrompt(configuration: modelConfiguration))
+            ?? modelConfiguration.defaultPrompt
+
         if !generate.quiet {
             print("Loaded \(modelConfiguration.name)")
         }
 
-        let userInput = self.userInput(modelConfiguration: modelConfiguration)
+        let session = ChatSession(
+            modelContainer,
+            instructions: generate.system,
+            generateParameters: generate.generateParameters,
+            processing: media.processing
+        )
 
         if !generate.quiet {
             print("Starting generation ...")
-            print(userInput.prompt, terminator: " ")
+            print(prompt, terminator: " ")
         }
 
+        // use the `stream` variant as we want to capture the generation statistics as well
         var completionInfo: GenerateCompletionInfo?
 
-        let lmInput = try await modelContainer.prepare(input: userInput)
-        for await item in try await modelContainer.generate(
-            input: lmInput, parameters: generate.generateParameters)
-        {
-            if let info = item.info {
-                completionInfo = info
-            }
-            if let chunk = item.chunk {
-                print(chunk, terminator: "")
+        for try await item in session.streamDetails(
+            to: prompt, images: media.images, videos: media.videos
+        ) {
+            switch item {
+            case .chunk(let chunk): print(chunk, terminator: "")
+            case .info(let info): completionInfo = info
+            default: break
             }
         }
-
-        // wait for any asynchronous cleanup, e.g. tearing down compiled functions
-        // before the task exits -- this would race with mlx::core shutdown
-        try await Task.sleep(for: .milliseconds(30))
 
         if !generate.quiet, let completionInfo {
             print("------")

@@ -18,21 +18,6 @@ struct ChatCommand: AsyncParsableCommand {
     @OptionGroup var generate: GenerateArguments
     @OptionGroup var media: MediaArguments
 
-    struct State {
-        var parameters: GenerateParameters
-        var processing: UserInput.Processing
-
-        var images: [UserInput.Image]
-        var videos: [UserInput.Video]
-
-        var chat: [Chat.Message]
-
-        var cache: [KVCache]
-
-        var printStats = false
-    }
-
-    @MainActor
     mutating func run() async throws {
         let defaultModel = MLXLLM.LLMRegistry.mistral7B4bit
 
@@ -40,10 +25,10 @@ struct ChatCommand: AsyncParsableCommand {
         let modelContainer = try await memory.start { [args] in
             do {
                 return try await args.load(
-                    defaultModel: defaultModel.name, modelFactory: LLMModelFactory.shared)
+                    defaultModel: defaultModel.name, modelFactory: VLMModelFactory.shared)
             } catch ModelFactoryError.unsupportedModelType {
                 return try await args.load(
-                    defaultModel: defaultModel.name, modelFactory: VLMModelFactory.shared)
+                    defaultModel: defaultModel.name, modelFactory: LLMModelFactory.shared)
             }
         }
 
@@ -56,83 +41,116 @@ struct ChatCommand: AsyncParsableCommand {
     }
 
     func chat(modelContainer: ModelContainer) async throws {
-        try await modelContainer.perform { context in
-            let parameters = generate.generateParameters
-            let initialState = State(
-                parameters: parameters,
-                processing: media.processing,
-                images: media.images, videos: media.videos,
-                chat: [.system(generate.system)],
-                cache: context.model.newCache(parameters: parameters))
+        let session = ChatSession(
+            modelContainer,
+            instructions: generate.system,
+            generateParameters: generate.generateParameters,
+            processing: media.processing
+        )
 
-            var state = initialState
+        var printStats = false
+        var images: [UserInput.Image] = []
+        var videos: [UserInput.Video] = []
 
-            print("> ", terminator: "")
-            while let line = readLine() {
-                if line.hasPrefix("/") {
-                    // handle commands
-                    switch command(line: line, state: &state) {
-                    case .exit:
-                        return
-                    case .reset:
-                        state = initialState
-                        state.cache = context.model.newCache(parameters: parameters)
-                        continue
-                    case .inference:
-                        // continue and run inference
-                        break
-                    case .handled:
-                        print("\n\n> ", terminator: "")
-                        continue
-                    }
-                } else {
-                    // chat input
-                    state.chat.append(.user(line, images: state.images, videos: state.videos))
-                }
+        while true {
+            print("\n\n> ", terminator: "")
+            guard let line = readLine() else {
+                return
+            }
 
-                // consume the media, if any
-                state.images.removeAll()
-                state.videos.removeAll()
+            if line.hasPrefix("/") {
+                let command = line.split(separator: " ")[0]
+                let rest = String(
+                    line.dropFirst(command.count).trimmingCharacters(in: .whitespaces))
 
-                // convert UserInput to LMInput
-                let userInput = UserInput(chat: state.chat, processing: state.processing)
-                let input = try await context.processor.prepare(input: userInput)
-
-                // generate the output
-                var output = ""
-                var result: GenerateCompletionInfo?
-                for await item in try MLXLMCommon.generate(
-                    input: input, cache: state.cache, parameters: parameters, context: context
-                ) {
-                    switch item {
-                    case .chunk(let string):
-                        output += string
-                        print(string, terminator: "")
-                    case .info(let info):
-                        result = info
-                    case .toolCall:
-                        break
+                func url(_ string: String) -> URL? {
+                    if string.hasPrefix("/") || !string.hasPrefix("http") {
+                        URL(filePath: string)
+                    } else {
+                        URL(string: string)
                     }
                 }
 
-                // the kvcache now contains this context
-                state.chat.removeAll()
+                switch command {
+                case "/help":
+                    help()
 
-                if state.printStats, let result {
-                    print(
-                        "\ntime to first token: \(result.promptTime.formatted()) tps: \(result.tokensPerSecond.formatted())"
-                    )
+                case "/quit":
+                    return
+
+                case "/memory":
+                    let memory = Memory.snapshot()
+                    print("Memory size: \(Memory.memoryLimit / 1024)K")
+                    print("Cache size:  \(Memory.cacheLimit / 1024)K")
+                    print(memory.description)
+
+                case "/stats":
+                    printStats.toggle()
+                    print("Token stats: \(printStats ? "ON" : "OFF")")
+
+                case "/reset":
+                    await session.clear()
+
+                case "/image":
+                    if let url = url(rest) {
+                        images.append(.url(url))
+                    }
+                case "/video":
+                    if let url = url(rest) {
+                        videos.append(.url(url))
+                    }
+
+                case "/parameters":
+                    print(session.generateParameters)
+                case "/temperature":
+                    if let value = Float(rest) {
+                        session.generateParameters.temperature = value
+                        print(session.generateParameters)
+                    }
+                case "/topP":
+                    if let value = Float(rest) {
+                        session.generateParameters.topP = value
+                        print(session.generateParameters)
+                    }
+                case "/maxTokens":
+                    session.generateParameters.maxTokens = Int(rest)
+                    print(session.generateParameters)
+
+                default:
+                    help()
                 }
-                print("\n\n> ", terminator: "")
+                continue
+
+            } else if line.isEmpty {
+                continue
+            }
+
+            // generate the output
+
+            var result: GenerateCompletionInfo?
+            for try await item in session.streamDetails(
+                to: line, images: images, videos: videos
+            ) {
+                switch item {
+                case .chunk(let string):
+                    print(string, terminator: "")
+                case .info(let info):
+                    result = info
+                case .toolCall:
+                    break
+                }
+            }
+
+            // these have been presented, remove
+            images.removeAll()
+            videos.removeAll()
+
+            if printStats, let result {
+                print(
+                    "\ntime to first token: \(result.promptTime.formatted()) tps: \(result.tokensPerSecond.formatted())"
+                )
             }
         }
-    }
-
-    enum CommandDisposition {
-        case exit
-        case reset
-        case inference
-        case handled
     }
 
     func help() {
@@ -145,80 +163,10 @@ struct ChatCommand: AsyncParsableCommand {
             /reset -- reset the chat session to initial state
             /image [pathOrURL] -- provide an image
             /video [pathOrURL] -- provide a video
-            /again -- rerun inference for last response
             /parameters -- print generation parametes
             /temperature [number] -- set the sampling temperature
             /topP [number] -- set the top p sampling
             /maxTokens [number] -- set the maximum number of tokens to generate or no number to remove limit
             """)
-    }
-
-    func command(line: String, state: inout State) -> CommandDisposition {
-        let command = line.split(separator: " ")[0]
-        let rest = String(
-            line.dropFirst(command.count).trimmingCharacters(in: .whitespaces))
-
-        func url(_ string: String) -> URL? {
-            if string.hasPrefix("/") {
-                URL(filePath: string)
-            } else {
-                URL(string: string)
-            }
-        }
-
-        switch command {
-        case "/help":
-            help()
-
-        case "/quit":
-            return .exit
-
-        case "/memory":
-            let memory = Memory.snapshot()
-            print("Memory size: \(Memory.memoryLimit / 1024)K")
-            print("Cache size:  \(Memory.cacheLimit / 1024)K")
-            print(memory.description)
-
-        case "/stats":
-            state.printStats.toggle()
-            print("Token stats: \(state.printStats ? "ON" : "OFF")")
-
-        case "/reset":
-            return .reset
-
-        case "/image":
-            if let url = url(rest) {
-                state.images.append(UserInput.Image.url(url))
-            }
-        case "/video":
-            if let url = url(rest) {
-                state.videos.append(UserInput.Video.url(url))
-            }
-
-        case "/again":
-            state.chat.removeLast()
-            return .inference
-
-        case "/parameters":
-            print(state.parameters)
-        case "/temperature":
-            if let value = Float(rest) {
-                state.parameters.temperature = value
-                print(state.parameters)
-            }
-        case "/topP":
-            if let value = Float(rest) {
-                state.parameters.topP = value
-                print(state.parameters)
-            }
-        case "/maxTokens":
-            state.parameters.maxTokens = Int(rest)
-            print(state.parameters)
-
-        default:
-            help()
-        }
-
-        return .handled
     }
 }

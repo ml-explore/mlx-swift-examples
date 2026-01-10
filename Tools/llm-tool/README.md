@@ -50,6 +50,32 @@ See also:
 
 - [MLX troubleshooting](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx/troubleshooting)
 
+## Chat
+
+You can use the `chat` sub-command to do multi-turn chat:
+
+```
+./mlx-run llm-tool chat --download ~/Downloads/huggingface --model mlx-community/gemma-3-12b-it-qat-4bit
+
+Loading mlx-community/gemma-3-12b-it-qat-4bit...
+
+
+> /image support/test.jpg
+
+
+> what type of creature is in the image?
+The creature in the image is a **dog**, specifically a **Poodle**. It appears to be a miniature or toy poodle based on its size. It's dressed in a fun Hawaiian-style shirt!
+
+> where is the dog sitting?
+The dog is sitting on someone's **lap**. You can see a portion of a leg (likely a person's) beneath the dog and the dog is nestled comfortably on it.
+```
+
+Notice that the second question refers to the image in the context without supplying it again.
+
+There are a number of commands available, get help with `/help`.
+
+This is built using the [ChatSession](https://swiftpackageindex.com/ml-explore/mlx-swift-lm/main/documentation/mlxlmcommon/chatsession) API.
+
 ## LoRA
 
 `llm-tool` provides an example LoRA driver based on:
