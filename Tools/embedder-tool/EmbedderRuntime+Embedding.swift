@@ -46,9 +46,9 @@ extension EmbedderRuntime {
                 )
             }
 
-            guard let padToken = tokenizer.eosTokenId else {
-                throw CommandError("Could not determine a padding token from the tokenizer.")
-            }
+            // [PAD] (BERT standard), EOS (autoregressive like Qwen)
+            let padToken = tokenizer.convertTokenToId("[PAD]") ?? tokenizer.eosTokenId ?? 0
+
             let maxLength = encoded.map { $0.1.count }.max() ?? 0
 
             let padded = stacked(
