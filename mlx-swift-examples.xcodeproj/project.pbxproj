@@ -3230,8 +3230,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
 			requirement = {
-				branch = "thread-safety";
-				kind = branch;
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.30.3;
 			};
 		};
 		C34E491A2B69C43600FCB841 /* XCRemoteSwiftPackageReference "GzipSwift" */ = {
