@@ -1,6 +1,6 @@
 name: Build and Test
 
-on: pull_request  
+on: pull_request
 
 permissions:
   contents: read
@@ -14,13 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          submodules: recursive           
+          submodules: recursive
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
         with:
-            activate-environment: true
-     
+          activate-environment: true
+
       - name: Setup pre-commit
         shell: sh
         run: |
@@ -58,17 +58,16 @@ jobs:
         run: |
           cd /tmp/swift-format
           ln -s "$(swift build --show-bin-path -c release)/swift-format" /usr/local/bin/swift-format
-     
+
       - name: Configure safe directory for git
         shell: sh
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-     
+
       - name: Run style checks
         shell: sh
         run: |
           pre-commit run --all || (echo "Style checks failed, please install pre-commit and run pre-commit run --all and push the change"; echo ""; git --no-pager diff; exit 1)
-      
 
   mac_build_and_test:
     needs: lint
@@ -78,13 +77,19 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: recursive
-     
+
       - name: Verify MetalToolchain installed
         shell: bash
+        env:
+          # workaround for CI failure
+          DEVELOPER_DIR: /Applications/Xcode-latest.app
         run: xcodebuild -showComponent MetalToolchain
-            
+
       - name: Build Package (Xcode, macOS)
         shell: sh
+        env:
+          # workaround for CI failure
+          DEVELOPER_DIR: /Applications/Xcode-latest.app
         run: |
           xcodebuild -version
           xcrun --show-sdk-build-version
@@ -94,6 +99,9 @@ jobs:
 
       - name: Build tools (Xcode, macOS)
         shell: sh
+        env:
+          # workaround for CI failure
+          DEVELOPER_DIR: /Applications/Xcode-latest.app
         run: |
           xcodebuild -version
           xcrun --show-sdk-build-version
