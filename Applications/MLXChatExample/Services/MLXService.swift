@@ -97,8 +97,15 @@ class MLXService {
         // Load or retrieve model from cache
         let modelContainer = try await load(model: model)
 
+        // Exclude trailing empty assistant message so the chat template
+        // leaves the assistant turn open for generation (matching ChatSession behavior)
+        var inputMessages = messages
+        if let last = inputMessages.last, last.role == .assistant, last.content.isEmpty {
+            inputMessages.removeLast()
+        }
+
         // Map app-specific Message type to Chat.Message for model input
-        let chat = messages.map { message in
+        let chat = inputMessages.map { message in
             let role: Chat.Message.Role =
                 switch message.role {
                 case .assistant:
