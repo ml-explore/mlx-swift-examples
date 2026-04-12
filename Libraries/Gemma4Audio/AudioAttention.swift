@@ -219,7 +219,7 @@ open class AudioAttention: Module {
         let offsets = MLXArray(stride(from: 0, to: contextSize, by: 1))
         let indices = starts.expandedDimensions(axes: [1]) + offsets.expandedDimensions(axes: [0])
 
-        return out[MLXEllipsisIndex.ellipsis, indices]
+        return MLX.take(out, indices, axis: 1)
     }
 
     open func callAsFunction(hiddenStates: MLXArray, mask: MLXArray, causalValidMask: MLXArray)
@@ -254,9 +254,15 @@ open class AudioAttention: Module {
         logits = MLX.where(condition, logits, MLXArray(invalidLogitsValue))
 
         let probs = MLX.softmax(logits, axis: -1)
-        var context = MLX.einsum("bnuwc,bucnh->buwnh", probs, valueBlocks)
+        
+        // MLX.einsum("bnuwc,bucnh->buwnh") translated to stable matmul
+        let valueBlocksT = valueBlocks.transposed(axes: [0, 3, 1, 2, 4]) // [b, n, u, c, h]
+        var context = MLX.matmul(probs, valueBlocksT) // [b, n, u, w, h]
+        context = context.transposed(axes: [0, 2, 3, 1, 4]) // [b, u, w, n, h]
+        
         context = context.reshaped([b, u * chunkSize, numHeads, headDim])
-        context = context[MLXEllipsisIndex.ellipsis, 0 ..< t]
+        // Slice the time dimension (axis 1) to t. (0... keeps axis 0 intact)
+        context = context[0..., 0 ..< t, 0..., 0...]
 
         let bOut = context.dim(0)
         let tOut = context.dim(1)
@@ -313,11 +319,13 @@ open class ConformerBlock: Module {
 }
 
 open class AudioEncoder: Module {
+    public let config: AudioConfig
     public let pre: SubSampleConvProjection
     public let layers: [ConformerBlock]
     public let post: AudioRMSNorm
 
     public init(config: AudioConfig, numHiddenLayers: Int = 12) {
+        self.config = config
         self.pre = SubSampleConvProjection(
             hiddenSize: config.hiddenSize, subsamplingConvChannels: config.subsamplingConvChannels,
             rmsNormEps: config.rmsNormEps)
@@ -326,10 +334,25 @@ open class AudioEncoder: Module {
         super.init()
     }
 
-    open func callAsFunction(_ audioMel: MLXArray, mask: MLXArray, causalValidMask: MLXArray) -> (
+    public func buildCausalValidMask() -> MLXArray {
+        let chunkSize = config.attentionChunkSize
+        let maxFutureHorizon = config.attentionContextRight
+        let maxPastHorizon = max(0, config.attentionContextLeft - 1)
+        let upperDiagonal = maxPastHorizon + maxFutureHorizon
+        let contextSize = chunkSize + maxPastHorizon + maxFutureHorizon
+
+        let lowerCausal = MLX.tril(MLXArray.ones([contextSize, chunkSize])).T
+        let upperCausal = MLX.tril(MLXArray.ones([chunkSize, contextSize]), k: upperDiagonal)
+        let mask = (lowerCausal * upperCausal).asType(.bool)
+        return mask
+    }
+
+    open func callAsFunction(_ audioMel: MLXArray, mask: MLXArray) -> (
         MLXArray, MLXArray
     ) {
         var (x, currentMask) = pre(audioMel, mask: mask)
+
+        let causalValidMask = buildCausalValidMask()
 
         for layer in layers {
             x = layer(x, mask: currentMask, causalValidMask: causalValidMask)

@@ -71,14 +71,7 @@ class Gemma4AudioTests: XCTestCase {
         let x = MLXArray.ones([2, 100, 128])
         let mask = MLXArray.zeros([2, 100]).asType(.bool)
 
-        let contextSize =
-            config.attentionChunkSize + config.attentionContextLeft + config.attentionContextRight
-            - 1
-        let causalValidMask = MLXArray.ones([
-            2, config.numAttentionHeads, config.attentionChunkSize, contextSize,
-        ]).asType(.bool)
-
-        let (out, outMask) = encoder(x, mask: mask, causalValidMask: causalValidMask)
+        let (out, outMask) = encoder(x, mask: mask)
         XCTAssertEqual(out.dim(0), 2)
         XCTAssertEqual(out.dim(1), 25)
         XCTAssertEqual(out.dim(2), 128)

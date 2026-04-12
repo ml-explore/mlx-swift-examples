@@ -36,13 +36,10 @@ open class Gemma4AudioModelTemplate: Module /* , LLMModel */ {
         // let extractor = Gemma4AudioFeatureExtractor()
         // let (spectrogram, mask) = extractor(rawSpeech: [rawWaveformArray])
 
-        // 2. Create causal validity mask
-        // let causalValidMask = ...
+        // 2. Pass audio through the ears
+        // let (audioFeatures, _) = audioEncoder(spectrogram, mask: mask)
 
-        // 3. Pass audio through the ears
-        // let (audioFeatures, _) = audioEncoder(spectrogram, mask: mask, causalValidMask: causalValidMask)
-
-        // 4. Cross the bridge to text dimension
+        // 3. Cross the bridge to text dimension
         // let audioEmbeddings = embedder(audioFeatures)
 
         // 5. Get text embeddings from the language model's embedding layer
