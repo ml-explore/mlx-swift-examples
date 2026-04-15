@@ -3,7 +3,9 @@
 import ArgumentParser
 import Foundation
 import Hub
+import HuggingFace
 import MLX
+import MLXHuggingFace
 import MLXLLM
 import MLXLMCommon
 import MLXNN
@@ -39,7 +41,7 @@ struct LoRAModelArguments: ParsableArguments, Sendable {
     /// This does not load the adapter weights as they may not exist yet.
     func load(
         defaultModel: String = defaultModel,
-        modelFactory: ModelFactory = LLMModelFactory.shared
+        modelFactory: any ModelFactory = LLMModelFactory.shared
     ) async throws -> (ModelContainer, ModelAdapter) {
         let modelContainer = try await args.load(
             defaultModel: defaultModel, modelFactory: modelFactory)
@@ -185,8 +187,19 @@ struct LoRAFuseCommand: AsyncParsableCommand {
         if output.hasPrefix("/") {
             outputURL = URL(filePath: output)
         } else {
-            let repo = HubApi.Repo(id: output)
-            outputURL = HubApi().localRepoLocation(repo)
+            let cache =
+                if let download = args.args.download {
+                    HubCache(cacheDirectory: download)
+                } else {
+                    HubCache.default
+                }
+
+            let parts = output.components(separatedBy: "/")
+            guard parts.count == 2 else {
+                fatalError("output must be org/name, e.g. mlx-community/mistral-lora: \(output)")
+            }
+            let repo = Repo.ID(namespace: parts[0], name: parts[1])
+            outputURL = cache.repoDirectory(repo: repo, kind: .model)
         }
 
         let (modelContainer, modelAdapter) = try await args.load()
@@ -196,9 +209,14 @@ struct LoRAFuseCommand: AsyncParsableCommand {
             try context.model.fuse(with: modelAdapter)
         }
 
+        let resolved = try await resolve(
+            configuration: modelContainer.configuration,
+            from: args.args.downloader,
+            useLatest: false, progressHandler: { _ in })
+
         // make the new directory and copy files from source model
         try FileManager.default.createDirectory(at: outputURL, withIntermediateDirectories: true)
-        let inputURL = await modelContainer.configuration.modelDirectory()
+        let inputURL = resolved.modelDirectory
         let enumerator = FileManager.default.enumerator(
             at: inputURL, includingPropertiesForKeys: nil)!
         for url in enumerator.allObjects.compactMap({ $0 as? URL }) {

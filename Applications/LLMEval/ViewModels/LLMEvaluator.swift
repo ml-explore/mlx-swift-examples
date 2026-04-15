@@ -1,11 +1,14 @@
 // Copyright © 2025 Apple Inc.
 
 import Hub
+import HuggingFace
 import MLX
+import MLXHuggingFace
 import MLXLLM
 import MLXLMCommon
 import Metal
 import SwiftUI
+import Tokenizers
 
 @Observable
 @MainActor
@@ -101,14 +104,11 @@ class LLMEvaluator {
 
         Memory.cacheLimit = 20 * 1024 * 1024
 
-        let hub = HubApi(
-            downloadBase: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
-        )
-
         do {
-            let modelDirectory = try await downloadModel(
-                hub: hub,
-                configuration: modelConfiguration
+            let downloader = #hubDownloader()
+
+            let resolved = try await resolve(
+                configuration: modelConfiguration, from: downloader, useLatest: false
             ) { [weak self] progress in
                 Task { @MainActor in
                     self?.updateDownloadProgress(progress)
@@ -117,8 +117,9 @@ class LLMEvaluator {
 
             // Verify the download succeeded by checking for model files
             let fileManager = FileManager.default
-            let directoryExists = fileManager.fileExists(atPath: modelDirectory.path)
-            let contents = (try? fileManager.contentsOfDirectory(atPath: modelDirectory.path)) ?? []
+            let directoryExists = fileManager.fileExists(atPath: resolved.modelDirectory.path)
+            let contents =
+                (try? fileManager.contentsOfDirectory(atPath: resolved.modelDirectory.path)) ?? []
             let hasSafetensors = contents.contains { $0.hasSuffix(".safetensors") }
 
             if !directoryExists || !hasSafetensors {
@@ -137,9 +138,8 @@ class LLMEvaluator {
             totalSize = nil
 
             let modelContainer = try await LLMModelFactory.shared.loadContainer(
-                hub: hub,
-                configuration: modelConfiguration
-            ) { _ in }
+                from: resolved.modelDirectory,
+                using: #huggingFaceTokenizerLoader())
 
             let numParams = await modelContainer.perform { $0.model.numParameters() }
 

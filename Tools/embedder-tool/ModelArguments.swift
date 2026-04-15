@@ -2,8 +2,11 @@
 
 import ArgumentParser
 import Foundation
-import Hub
+import HuggingFace
 import MLXEmbedders
+import MLXHuggingFace
+import MLXLMCommon
+import Tokenizers
 
 struct ModelArguments: ParsableArguments {
 
@@ -25,7 +28,7 @@ struct ModelArguments: ParsableArguments {
             return localConfiguration
         }
 
-        return ModelConfiguration.configuration(id: model)
+        return ModelConfiguration(id: model)
     }
 
     var downloadURL: URL? {
@@ -35,7 +38,7 @@ struct ModelArguments: ParsableArguments {
 
 struct LoadedEmbedderModel {
     let configuration: ModelConfiguration
-    let container: ModelContainer
+    let container: EmbedderModelContainer
 }
 
 extension ModelArguments {
@@ -43,12 +46,14 @@ extension ModelArguments {
     func load(default defaultConfiguration: ModelConfiguration) async throws -> LoadedEmbedderModel
     {
         let configuration = await configuration(default: defaultConfiguration)
-        let hub = makeHub()
+        let hub = #hubDownloader
+        let loader = #huggingFaceTokenizerLoader
 
         print("Loading model \(configuration.name)...")
 
-        let container = try await MLXEmbedders.loadModelContainer(
-            hub: hub,
+        let container = try await EmbedderModelFactory.shared.loadContainer(
+            from: hub,
+            using: loader,
             configuration: configuration,
             progressHandler: { progress in
                 let percentage = Int(progress.fractionCompleted * 100)
@@ -63,12 +68,15 @@ extension ModelArguments {
         return LoadedEmbedderModel(configuration: configuration, container: container)
     }
 
-    private func makeHub() -> HubApi {
-        if let downloadURL {
-            return HubApi(downloadBase: downloadURL)
-        }
-
-        return HubApi()
+    var downloader: any Downloader {
+        let client =
+            if let download {
+                HubClient(cache: HubCache(cacheDirectory: download))
+            } else {
+                HubClient()
+            }
+        let downloader = #hubDownloader(client)
+        return downloader
     }
 }
 

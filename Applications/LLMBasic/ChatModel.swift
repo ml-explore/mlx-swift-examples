@@ -1,8 +1,11 @@
 // Copyright © 2025 Apple Inc.
 
+import HuggingFace
+import MLXHuggingFace
 import MLXLLM
 import MLXLMCommon
 import SwiftUI
+import Tokenizers
 
 /// which model to load
 private let modelConfiguration = LLMRegistry.gemma3_1B_qat_4bit
@@ -40,7 +43,11 @@ private let generateParameters = GenerateParameters(temperature: 0.5)
         case .idle:
             let task = Task {
                 // download and report progress
-                try await loadModelContainer(configuration: modelConfiguration) { value in
+                try await LLMModelFactory.shared.loadContainer(
+                    from: #hubDownloader(),
+                    using: #huggingFaceTokenizerLoader(),
+                    configuration: modelConfiguration
+                ) { value in
                     Task { @MainActor in
                         self.progress = value.fractionCompleted
                     }

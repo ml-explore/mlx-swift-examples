@@ -6,10 +6,13 @@
 //
 
 import Foundation
+import HuggingFace
 import MLX
+import MLXHuggingFace
 import MLXLLM
 import MLXLMCommon
 import MLXVLM
+import Tokenizers
 
 /// A service class that manages machine learning models for text and vision-language tasks.
 /// This class handles model loading, caching, and text generation using various LLM and VLM models.
@@ -63,9 +66,14 @@ class MLXService {
                     VLMModelFactory.shared
                 }
 
+            let downloader = #hubDownloader()
+            let loader = #huggingFaceTokenizerLoader()
+
             // Load model and track download progress
             let container = try await factory.loadContainer(
-                hub: .default, configuration: model.configuration
+                from: downloader,
+                using: loader,
+                configuration: model.configuration
             ) { progress in
                 Task { @MainActor in
                     self.modelDownloadProgress = progress

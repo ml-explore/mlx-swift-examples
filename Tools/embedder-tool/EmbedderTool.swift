@@ -5,6 +5,7 @@ import ArgumentParser
 import Foundation
 import MLX
 import MLXEmbedders
+import MLXLMCommon
 import Tokenizers
 
 @main
@@ -17,7 +18,7 @@ struct EmbedderTool: AsyncParsableCommand {
         ]
     )
 
-    private static let defaultModelConfiguration = ModelConfiguration.nomic_text_v1_5
+    private static let defaultModelConfiguration = EmbedderRegistry.nomic_text_v1_5
 
     @OptionGroup var model: ModelArguments
     @OptionGroup var corpus: CorpusArguments
@@ -42,9 +43,8 @@ struct EmbedderTool: AsyncParsableCommand {
         -> EmbedderRuntime
     {
         let loadedModel = try await model.load(default: defaultModelConfiguration)
-        let baseStrategy = await loadedModel.container.perform { _, _, pooler in
-            pooler.strategy
-        }
+        let baseStrategy = await loadedModel.container.poolingStrategy
+
         return EmbedderRuntime(
             configuration: loadedModel.configuration,
             container: loadedModel.container,
@@ -58,7 +58,7 @@ struct EmbedderTool: AsyncParsableCommand {
 
 struct EmbedderRuntime {
     let configuration: ModelConfiguration
-    let container: ModelContainer
+    let container: EmbedderModelContainer
     let baseStrategy: Pooling.Strategy
     let strategyOverride: Pooling.Strategy?
     let normalize: Bool

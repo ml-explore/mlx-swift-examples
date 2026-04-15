@@ -1,6 +1,8 @@
 // Copyright © 2024 Apple Inc.
 
+import HuggingFace
 import MLX
+import MLXHuggingFace
 import MLXLLM
 import MLXLMCommon
 import MLXNN
@@ -141,7 +143,12 @@ class LoRAEvaluator {
                 progress = .init(title: "Loading \(name)", current: 0, limit: 1)
             }
 
+            let downloader = #hubDownloader()
+            let loader = #huggingFaceTokenizerLoader()
+
             let modelContainer = try await LLMModelFactory.shared.loadContainer(
+                from: downloader,
+                using: loader,
                 configuration: modelConfiguration
             ) {
                 progress in
@@ -186,7 +193,7 @@ class LoRAEvaluator {
         let modelContainer = try await loadModel()
 
         // apply LoRA adapters and train
-        let modelAdapter = try await modelContainer.perform { context in
+        let _ = try await modelContainer.perform { context in
             try LoRAContainer.from(
                 model: context.model,
                 configuration: LoRAConfiguration(numLayers: loraLayers)
@@ -263,22 +270,28 @@ class LoRAEvaluator {
         let modelContainer = try await loadModel()
 
         // evaluate
-        let result = try await modelContainer.perform { context in
-            let input = try await context.processor.prepare(input: .init(prompt: prompt))
-            return try MLXLMCommon.generate(
-                input: input, parameters: generateParameters, context: context
-            ) { tokens in
-                if tokens.count % evaluateShowEvery == 0 {
-                    let fullOutput = context.tokenizer.decode(tokens: tokens)
-                    Task { @MainActor in
-                        self.output = fullOutput
-                    }
+        let input = try await modelContainer.processor.prepare(input: .init(prompt: prompt))
+
+        var count = 0
+        var output = ""
+        for try await item in try await modelContainer.generate(
+            input: input, parameters: generateParameters
+        ) {
+            switch item {
+            case .chunk(let string):
+                count += 1
+                output += string
+
+                if count % evaluateShowEvery == 0 {
+                    self.output = output
                 }
-                return tokens.count >= maxTokens ? .stop : .more
+
+            default:
+                break
             }
         }
 
-        self.output = result.output
+        self.output = output
         self.progress = nil
     }
 }

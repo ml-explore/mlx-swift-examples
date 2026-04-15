@@ -1,7 +1,7 @@
 import Foundation
 import MLX
 import MLXEmbedders
-import Tokenizers
+import MLXLMCommon
 
 public struct RuntimeEmbeddingResult {
     public let embeddings: [(index: Int, vector: [Float])]
@@ -26,9 +26,10 @@ extension EmbedderRuntime {
                 embeddings: [], skippedIndices: [], fallbackDescription: nil)
         }
 
-        return try await container.perform { model, tokenizer, pooler in
+        return try await container.perform { context in
             var skippedIndices: [Int] = []
 
+            let tokenizer = context.tokenizer
             let encoded = texts.enumerated().compactMap { index, text -> (Int, [Int])? in
                 let tokens = tokenizer.encode(text: text, addSpecialTokens: true)
                 guard !tokens.isEmpty else {
@@ -58,14 +59,14 @@ extension EmbedderRuntime {
             let mask = (padded .!= padToken)
             let tokenTypes = MLXArray.zeros(like: padded)
 
-            let outputs = model(
+            let outputs = context.model(
                 padded,
                 positionIds: nil,
                 tokenTypeIds: tokenTypes,
                 attentionMask: mask
             )
 
-            let poolingModule = resolvedPooler(for: pooler)
+            let poolingModule = resolvedPooler(for: context.pooling)
             let pooled = poolingModule(
                 outputs,
                 mask: mask,

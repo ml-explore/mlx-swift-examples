@@ -3,8 +3,9 @@
 import ArgumentParser
 import CoreImage
 import Foundation
-import Hub
+import HuggingFace
 import MLX
+import MLXHuggingFace
 import MLXLLM
 import MLXLMCommon
 import MLXVLM
@@ -30,8 +31,19 @@ struct ModelArguments: ParsableArguments, Sendable {
     @Option(help: "Hub download directory")
     var download: URL?
 
+    var downloader: any Downloader {
+        let client =
+            if let download {
+                HubClient(cache: HubCache(cacheDirectory: download))
+            } else {
+                HubClient()
+            }
+        let downloader = #hubDownloader(client)
+        return downloader
+    }
+
     @Sendable
-    func load(defaultModel: String, modelFactory: ModelFactory) async throws -> ModelContainer {
+    func load(defaultModel: String, modelFactory: any ModelFactory) async throws -> ModelContainer {
         let modelConfiguration: ModelConfiguration
 
         let modelName = self.model ?? defaultModel
@@ -46,14 +58,10 @@ struct ModelArguments: ParsableArguments, Sendable {
             modelConfiguration = modelFactory.configuration(id: modelName)
         }
 
-        let hub =
-            if let download {
-                HubApi(downloadBase: download)
-            } else {
-                HubApi()
-            }
-
-        return try await modelFactory.loadContainer(hub: hub, configuration: modelConfiguration)
+        return try await modelFactory.loadContainer(
+            from: self.downloader,
+            using: #huggingFaceTokenizerLoader(),
+            configuration: modelConfiguration)
     }
 }
 
@@ -157,6 +165,9 @@ struct GenerateArguments: ParsableArguments, Sendable {
     @Flag(name: .shortAndLong, help: "If true only print the generated output")
     var quiet = false
 
+    @Flag(name: .customLong("tool-time"), help: "Enable time telling tool")
+    var useTimeTool = false
+
     var generateParameters: GenerateParameters {
         GenerateParameters(
             maxTokens: maxTokens,
@@ -165,6 +176,23 @@ struct GenerateArguments: ParsableArguments, Sendable {
             quantizedKVStart: quantizedKvStart,
             temperature: temperature, topP: topP, repetitionPenalty: repetitionPenalty,
             repetitionContextSize: repetitionContextSize)
+    }
+
+    var toolSpecs: [MLXLMCommon.ToolSpec] {
+        var tools = [MLXLMCommon.ToolSpec]()
+
+        if useTimeTool {
+            tools.append(timeTool.schema)
+        }
+
+        return tools
+    }
+
+    func call(toolCall: ToolCall) async throws -> String {
+        if useTimeTool && toolCall.function.name == timeTool.name {
+            return try await toolCall.execute(with: timeTool).toolResult
+        }
+        return "Unknown tool: \(toolCall.function.name)"
     }
 
     func prepare(
@@ -188,7 +216,14 @@ struct GenerateArguments: ParsableArguments, Sendable {
                 print(string, terminator: "")
             case .info(let info):
                 return (info, output)
-            case .toolCall:
+            case .toolCall(let toolCall):
+                do {
+                    // TODO maybe just use ChatSession here?
+                    let x = try await call(toolCall: toolCall)
+                    print("TOOL RESULT: \(x)")
+                } catch {
+                    print("\nError executing tool: \(error.localizedDescription)")
+                }
                 break
             }
         }
@@ -285,7 +320,7 @@ struct EvaluateCommand: AsyncParsableCommand {
 
     @MainActor
     mutating func run() async throws {
-        let modelFactory: ModelFactory
+        let modelFactory: any ModelFactory
         let defaultModel: ModelConfiguration
 
         // Switch between LLM and VLM based on presence of media
@@ -323,7 +358,8 @@ struct EvaluateCommand: AsyncParsableCommand {
             modelContainer,
             instructions: generate.system,
             generateParameters: generate.generateParameters,
-            processing: media.processing
+            processing: media.processing,
+            tools: generate.toolSpecs
         )
 
         if !generate.quiet {
