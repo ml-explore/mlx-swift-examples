@@ -17,8 +17,11 @@ class Message: Identifiable {
     /// The role of the message sender (user, assistant, or system)
     let role: Role
 
-    /// The text content of the message
-    var content: String
+    /// On-screen regions in arrival order. User/system messages have a
+    /// single ``MessageSegment/content(_:)`` holding the whole text.
+    /// Assistant messages grow as the parser surfaces reasoning runs,
+    /// tool-call items, and content runs, interleaved.
+    var segments: [MessageSegment]
 
     /// Array of image URLs attached to the message
     var images: [URL]
@@ -29,6 +32,17 @@ class Message: Identifiable {
     /// Timestamp when the message was created
     let timestamp: Date
 
+    /// Concatenated text from every ``MessageSegment/content(_:)`` segment.
+    /// Used for user/system rendering and for re-seeding assistant turns
+    /// into a `Chat.Message` history – the model only needs to see what
+    /// it actually said, not its reasoning or tool-call wire syntax.
+    var content: String {
+        segments.compactMap {
+            if case let .content(segment) = $0 { return segment.text }
+            return nil
+        }.joined()
+    }
+
     /// Creates a new message with the specified role, content, and optional media attachments
     /// - Parameters:
     ///   - role: The role of the message sender
@@ -38,7 +52,9 @@ class Message: Identifiable {
     init(role: Role, content: String, images: [URL] = [], videos: [URL] = []) {
         self.id = UUID()
         self.role = role
-        self.content = content
+        self.segments = content.isEmpty
+            ? []
+            : [.content(TextSegment(itemId: "_initial", text: content))]
         self.images = images
         self.videos = videos
         self.timestamp = .now

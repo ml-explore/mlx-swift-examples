@@ -47,9 +47,9 @@ class ChatViewModel {
     /// Current generation task, used for cancellation
     private var generateTask: Task<Void, any Error>?
 
-    /// Current generation speed in tokens per second, if a generation has completed.
-    /// Computed from `ResponseChatSession`'s reported output token count and the
-    /// wall-clock time the turn took. `nil` until the first turn finalizes.
+    /// Tokens per second for the most recently finalized turn, derived
+    /// from `ResponseChatSession`'s output token count and the turn's
+    /// wall-clock duration. `nil` until the first turn finalizes.
     private(set) var tokensPerSecond: Double?
 
     /// Whether there is any user-visible chat history that can be cleared.
@@ -79,17 +79,15 @@ class ChatViewModel {
 
         isGenerating = true
 
-        // Capture the current prompt/media so the input can be cleared before the
-        // task starts.
+        // Capture the prompt/media before clearing the input.
         let userPrompt = prompt
         let userImages = mediaSelection.images
         let userVideos = mediaSelection.videos
         let model = selectedModel
 
-        // Build the prior conversation (excluding the system prompt, which the
-        // session sets via `instructions`) so `MLXService` can seed a fresh
-        // session if the user just switched models. For follow-up turns on the
-        // same model the service ignores this and reuses its existing session.
+        // Prior conversation excluding the system prompt (the session sets
+        // it via `instructions`). Only consumed when the service rebuilds
+        // its session after a model switch; otherwise ignored.
         let history: [Chat.Message] = messages.compactMap { message in
             switch message.role {
             case .user:
@@ -120,11 +118,44 @@ class ChatViewModel {
             )
             let startTime = Date.now
             for try await event in stream {
+                guard let assistantMessage = messages.last else { continue }
                 switch event {
                 case .outputTextDelta(let delta):
-                    if let assistantMessage = messages.last {
-                        assistantMessage.content += delta.delta
+                    appendText(.content, itemId: delta.itemId, delta: delta.delta,
+                               to: assistantMessage)
+
+                case .reasoningTextDelta(let delta):
+                    appendText(.reasoning, itemId: delta.itemId, delta: delta.delta,
+                               to: assistantMessage)
+
+                case .outputItemAdded(let added):
+                    switch added.item {
+                    case .functionCall(let call):
+                        assistantMessage.segments.append(
+                            .toolCall(
+                                ToolCall(
+                                    id: call.id,
+                                    callId: call.callId,
+                                    name: call.name,
+                                    argumentsRaw: call.arguments
+                                )
+                            )
+                        )
+                    case .functionCallOutput(let output):
+                        if let toolCall = findToolCall(callId: output.callId,
+                                                       in: assistantMessage) {
+                            toolCall.result = output.output.stringValue ?? ""
+                        }
+                    case .message, .reasoning:
+                        break
                     }
+
+                case .functionCallArgumentsDelta(let delta):
+                    if let toolCall = findToolCall(itemId: delta.itemId,
+                                                   in: assistantMessage) {
+                        toolCall.argumentsRaw += delta.delta
+                    }
+
                 default:
                     break
                 }
@@ -145,29 +176,76 @@ class ChatViewModel {
                     generateTask?.cancel()
 
                     if let assistantMessage = messages.last {
-                        assistantMessage.content += "\n[Cancelled]"
+                        assistantMessage.segments.append(
+                            .content(TextSegment(itemId: "_cancelled", text: "\n[Cancelled]"))
+                        )
                     }
 
-                    // Drop the active session so the next turn rebuilds from the
-                    // visible history. The session's KV cache currently holds a
-                    // partial assistant response with no end-of-turn marker;
-                    // continuing on top of it would feed the next model call a
-                    // malformed transcript.
+                    // Drop the session so the next turn rebuilds from
+                    // the visible history. The KV cache holds a partial
+                    // assistant response with no end-of-turn marker;
+                    // reusing it would feed the next call a malformed
+                    // transcript.
                     mlxService.clearSession()
                 }
             }
         } catch is CancellationError {
-            // Expected when the user stops generation, dismisses the view, or
-            // clears the chat mid-generation – not surfaced to the user.
+            // Stop, dismiss, or chat-clear mid-generation – not surfaced.
         } catch let error as URLError where error.code == .cancelled {
-            // Same intent as above, when the cancellation reaches an in-flight
-            // URLSession task (e.g. a model download).
+            // Same intent, raised from an in-flight URLSession (e.g.
+            // model download interrupted).
         } catch {
             errorMessage = error.localizedDescription
         }
 
         isGenerating = false
         generateTask = nil
+    }
+
+    private enum TextSegmentKind { case content, reasoning }
+
+    /// Append a delta to the latest segment if it matches kind and
+    /// itemId; otherwise open a new segment. Drives the interleaving of
+    /// reasoning, tool calls, and content in arrival order.
+    private func appendText(
+        _ kind: TextSegmentKind,
+        itemId: String,
+        delta: String,
+        to message: Message
+    ) {
+        if case let .reasoning(segment) = message.segments.last,
+           kind == .reasoning, segment.itemId == itemId
+        {
+            segment.text += delta
+            return
+        }
+        if case let .content(segment) = message.segments.last,
+           kind == .content, segment.itemId == itemId
+        {
+            segment.text += delta
+            return
+        }
+        let new = TextSegment(itemId: itemId, text: delta)
+        switch kind {
+        case .content:
+            message.segments.append(.content(new))
+        case .reasoning:
+            message.segments.append(.reasoning(new))
+        }
+    }
+
+    private func findToolCall(itemId: String, in message: Message) -> ToolCall? {
+        for segment in message.segments {
+            if case let .toolCall(call) = segment, call.id == itemId { return call }
+        }
+        return nil
+    }
+
+    private func findToolCall(callId: String, in message: Message) -> ToolCall? {
+        for segment in message.segments {
+            if case let .toolCall(call) = segment, call.callId == callId { return call }
+        }
+        return nil
     }
 
     /// Processes and adds media attachments to the current message

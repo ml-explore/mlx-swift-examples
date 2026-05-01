@@ -98,11 +98,11 @@ class MLXService {
     /// switch on the next call to ``generate(history:prompt:images:videos:model:)``.
     private var currentModel: LMModel?
 
-    /// Output token count from the most recent finalized turn, exposed so
-    /// `ChatViewModel` can derive a tokens-per-second figure for the toolbar
-    /// readout. `nil` until the first turn finalizes; `nil` again after a
-    /// turn that was cancelled or threw (matches `ResponseChatSession`'s
-    /// `lastResponse` update contract).
+    /// Output token count from the most recent finalized turn, used by
+    /// `ChatViewModel` to derive the toolbar's tokens-per-second readout.
+    /// `nil` until the first turn finalizes; `nil` again after a turn
+    /// that was cancelled or threw, since `ResponseChatSession.lastResponse`
+    /// only updates on clean completion.
     var lastResponseOutputTokens: Int? {
         currentSession?.lastResponse?.usage?.outputTokens
     }
@@ -174,16 +174,56 @@ class MLXService {
             return currentSession
         }
         let container = try await load(model: model)
+        let (modelType, modelConfig) = try await readModelTypeAndConfig(from: container)
+        // Infer the format up here using the LMModel's pre-load HF repo
+        // name. `LLMModelFactory._load` rewrites the loaded `ModelContext`'s
+        // configuration to a `.directory(snapshotURL)` id, so the name
+        // `ResponseChatSession` would otherwise read becomes
+        // `snapshots/<hash>` and stops matching any name-prefix entry
+        // in the parser library's table.
+        let format = ResponseFormat.infer(
+            modelName: model.configuration.name,
+            modelType: modelType ?? "",
+            modelConfig: modelConfig ?? [:]
+        )
         let session = ResponseChatSession(
             container,
+            modelType: modelType,
+            modelConfig: modelConfig,
             instructions: Self.systemPrompt,
             history: history,
             generateParameters: generateParameters,
-            processing: .init(resize: .init(width: 1024, height: 1024))
+            processing: .init(resize: .init(width: 1024, height: 1024)),
+            tools: ToolRegistry.allSpecs,
+            toolDispatch: { call in
+                .string(await ToolRegistry.dispatch(call))
+            },
+            format: format
         )
         currentSession = session
         currentModel = model
         return session
+    }
+
+    /// Reads `config.json` from the loaded container's snapshot directory
+    /// for the `model_type` and raw config dict that `ResponseFormat.infer`
+    /// needs.
+    ///
+    /// - TODO: Drop this helper (and the matching `modelType` /
+    ///   `modelConfig` arguments to `ResponseChatSession`) once
+    ///   `MLXLMCommon.ModelConfiguration` or `ModelContainer` exposes
+    ///   the decoded `model_type` and raw config dict directly – the
+    ///   loader already decodes both during `loadContainer` and
+    ///   discards them.
+    private func readModelTypeAndConfig(
+        from container: ModelContainer
+    ) async throws -> (modelType: String?, modelConfig: [String: any Sendable]?) {
+        let directory = try await container.modelDirectory
+        let configURL = directory.appending(path: "config.json")
+        let data = try Data(contentsOf: configURL)
+        let json = try JSONSerialization.jsonObject(with: data)
+        guard let dict = json as? [String: any Sendable] else { return (nil, nil) }
+        return (dict["model_type"] as? String, dict)
     }
 
     /// Streams the model's response to the next prompt/media turn as a

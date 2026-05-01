@@ -58,11 +58,36 @@ struct MessageView: View {
             }
 
         case .assistant:
-            // Assistant messages are left-aligned without background
-            // LocalizedStringKey used to trigger default handling of markdown content.
+            // Segments are rendered in arrival order so reasoning runs,
+            // tool calls, and content interleave exactly as the parser
+            // surfaced them. Empty-after-trim text segments are skipped
+            // so VStack spacing doesn't reserve a row for them.
             HStack {
-                Text(LocalizedStringKey(message.content))
-                    .textSelection(.enabled)
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(message.segments) { segment in
+                        switch segment {
+                        case .reasoning(let textSegment):
+                            let trimmed = textSegment.text.trimmingCharacters(
+                                in: .whitespacesAndNewlines)
+                            if !trimmed.isEmpty {
+                                Text(trimmed)
+                                    .font(.callout.italic())
+                                    .foregroundStyle(.secondary)
+                                    .textSelection(.enabled)
+                            }
+                        case .toolCall(let toolCall):
+                            ToolCallCard(toolCall: toolCall)
+                        case .content(let textSegment):
+                            let trimmed = textSegment.text.trimmingCharacters(
+                                in: .whitespacesAndNewlines)
+                            if !trimmed.isEmpty {
+                                // LocalizedStringKey triggers markdown rendering.
+                                Text(LocalizedStringKey(trimmed))
+                                    .textSelection(.enabled)
+                            }
+                        }
+                    }
+                }
 
                 Spacer()
             }
@@ -73,6 +98,61 @@ struct MessageView: View {
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
+    }
+}
+
+/// Card showing one tool call's name, arguments, and result. Arguments
+/// pretty-print once the streaming JSON parses; until then the raw
+/// partial buffer is shown so the buildup is visible.
+private struct ToolCallCard: View {
+    let toolCall: ToolCall
+
+    /// `nil` when the call has no arguments (don't render the row).
+    private var formattedArguments: String? {
+        let raw = toolCall.argumentsRaw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if raw.isEmpty || raw == "{}" || raw == "[]" { return nil }
+        guard let data = raw.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data),
+              let pretty = try? JSONSerialization.data(
+                withJSONObject: object,
+                options: [.prettyPrinted, .sortedKeys]
+              ),
+              let string = String(data: pretty, encoding: .utf8)
+        else {
+            return raw
+        }
+        return string
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text("Tool call:")
+                    .font(.headline)
+                Text(toolCall.name)
+                    .font(.subheadline.bold())
+            }
+
+            if let formattedArguments {
+                Text(formattedArguments)
+                    .font(.caption.monospaced())
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let result = toolCall.result {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("Result:")
+                        .font(.headline)
+                    Text(result)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+            }
+        }
+        .padding(10)
+        .glassEffect(.regular, in: .rect(cornerRadius: 10))
     }
 }
 
