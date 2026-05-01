@@ -65,6 +65,18 @@ class MLXService {
         LMModel(
             name: "gemma3n:E4B", displayName: "Gemma 3n (E4B)",
             configuration: LLMRegistry.gemma3n_E4B_it_lm_4bit, type: .llm),
+        LMModel(
+            name: "gpt-oss:20b", displayName: "GPT-OSS (20B, MXFP4 Q8)",
+            configuration: LLMRegistry.gpt_oss_20b_MXFP4_Q8, type: .llm),
+        LMModel(
+            name: "granite4:tiny", displayName: "Granite 4.0 H Tiny (4-bit DWQ)",
+            configuration: LLMRegistry.granite_4_0_h_tiny_4bit_dwq, type: .llm),
+        LMModel(
+            name: "gemma4:E2B", displayName: "Gemma 4 (E2B)",
+            configuration: LLMRegistry.gemma4_e2b_it_4bit, type: .llm),
+        LMModel(
+            name: "lfm2:1.2b", displayName: "LFM2 (1.2B)",
+            configuration: LLMRegistry.lfm2_1_2b_4bit, type: .llm),
     ]
 
     /// System prompt applied to each new `ChatSession` (as `instructions`) and
