@@ -24,7 +24,12 @@ class ChatViewModel {
     /// Current user input text
     var prompt: String = ""
 
-    /// Chat history containing system, user, and assistant messages
+    /// Chat history containing system, user, and assistant messages.
+    ///
+    /// `messages` is the on-screen transcript and the source of truth for what
+    /// the model sees. ``MLXService`` reuses its active session as long as the
+    /// selected model does not change; when it does, the session is rebuilt and
+    /// seeded from this array so the new model continues the conversation.
     var messages: [Message] = [
         .system("You are a helpful assistant.")
     ]
@@ -69,7 +74,6 @@ class ChatViewModel {
 
     /// Generates response for the current prompt and media attachments
     func generate() async {
-        // Cancel any existing generation task
         if let existingTask = generateTask {
             existingTask.cancel()
             generateTask = nil
@@ -77,27 +81,52 @@ class ChatViewModel {
 
         isGenerating = true
 
-        // Add user message with any media attachments
-        messages.append(.user(prompt, images: mediaSelection.images, videos: mediaSelection.videos))
-        // Add empty assistant message that will be filled during generation
+        // Capture the current prompt/media so the input can be cleared before the
+        // task starts.
+        let userPrompt = prompt
+        let userImages = mediaSelection.images
+        let userVideos = mediaSelection.videos
+        let model = selectedModel
+
+        // Build the prior conversation (excluding the system prompt, which the
+        // session sets via `instructions`) so `MLXService` can seed a fresh
+        // session if the user just switched models. For follow-up turns on the
+        // same model the service ignores this and reuses its existing session.
+        let history: [Chat.Message] = messages.compactMap { message in
+            switch message.role {
+            case .user:
+                return .user(
+                    message.content,
+                    images: message.images.map { .url($0) },
+                    videos: message.videos.map { .url($0) }
+                )
+            case .assistant:
+                return .assistant(message.content)
+            case .system:
+                return nil
+            }
+        }
+
+        messages.append(.user(userPrompt, images: userImages, videos: userVideos))
         messages.append(.assistant(""))
 
-        // Clear the input after sending
         clear(.prompt)
 
         generateTask = Task {
-            // Process generation chunks and update UI
-            for await generation in try await mlxService.generate(
-                messages: messages, model: selectedModel)
-            {
+            let stream = try await mlxService.generate(
+                history: history,
+                prompt: userPrompt,
+                images: userImages,
+                videos: userVideos,
+                model: model
+            )
+            for try await generation in stream {
                 switch generation {
                 case .chunk(let chunk):
-                    // Append new text to the current assistant message
                     if let assistantMessage = messages.last {
                         assistantMessage.content += chunk
                     }
                 case .info(let info):
-                    // Update performance metrics
                     generateCompletionInfo = info
                 case .toolCall:
                     break
@@ -106,14 +135,12 @@ class ChatViewModel {
         }
 
         do {
-            // Handle task completion and cancellation
             try await withTaskCancellationHandler {
                 try await generateTask?.value
             } onCancel: {
                 Task { @MainActor in
                     generateTask?.cancel()
 
-                    // Mark message as cancelled
                     if let assistantMessage = messages.last {
                         assistantMessage.content += "\n[Cancelled]"
                     }
@@ -153,8 +180,9 @@ class ChatViewModel {
         }
 
         if options.contains(.chat) {
-            messages = []
             generateTask?.cancel()
+            messages = []
+            mlxService.clearSession()
         }
 
         if options.contains(.meta) {

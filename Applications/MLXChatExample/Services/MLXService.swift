@@ -15,12 +15,20 @@ import MLXVLM
 import Tokenizers
 
 /// A service class that manages machine learning models for text and vision-language tasks.
-/// This class handles model loading, caching, and text generation using various LLM and VLM models.
+/// Holds a single active `ChatSession` so KV-cache state is reused across turns
+/// without re-feeding the visible message array. When the selected model changes,
+/// the session is rebuilt and seeded with the current visible chat history so the
+/// new model can continue the conversation.
 @Observable
+@MainActor
 class MLXService {
     /// List of available models that can be used for generation.
     /// Includes both language models (LLM) and vision-language models (VLM).
+    /// `qwen3:4b` is listed first so it is the default selection on a fresh launch.
     static let availableModels: [LMModel] = [
+        LMModel(
+            name: "qwen3:4b", displayName: "Qwen 3 (4B)",
+            configuration: LLMRegistry.qwen3_4b_4bit, type: .llm),
         LMModel(
             name: "llama3.2:1b", displayName: "Llama 3.2 (1B)",
             configuration: LLMRegistry.llama3_2_1B_4bit, type: .llm),
@@ -36,9 +44,6 @@ class MLXService {
         LMModel(
             name: "qwen3:1.7b", displayName: "Qwen 3 (1.7B)",
             configuration: LLMRegistry.qwen3_1_7b_4bit, type: .llm),
-        LMModel(
-            name: "qwen3:4b", displayName: "Qwen 3 (4B)",
-            configuration: LLMRegistry.qwen3_4b_4bit, type: .llm),
         LMModel(
             name: "qwen3:8b", displayName: "Qwen 3 (8B)",
             configuration: LLMRegistry.qwen3_8b_4bit, type: .llm),
@@ -62,120 +67,130 @@ class MLXService {
             configuration: LLMRegistry.gemma3n_E4B_it_lm_4bit, type: .llm),
     ]
 
-    /// Cache to store loaded model containers to avoid reloading.
+    /// System instructions applied to each new `ChatSession`.
+    private let instructions = "You are a helpful assistant."
+
+    /// Generation parameters applied to each new `ChatSession`.
+    private let generateParameters = GenerateParameters(temperature: 0.7)
+
+    /// Cache of loaded model containers, keyed by `LMModel.name`.
     private let modelCache = NSCache<NSString, ModelContainer>()
+
+    /// The currently active session, owning the KV cache for `currentModel`.
+    /// Rebuilt with seeded history whenever the selected model changes.
+    private var currentSession: ChatSession?
+
+    /// The model that `currentSession` was built for. Used to detect a model
+    /// switch on the next call to ``generate(history:prompt:images:videos:model:)``.
+    private var currentModel: LMModel?
 
     /// Tracks the current model download progress.
     /// Non-nil only while bytes are actively flowing from the network.
-    @MainActor
     private(set) var modelDownloadProgress: Progress?
 
     /// Whether a model is currently being initialized into memory.
     /// True for the entire `loadContainer` call, including the disk → memory phase
     /// after any network download has finished.
-    @MainActor
     private(set) var isLoadingModel = false
 
     /// Loads a model from the hub or retrieves it from cache.
-    /// - Parameter model: The model configuration to load
-    /// - Returns: A ModelContainer instance containing the loaded model
-    /// - Throws: Errors that might occur during model loading
     private func load(model: LMModel) async throws -> ModelContainer {
         // Set GPU memory limit to prevent out of memory issues
         Memory.cacheLimit = 20 * 1024 * 1024
 
-        // Return cached model if available to avoid reloading
         if let container = modelCache.object(forKey: model.name as NSString) {
             return container
-        } else {
-            // Select appropriate factory based on model type
-            let factory: any ModelFactory =
-                switch model.type {
-                case .llm:
-                    LLMModelFactory.shared
-                case .vlm:
-                    VLMModelFactory.shared
-                }
-
-            let downloader = #hubDownloader()
-            let loader = #huggingFaceTokenizerLoader()
-
-            await MainActor.run { self.isLoadingModel = true }
-            defer {
-                Task { @MainActor in
-                    self.modelDownloadProgress = nil
-                    self.isLoadingModel = false
-                }
-            }
-
-            // Load model and track download progress. Clear the progress as soon as
-            // the downloader reports completion so the loading-into-memory phase is
-            // represented by `isLoadingModel` alone.
-            let container = try await factory.loadContainer(
-                from: downloader,
-                using: loader,
-                configuration: model.configuration
-            ) { progress in
-                Task { @MainActor in
-                    guard self.isLoadingModel else { return }
-                    if progress.isFinished {
-                        self.modelDownloadProgress = nil
-                    } else {
-                        self.modelDownloadProgress = progress
-                    }
-                }
-            }
-
-            // Cache the loaded model for future use
-            modelCache.setObject(container, forKey: model.name as NSString)
-
-            return container
         }
+
+        let factory: any ModelFactory =
+            switch model.type {
+            case .llm:
+                LLMModelFactory.shared
+            case .vlm:
+                VLMModelFactory.shared
+            }
+
+        let downloader = #hubDownloader()
+        let loader = #huggingFaceTokenizerLoader()
+
+        isLoadingModel = true
+        defer {
+            modelDownloadProgress = nil
+            isLoadingModel = false
+        }
+
+        let container = try await factory.loadContainer(
+            from: downloader,
+            using: loader,
+            configuration: model.configuration
+        ) { progress in
+            Task { @MainActor in
+                guard self.isLoadingModel else { return }
+                if progress.isFinished {
+                    self.modelDownloadProgress = nil
+                } else {
+                    self.modelDownloadProgress = progress
+                }
+            }
+        }
+
+        modelCache.setObject(container, forKey: model.name as NSString)
+        return container
     }
 
-    /// Generates text based on the provided messages using the specified model.
-    /// - Parameters:
-    ///   - messages: Array of chat messages including user, assistant, and system messages
-    ///   - model: The language model to use for generation
-    /// - Returns: An AsyncStream of generated text tokens
-    /// - Throws: Errors that might occur during generation
-    func generate(messages: [Message], model: LMModel) async throws -> AsyncStream<Generation> {
-        // Load or retrieve model from cache
-        let modelContainer = try await load(model: model)
-
-        // Map app-specific Message type to Chat.Message for model input
-        let chat = messages.map { message in
-            let role: Chat.Message.Role =
-                switch message.role {
-                case .assistant:
-                    .assistant
-                case .user:
-                    .user
-                case .system:
-                    .system
-                }
-
-            // Process any attached media for VLM models
-            let images: [UserInput.Image] = message.images.map { imageURL in .url(imageURL) }
-            let videos: [UserInput.Video] = message.videos.map { videoURL in .url(videoURL) }
-
-            return Chat.Message(
-                role: role, content: message.content, images: images, videos: videos)
+    /// Returns the active `ChatSession`, rebuilding it (seeded with `history`)
+    /// whenever the selected model changes or no session is yet active.
+    ///
+    /// `history` is only consumed on a rebuild; for follow-up turns on the same
+    /// model the existing session is reused so KV-cache state is preserved.
+    private func session(
+        for model: LMModel,
+        history: [Chat.Message]
+    ) async throws -> ChatSession {
+        if let currentSession, currentModel?.id == model.id {
+            return currentSession
         }
+        let container = try await load(model: model)
+        let session = ChatSession(
+            container,
+            instructions: instructions,
+            history: history,
+            generateParameters: generateParameters,
+            processing: .init(resize: .init(width: 1024, height: 1024))
+        )
+        currentSession = session
+        currentModel = model
+        return session
+    }
 
-        // Prepare input for model processing
-        let userInput = UserInput(
-            chat: chat, processing: .init(resize: .init(width: 1024, height: 1024)))
+    /// Streams the model's response to the next prompt/media turn.
+    ///
+    /// `history` carries the prior conversation (excluding the system prompt and
+    /// the new turn being submitted). It is used to seed a fresh session when the
+    /// selected model has changed since the previous call; otherwise the existing
+    /// session already knows the prior turns and `history` is ignored.
+    func generate(
+        history: [Chat.Message],
+        prompt: String,
+        images: [URL] = [],
+        videos: [URL] = [],
+        model: LMModel
+    ) async throws -> AsyncThrowingStream<Generation, Error> {
+        let session = try await session(for: model, history: history)
+        let userImages = images.map { UserInput.Image.url($0) }
+        let userVideos = videos.map { UserInput.Video.url($0) }
 
-        // Generate response using the model
-        return try await modelContainer.perform(nonSendable: userInput) {
-            (context: ModelContext, userInput: UserInput) in
-            let lmInput = try await context.processor.prepare(input: userInput)
-            // Set temperature for response randomness (0.7 provides good balance)
-            let parameters = GenerateParameters(temperature: 0.7)
+        return session.streamDetails(
+            to: prompt,
+            images: userImages,
+            videos: userVideos
+        )
+    }
 
-            return try MLXLMCommon.generate(
-                input: lmInput, parameters: parameters, context: context)
-        }
+    /// Drops the active session so the next call to ``generate(history:prompt:images:videos:model:)``
+    /// builds a fresh one (with whatever history the caller passes at that time).
+    func clearSession() {
+        currentSession = nil
+        currentModel = nil
     }
 }
