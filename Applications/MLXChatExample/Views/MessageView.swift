@@ -68,9 +68,8 @@ struct MessageView: View {
             }
 
         case .system:
-            // System messages are centered with computer icon
-            Label(message.content, systemImage: "desktopcomputer")
-                .font(.headline)
+            // System messages are centered, prefixed for clarity
+            Text("\(Text("System prompt: ").font(.headline))\(message.content)")
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
         }

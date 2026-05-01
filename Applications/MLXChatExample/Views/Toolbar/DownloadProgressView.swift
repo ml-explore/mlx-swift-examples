@@ -12,25 +12,35 @@ struct DownloadProgressView: View {
 
     @State private var isShowingDownload = false
 
+    private var bytesText: String {
+        let completed = progress.completedUnitCount.formatted(.byteCount(style: .file))
+        let total = progress.totalUnitCount.formatted(.byteCount(style: .file))
+        return "\(completed) of \(total)"
+    }
+
+    private var percentText: String {
+        progress.fractionCompleted.formatted(.percent.precision(.fractionLength(0)))
+    }
+
     var body: some View {
         Button {
             isShowingDownload = true
         } label: {
-            Image(systemName: "arrow.down.square")
+            Image(systemName: "arrow.down")
                 .foregroundStyle(.tint)
         }
         .popover(isPresented: $isShowingDownload, arrowEdge: .bottom) {
             VStack {
                 ProgressView(value: progress.fractionCompleted) {
                     HStack {
-                        Text(progress.localizedAdditionalDescription)
+                        Text(bytesText)
                             .bold()
                         Spacer()
-                        Text(progress.localizedDescription)
+                        Text(percentText)
                     }
                 }
 
-                Text("The model is downloading")
+                Text("Downloading...")
                     .padding(.horizontal, 32)
             }
             .padding()

@@ -19,7 +19,10 @@ struct PromptField: View {
             if let mediaButtonAction {
                 Button(action: mediaButtonAction) {
                     Image(systemName: "photo.badge.plus")
+                        .padding(4)
                 }
+                .buttonStyle(.glass)
+                .buttonBorderShape(.circle)
             }
 
             TextField("Prompt", text: $prompt)
@@ -36,8 +39,12 @@ struct PromptField: View {
                     }
                 }
             } label: {
-                Image(systemName: isRunning ? "stop.circle.fill" : "paperplane.fill")
+                Image(systemName: isRunning ? "stop.fill" : "arrow.up")
+                    .fontWeight(.bold)
+                    .padding(4)
             }
+            .buttonStyle(.glassProminent)
+            .buttonBorderShape(.circle)
             .keyboardShortcut(isRunning ? .cancelAction : .defaultAction)
         }
     }

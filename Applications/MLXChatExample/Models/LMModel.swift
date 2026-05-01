@@ -10,8 +10,11 @@ import MLXLMCommon
 /// Represents a language model configuration with its associated properties and type.
 /// Can represent either a large language model (LLM) or a vision-language model (VLM).
 struct LMModel {
-    /// Name of the model
+    /// Identifier for the model, used for cache keys and equality.
     let name: String
+
+    /// User-facing label shown in the model picker.
+    let displayName: String
 
     /// Configuration settings for model initialization
     let configuration: ModelConfiguration
@@ -31,15 +34,6 @@ struct LMModel {
 // MARK: - Helpers
 
 extension LMModel {
-    /// Display name with additional "(Vision)" suffix for vision models
-    var displayName: String {
-        if isVisionModel {
-            "\(name) (Vision)"
-        } else {
-            name
-        }
-    }
-
     /// Whether the model is a large language model
     var isLanguageModel: Bool {
         type == .llm

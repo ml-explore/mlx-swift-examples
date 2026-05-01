@@ -26,7 +26,7 @@ class ChatViewModel {
 
     /// Chat history containing system, user, and assistant messages
     var messages: [Message] = [
-        .system("You are a helpful assistant!")
+        .system("You are a helpful assistant.")
     ]
 
     /// Currently selected language model for generation
@@ -44,14 +44,24 @@ class ChatViewModel {
     /// Stores performance metrics from the current generation
     private var generateCompletionInfo: GenerateCompletionInfo?
 
-    /// Current generation speed in tokens per second
-    var tokensPerSecond: Double {
-        generateCompletionInfo?.tokensPerSecond ?? 0
+    /// Current generation speed in tokens per second, if a generation has completed.
+    var tokensPerSecond: Double? {
+        generateCompletionInfo?.tokensPerSecond
+    }
+
+    /// Whether there is any user-visible chat history that can be cleared.
+    var canClearChat: Bool {
+        messages.contains { $0.role != .system }
     }
 
     /// Progress of the current model download, if any
     var modelDownloadProgress: Progress? {
         mlxService.modelDownloadProgress
+    }
+
+    /// Whether a model is currently being initialized into memory.
+    var isLoadingModel: Bool {
+        mlxService.isLoadingModel
     }
 
     /// Most recent error message, if any
@@ -89,7 +99,7 @@ class ChatViewModel {
                 case .info(let info):
                     // Update performance metrics
                     generateCompletionInfo = info
-                case .toolCall(let call):
+                case .toolCall:
                     break
                 }
             }
