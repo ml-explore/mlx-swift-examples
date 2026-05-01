@@ -12,6 +12,7 @@
 		0F5AD8002DB70E6300745C06 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FC2CFFB98A0092A5B6 /* MLXLLM */; };
 		0F5AD8012DB70E6300745C06 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = C32A17FE2CFFB98A0092A5B6 /* MLXVLM */; };
 		81695B412BA373D300F260D8 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 81695B402BA373D300F260D8 /* MarkdownUI */; };
+		929AC89A2FA50D6C00618F9C /* LMResponseParserMLX in Frameworks */ = {isa = PBXBuildFile; productRef = 929AC8992FA50D6C00618F9C /* LMResponseParserMLX */; };
 		C3132C2E2DFB317C00270E8E /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = C3132C2D2DFB317C00270E8E /* MLXVLM */; };
 		C3132C302DFB317C00270E8E /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = C3132C2F2DFB317C00270E8E /* MLXLLM */; };
 		C3208E762DB1945D006AE6CA /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = C3208E752DB1945D006AE6CA /* MLX */; };
@@ -411,6 +412,7 @@
 				0F5AD8002DB70E6300745C06 /* MLXLLM in Frameworks */,
 				C3EA7F732F8445EE0054AEA3 /* HuggingFace in Frameworks */,
 				C3EA7F752F8445EE0054AEA3 /* Tokenizers in Frameworks */,
+				929AC89A2FA50D6C00618F9C /* LMResponseParserMLX in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -632,6 +634,7 @@
 				C3EA7F722F8445EE0054AEA3 /* HuggingFace */,
 				C3EA7F742F8445EE0054AEA3 /* Tokenizers */,
 				C33944FC2F8970620054D57D /* MLXHuggingFace */,
+				929AC8992FA50D6C00618F9C /* LMResponseParserMLX */,
 			);
 			productName = MLXChatExample;
 			productReference = 0F5AD7412DB70C0300745C06 /* MLXChatExample.app */;
@@ -978,6 +981,7 @@
 				C3EA7F522F8431BE0054AEA3 /* XCRemoteSwiftPackageReference "swift-huggingface" */,
 				C3EA7F532F8432080054AEA3 /* XCRemoteSwiftPackageReference "swift-transformers" */,
 				C36941322F8F489800810A49 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
+				929AC8982FA50D6B00618F9C /* XCRemoteSwiftPackageReference "swift-lm-response-parser" */,
 			);
 			productRefGroup = C39273752B606A0A00368D5D /* Products */;
 			projectDirPath = "";
@@ -3302,6 +3306,14 @@
 				minimumVersion = 3.31.3;
 			};
 		};
+		929AC8982FA50D6B00618F9C /* XCRemoteSwiftPackageReference "swift-lm-response-parser" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/DePasqualeOrg/swift-lm-response-parser";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		C36BEFF02BC32A8C002D4AFE /* XCRemoteSwiftPackageReference "Progress" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jkandzi/Progress.swift";
@@ -3355,6 +3367,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 81695B3F2BA373D300F260D8 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
 			productName = MarkdownUI;
+		};
+		929AC8992FA50D6C00618F9C /* LMResponseParserMLX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 929AC8982FA50D6B00618F9C /* XCRemoteSwiftPackageReference "swift-lm-response-parser" */;
+			productName = LMResponseParserMLX;
 		};
 		C3132C2D2DFB317C00270E8E /* MLXVLM */ = {
 			isa = XCSwiftPackageProductDependency;
