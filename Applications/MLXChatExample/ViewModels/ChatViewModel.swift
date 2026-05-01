@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LMResponseParserMLX
 import MLXLMCommon
 import UniformTypeIdentifiers
 
@@ -46,13 +47,10 @@ class ChatViewModel {
     /// Current generation task, used for cancellation
     private var generateTask: Task<Void, any Error>?
 
-    /// Stores performance metrics from the current generation
-    private var generateCompletionInfo: GenerateCompletionInfo?
-
     /// Current generation speed in tokens per second, if a generation has completed.
-    var tokensPerSecond: Double? {
-        generateCompletionInfo?.tokensPerSecond
-    }
+    /// Computed from `ResponseChatSession`'s reported output token count and the
+    /// wall-clock time the turn took. `nil` until the first turn finalizes.
+    private(set) var tokensPerSecond: Double?
 
     /// Whether there is any user-visible chat history that can be cleared.
     var canClearChat: Bool {
@@ -120,16 +118,21 @@ class ChatViewModel {
                 videos: userVideos,
                 model: model
             )
-            for try await generation in stream {
-                switch generation {
-                case .chunk(let chunk):
+            let startTime = Date.now
+            for try await event in stream {
+                switch event {
+                case .outputTextDelta(let delta):
                     if let assistantMessage = messages.last {
-                        assistantMessage.content += chunk
+                        assistantMessage.content += delta.delta
                     }
-                case .info(let info):
-                    generateCompletionInfo = info
-                case .toolCall:
+                default:
                     break
+                }
+            }
+            if let outputTokens = mlxService.lastResponseOutputTokens {
+                let elapsed = Date.now.timeIntervalSince(startTime)
+                if elapsed > 0 {
+                    tokensPerSecond = Double(outputTokens) / elapsed
                 }
             }
         }
@@ -146,7 +149,7 @@ class ChatViewModel {
                     }
 
                     // Drop the active session so the next turn rebuilds from the
-                    // visible history. ChatSession's KV cache currently holds a
+                    // visible history. The session's KV cache currently holds a
                     // partial assistant response with no end-of-turn marker;
                     // continuing on top of it would feed the next model call a
                     // malformed transcript.
@@ -199,7 +202,7 @@ class ChatViewModel {
         }
 
         if options.contains(.meta) {
-            generateCompletionInfo = nil
+            tokensPerSecond = nil
         }
 
         errorMessage = nil

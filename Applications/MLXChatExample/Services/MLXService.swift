@@ -7,6 +7,7 @@
 
 import Foundation
 import HuggingFace
+import LMResponseParserMLX
 import MLX
 import MLXHuggingFace
 import MLXLLM
@@ -15,7 +16,7 @@ import MLXVLM
 import Tokenizers
 
 /// A service class that manages machine learning models for text and vision-language tasks.
-/// Holds a single active `ChatSession` so KV-cache state is reused across turns
+/// Holds a single active `ResponseChatSession` so KV-cache state is reused across turns
 /// without re-feeding the visible message array. When the selected model changes,
 /// the session is rebuilt and seeded with the current visible chat history so the
 /// new model can continue the conversation.
@@ -79,11 +80,11 @@ class MLXService {
             configuration: LLMRegistry.lfm2_1_2b_4bit, type: .llm),
     ]
 
-    /// System prompt applied to each new `ChatSession` (as `instructions`) and
-    /// shown in the chat as the system message.
+    /// System prompt applied to each new `ResponseChatSession` (as `instructions`)
+    /// and shown in the chat as the system message.
     static let systemPrompt = "You are a helpful assistant."
 
-    /// Generation parameters applied to each new `ChatSession`.
+    /// Generation parameters applied to each new `ResponseChatSession`.
     private let generateParameters = GenerateParameters(temperature: 0.7)
 
     /// Cache of loaded model containers, keyed by `LMModel.name`.
@@ -91,11 +92,20 @@ class MLXService {
 
     /// The currently active session, owning the KV cache for `currentModel`.
     /// Rebuilt with seeded history whenever the selected model changes.
-    private var currentSession: ChatSession?
+    private var currentSession: ResponseChatSession?
 
     /// The model that `currentSession` was built for. Used to detect a model
     /// switch on the next call to ``generate(history:prompt:images:videos:model:)``.
     private var currentModel: LMModel?
+
+    /// Output token count from the most recent finalized turn, exposed so
+    /// `ChatViewModel` can derive a tokens-per-second figure for the toolbar
+    /// readout. `nil` until the first turn finalizes; `nil` again after a
+    /// turn that was cancelled or threw (matches `ResponseChatSession`'s
+    /// `lastResponse` update contract).
+    var lastResponseOutputTokens: Int? {
+        currentSession?.lastResponse?.usage?.outputTokens
+    }
 
     /// Tracks the current model download progress.
     /// Non-nil only while bytes are actively flowing from the network.
@@ -151,7 +161,7 @@ class MLXService {
         return container
     }
 
-    /// Returns the active `ChatSession`, rebuilding it (seeded with `history`)
+    /// Returns the active `ResponseChatSession`, rebuilding it (seeded with `history`)
     /// whenever the selected model changes or no session is yet active.
     ///
     /// `history` is only consumed on a rebuild; for follow-up turns on the same
@@ -159,12 +169,12 @@ class MLXService {
     private func session(
         for model: LMModel,
         history: [Chat.Message]
-    ) async throws -> ChatSession {
+    ) async throws -> ResponseChatSession {
         if let currentSession, currentModel?.id == model.id {
             return currentSession
         }
         let container = try await load(model: model)
-        let session = ChatSession(
+        let session = ResponseChatSession(
             container,
             instructions: Self.systemPrompt,
             history: history,
@@ -176,7 +186,8 @@ class MLXService {
         return session
     }
 
-    /// Streams the model's response to the next prompt/media turn.
+    /// Streams the model's response to the next prompt/media turn as a
+    /// sequence of Responses-API events.
     ///
     /// `history` carries the prior conversation (excluding the system prompt and
     /// the new turn being submitted). It is used to seed a fresh session when the
@@ -188,13 +199,13 @@ class MLXService {
         images: [URL] = [],
         videos: [URL] = [],
         model: LMModel
-    ) async throws -> AsyncThrowingStream<Generation, Error> {
+    ) async throws -> AsyncThrowingStream<ResponseStreamingEvent, Error> {
         let session = try await session(for: model, history: history)
         let userImages = images.map { UserInput.Image.url($0) }
         let userVideos = videos.map { UserInput.Video.url($0) }
 
-        return session.streamDetails(
-            to: prompt,
+        return session.streamResponseEvents(
+            prompt: prompt,
             images: userImages,
             videos: userVideos
         )
