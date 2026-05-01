@@ -144,8 +144,21 @@ class ChatViewModel {
                     if let assistantMessage = messages.last {
                         assistantMessage.content += "\n[Cancelled]"
                     }
+
+                    // Drop the active session so the next turn rebuilds from the
+                    // visible history. ChatSession's KV cache currently holds a
+                    // partial assistant response with no end-of-turn marker;
+                    // continuing on top of it would feed the next model call a
+                    // malformed transcript.
+                    mlxService.clearSession()
                 }
             }
+        } catch is CancellationError {
+            // Expected when the user stops generation, dismisses the view, or
+            // clears the chat mid-generation – not surfaced to the user.
+        } catch let error as URLError where error.code == .cancelled {
+            // Same intent as above, when the cancellation reaches an in-flight
+            // URLSession task (e.g. a model download).
         } catch {
             errorMessage = error.localizedDescription
         }
