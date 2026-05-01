@@ -31,7 +31,7 @@ class ChatViewModel {
     /// selected model does not change; when it does, the session is rebuilt and
     /// seeded from this array so the new model continues the conversation.
     var messages: [Message] = [
-        .system("You are a helpful assistant.")
+        .system(MLXService.systemPrompt)
     ]
 
     /// Currently selected language model for generation
@@ -181,7 +181,7 @@ class ChatViewModel {
 
         if options.contains(.chat) {
             generateTask?.cancel()
-            messages = []
+            messages = [.system(MLXService.systemPrompt)]
             mlxService.clearSession()
         }
 

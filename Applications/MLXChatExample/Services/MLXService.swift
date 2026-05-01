@@ -67,8 +67,9 @@ class MLXService {
             configuration: LLMRegistry.gemma3n_E4B_it_lm_4bit, type: .llm),
     ]
 
-    /// System instructions applied to each new `ChatSession`.
-    private let instructions = "You are a helpful assistant."
+    /// System prompt applied to each new `ChatSession` (as `instructions`) and
+    /// shown in the chat as the system message.
+    static let systemPrompt = "You are a helpful assistant."
 
     /// Generation parameters applied to each new `ChatSession`.
     private let generateParameters = GenerateParameters(temperature: 0.7)
@@ -153,7 +154,7 @@ class MLXService {
         let container = try await load(model: model)
         let session = ChatSession(
             container,
-            instructions: instructions,
+            instructions: Self.systemPrompt,
             history: history,
             generateParameters: generateParameters,
             processing: .init(resize: .init(width: 1024, height: 1024))
