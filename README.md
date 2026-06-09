@@ -34,7 +34,25 @@ examples use models implemented in [MLX Swift LM](https://github.com/ml-explore/
 
 - [mnist-tool](Tools/mnist-tool/README.md): A command line tool for training a
   a LeNet on MNIST.
-  
+
+## Numerical Computing
+
+Examples that use MLX for general numerical computing (no ML model involved),
+useful for seeing how MLX array idioms, `compile`, and custom Metal kernels
+apply to classic numerical problems.
+
+- [CurveFit](Numerical/CurveFit/README.md): Live visualization of gradient
+  descent fitting a quadratic to noisy samples, using `MLX.grad` for
+  automatic differentiation.
+
+- [HeatTransfer](Numerical/HeatTransfer/README.md): 2D heat-diffusion
+  simulation comparing three Jacobi/SOR stencil implementations
+  (`conv2d`, compiled `roll`, red/black SOR).
+
+- [Mandelbrot](Numerical/Mandelbrot/README.md): Mandelbrot set renderer
+  comparing plain MLX, compiled MLX, and a custom Metal kernel
+  (`MLXFast.metalKernel`) against a reference CPU implementation.
+
 > [!IMPORTANT]
 > `MLXLMCommon`, `MLXLLM`, `MLXVLM` and `MLXEmbedders` have moved to a new repository
 > containing _only_ reusable libraries: [mlx-swift-lm](https://github.com/ml-explore/mlx-swift-lm).
