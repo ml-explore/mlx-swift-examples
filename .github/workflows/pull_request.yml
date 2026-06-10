@@ -109,3 +109,4 @@ jobs:
           xcodebuild -scheme embedder-tool -skipMacroValidation
           xcodebuild -scheme image-tool -skipMacroValidation
           xcodebuild -scheme mnist-tool -skipMacroValidation
+          xcodebuild -scheme vector-search-tool -skipMacroValidation

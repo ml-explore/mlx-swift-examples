@@ -16,6 +16,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ml-explore/mlx-swift", .upToNextMinor(from: "0.31.4")),
+        .package(url: "https://github.com/offlyn-ai/mlx-turbovec-swift.git", from: "0.1.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.4.0"),
 
         // Note: used by StableDiffusion library to download weights
         .package(
@@ -57,6 +59,17 @@ let package = Package(
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
+        .executableTarget(
+            name: "vector-search-tool",
+            dependencies: [
+                .product(name: "TurboVec", package: "mlx-turbovec-swift"),
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
+            path: "Tools/vector-search-tool",
+            exclude: [
+                "README.md"
             ]
         ),
     ]
