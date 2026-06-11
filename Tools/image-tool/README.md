@@ -1,14 +1,11 @@
 # image-tool
 
-A command line tool for generating images with the Stable Diffusion example
-library.
+Command line tool for generating images with [Stable Diffusion](https://github.com/ml-explore/mlx-swift-examples/tree/main/Libraries/StableDiffusion) on MLX.
 
-See additional documentation:
+Two subcommands:
 
-- [StableDiffusion](../../Libraries/StableDiffusion/README.md) -- reusable
-  Stable Diffusion implementation
-- [StableDiffusionExample](../../Applications/StableDiffusionExample/README.md)
-  -- SwiftUI application using the same library
+- `sd text` — text-to-image
+- `sd image` — image-to-image (init from an existing image)
 
 ### Building
 
@@ -16,83 +13,98 @@ Build the `image-tool` scheme in Xcode.
 
 ### Running: Xcode
 
-Configure the scheme arguments (Product > Scheme > Edit Scheme > Run >
-Arguments). For example:
+To run this in Xcode press cmd-opt-r to set the scheme arguments. For example:
 
 ```
-sd text \
-    --prompt "purple cow on the moon" \
-    --output /tmp/out.png
+sd text --prompt "purple cow on the moon" --output /tmp/cow.png
 ```
 
-Then press <kbd>⌘</kbd>+<kbd>R</kbd> to run.
+Then cmd-r to run.
 
-> Note: the first run downloads model weights from Hugging Face. You may be
-prompted for access to the download location used by the Hugging Face `HubApi`.
+> Note: you may be prompted for access to your Documents directory — this is where
+> the Hugging Face HubApi stores downloaded model files.
 
 ### Running: Command Line
 
-Use the `mlx-run` script to run the command line tools:
+Use the `mlx-run` script to run the command line tool:
 
 ```
-./mlx-run image-tool sd text --prompt "purple cow on the moon" --output /tmp/out.png
+./mlx-run image-tool sd text --prompt "purple cow on the moon" --output /tmp/cow.png
 ```
 
-By default this will find and run the tool built in _Release_ configuration.
-Specify `--debug` to find and run the tool built in _Debug_ configuration:
+By default this will find and run the tool built in _Release_ configuration. Specify `--debug`
+to find and run the tool built in _Debug_ configuration.
 
-```
-./mlx-run --debug image-tool sd text --prompt "a watercolor robot" --output /tmp/out.png
-```
+### Models
 
-### Text to Image
+Pass `--model` to pick a preset (default: `sdxlTurbo`). The available presets are defined by
+`StableDiffusionConfiguration.Preset` in
+[Libraries/StableDiffusion](https://github.com/ml-explore/mlx-swift-examples/tree/main/Libraries/StableDiffusion)
+and include SD 2.1 Base and SDXL Turbo variants.
 
-The `sd text` command generates one or more images from a prompt and writes an
-image file. The output format is inferred from the `--output` extension and
-defaults to PNG when the extension is not recognized:
+### Text to image
+
+Generate an image from a prompt:
 
 ```
 ./mlx-run image-tool sd text \
-    --model sdxl-turbo \
-    --prompt "a small cabin beside a frozen lake" \
+    --prompt "an astronaut riding a horse on mars, cinematic" \
+    --negative-prompt "low quality, blurry" \
     --steps 4 \
-    --seed 1234 \
-    --output /tmp/cabin.png
+    --output /tmp/out.png
 ```
 
-Common generation options include:
+Useful options:
 
-- `--prompt` and `--negative-prompt` for text conditioning
-- `--image-count`, `--batch-size`, and `--rows` for image grids
-- `--latent-width` and `--latent-height` for output size, where the final image
-  dimensions are 8x the latent dimensions
-- `--cfg`, `--steps`, and `--seed` for generation behavior
+| Option | Description |
+| --- | --- |
+| `--prompt` | Text prompt (default: `"purple cow on the moon"`) |
+| `--negative-prompt` | Negative prompt (requires `--cfg` > 1) |
+| `--cfg` | Classifier-free-guidance weight |
+| `--steps` | Number of denoising steps |
+| `--image-count` | Number of images to generate |
+| `--batch-size` | Decoding batch size |
+| `--latent-width` / `--latent-height` | Latent size (output is 8× these values) |
+| `--rows` | Number of rows when laying out multiple images into a grid |
+| `--seed` | PRNG seed for reproducible output |
+| `--output` | Output PNG path (default: `/tmp/out.png`) |
 
-### Image to Image
+### Image to image
 
-The `sd image` command uses an input image as the starting point:
+Start from an existing image:
 
 ```
 ./mlx-run image-tool sd image \
-    --input support/test.jpg \
-    --prompt "a studio portrait in watercolor" \
-    --strength 0.75 \
-    --output /tmp/portrait.png
+    --input /tmp/in.png \
+    --prompt "...same image but in watercolor..." \
+    --strength 0.7 \
+    --output /tmp/out.png
 ```
 
-The input image is loaded at dimensions compatible with the model before
-generation. Higher `--strength` values allow the prompt to change more of the
-original image.
+Additional options:
 
-### Models and Memory
+| Option | Description |
+| --- | --- |
+| `--input` | Input image path (required) |
+| `--max-edge` | Scale input so its longest edge is this many pixels (default: 1024) |
+| `--strength` | Noise strength — higher means more deviation from the input (default: 0.9) |
 
-The default model is `sdxl-turbo`. Use `--model base` for the Stable Diffusion
-2.1 base preset. Pass `--no-float16` to disable float16 conversion or
-`--quantize` to enable quantization.
+### Memory
 
-Memory can be constrained with `--cache-size` and `--memory-size`, both in
-megabytes.
+The `--memory-stats`, `--cache-size`, and `--memory-size` options control MLX's memory limits and
+print before/after snapshots; see
+[`MemoryArguments`](https://github.com/ml-explore/mlx-swift-examples/blob/main/Tools/image-tool/Arguments.swift)
+for the same options shared with `llm-tool`.
 
-See also:
+### Float16 and quantization
 
-- [MLX troubleshooting](https://swiftpackageindex.com/ml-explore/mlx-swift/main/documentation/mlx/troubleshooting)
+By default the model loads in float16. Use `--no-float16` to disable float16 conversion, or
+`--quantize` to enable quantization. See
+[`LoadConfiguration`](https://github.com/ml-explore/mlx-swift-examples/tree/main/Libraries/StableDiffusion)
+for details.
+
+### See also
+
+- [llm-tool](../llm-tool/README.md) — equivalent command line tool for language models
+- [StableDiffusion](https://github.com/ml-explore/mlx-swift-examples/tree/main/Libraries/StableDiffusion) — underlying library
+- [StableDiffusionExample](../../Applications/StableDiffusionExample/) — SwiftUI example app built on the same library
