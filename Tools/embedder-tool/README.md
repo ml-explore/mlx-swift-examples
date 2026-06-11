@@ -2,7 +2,7 @@
 
 See additional documentation for supporting libraries:
 
-- [Embedders](../../Libraries/Embedders/README.md)
+- [MLXEmbedders](https://github.com/ml-explore/mlx-swift-lm/tree/main/Libraries/MLXEmbedders)
 
 ### Building
 
