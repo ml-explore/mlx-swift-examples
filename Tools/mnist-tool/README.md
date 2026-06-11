@@ -1,6 +1,6 @@
 #  mnist-tool
 
-See the [MNIST README.md](../../Libraries/MNIST/README.md).
+See the [MLXMNIST README.md](../../Libraries/MLXMNIST/README.md).
 
 ### Building
 
