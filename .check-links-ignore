@@ -1,0 +1,7 @@
+# Link targets that support/check_links.py should not flag as broken.
+# One pattern per line (fnmatch glob), matched against the link target
+# path relative to the repository root. Lines starting with # are comments.
+
+# Moved to the mlx-swift-lm package:
+Libraries/MLXLLM/*
+Libraries/Embedders/*
