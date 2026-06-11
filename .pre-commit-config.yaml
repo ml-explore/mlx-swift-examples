@@ -9,11 +9,9 @@ repos:
       require_serial: true
       types: [swift]
 
-- repo: https://github.com/lycheeverse/lychee.git
-  rev: lychee-v0.24.2
-  hooks:
-    - id: lychee
-      args:
-        - --no-progress
-        - --offline
+    - id: check-markdown-links
+      name: check markdown links
+      language: system
+      entry: python3 support/check_links.py
+      require_serial: true
       types: [markdown]
