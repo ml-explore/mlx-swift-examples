@@ -7,8 +7,11 @@ https, mailto) and bare anchors are skipped, as are targets that
 resolve outside the repository (they cannot be validated from a
 checkout).
 
-Targets listed in .check-links-ignore at the repository root (one
-fnmatch glob per line, relative to the root) are also skipped.
+Paths listed in .check-links-ignore at the repository root (one
+fnmatch glob per line, relative to the root) are also skipped:
+markdown files matching a pattern are not scanned (e.g. vendored
+third-party docs), and link targets matching a pattern are not
+flagged as broken (e.g. targets that moved to another repository).
 
 Usage: python3 check_links.py <directory>
        python3 check_links.py <file.md> [<file.md> ...]
@@ -41,6 +44,15 @@ def load_ignore_patterns(base):
         if line and not line.startswith('#'):
             patterns.append(line)
     return patterns
+
+
+def is_ignored(path, base, ignore_patterns):
+    """True if path (relative to base) matches an ignore pattern."""
+    try:
+        rel = path.relative_to(base)
+    except ValueError:
+        return False
+    return any(fnmatch.fnmatch(str(rel), p) for p in ignore_patterns)
 
 
 def find_all_md_files(directory):
@@ -83,12 +95,10 @@ def check_file(filepath, directory, ignore_patterns):
             target_path = (filepath.parent / target).resolve()
 
             # Targets outside the repository cannot be validated here
-            try:
-                rel_target = target_path.relative_to(directory)
-            except ValueError:
+            if not target_path.is_relative_to(directory):
                 continue
 
-            if any(fnmatch.fnmatch(str(rel_target), p) for p in ignore_patterns):
+            if is_ignored(target_path, directory, ignore_patterns):
                 continue
 
             if not target_path.exists():
@@ -117,6 +127,8 @@ def main():
 
     all_broken = []
     for filepath in sorted(md_files):
+        if is_ignored(filepath, directory, ignore_patterns):
+            continue
         all_broken.extend(check_file(filepath, directory, ignore_patterns))
 
     if not all_broken:
