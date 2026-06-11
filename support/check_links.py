@@ -2,10 +2,10 @@
 """
 Check for broken internal markdown links.
 Scans .md files for links like [text](Something.md) and reports
-any that point to files that don't exist. External links (http,
-https, mailto) and bare anchors are skipped, as are targets that
-resolve outside the repository (they cannot be validated from a
-checkout).
+any that point to files that don't exist. Links with a URL scheme
+or host (http, https, mailto, ...) and bare anchors are skipped,
+as are targets that resolve outside the repository (they cannot
+be validated from a checkout).
 
 Paths listed in .check-links-ignore at the repository root (one
 fnmatch glob per line, relative to the root) are also skipped:
@@ -18,13 +18,17 @@ Usage: python3 check_links.py <directory>
 
 The file form is used by pre-commit, which passes the tracked
 markdown files to check.
+
+Kept in sync between ml-explore/mlx-swift-examples (support/)
+and ml-explore/mlx-swift (tools/).
 """
 
 import fnmatch
+import os
 import re
 import sys
 from pathlib import Path
-from urllib.parse import unquote
+from urllib.parse import unquote, urlsplit
 
 
 # Directories to skip when scanning a directory
@@ -32,9 +36,11 @@ SKIP_DIRS = {'.git', '.build', '.swiftpm', 'vendor', 'node_modules'}
 
 IGNORE_FILE = '.check-links-ignore'
 
+LINK_PATTERN = re.compile(r'\[([^\]]*)\]\(([^)]+)\)')
+
 
 def load_ignore_patterns(base):
-    """Load link-target patterns to skip from .check-links-ignore."""
+    """Load path patterns to skip from .check-links-ignore."""
     ignore_file = base / IGNORE_FILE
     if not ignore_file.is_file():
         return []
@@ -48,72 +54,56 @@ def load_ignore_patterns(base):
 
 def is_ignored(path, base, ignore_patterns):
     """True if path (relative to base) matches an ignore pattern."""
-    try:
-        rel = path.relative_to(base)
-    except ValueError:
+    if not path.is_relative_to(base):
         return False
-    return any(fnmatch.fnmatch(str(rel), p) for p in ignore_patterns)
+    rel = str(path.relative_to(base))
+    return any(fnmatch.fnmatch(rel, p) for p in ignore_patterns)
 
 
 def find_all_md_files(directory):
     """Build a set of all .md file paths under the directory."""
     md_files = set()
-    for filepath in directory.rglob('*.md'):
-        if any(part in SKIP_DIRS for part in filepath.parts):
-            continue
-        md_files.add(filepath)
+    for dirpath, dirnames, filenames in os.walk(directory):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        md_files.update(
+            Path(dirpath) / name for name in filenames if name.endswith('.md'))
     return md_files
 
 
 def check_file(filepath, directory, ignore_patterns):
-    """Check all internal links in a file. Returns list of (source, line_num, link_text, target) tuples."""
+    """Check all internal links in a file. Returns a list of
+    (line_num, link_text, target) tuples for broken links."""
     broken = []
-    with open(filepath, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-
-    # Match [text](target) but skip external URLs
-    link_pattern = re.compile(r'\[([^\]]*)\]\(([^)]+)\)')
-
     in_code_block = False
-    for line_num, line in enumerate(lines, 1):
-        # Skip fenced code blocks -- their contents are not links
-        if line.lstrip().startswith(('```', '~~~')):
-            in_code_block = not in_code_block
-            continue
-        if in_code_block:
-            continue
-        for match in link_pattern.finditer(line):
-            display = match.group(1)
-            target = match.group(2)
-
-            # Skip external links
-            if target.startswith(('http://', 'https://', 'mailto:', '#')):
+    with open(filepath, 'r', encoding='utf-8') as f:
+        for line_num, line in enumerate(f, 1):
+            # Skip fenced code blocks -- their contents are not links
+            if line.lstrip().startswith(('```', '~~~')):
+                in_code_block = not in_code_block
                 continue
-
-            # Strip anchor fragments
-            target = target.split('#')[0]
-            if not target:
+            if in_code_block:
                 continue
+            for match in LINK_PATTERN.finditer(line):
+                display = match.group(1)
+                target = urlsplit(match.group(2))
 
-            # URL-decode (e.g. %20 -> space)
-            target = unquote(target)
+                # Skip external links and bare anchors
+                if target.scheme or target.netloc or not target.path:
+                    continue
 
-            # Resolve relative to the file's directory
-            target_path = (filepath.parent / target).resolve()
+                # URL-decode (e.g. %20 -> space) and resolve relative
+                # to the file's directory
+                target_path = (filepath.parent / unquote(target.path)).resolve()
 
-            # Targets outside the repository cannot be validated here
-            if not target_path.is_relative_to(directory):
-                continue
+                # Targets outside the repository cannot be validated here
+                if not target_path.is_relative_to(directory):
+                    continue
 
-            if is_ignored(target_path, directory, ignore_patterns):
-                continue
+                if is_ignored(target_path, directory, ignore_patterns):
+                    continue
 
-            if not target_path.exists():
-                try:
-                    rel_source = filepath.relative_to(directory)
-                except ValueError:
-                    rel_source = filepath
-                broken.append((rel_source, line_num, display, target))
+                if not target_path.exists():
+                    broken.append((line_num, display, target.path))
 
     return broken
 
@@ -132,27 +122,27 @@ def main():
 
     ignore_patterns = load_ignore_patterns(directory)
 
-    all_broken = []
+    by_file = {}
     for filepath in sorted(md_files):
         if is_ignored(filepath, directory, ignore_patterns):
             continue
-        all_broken.extend(check_file(filepath, directory, ignore_patterns))
+        broken = check_file(filepath, directory, ignore_patterns)
+        if broken:
+            rel = (filepath.relative_to(directory)
+                   if filepath.is_relative_to(directory) else filepath)
+            by_file[rel] = broken
 
-    if not all_broken:
+    if not by_file:
         print("No broken links found.")
         sys.exit(0)
 
-    # Group by source file
-    by_file = {}
-    for source, line_num, display, target in all_broken:
-        by_file.setdefault(source, []).append((line_num, display, target))
-
-    for source in sorted(by_file):
+    for source, broken in by_file.items():
         print(f"\n{source}:")
-        for line_num, display, target in by_file[source]:
+        for line_num, display, target in broken:
             print(f"  line {line_num}: [{display}]({target}) -> NOT FOUND")
 
-    print(f"\nTotal: {len(all_broken)} broken link(s) in {len(by_file)} file(s)")
+    total = sum(len(broken) for broken in by_file.values())
+    print(f"\nTotal: {total} broken link(s) in {len(by_file)} file(s)")
     sys.exit(1)
 
 
