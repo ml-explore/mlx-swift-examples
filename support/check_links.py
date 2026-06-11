@@ -74,7 +74,14 @@ def check_file(filepath, directory, ignore_patterns):
     # Match [text](target) but skip external URLs
     link_pattern = re.compile(r'\[([^\]]*)\]\(([^)]+)\)')
 
+    in_code_block = False
     for line_num, line in enumerate(lines, 1):
+        # Skip fenced code blocks -- their contents are not links
+        if line.lstrip().startswith(('```', '~~~')):
+            in_code_block = not in_code_block
+            continue
+        if in_code_block:
+            continue
         for match in link_pattern.finditer(line):
             display = match.group(1)
             target = match.group(2)
