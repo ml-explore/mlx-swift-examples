@@ -3,6 +3,9 @@
 # flagged as broken. One fnmatch glob per line, relative to the repository
 # root. Lines starting with # are comments.
 
+# Test fixtures, not documentation:
+Applications/LLMEval/Models/*
+
 # Moved to the mlx-swift-lm package:
 Libraries/MLXLLM/*
 Libraries/Embedders/*
