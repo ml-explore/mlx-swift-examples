@@ -143,12 +143,7 @@ class LoRAEvaluator {
                 progress = .init(title: "Loading \(name)", current: 0, limit: 1)
             }
 
-            let downloader = #hubDownloader()
-            let loader = #huggingFaceTokenizerLoader()
-
-            let modelContainer = try await LLMModelFactory.shared.loadContainer(
-                from: downloader,
-                using: loader,
+            let modelContainer = try await #huggingFaceLoadModelContainer(
                 configuration: modelConfiguration
             ) {
                 progress in

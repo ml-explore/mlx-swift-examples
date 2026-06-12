@@ -43,9 +43,7 @@ private let generateParameters = GenerateParameters(temperature: 0.5)
         case .idle:
             let task = Task {
                 // download and report progress
-                try await LLMModelFactory.shared.loadContainer(
-                    from: #hubDownloader(),
-                    using: #huggingFaceTokenizerLoader(),
+                try await #huggingFaceLoadModelContainer(
                     configuration: modelConfiguration
                 ) { value in
                     Task { @MainActor in
