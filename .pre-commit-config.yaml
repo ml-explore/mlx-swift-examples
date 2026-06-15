@@ -8,3 +8,10 @@ repos:
       entry: swift-format format --in-place --configuration .swift-format --recursive .
       require_serial: true
       types: [swift]
+
+    - id: check-markdown-links
+      name: check markdown links
+      language: system
+      entry: python3 support/check_links.py
+      require_serial: true
+      types: [markdown]
