@@ -24,8 +24,8 @@ private let generateParameters = GenerateParameters(temperature: 0.5)
 
     enum State {
         case idle
-        case loading(Task<ModelContainer, Error>)
-        case loaded(ModelContainer)
+        case loading(Task<ModelContext, Error>)
+        case loaded(ModelContext)
     }
 
     public var progress = 0.0
@@ -38,12 +38,12 @@ private let generateParameters = GenerateParameters(temperature: 0.5)
 
     private var state = State.idle
 
-    public func model() async throws -> ModelContainer {
+    public func model() async throws -> ModelContext {
         switch self.state {
         case .idle:
             let task = Task {
                 // download and report progress
-                try await #huggingFaceLoadModelContainer(
+                try await #huggingFaceLoadModel(
                     configuration: modelConfiguration
                 ) { value in
                     Task { @MainActor in
@@ -79,7 +79,7 @@ private let generateParameters = GenerateParameters(temperature: 0.5)
         task != nil
     }
 
-    public init(model: ModelContainer) {
+    public init(model: ModelContext) {
         self.session = ChatSession(
             model,
             instructions: instructions,

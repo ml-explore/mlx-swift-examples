@@ -43,7 +43,12 @@ struct ModelArguments: ParsableArguments, Sendable {
     }
 
     @Sendable
-    func load(defaultModel: String, modelFactory: any ModelFactory) async throws -> ModelContainer {
+    func load(defaultModel: String, modelFactory: any ModelFactory) async throws -> ModelContext {
+        ModelContext(try await loadTrainable(defaultModel: defaultModel, modelFactory: modelFactory))
+    }
+    
+    @Sendable
+    func loadTrainable(defaultModel: String, modelFactory: any ModelFactory) async throws -> TrainableModelContext {
         let modelConfiguration: ModelConfiguration
 
         let modelName = self.model ?? defaultModel
@@ -58,11 +63,12 @@ struct ModelArguments: ParsableArguments, Sendable {
             modelConfiguration = modelFactory.configuration(id: modelName)
         }
 
-        return try await modelFactory.loadContainer(
+        return try await modelFactory.loadTrainable(
             from: self.downloader,
             using: #huggingFaceTokenizerLoader(),
             configuration: modelConfiguration)
     }
+
 }
 
 struct PromptArguments: ParsableArguments, Sendable {
@@ -334,17 +340,15 @@ struct EvaluateCommand: AsyncParsableCommand {
         }
 
         // Load the model
-        let modelContainer = try await memory.start { [args] in
+        var context = try await memory.start { [args] in
             try await args.load(defaultModel: defaultModel.name, modelFactory: modelFactory)
         }
 
         // update the context/configuration with any command line parameters
-        await modelContainer.update { [generate] context in
-            generate.prepare(&context)
-        }
+        generate.prepare(&context)
 
         // Get the resolved configuration (this has the default prompt)
-        let modelConfiguration = await modelContainer.configuration
+        let modelConfiguration = context.configuration
 
         let prompt =
             (try? self.prompt.resolvePrompt(configuration: modelConfiguration))
@@ -355,7 +359,7 @@ struct EvaluateCommand: AsyncParsableCommand {
         }
 
         let session = ChatSession(
-            modelContainer,
+            context,
             instructions: generate.system,
             generateParameters: generate.generateParameters,
             processing: media.processing,

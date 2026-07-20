@@ -22,7 +22,7 @@ struct ChatCommand: AsyncParsableCommand {
         let defaultModel = MLXLLM.LLMRegistry.mistral7B4bit
 
         // Load the model
-        let modelContainer = try await memory.start { [args] in
+        var context = try await memory.start { [args] in
             do {
                 return try await args.load(
                     defaultModel: defaultModel.name, modelFactory: VLMModelFactory.shared)
@@ -33,16 +33,14 @@ struct ChatCommand: AsyncParsableCommand {
         }
 
         // update the context/configuration with any command line parameters
-        await modelContainer.update { [generate] context in
-            generate.prepare(&context)
-        }
+        generate.prepare(&context)
 
-        try await chat(modelContainer: modelContainer)
+        try await chat(context: context)
     }
 
-    func chat(modelContainer: ModelContainer) async throws {
+    func chat(context: ModelContext) async throws {
         let session = ChatSession(
-            modelContainer,
+            context,
             instructions: generate.system,
             generateParameters: generate.generateParameters,
             processing: media.processing
