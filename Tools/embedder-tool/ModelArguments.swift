@@ -38,7 +38,7 @@ struct ModelArguments: ParsableArguments {
 
 struct LoadedEmbedderModel {
     let configuration: ModelConfiguration
-    let container: EmbedderModelContainer
+    let context: EmbedderModelContext
 }
 
 extension ModelArguments {
@@ -51,7 +51,7 @@ extension ModelArguments {
 
         print("Loading model \(configuration.name)...")
 
-        let container = try await EmbedderModelFactory.shared.loadContainer(
+        let context = try await EmbedderModelFactory.shared.load(
             from: hub,
             using: loader,
             configuration: configuration,
@@ -65,7 +65,7 @@ extension ModelArguments {
             }
         )
 
-        return LoadedEmbedderModel(configuration: configuration, container: container)
+        return LoadedEmbedderModel(configuration: configuration, context: context)
     }
 
     var downloader: any Downloader {

@@ -114,9 +114,9 @@ class LoRAEvaluator {
         case failed(String)
     }
 
-    enum ModelState: Sendable {
+    enum ModelState {
         case idle
-        case loaded(ModelContainer)
+        case loaded(TrainableModelContext)
     }
 
     var state = State.idle
@@ -135,7 +135,7 @@ class LoRAEvaluator {
     private let evaluateShowEvery = 8
     private let maxTokens = 200
 
-    private func loadModel() async throws -> ModelContainer {
+    private func loadModel() async throws -> TrainableModelContext {
         switch self.model {
         case .idle:
             let name = modelConfiguration.name
@@ -143,7 +143,7 @@ class LoRAEvaluator {
                 progress = .init(title: "Loading \(name)", current: 0, limit: 1)
             }
 
-            let modelContainer = try await #huggingFaceLoadModelContainer(
+            let context = try await #huggingFaceLoadTrainableModel(
                 configuration: modelConfiguration
             ) {
                 progress in
@@ -153,8 +153,8 @@ class LoRAEvaluator {
                         limit: 1.0)
                 }
             }
-            self.model = .loaded(modelContainer)
-            return modelContainer
+            self.model = .loaded(context)
+            return context
 
         case .loaded(let modelContainer):
             return modelContainer
@@ -185,15 +185,13 @@ class LoRAEvaluator {
         }
 
         // load the model
-        let modelContainer = try await loadModel()
+        let context = try await loadModel()
 
         // apply LoRA adapters and train
-        let _ = try await modelContainer.perform { context in
-            try LoRAContainer.from(
-                model: context.model,
-                configuration: LoRAConfiguration(numLayers: loraLayers)
-            )
-        }
+        let _ = try LoRAContainer.from(
+            model: context.model,
+            configuration: LoRAConfiguration(numLayers: loraLayers)
+        )
 
         let train = try loadLoRAData(name: "train")
         let valid = try loadLoRAData(name: "valid")
@@ -202,29 +200,27 @@ class LoRAEvaluator {
             return
         }
 
-        try await modelContainer.perform { context in
-            let optimizer = Adam(learningRate: learningRate)
-            try LoRATrain.train(
-                model: context.model, train: train, validate: valid, optimizer: optimizer,
-                tokenizer: context.tokenizer,
-                parameters: parameters
-            ) { progress in
-                Task { @MainActor in
-                    switch progress {
-                    case .train(let i, _, _, _):
-                        self.progress = .init(
-                            title: "Train", current: Double(i), limit: Double(parameters.iterations)
-                        )
-                    case .validation:
-                        output += "\n"
-                    default:
-                        break
-                    }
-                    output += progress.description + "\n"
+        let optimizer = Adam(learningRate: learningRate)
+        try LoRATrain.train(
+            model: context.model, train: train, validate: valid, optimizer: optimizer,
+            tokenizer: context.tokenizer,
+            parameters: parameters
+        ) { progress in
+            Task { @MainActor in
+                switch progress {
+                case .train(let i, _, _, _):
+                    self.progress = .init(
+                        title: "Train", current: Double(i), limit: Double(parameters.iterations)
+                    )
+                case .validation:
+                    output += "\n"
+                default:
+                    break
                 }
-
-                return .more
+                output += progress.description + "\n"
             }
+
+            return .more
         }
 
         // done training, test
@@ -234,11 +230,9 @@ class LoRAEvaluator {
             return
         }
 
-        let loss = await modelContainer.perform { context in
-            LoRATrain.evaluate(
-                model: context.model, dataset: test,
-                tokenizer: context.tokenizer, batchSize: 1, batchCount: 0)
-        }
+        let loss = LoRATrain.evaluate(
+            model: context.model, dataset: test,
+            tokenizer: context.tokenizer, batchSize: 1, batchCount: 0)
 
         self.progress = nil
         self.output += "\n"
@@ -262,15 +256,16 @@ class LoRAEvaluator {
 
         MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
-        let modelContainer = try await loadModel()
+        let context = try await loadModel()
 
         // evaluate
-        let input = try await modelContainer.processor.prepare(input: .init(prompt: prompt))
+        let input = try await context.processor.prepare(input: .init(prompt: prompt))
 
+        let evaluationContext = ModelContext(context)
         var count = 0
         var output = ""
-        for try await item in try await modelContainer.generate(
-            input: input, parameters: generateParameters
+        for try await item in try generate(
+            input: input, parameters: generateParameters, context: evaluationContext
         ) {
             switch item {
             case .chunk(let string):

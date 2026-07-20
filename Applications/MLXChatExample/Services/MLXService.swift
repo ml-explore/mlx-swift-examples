@@ -39,8 +39,16 @@ class MLXService {
         LMModel(name: "gemma3n:E4B", configuration: LLMRegistry.gemma3n_E4B_it_lm_4bit, type: .llm),
     ]
 
+    fileprivate final class ContextBox: Sendable {
+        let context: ModelContext
+
+        init(_ context: ModelContext) {
+            self.context = context
+        }
+    }
+
     /// Cache to store loaded model containers to avoid reloading.
-    private let modelCache = NSCache<NSString, ModelContainer>()
+    private let modelCache = NSCache<NSString, ContextBox>()
 
     /// Tracks the current model download progress.
     /// Access this property to monitor model download status.
@@ -51,16 +59,16 @@ class MLXService {
     /// - Parameter model: The model configuration to load
     /// - Returns: A ModelContainer instance containing the loaded model
     /// - Throws: Errors that might occur during model loading
-    private func load(model: LMModel) async throws -> ModelContainer {
+    private func load(model: LMModel) async throws -> ModelContext {
         // Set GPU memory limit to prevent out of memory issues
         Memory.cacheLimit = 20 * 1024 * 1024
 
         // Return cached model if available to avoid reloading
-        if let container = modelCache.object(forKey: model.name as NSString) {
-            return container
+        if let box = modelCache.object(forKey: model.name as NSString) {
+            return box.context
         } else {
             // Select appropriate factory based on model type
-            let factory: ModelFactory =
+            let factory: any ModelFactory =
                 switch model.type {
                 case .llm:
                     LLMModelFactory.shared
@@ -72,7 +80,7 @@ class MLXService {
             let loader = #huggingFaceTokenizerLoader()
 
             // Load model and track download progress
-            let container = try await factory.loadContainer(
+            let context = try await factory.load(
                 from: downloader,
                 using: loader,
                 configuration: model.configuration
@@ -83,9 +91,9 @@ class MLXService {
             }
 
             // Cache the loaded model for future use
-            modelCache.setObject(container, forKey: model.name as NSString)
+            modelCache.setObject(.init(context), forKey: model.name as NSString)
 
-            return container
+            return context
         }
     }
 
@@ -97,7 +105,7 @@ class MLXService {
     /// - Throws: Errors that might occur during generation
     func generate(messages: [Message], model: LMModel) async throws -> AsyncStream<Generation> {
         // Load or retrieve model from cache
-        let modelContainer = try await load(model: model)
+        let context = try await load(model: model)
 
         // Exclude trailing empty assistant message so the chat template
         // leaves the assistant turn open for generation (matching ChatSession behavior)
@@ -131,13 +139,11 @@ class MLXService {
             chat: chat, processing: .init(resize: .init(width: 1024, height: 1024)))
 
         // Generate response using the model
-        return try await modelContainer.perform { context in
-            let lmInput = try await context.processor.prepare(input: userInput)
-            // Set temperature for response randomness (0.7 provides good balance)
-            let parameters = GenerateParameters(temperature: 0.7)
+        let lmInput = try await context.processor.prepare(input: userInput)
+        // Set temperature for response randomness (0.7 provides good balance)
+        let parameters = GenerateParameters(temperature: 0.7)
 
-            return try MLXLMCommon.generate(
-                input: lmInput, parameters: parameters, context: context)
-        }
+        return try MLXLMCommon.generate(
+            input: lmInput, parameters: parameters, context: context)
     }
 }
