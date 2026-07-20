@@ -131,7 +131,7 @@ class MLXService {
             chat: chat, processing: .init(resize: .init(width: 1024, height: 1024)))
 
         // Generate response using the model
-        return try await modelContainer.perform { (context: ModelContext) in
+        return try await modelContainer.perform { context in
             let lmInput = try await context.processor.prepare(input: userInput)
             // Set temperature for response randomness (0.7 provides good balance)
             let parameters = GenerateParameters(temperature: 0.7)
