@@ -143,7 +143,7 @@ class LoRAEvaluator {
                 progress = .init(title: "Loading \(name)", current: 0, limit: 1)
             }
 
-            let context = try await #huggingFaceLoadTrainabledModel(
+            let context = try await #huggingFaceLoadTrainableModel(
                 configuration: modelConfiguration
             ) {
                 progress in

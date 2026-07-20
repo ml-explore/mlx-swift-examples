@@ -63,7 +63,7 @@ class LLMEvaluator {
     enum LoadState {
         case idle
         case loading
-        case loaded(ModelContainer)
+        case loaded(ModelContext)
     }
 
     var loadState = LoadState.idle
@@ -81,7 +81,7 @@ class LLMEvaluator {
     }
 
     /// Load and return the model. Can be called multiple times; subsequent calls return the cached model.
-    func load() async throws -> ModelContainer {
+    func load() async throws -> ModelContext {
         while true {
             switch loadState {
             case .idle:
@@ -91,13 +91,13 @@ class LLMEvaluator {
                 // Already loading, wait and retry
                 try await Task.sleep(for: .milliseconds(100))
 
-            case .loaded(let modelContainer):
-                return modelContainer
+            case .loaded(let model):
+                return model
             }
         }
     }
 
-    private func performLoad() async throws -> ModelContainer {
+    private func performLoad() async throws -> ModelContext {
         loadState = .loading
         modelInfo = "Downloading \(modelName)..."
         downloadProgress = 0.0
@@ -137,16 +137,16 @@ class LLMEvaluator {
             downloadProgress = nil
             totalSize = nil
 
-            let modelContainer = try await LLMModelFactory.shared.loadContainer(
+            let context = try await LLMModelFactory.shared.load(
                 from: resolved.modelDirectory,
                 using: #huggingFaceTokenizerLoader())
 
-            let numParams = await modelContainer.perform { $0.model.numParameters() }
+            let numParams = context.model.parameterCount
 
             self.prompt = PresetPrompts.all[0].prompt
             self.modelInfo = formatModelInfo(name: modelConfiguration.name, parameters: numParams)
-            loadState = .loaded(modelContainer)
-            return modelContainer
+            loadState = .loaded(context)
+            return context
 
         } catch {
             resetLoadingState()
@@ -240,7 +240,7 @@ class LLMEvaluator {
         )
 
         do {
-            let modelContainer = try await load()
+            let context = try await load()
 
             // Capture parameters on MainActor before entering perform block
             let parameters = generateParameters
@@ -248,10 +248,11 @@ class LLMEvaluator {
             // Seed random generator to ensure varied output each generation
             MLXRandom.seed(UInt64(Date.timeIntervalSinceReferenceDate * 1000))
 
-            let lmInput = try await modelContainer.prepare(input: userInput)
+            let lmInput = try await context.processor.prepare(input: userInput)
             let promptTokenCount = lmInput.text.tokens.size
             let start = Date.timeIntervalSinceReferenceDate
-            let stream = try await modelContainer.generate(input: lmInput, parameters: parameters)
+            let stream = try MLXLMCommon.generate(
+                input: lmInput, parameters: parameters, context: context)
 
             var iterator = stream.makeAsyncIterator()
             if let first = await iterator.next() {

@@ -44,11 +44,14 @@ struct ModelArguments: ParsableArguments, Sendable {
 
     @Sendable
     func load(defaultModel: String, modelFactory: any ModelFactory) async throws -> ModelContext {
-        ModelContext(try await loadTrainable(defaultModel: defaultModel, modelFactory: modelFactory))
+        ModelContext(
+            try await loadTrainable(defaultModel: defaultModel, modelFactory: modelFactory))
     }
-    
+
     @Sendable
-    func loadTrainable(defaultModel: String, modelFactory: any ModelFactory) async throws -> TrainableModelContext {
+    func loadTrainable(defaultModel: String, modelFactory: any ModelFactory) async throws
+        -> TrainableModelContext
+    {
         let modelConfiguration: ModelConfiguration
 
         let modelName = self.model ?? defaultModel
@@ -203,6 +206,14 @@ struct GenerateArguments: ParsableArguments, Sendable {
 
     func prepare(
         _ context: inout TrainableModelContext
+    ) {
+        if let extraEosToken {
+            context.configuration.extraEOSTokens.insert(extraEosToken)
+        }
+    }
+
+    func prepare(
+        _ context: inout ModelContext
     ) {
         if let extraEosToken {
             context.configuration.extraEOSTokens.insert(extraEosToken)

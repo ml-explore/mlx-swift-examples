@@ -43,11 +43,11 @@ struct EmbedderTool: AsyncParsableCommand {
         -> EmbedderRuntime
     {
         let loadedModel = try await model.load(default: defaultModelConfiguration)
-        let baseStrategy = await loadedModel.container.poolingStrategy
+        let baseStrategy = loadedModel.context.pooling.strategy
 
         return EmbedderRuntime(
             configuration: loadedModel.configuration,
-            container: loadedModel.container,
+            context: loadedModel.context,
             baseStrategy: baseStrategy,
             strategyOverride: pooling.strategyOverride,
             normalize: pooling.normalize,
@@ -58,7 +58,7 @@ struct EmbedderTool: AsyncParsableCommand {
 
 struct EmbedderRuntime {
     let configuration: ModelConfiguration
-    let container: EmbedderModelContainer
+    let context: EmbedderModelContext
     let baseStrategy: Pooling.Strategy
     let strategyOverride: Pooling.Strategy?
     let normalize: Bool

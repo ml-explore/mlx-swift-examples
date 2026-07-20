@@ -59,7 +59,7 @@ struct LoRAModelArguments: ParsableArguments, Sendable {
     }
 
     func describe(model: Module) {
-        let totalParameterCount = model.numParameters()
+        let totalParameterCount = model.parameterCount
         let trainableParameterCount = model.trainableParameters()
             .flattenedValues().map { $0.size }.reduce(0, +)
 
@@ -292,7 +292,7 @@ struct LoRAEvalCommand: AsyncParsableCommand {
 
         // generate and print the result
         let input = try await modelContext.processor.prepare(input: .init(prompt: prompt))
-        
+
         let evaluationContext = ModelContext(modelContext)
         let (result, _) = try await generate.generate(input: input, context: evaluationContext)
 

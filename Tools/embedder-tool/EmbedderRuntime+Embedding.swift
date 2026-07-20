@@ -26,66 +26,64 @@ extension EmbedderRuntime {
                 embeddings: [], skippedIndices: [], fallbackDescription: nil)
         }
 
-        return try await container.perform { context in
-            var skippedIndices: [Int] = []
+        var skippedIndices: [Int] = []
 
-            let tokenizer = context.tokenizer
-            let encoded = texts.enumerated().compactMap { index, text -> (Int, [Int])? in
-                let tokens = tokenizer.encode(text: text, addSpecialTokens: true)
-                guard !tokens.isEmpty else {
-                    skippedIndices.append(index)
-                    return nil
-                }
-                return (index, tokens)
+        let tokenizer = context.tokenizer
+        let encoded = texts.enumerated().compactMap { index, text -> (Int, [Int])? in
+            let tokens = tokenizer.encode(text: text, addSpecialTokens: true)
+            guard !tokens.isEmpty else {
+                skippedIndices.append(index)
+                return nil
             }
+            return (index, tokens)
+        }
 
-            guard !encoded.isEmpty else {
-                return RuntimeEmbeddingResult(
-                    embeddings: [],
-                    skippedIndices: skippedIndices,
-                    fallbackDescription: nil
-                )
-            }
-
-            // [PAD] (BERT standard), EOS (autoregressive like Qwen)
-            let padToken = tokenizer.convertTokenToId("[PAD]") ?? tokenizer.eosTokenId ?? 0
-
-            let maxLength = encoded.map { $0.1.count }.max() ?? 0
-
-            let padded = stacked(
-                encoded.map { _, tokens in
-                    MLXArray(tokens + Array(repeating: padToken, count: maxLength - tokens.count))
-                })
-            let mask = (padded .!= padToken)
-            let tokenTypes = MLXArray.zeros(like: padded)
-
-            let outputs = context.model(
-                padded,
-                positionIds: nil,
-                tokenTypeIds: tokenTypes,
-                attentionMask: mask
-            )
-
-            let poolingModule = resolvedPooler(for: context.pooling)
-            let pooled = poolingModule(
-                outputs,
-                mask: mask,
-                normalize: self.normalize,
-                applyLayerNorm: self.applyLayerNorm
-            )
-            pooled.eval()
-
-            let extraction = try extractVectors(from: pooled, expectedCount: encoded.count)
-
-            let embeddings = zip(encoded.map { $0.0 }, extraction.vectors).map { index, vector in
-                (index: index, vector: vector)
-            }
-
+        guard !encoded.isEmpty else {
             return RuntimeEmbeddingResult(
-                embeddings: embeddings,
+                embeddings: [],
                 skippedIndices: skippedIndices,
-                fallbackDescription: extraction.fallbackDescription
+                fallbackDescription: nil
             )
         }
+
+        // [PAD] (BERT standard), EOS (autoregressive like Qwen)
+        let padToken = tokenizer.convertTokenToId("[PAD]") ?? tokenizer.eosTokenId ?? 0
+
+        let maxLength = encoded.map { $0.1.count }.max() ?? 0
+
+        let padded = stacked(
+            encoded.map { _, tokens in
+                MLXArray(tokens + Array(repeating: padToken, count: maxLength - tokens.count))
+            })
+        let mask = (padded .!= padToken)
+        let tokenTypes = MLXArray.zeros(like: padded)
+
+        let outputs = context.model(
+            padded,
+            positionIds: nil,
+            tokenTypeIds: tokenTypes,
+            attentionMask: mask
+        )
+
+        let poolingModule = resolvedPooler(for: context.pooling)
+        let pooled = poolingModule(
+            outputs,
+            mask: mask,
+            normalize: self.normalize,
+            applyLayerNorm: self.applyLayerNorm
+        )
+        pooled.eval()
+
+        let extraction = try extractVectors(from: pooled, expectedCount: encoded.count)
+
+        let embeddings = zip(encoded.map { $0.0 }, extraction.vectors).map { index, vector in
+            (index: index, vector: vector)
+        }
+
+        return RuntimeEmbeddingResult(
+            embeddings: embeddings,
+            skippedIndices: skippedIndices,
+            fallbackDescription: extraction.fallbackDescription
+        )
     }
 }
