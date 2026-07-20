@@ -196,7 +196,7 @@ struct GenerateArguments: ParsableArguments, Sendable {
     }
 
     func prepare(
-        _ context: inout ModelContext
+        _ context: inout TrainableModelContext
     ) {
         if let extraEosToken {
             context.configuration.extraEOSTokens.insert(extraEosToken)
@@ -204,7 +204,7 @@ struct GenerateArguments: ParsableArguments, Sendable {
     }
 
     func generate(
-        input: LMInput, context: ModelContext
+        input: LMInput, context: ModelContextProviding
     ) async throws -> (GenerateCompletionInfo, String) {
         var output = ""
         for await item in try MLXLMCommon.generate(
