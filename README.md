@@ -17,6 +17,11 @@ examples use models implemented in [MLX Swift LM](https://github.com/ml-explore/
 
 - [MLXChatExample](Applications/MLXChatExample/README.md): An example chat app that runs on both iOS and macOS that supports LLMs and VLMs.
 
+- [MuseGlimmerDemo](Applications/MuseGlimmerDemo/README.md): A macOS app that runs
+  the 30B Muse-Glimmer vision-language model fully on-device — drop in an image
+  and ask about it. Shows how to surface prefill progress and cap the image token
+  budget, which dominate latency at this model size.
+
 - [LoRATrainingExample](Applications/LoRATrainingExample/README.md): An example that runs on macOS that downloads an LLM and fine-tunes it using LoRA (Low-Rank Adaptation) with training data.
 
 - [LinearModelTraining](Tools/LinearModelTraining/README.md): An example that
