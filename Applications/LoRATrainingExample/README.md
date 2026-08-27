@@ -2,7 +2,7 @@
 
 Example application that:
 
-- downloads the `mlx-community/Mistral-7B-v0.1-hf-4bit-mlx` model from huggingface
+- downloads the `mlx-community/gemma-3-1b-it-qat-4bit` model from huggingface
 - loads the train/valid/test data from `$SRCROOT/Data/lora` (this is copied into the build but you can imagine how it might be downloaded)
 - adds LoRA adapters and trains the model
 - let's you evaluate a prompt against the model
@@ -15,7 +15,6 @@ the LoRA weights or the fused model -- it will retrain it each time the program 
 
 ### Troubleshooting
 
-The `mlx-community/Mistral-7B-v0.1-hf-4bit-mlx` model requires a little over 4G of
-memory to load an train -- this may require ~6G of physical RAM.
+The `mlx-community/gemma-3-1b-it-qat-4bit` model is optimized for fast and low-memory on-device training on iOS and macOS.
 
 
