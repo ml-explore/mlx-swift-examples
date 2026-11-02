@@ -112,9 +112,9 @@ enum FileKey {
 /// - ``Preset/sdxlTurbo``
 /// - ``Preset/sdxlTurbo``
 ///
-/// Call ``download(hub:progressHandler:)`` to download the weights, then
-/// ``textToImageGenerator(hub:configuration:)`` or
-/// ``imageToImageGenerator(hub:configuration:)`` to produce the ``ImageGenerator``.
+/// Call ``download(client:progressHandler:)`` to download the weights, then
+/// ``textToImageGenerator(client:configuration:)`` or
+/// ``imageToImageGenerator(client:configuration:)`` to produce the ``ImageGenerator``.
 ///
 /// The ``ImageGenerator`` has a method to generate the latents:
 /// - ``TextToImageGenerator/generateLatents(parameters:)``
