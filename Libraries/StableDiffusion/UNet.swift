@@ -131,7 +131,6 @@ class Transformer2D: Module {
         _ x: MLXArray, encoderX: MLXArray, attentionMask: MLXArray?, encoderAttentionMask: MLXArray?
     ) -> MLXArray {
         let inputX = x
-        let dtype = x.dtype
         var x = x
 
         // Perform the input norm and projection
@@ -193,8 +192,6 @@ class ResnetBlock2D: Module {
     }
 
     func callAsFunction(_ x: MLXArray, timeEmbedding: MLXArray? = nil) -> MLXArray {
-        let dtype = x.dtype
-
         var y = norm1(x)
         y = silu(y)
         y = conv1(y)
@@ -500,7 +497,6 @@ class UNetModel: Module {
         }
 
         // postprocess the output
-        let dtype = x.dtype
         x = convNormOut(x)
         x = silu(x)
         x = convOut(x)

@@ -127,8 +127,12 @@ class CLIPTokenizer {
         // Split the tokens according to the byte-pair merge file
         let bpeTokens = tokens.flatMap { bpe(text: String($0)) }
 
-        // Map to token ids and return
-        let result = [bosToken] + bpeTokens.compactMap { vocabulary[$0] } + [eosToken]
+        // Map to token ids, truncated to CLIP's context length. The text encoder has a fixed
+        // 77-position embedding, so a longer sequence aborts with `[broadcast_shapes]`.
+        // BOS + up to 75 content tokens + EOS = 77.
+        let maxContentTokens = 77 - 2
+        let content = bpeTokens.compactMap { vocabulary[$0] }.prefix(maxContentTokens)
+        let result = [bosToken] + Array(content) + [eosToken]
 
         return result.map { Int32($0) }
     }

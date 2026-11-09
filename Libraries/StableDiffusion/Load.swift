@@ -449,7 +449,7 @@ func loadTokenizer(
 
     let vocabulary = try JSONDecoder().decode(
         [String: Int].self, from: Data(contentsOf: vocabularyURL))
-    let merges = try String(contentsOf: mergesURL)
+    let merges = try String(contentsOf: mergesURL, encoding: .utf8)
         .components(separatedBy: .newlines)
         // first line is a comment
         .dropFirst()
