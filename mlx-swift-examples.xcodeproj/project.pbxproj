@@ -220,6 +220,7 @@
 		C3D9F9452FD36AB50038C3B3 /* HeatTransfer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HeatTransfer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C3D9F9542FD36AE10038C3B3 /* CurveFit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CurveFit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F8D7023A2BB4E223003D7CF5 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
+		D6A1C0DE0000000000000A05 /* MuseGlimmerDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MuseGlimmerDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -423,13 +424,23 @@
 			);
 			target = C3D9F9352FD36A9B0038C3B3 /* Mandelbrot */;
 		};
+		D6A1C0DE0000000000000A09 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MuseGlimmerDemo/Assets.xcassets,
+				MuseGlimmerDemo/ContentView.swift,
+				MuseGlimmerDemo/MuseGlimmerDemoApp.swift,
+				MuseGlimmerDemo/MuseGlimmerService.swift,
+			);
+			target = D6A1C0DE0000000000000A01 /* MuseGlimmerDemo */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C314FCF02EF3313B00E5B73A /* Configuration */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Configuration; sourceTree = "<group>"; };
 		C314FCF62EF3314200E5B73A /* Data */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C314FCFB2EF3314200E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Data; sourceTree = "<group>"; };
 		C314FD242EF3315100E5B73A /* Tools */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C314FD422EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FD442EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FD462EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FD432EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FD412EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FD452EF3315100E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Tools; sourceTree = "<group>"; };
-		C314FDA02EF3315A00E5B73A /* Applications */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C314FDD82EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FDDA2EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FEED2EF33B3900E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FDDD2EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FDDC2EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FDDB2EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Applications; sourceTree = "<group>"; };
+		C314FDA02EF3315A00E5B73A /* Applications */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C314FDD82EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FDDA2EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FEED2EF33B3900E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FDDD2EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FDDC2EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C314FDDB2EF3315A00E5B73A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, D6A1C0DE0000000000000A09 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Applications; sourceTree = "<group>"; };
 		C397D92E2CD440EF00B87EE2 /* Libraries */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Libraries; sourceTree = "<group>"; };
 		C3D9F9312FD36A810038C3B3 /* Numerical */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (C3D9FB882FD36CDA0038C3B3 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C3D9FB742FD36CA40038C3B3 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C3D9FB612FD36C500038C3B3 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Numerical; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -605,6 +616,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D6A1C0DE0000000000000A03 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -644,6 +662,7 @@
 				C3D9F9362FD36A9B0038C3B3 /* Mandelbrot.app */,
 				C3D9F9452FD36AB50038C3B3 /* HeatTransfer.app */,
 				C3D9F9542FD36AE10038C3B3 /* CurveFit.app */,
+				D6A1C0DE0000000000000A05 /* MuseGlimmerDemo.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1041,6 +1060,30 @@
 			productReference = C3D9F9542FD36AE10038C3B3 /* CurveFit.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D6A1C0DE0000000000000A01 /* MuseGlimmerDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D6A1C0DE0000000000000A06 /* Build configuration list for PBXNativeTarget "MuseGlimmerDemo" */;
+			buildPhases = (
+				D6A1C0DE0000000000000A02 /* Sources */,
+				D6A1C0DE0000000000000A03 /* Frameworks */,
+				D6A1C0DE0000000000000A04 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MuseGlimmerDemo;
+			packageProductDependencies = (
+				D6A1C0DE0000000000000B01 /* MLXVLM */,
+				D6A1C0DE0000000000000B02 /* MLXLMCommon */,
+				D6A1C0DE0000000000000B03 /* MLXHuggingFace */,
+				D6A1C0DE0000000000000B04 /* HuggingFace */,
+				D6A1C0DE0000000000000B05 /* Tokenizers */,
+			);
+			productName = MuseGlimmerDemo;
+			productReference = D6A1C0DE0000000000000A05 /* MuseGlimmerDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -1142,6 +1185,7 @@
 				C3D9F9352FD36A9B0038C3B3 /* Mandelbrot */,
 				C3D9F9442FD36AB50038C3B3 /* HeatTransfer */,
 				C3D9F9532FD36AE10038C3B3 /* CurveFit */,
+				D6A1C0DE0000000000000A01 /* MuseGlimmerDemo */,
 			);
 		};
 /* End PBXProject section */
@@ -1211,6 +1255,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		C3D9F9522FD36AE10038C3B3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D6A1C0DE0000000000000A04 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -1333,6 +1384,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		C3D9F9502FD36AE10038C3B3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D6A1C0DE0000000000000A02 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -3711,6 +3769,105 @@
 			};
 			name = Release;
 		};
+		D6A1C0DE0000000000000A07 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = Applications/MuseGlimmerDemo/MuseGlimmerDemo.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "mlx.MuseGlimmerDemo${DISAMBIGUATOR}";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D6A1C0DE0000000000000A08 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = Applications/MuseGlimmerDemo/MuseGlimmerDemo.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "mlx.MuseGlimmerDemo${DISAMBIGUATOR}";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -3872,6 +4029,15 @@
 			buildConfigurations = (
 				C3D9F95D2FD36AE20038C3B3 /* Debug */,
 				C3D9F95E2FD36AE20038C3B3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D6A1C0DE0000000000000A06 /* Build configuration list for PBXNativeTarget "MuseGlimmerDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D6A1C0DE0000000000000A07 /* Debug */,
+				D6A1C0DE0000000000000A08 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -4188,6 +4354,28 @@
 			productName = HuggingFace;
 		};
 		C3EA7F742F8445EE0054AEA3 /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C3EA7F532F8432080054AEA3 /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
+		};
+		D6A1C0DE0000000000000B01 /* MLXVLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MLXVLM;
+		};
+		D6A1C0DE0000000000000B02 /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MLXLMCommon;
+		};
+		D6A1C0DE0000000000000B03 /* MLXHuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MLXHuggingFace;
+		};
+		D6A1C0DE0000000000000B04 /* HuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C3EA7F522F8431BE0054AEA3 /* XCRemoteSwiftPackageReference "swift-huggingface" */;
+			productName = HuggingFace;
+		};
+		D6A1C0DE0000000000000B05 /* Tokenizers */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C3EA7F532F8432080054AEA3 /* XCRemoteSwiftPackageReference "swift-transformers" */;
 			productName = Tokenizers;
