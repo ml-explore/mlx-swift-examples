@@ -1,5 +1,5 @@
 {
-  "originHash" : "e538f345418093ec944f6af6ff98e1b0c1e736fb7c1f52379fbcf33a8ac26084",
+  "originHash" : "eb0800a07c6a73288a79eda943494b570c447748bd3cbf8911e39559d9b1eb59",
   "pins" : [
     {
       "identity" : "eventsource",
@@ -35,6 +35,15 @@
       "state" : {
         "revision" : "1c05248bb0899e2a7a4962b84d319cf12f4e12aa",
         "version" : "3.31.3"
+      }
+    },
+    {
+      "identity" : "mlx-turbovec-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/offlyn-ai/mlx-turbovec-swift.git",
+      "state" : {
+        "revision" : "2e9acad9bdd02b70685ae9a8ebfdf467b4c6ff08",
+        "version" : "0.1.0"
       }
     },
     {

@@ -35,6 +35,10 @@ examples use models implemented in [MLX Swift LM](https://github.com/ml-explore/
 - [mnist-tool](Tools/mnist-tool/README.md): A command line tool for training a
   a LeNet on MNIST.
 
+- [vector-search-tool](Tools/vector-search-tool/README.md): A command line tool
+  demonstrating MLX-accelerated TurboQuant vector search with compression and
+  recall benchmarks. Uses [mlx-turbovec-swift](https://github.com/offlyn-ai/mlx-turbovec-swift).
+
 ## Numerical Computing
 
 Examples that use MLX for general numerical computing (no ML model involved),
