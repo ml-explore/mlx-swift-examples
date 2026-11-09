@@ -21,8 +21,8 @@ sd text --prompt "purple cow on the moon" --output /tmp/cow.png
 
 Then cmd-r to run.
 
-> Note: you may be prompted for access to your Documents directory — this is where
-> the Hugging Face HubApi stores downloaded model files.
+> Note: model files are downloaded to the Hugging Face cache
+> (`~/.cache/huggingface/hub`), which is shared with the Python `huggingface_hub` client.
 
 ### Running: Command Line
 

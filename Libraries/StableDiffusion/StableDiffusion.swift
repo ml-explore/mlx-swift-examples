@@ -1,7 +1,7 @@
 // Copyright © 2024 Apple Inc.
 
 import Foundation
-import Hub
+import HuggingFace
 import MLX
 import MLXNN
 
@@ -214,7 +214,7 @@ open class StableDiffusion {
     let tokenizer: CLIPTokenizer
 
     internal init(
-        hub: HubApi, configuration: StableDiffusionConfiguration, dType: DType,
+        client: HubClient, configuration: StableDiffusionConfiguration, dType: DType,
         diffusionConfiguration: DiffusionConfiguration? = nil, unet: UNetModel? = nil,
         textEncoder: CLIPTextModel? = nil, autoencoder: Autoencoder? = nil,
         sampler: SimpleEulerSampler? = nil, tokenizer: CLIPTokenizer? = nil
@@ -222,22 +222,24 @@ open class StableDiffusion {
         self.dType = dType
         self.diffusionConfiguration =
             try diffusionConfiguration
-            ?? loadDiffusionConfiguration(hub: hub, configuration: configuration)
-        self.unet = try unet ?? loadUnet(hub: hub, configuration: configuration, dType: dType)
+            ?? loadDiffusionConfiguration(client: client, configuration: configuration)
+        self.unet = try unet ?? loadUnet(client: client, configuration: configuration, dType: dType)
         self.textEncoder =
-            try textEncoder ?? loadTextEncoder(hub: hub, configuration: configuration, dType: dType)
+            try textEncoder
+            ?? loadTextEncoder(client: client, configuration: configuration, dType: dType)
 
         // note: autoencoder uses float32 weights
         self.autoencoder =
             try autoencoder
-            ?? loadAutoEncoder(hub: hub, configuration: configuration, dType: .float32)
+            ?? loadAutoEncoder(client: client, configuration: configuration, dType: .float32)
 
         if let sampler {
             self.sampler = sampler
         } else {
             self.sampler = SimpleEulerSampler(configuration: self.diffusionConfiguration)
         }
-        self.tokenizer = try tokenizer ?? loadTokenizer(hub: hub, configuration: configuration)
+        self.tokenizer =
+            try tokenizer ?? loadTokenizer(client: client, configuration: configuration)
     }
 
     open func ensureLoaded() {
@@ -299,8 +301,9 @@ open class StableDiffusion {
 /// Implementation of ``StableDiffusion`` for the `stabilityai/stable-diffusion-2-1-base` model.
 open class StableDiffusionBase: StableDiffusion, TextToImageGenerator {
 
-    public init(hub: HubApi, configuration: StableDiffusionConfiguration, dType: DType) throws {
-        try super.init(hub: hub, configuration: configuration, dType: dType)
+    public init(client: HubClient, configuration: StableDiffusionConfiguration, dType: DType) throws
+    {
+        try super.init(client: client, configuration: configuration, dType: dType)
     }
 
     func conditionText(text: String, imageCount: Int, cfgWeight: Float, negativeText: String?)
@@ -345,22 +348,23 @@ open class StableDiffusionXL: StableDiffusion, TextToImageGenerator, ImageToImag
     let textEncoder2: CLIPTextModel
     let tokenizer2: CLIPTokenizer
 
-    public init(hub: HubApi, configuration: StableDiffusionConfiguration, dType: DType) throws {
+    public init(client: HubClient, configuration: StableDiffusionConfiguration, dType: DType) throws
+    {
         let diffusionConfiguration = try loadConfiguration(
-            hub: hub, configuration: configuration, key: .diffusionConfig,
+            client: client, configuration: configuration, key: .diffusionConfig,
             type: DiffusionConfiguration.self)
         let sampler = SimpleEulerAncestralSampler(configuration: diffusionConfiguration)
 
         self.textEncoder2 = try loadTextEncoder(
-            hub: hub, configuration: configuration, configKey: .textEncoderConfig2,
+            client: client, configuration: configuration, configKey: .textEncoderConfig2,
             weightsKey: .textEncoderWeights2, dType: dType)
 
         self.tokenizer2 = try loadTokenizer(
-            hub: hub, configuration: configuration, vocabulary: .tokenizerVocabulary2,
+            client: client, configuration: configuration, vocabulary: .tokenizerVocabulary2,
             merges: .tokenizerMerges2)
 
         try super.init(
-            hub: hub, configuration: configuration, dType: dType,
+            client: client, configuration: configuration, dType: dType,
             diffusionConfiguration: diffusionConfiguration, sampler: sampler)
     }
 
