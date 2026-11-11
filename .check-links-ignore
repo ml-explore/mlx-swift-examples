@@ -1,0 +1,11 @@
+# Paths that support/check_links.py should skip: markdown files matching
+# a pattern are not scanned, and link targets matching a pattern are not
+# flagged as broken. One fnmatch glob per line, relative to the repository
+# root. Lines starting with # are comments.
+
+# Test fixtures, not documentation:
+Applications/LLMEval/Models/*
+
+# Moved to the mlx-swift-lm package:
+Libraries/MLXLLM/*
+Libraries/Embedders/*

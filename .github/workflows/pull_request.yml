@@ -64,10 +64,10 @@ jobs:
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Run style checks
+      - name: Run style and markdown link checks
         shell: sh
         run: |
-          pre-commit run --all || (echo "Style checks failed, please install pre-commit and run pre-commit run --all and push the change"; echo ""; git --no-pager diff; exit 1)
+          pre-commit run --all || (echo "Style or markdown link checks failed, please install pre-commit and run pre-commit run --all and push the change"; echo ""; git --no-pager diff; exit 1)
 
   mac_build_and_test:
     needs: lint
